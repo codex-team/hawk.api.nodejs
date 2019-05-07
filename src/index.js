@@ -1,0 +1,34 @@
+import { resolve } from "path";
+import dotenv from "dotenv";
+import { ApolloServer, gql } from "apollo-server-express";
+import express from "express";
+import mongoose from "mongoose";
+
+dotenv.config({ path: resolve(__dirname, "../.env") });
+
+import { resolvers } from "./resolvers";
+import { typeDefs } from "./typeDefs";
+
+const startServer = async () => {
+  const app = express();
+
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers
+  });
+
+  server.applyMiddleware({ app });
+
+  await mongoose.connect(
+    process.env.MONGO_URL || "mongodb://localhost:27017/",
+    {
+      useNewUrlParser: true
+    }
+  );
+
+  app.listen({ port: 4000 }, () =>
+    console.log(`🚀 Server ready at http://localhost:4000${server.graphqlPath}`)
+  );
+};
+
+startServer();
