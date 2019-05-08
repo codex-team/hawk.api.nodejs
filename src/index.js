@@ -3,17 +3,15 @@ import dotenv from 'dotenv';
 import { ApolloServer } from 'apollo-server-express';
 import express from 'express';
 import mongoose from 'mongoose';
-import cookieParser from 'cookie-parser';
 
 import { resolvers } from './resolvers';
 import { typeDefs } from './typeDefs';
+import { checkUserMiddleware } from './auth';
 
 dotenv.config({ path: resolve(__dirname, '../.env') });
 
 const startServer = async () => {
   const app = express();
-
-  app.use(cookieParser());
 
   const server = new ApolloServer({
     typeDefs,
@@ -23,8 +21,6 @@ const startServer = async () => {
       res
     })
   });
-
-  server.applyMiddleware({ app });
 
   try {
     await mongoose.connect(
@@ -37,6 +33,10 @@ const startServer = async () => {
     console.error(err);
     process.exit(1);
   }
+
+  app.use(checkUserMiddleware);
+
+  server.applyMiddleware({ app });
 
   app.listen({ port: 4000 }, () =>
     console.log(`🚀 Server ready at http://localhost:4000${server.graphqlPath}`)
