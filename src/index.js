@@ -1,46 +1,65 @@
-import { resolve } from 'path';
-import dotenv from 'dotenv';
-import { ApolloServer } from 'apollo-server-express';
-import express from 'express';
-import mongoose from 'mongoose';
+const { ApolloServer } = require('apollo-server-express');
+const express = require('express');
+const mongoose = require('mongoose');
 
-import { resolvers } from './resolvers';
-import { typeDefs } from './typeDefs';
-import { checkUserMiddleware } from './auth';
+const resolvers = require('./resolvers');
+const typeDefs = require('./typeDefs');
 
-dotenv.config({ path: resolve(__dirname, '../.env') });
+/**
+ * Hawk API server
+ *
+ * @property {Express} app - Express app.
+ * @property {ApolloServer} server - GraphQL Apollo server.
+ * @property {object} config - config object.
+ * @property {number} config.port - serving port.
+ * @property {string} config.mongoURL - MongoDB URL.
+ */
+class HawkAPI {
+  /**
+   * Creates an instance of HawkAPI.
+   * Requires PORT and MONGO_URL env vars to be set.
+   */
+  constructor() {
+    this.config = {
+      port: +process.env.PORT || 4000,
+      mongoURL:
+        process.env.MONGO_URL ||
+        'mongodb://root:root@localhost:27017/hawk?authSource=admin'
+    };
 
-const startServer = async () => {
-  const app = express();
+    this.app = express();
 
-  const server = new ApolloServer({
-    typeDefs,
-    resolvers,
-    context: ({ req, res }) => ({
-      req,
-      res
-    })
-  });
+    this.server = new ApolloServer({
+      typeDefs,
+      resolvers
+    });
 
-  try {
-    await mongoose.connect(
-      process.env.MONGO_URL || 'mongodb://localhost:27017/',
-      {
-        useNewUrlParser: true
-      }
-    );
-  } catch (err) {
-    console.error(err);
-    process.exit(1);
+    this.server.applyMiddleware({ app: this.app });
   }
 
-  app.use(checkUserMiddleware);
+  /**
+   * Start API server
+   *
+   * @returns {Promise<void>}
+   */
+  async start() {
+    await mongoose.connect(this.config.mongoURL, {
+      useNewUrlParser: true
+    });
 
-  server.applyMiddleware({ app });
+    return new Promise((resolve, reject) => {
+      this.app.listen({ port: this.config.port }, e => {
+        if (e) return reject(e);
 
-  app.listen({ port: 4000 }, () =>
-    console.log(`🚀 Server ready at http://localhost:4000${server.graphqlPath}`)
-  );
+        console.log(
+          `🚀 Server ready at :${this.config.port}${this.server.graphqlPath}`
+        );
+        resolve();
+      });
+    });
+  }
+}
+
+module.exports = {
+  HawkAPI
 };
-
-startServer();

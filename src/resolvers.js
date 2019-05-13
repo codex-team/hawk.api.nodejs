@@ -1,8 +1,8 @@
-import argon2 from 'argon2';
-import { sign } from 'jsonwebtoken';
-import { User } from './models/user';
+const argon2 = require('argon2');
+const { sign } = require('jsonwebtoken');
+const { User } = require('./models/user');
 
-export const resolvers = {
+module.exports = {
   Query: {
     hello: () => 'hi'
   },
