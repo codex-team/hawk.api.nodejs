@@ -10,18 +10,25 @@ const startServer = async () => {};
 startServer();
 
 /**
- *
+ * Hawk API server
  *
  * @class HawkAPI
+ * @property {Express} app - Express app.
+ * @property {ApolloServer} server - GraphQL Apollo server.
+ * @property {object} config - config object.
+ * @property {number} config.port - serving port.
+ * @property {string} config.mongoURL - MongoDB URL.
  */
 class HawkAPI {
   /**
-   *Creates an instance of HawkAPI.
+   * Creates an instance of HawkAPI.
+   * Requires PORT and MONGO_URL env vars to be set.
+   *
    * @memberof HawkAPI
    */
   constructor() {
     this.config = {
-      port: process.env.PORT || 4000,
+      port: +process.env.PORT || 4000,
       mongoURL: process.env.MONGO_URL || 'mongodb://localhost:27017/'
     };
 
@@ -36,9 +43,10 @@ class HawkAPI {
   }
 
   /**
-   *
+   * Start API server
    *
    * @memberof HawkAPI
+   * @returns {Promise<void>}
    */
   async start() {
     await mongoose.connect(this.config.mongoURL, {
