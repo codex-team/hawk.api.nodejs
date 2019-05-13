@@ -18,12 +18,11 @@ class HawkAPI {
   /**
    * Creates an instance of HawkAPI.
    * Requires PORT and MONGO_URL env vars to be set.
-   *
    */
   constructor() {
     this.config = {
       port: +process.env.PORT || 4000,
-      mongoURL: process.env.MONGO_URL || 'mongodb://localhost:27017/'
+      mongoURL: process.env.MONGO_URL || 'mongodb://root:root@localhost:27017/hawk?authSource=admin'
     };
 
     this.app = express();
@@ -39,7 +38,6 @@ class HawkAPI {
   /**
    * Start API server
    *
-   * @memberof HawkAPI
    * @returns {Promise<void>}
    */
   async start() {
@@ -47,11 +45,14 @@ class HawkAPI {
       useNewUrlParser: true
     });
 
-    this.app.listen({ port: this.config.port }, () =>
-      console.log(
-        `🚀 Server ready at :${this.config.port}${this.server.graphqlPath}`
-      )
-    );
+    return new Promise((resolve, reject) => {
+      this.app.listen({ port: this.config.port }, (e) => {
+        if (e) return reject(e);
+
+        console.log(`🚀 Server ready at :${this.config.port}${this.server.graphqlPath}`);
+        resolve();
+      });
+    });
   }
 }
 
