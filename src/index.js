@@ -5,14 +5,9 @@ const mongoose = require('mongoose');
 const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
 
-const startServer = async () => {};
-
-startServer();
-
 /**
  * Hawk API server
  *
- * @class HawkAPI
  * @property {Express} app - Express app.
  * @property {ApolloServer} server - GraphQL Apollo server.
  * @property {object} config - config object.
@@ -24,7 +19,6 @@ class HawkAPI {
    * Creates an instance of HawkAPI.
    * Requires PORT and MONGO_URL env vars to be set.
    *
-   * @memberof HawkAPI
    */
   constructor() {
     this.config = {
