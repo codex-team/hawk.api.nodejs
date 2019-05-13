@@ -1,4 +1,4 @@
-import { resolve } from "path";
-import dotenv from "dotenv";
+const { resolve } = require('path');
+const dotenv = require('dotenv');
 
-export default dotenv.config({ path: resolve(__dirname, "../.env") }).parsed;
+module.exports = dotenv.config({ path: resolve(__dirname, '../.env') }).parsed;
