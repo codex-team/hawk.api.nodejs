@@ -2,8 +2,8 @@ const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
 const mongoose = require('mongoose');
 
-const { resolvers } = require('./resolvers');
-const { typeDefs } = require('./typeDefs');
+const resolvers = require('./resolvers');
+const typeDefs = require('./typeDefs');
 
 const startServer = async () => {};
 
@@ -27,12 +27,12 @@ class HawkAPI {
 
     this.app = express();
 
-    const server = new ApolloServer({
+    this.server = new ApolloServer({
       typeDefs,
       resolvers
     });
 
-    server.applyMiddleware({ app: this.app });
+    this.server.applyMiddleware({ app: this.app });
   }
 
   /**
@@ -45,9 +45,9 @@ class HawkAPI {
       useNewUrlParser: true
     });
 
-    app.listen({ port: this.config.port }, () =>
+    this.app.listen({ port: this.config.port }, () =>
       console.log(
-        `🚀 Server ready at :${this.config.port}${server.graphqlPath}`
+        `🚀 Server ready at :${this.config.port}${this.server.graphqlPath}`
       )
     );
   }

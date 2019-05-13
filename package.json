@@ -1,10 +1,10 @@
 {
   "name": "hawk.api",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "app.js",
   "license": "UNLICENSED",
   "scripts": {
-    "start": "nodemon --exec babel-node src/index.js"
+    "start": "nodemon app.js"
   },
   "devDependencies": {
     "eslint": "^5.16.0",
@@ -16,6 +16,7 @@
     "apollo-server-express": "^2.4.8",
     "dotenv": "^7.0.0",
     "express": "^4.16.4",
-    "graphql": "^14.2.1"
+    "graphql": "^14.2.1",
+    "mongoose": "^5.5.7"
   }
 }

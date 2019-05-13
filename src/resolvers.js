@@ -1,5 +1,5 @@
-export const resolvers = {
+module.exports = {
   Query: {
-    hello: () => "hi"
+    hello: () => 'hi'
   }
 };
