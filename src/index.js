@@ -1,11 +1,8 @@
-import { resolve } from "path";
-import dotenv from "dotenv";
 import { ApolloServer, gql } from "apollo-server-express";
 import express from "express";
 import mongoose from "mongoose";
 
-dotenv.config({ path: resolve(__dirname, "../.env") });
-
+import env from "./env";
 import { resolvers } from "./resolvers";
 import { typeDefs } from "./typeDefs";
 
