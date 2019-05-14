@@ -1,4 +1,4 @@
-const { ApolloServer } = require('apollo-server-express');
+const { ApolloServer, ApolloError } = require('apollo-server-express');
 const express = require('express');
 const mongoose = require('mongoose');
 
@@ -33,7 +33,15 @@ class HawkAPI {
     this.server = new ApolloServer({
       typeDefs,
       resolvers,
-      context: ({ req, res }) => ({ req, res })
+      context: ({ req, res }) => ({ req, res }),
+      formatError: err => {
+        if (err.extensions.exception.name === 'MongoError') {
+          // TODO: apollo doesn't work with this, although it's from their guide
+          return new Error('Internal server error');
+        }
+
+        return err;
+      }
     });
 
     this.server.applyMiddleware({ app: this.app });

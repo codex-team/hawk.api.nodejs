@@ -15,7 +15,7 @@ const checkUserMiddleware = async (req, res, next) => {
     const data = verify(accessToken, process.env.JWT_SECRET);
 
     req.userId = data.userId;
-  } catch {}
+  } catch (err) {}
   next();
 };
 
