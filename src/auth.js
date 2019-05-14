@@ -1,6 +1,6 @@
 import { verify } from 'jsonwebtoken';
 
-export const checkUserMiddleware = (req, res, next) => {
+export const checkUserMiddleware = async (req, res, next) => {
   let accessToken = req.headers['authorization'];
 
   if (!accessToken) {
@@ -12,7 +12,7 @@ export const checkUserMiddleware = (req, res, next) => {
   }
 
   try {
-    const data = verify(accessToken, process.env['JWT_SECRET']);
+    const data = verify(accessToken, process.env.JWT_SECRET);
 
     req.userId = data.userId;
   } catch {}

@@ -30,7 +30,7 @@ module.exports = {
         return null;
       }
 
-      return sign({ userId: user.id }, process.env['JWT_SECRET'], {
+      return sign({ userId: user.id }, process.env.JWT_SECRET, {
         expiresIn: '7d'
       });
     }

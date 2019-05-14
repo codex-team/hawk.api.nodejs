@@ -22,9 +22,7 @@ class HawkAPI {
   constructor() {
     this.config = {
       port: +process.env.PORT || 4000,
-      mongoURL:
-        process.env.MONGO_URL ||
-        'mongodb://root:root@localhost:27017/hawk?authSource=admin'
+      mongoURL: process.env.MONGO_URL || 'mongodb://localhost:27017/hawk'
     };
 
     this.app = express();
