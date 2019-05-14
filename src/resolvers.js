@@ -4,7 +4,7 @@ const { User } = require('./models/user');
 
 module.exports = {
   Query: {
-    hello: () => 'hi'
+    health: () => 'ok'
   },
   Mutation: {
     register: async (_, { email, password }) => {
@@ -17,7 +17,7 @@ module.exports = {
 
       return true;
     },
-    login: async (_, { email, password }, { res }) => {
+    login: async (_, { email, password }) => {
       const user = await User.findOne({ email });
 
       if (!user) {
@@ -31,7 +31,7 @@ module.exports = {
       }
 
       return sign({ userId: user.id }, process.env.JWT_SECRET, {
-        expiresIn: '7d'
+        expiresIn: '1d'
       });
     }
   }

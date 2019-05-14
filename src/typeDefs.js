@@ -8,7 +8,7 @@ module.exports = gql`
   }
 
   type Query {
-    hello: String!
+    health: String!
   }
 
   type Mutation {
