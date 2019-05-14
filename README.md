@@ -28,6 +28,38 @@ Response:
 }
 ```
 
+- **me**
+
+Returns authenticated user data
+
+Request:
+
+```graphql
+{
+  me {
+    id
+    email
+    name
+    picture
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "me": {
+      "id": "5cdafcbcef16984dde1ad6ff",
+      "email": "me@example.com",
+      "name": null,
+      "picture": ""
+    }
+  }
+}
+```
+
 ## Mutations
 
 - **register**

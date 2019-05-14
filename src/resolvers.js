@@ -5,7 +5,22 @@ const { User } = require('./models/user');
 
 module.exports = {
   Query: {
-    health: () => 'ok'
+    health: () => 'ok',
+    me: async (_, __, { req }) => {
+      if (!req.userId) {
+        return null;
+      }
+
+      try {
+        return User.findById(req.userId);
+      } catch (err) {
+        if (err instanceof MongoError) {
+          return null;
+        } else {
+          throw err;
+        }
+      }
+    }
   },
   Mutation: {
     register: async (_, { email, password }) => {

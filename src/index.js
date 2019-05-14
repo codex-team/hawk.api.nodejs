@@ -2,6 +2,7 @@ const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
 const mongoose = require('mongoose');
 
+const { checkUserMiddleware } = require('./middlewares/auth');
 const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
 
@@ -27,9 +28,12 @@ class HawkAPI {
 
     this.app = express();
 
+    this.app.use(checkUserMiddleware);
+
     this.server = new ApolloServer({
       typeDefs,
-      resolvers
+      resolvers,
+      context: ({ req, res }) => ({ req, res })
     });
 
     this.server.applyMiddleware({ app: this.app });

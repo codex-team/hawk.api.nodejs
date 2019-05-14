@@ -5,10 +5,12 @@ module.exports = gql`
     id: ID!
     email: String!
     name: String
+    picture: String
   }
 
   type Query {
     health: String!
+    me: User
   }
 
   type Mutation {

@@ -1,6 +1,6 @@
-import { verify } from 'jsonwebtoken';
+const { verify } = require('jsonwebtoken');
 
-export const checkUserMiddleware = async (req, res, next) => {
+const checkUserMiddleware = async (req, res, next) => {
   let accessToken = req.headers['authorization'];
 
   if (!accessToken) {
@@ -17,4 +17,8 @@ export const checkUserMiddleware = async (req, res, next) => {
     req.userId = data.userId;
   } catch {}
   next();
+};
+
+module.exports = {
+  checkUserMiddleware
 };
