@@ -1,3 +1,4 @@
+const { MongoError } = require('mongodb');
 const argon2 = require('argon2');
 const { sign } = require('jsonwebtoken');
 const { User } = require('./models/user');
@@ -10,10 +11,18 @@ module.exports = {
     register: async (_, { email, password }) => {
       const hashedPassword = await argon2.hash(password);
 
-      await User.create({
-        email,
-        password: hashedPassword
-      });
+      try {
+        await User.create({
+          email,
+          password: hashedPassword
+        });
+      } catch (err) {
+        if (err instanceof MongoError) {
+          return false;
+        } else {
+          throw err;
+        }
+      }
 
       return true;
     },
