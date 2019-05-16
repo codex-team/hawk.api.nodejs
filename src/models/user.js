@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const argon2 = require('argon2');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const Workspace = require('./workspace');
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -17,7 +18,8 @@ const userSchema = new mongoose.Schema({
   picture: {
     type: String,
     default: ''
-  }
+  },
+  workspaces: [ { type: mongoose.Schema.ObjectId, ref: 'Workspace' } ]
 });
 
 /**
