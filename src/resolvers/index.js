@@ -1,7 +1,7 @@
-const User = require('./models/user');
+const User = require('../models/user');
 
 const { GraphQLString } = require('graphql');
-const { AuthenticationError } = require('apollo-server-express');
+const { AuthenticationError } = require('apollo-server-express/dist/index');
 
 module.exports = {
   Token: {
