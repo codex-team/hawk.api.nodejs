@@ -25,7 +25,7 @@ Mutations available on the Hawk API
 """
 type Mutation {
   """
-  Register user with provided email and password. Returns true if registred
+  Register user with provided email. Returns auth token if registered
   """
   signUp(
     "Registration email"
