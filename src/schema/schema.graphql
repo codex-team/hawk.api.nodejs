@@ -1,27 +1,4 @@
-"""
-Represent API user
-"""
-type User {
-  """
-  User's id
-  """
-  id: ID!
-
-  """
-  User's email
-  """
-  email: String!
-
-  """
-  User's name
-  """
-  name: String
-
-  """
-  User's picture
-  """
-  picture: String
-}
+# import User from "user.graphql"
 
 """
 Queries available on the Hawk API

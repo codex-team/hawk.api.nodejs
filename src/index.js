@@ -5,7 +5,7 @@ const { importSchema } = require('graphql-import');
 
 const { checkUserMiddleware } = require('./middlewares/auth');
 const resolvers = require('./resolvers');
-const typeDefs = importSchema('./src/schema.graphql');
+const typeDefs = importSchema('./src/schema/schema.graphql');
 
 /**
  * Hawk API server
