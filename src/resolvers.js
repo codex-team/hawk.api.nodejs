@@ -1,6 +1,4 @@
 const { MongoError } = require('mongodb');
-const argon2 = require('argon2');
-const { sign } = require('jsonwebtoken');
 const User = require('./models/user');
 
 const { GraphQLString } = require('graphql');
@@ -45,15 +43,11 @@ module.exports = {
         return null;
       }
 
-      const valid = await argon2.verify(user.password, password);
-
-      if (!valid) {
+      if (!await user.comparePassword(password)) {
         return null;
       }
 
-      return sign({ userId: user.id }, process.env.JWT_SECRET, {
-        expiresIn: '1d'
-      });
+      return user.generateJWT();
     }
   }
 };
