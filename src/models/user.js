@@ -29,7 +29,7 @@ userSchema.statics.create = async function (email) {
   const generatedPassword = crypto.randomBytes(8).toString('hex');
   const hashedPassword = await argon2.hash(generatedPassword);
   const userData = { email, password: hashedPassword };
-  const user = new this(userData);
+  const user = new User(userData);
 
   await user.save();
   user.generatedPassword = generatedPassword;
@@ -56,4 +56,6 @@ userSchema.methods.comparePassword = function (password) {
   return argon2.verify(this.password, password);
 };
 
-module.exports = mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
+
+module.exports = User;
