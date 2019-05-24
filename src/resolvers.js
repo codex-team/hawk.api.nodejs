@@ -11,13 +11,13 @@ module.exports = {
   Query: {
     health: () => 'ok',
 
-    async me(_, __, { req }) {
-      if (!req.locals.userId) {
+    async me(_, __, { user }) {
+      if (!user.userId) {
         return null;
       }
 
       try {
-        return User.findById(req.locals.userId);
+        return User.findById(user.userId);
       } catch (err) {
         if (err instanceof MongoError) {
           return null;

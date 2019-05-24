@@ -1,9 +1,9 @@
-const { ApolloServer, ApolloError } = require('apollo-server-express');
+const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
 const mongoose = require('mongoose');
 const { importSchema } = require('graphql-import');
+const jwt = require('jsonwebtoken');
 
-const { checkUserMiddleware } = require('./middlewares/auth');
 const resolvers = require('./resolvers');
 const typeDefs = importSchema('./src/schema/schema.graphql');
 
@@ -29,23 +29,39 @@ class HawkAPI {
 
     this.app = express();
 
-    this.app.use(checkUserMiddleware);
-
     this.server = new ApolloServer({
       typeDefs,
       resolvers,
-      context: ({ req, res }) => ({ req, res }),
-      formatError: err => {
-        if (err.extensions.exception.name === 'MongoError') {
-          // TODO: apollo doesn't work with this, although it's from their guide
-          return new Error('Internal server error');
-        }
-
-        return err;
-      }
+      context: HawkAPI.createContext
     });
 
     this.server.applyMiddleware({ app: this.app });
+  }
+
+  /**
+   * Creates request context
+   * @param {Request} req - Express request
+   * @param {Response} res - Express response
+   * @return {Promise} - context
+   */
+  static async createContext({ req, res }) {
+    let accessToken = req.headers['authorization'];
+
+    if (!accessToken) {
+      return false;
+    }
+
+    if (accessToken.startsWith('Bearer ')) {
+      accessToken = accessToken.slice(7);
+    }
+
+    try {
+      const data = await jwt.verify(accessToken, process.env.JWT_SECRET);
+
+      return { user: { userId: data.userId } };
+    } catch (err) {
+      return false;
+    }
   }
 
   /**
