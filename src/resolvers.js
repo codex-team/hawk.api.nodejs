@@ -6,7 +6,8 @@ const { User } = require('./models/user');
 module.exports = {
   Query: {
     health: () => 'ok',
-    me: async (_, __, { req }) => {
+
+    async me(_, __, { req }) {
       if (!req.locals.userId) {
         return null;
       }
@@ -23,7 +24,7 @@ module.exports = {
     }
   },
   Mutation: {
-    signUp: async (_, { email }) => {
+    async signUp(_, { email }) {
       try {
         const user = await User.create(email);
 
@@ -38,7 +39,8 @@ module.exports = {
 
       return true;
     },
-    login: async (_, { email, password }) => {
+
+    async login(_, { email, password }) {
       const user = await User.findOne({ email });
 
       if (!user) {
