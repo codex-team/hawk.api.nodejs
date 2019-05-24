@@ -1,7 +1,7 @@
 const { MongoError } = require('mongodb');
 const argon2 = require('argon2');
 const { sign } = require('jsonwebtoken');
-const { User } = require('./models/user');
+const User = require('./models/user');
 
 module.exports = {
   Query: {
