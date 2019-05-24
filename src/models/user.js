@@ -27,10 +27,13 @@ const userSchema = new mongoose.Schema({
 userSchema.statics.create = async function (email) {
   const generatedPassword = crypto.randomBytes(8).toString('hex');
   const hashedPassword = await argon2.hash(generatedPassword);
-  const user = new this({ email, password: hashedPassword });
+  const userData = { email, password: hashedPassword };
+  const user = new this(userData);
+
+  await user.save();
 
   return {
-    ...await user.save(),
+    ...userData,
     generatedPassword
   };
 };

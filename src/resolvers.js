@@ -23,14 +23,10 @@ module.exports = {
     }
   },
   Mutation: {
-    register: async (_, { email, password }) => {
-      const hashedPassword = await argon2.hash(password);
-
+    register: async (_, { email }) => {
       try {
-        await User.create({
-          email,
-          password: hashedPassword
-        });
+        const user = await User.create(email);
+        console.log(`New user: email: ${user.email}, password: ${user.generatedPassword}`);
       } catch (err) {
         if (err instanceof MongoError) {
           return false;

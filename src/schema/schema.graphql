@@ -24,9 +24,7 @@ type Mutation {
   """
   register(
     "Registration email"
-    email: String!,
-    "Registration password"
-    password: String!): Boolean!
+    email: String!): Boolean!
 
   """
   Login user with provided email and password
