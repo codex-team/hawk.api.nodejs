@@ -1,10 +1,11 @@
 const { ApolloServer, ApolloError } = require('apollo-server-express');
 const express = require('express');
 const mongoose = require('mongoose');
+const { importSchema } = require('graphql-import');
 
 const { checkUserMiddleware } = require('./middlewares/auth');
 const resolvers = require('./resolvers');
-const typeDefs = require('./typeDefs');
+const typeDefs = importSchema('./src/schema.graphql');
 
 /**
  * Hawk API server
