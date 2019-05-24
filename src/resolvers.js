@@ -23,9 +23,10 @@ module.exports = {
     }
   },
   Mutation: {
-    register: async (_, { email }) => {
+    signUp: async (_, { email }) => {
       try {
         const user = await User.create(email);
+
         console.log(`New user: email: ${user.email}, password: ${user.generatedPassword}`);
       } catch (err) {
         if (err instanceof MongoError) {

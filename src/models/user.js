@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema({
 /**
  * Creates new user in DB
  * @param {String} email - user email
- * @returns {Promise} - created user
+ * @returns {Promise} - user details
  */
 userSchema.statics.create = async function (email) {
   const generatedPassword = crypto.randomBytes(8).toString('hex');
