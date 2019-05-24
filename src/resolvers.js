@@ -31,19 +31,11 @@ module.exports = {
   },
   Mutation: {
     async signUp(_, { email }) {
-      try {
-        const user = await User.create(email);
+      const user = await User.create(email);
 
-        console.log(`New user: email: ${user.email}, password: ${user.generatedPassword}`);
-      } catch (err) {
-        if (err instanceof MongoError) {
-          return false;
-        } else {
-          throw err;
-        }
-      }
+      console.log(`New user: email: ${user.email}, password: ${user.generatedPassword}`);
 
-      return true;
+      return user.generateJWT();
     },
 
     async login(_, { email, password }) {
