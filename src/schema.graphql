@@ -1,16 +1,58 @@
+"""
+Represent API user
+"""
 type User {
+  """
+  User's id
+  """
   id: ID!
+
+  """
+  User's email
+  """
   email: String!
+
+  """
+  User's name
+  """
   name: String
+
+  """
+  User's picture
+  """
   picture: String
 }
 
+"""
+Queries available on the Hawk API
+"""
 type Query {
+  """
+  Healthcheck endpoint
+  """
   health: String!
+
+  """
+  Returns authenticated user data
+  """
   me: User
 }
 
+"""
+Mutations available on the Hawk API
+"""
 type Mutation {
-  register(email: String!, password: String!): Boolean!
+  """
+  Register user with provided email and password. Returns true if registred
+  """
+  register(
+    "Registration email"
+    email: String!,
+    "Registration password"
+    password: String!): Boolean!
+
+  """
+  Login user with provided email and password
+  """
   login(email: String!, password: String!): String
 }
