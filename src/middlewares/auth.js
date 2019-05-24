@@ -1,6 +1,12 @@
 const { verify } = require('jsonwebtoken');
 
-const checkUserMiddleware = async (req, res, next) => {
+/**
+ * Check authorization header and verify user
+ * @param {Request} req - Express request
+ * @param {Response} res - Express request
+ * @param {function} next - next middleware
+ */
+async function checkUserMiddleware(req, res, next) {
   let accessToken = req.headers['authorization'];
 
   if (!accessToken) {
@@ -12,12 +18,13 @@ const checkUserMiddleware = async (req, res, next) => {
   }
 
   try {
-    const data = verify(accessToken, process.env.JWT_SECRET);
+    const data = await verify(accessToken, process.env.JWT_SECRET);
 
-    req.userId = data.userId;
-  } catch (err) {}
+    req.locals.userId = data.userId;
+  } catch (err) {
+  }
   next();
-};
+}
 
 module.exports = {
   checkUserMiddleware

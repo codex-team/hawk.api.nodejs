@@ -7,12 +7,12 @@ module.exports = {
   Query: {
     health: () => 'ok',
     me: async (_, __, { req }) => {
-      if (!req.userId) {
+      if (!req.locals.userId) {
         return null;
       }
 
       try {
-        return User.findById(req.userId);
+        return User.findById(req.locals.userId);
       } catch (err) {
         if (err instanceof MongoError) {
           return null;
