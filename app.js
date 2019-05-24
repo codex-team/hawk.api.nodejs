@@ -7,7 +7,7 @@ const start = async () => {
   try {
     await app.start();
   } catch (err) {
-    console.log(err);
+    console.log('Server runtime error' + err);
   }
 };
 
