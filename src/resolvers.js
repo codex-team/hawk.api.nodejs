@@ -1,7 +1,7 @@
-const { MongoError } = require('mongodb');
 const User = require('./models/user');
 
 const { GraphQLString } = require('graphql');
+const { AuthenticationError } = require('apollo-server-express');
 
 module.exports = {
   Token: {
@@ -16,15 +16,7 @@ module.exports = {
         return null;
       }
 
-      try {
-        return User.findById(user.userId);
-      } catch (err) {
-        if (err instanceof MongoError) {
-          return null;
-        } else {
-          throw err;
-        }
-      }
+      return User.findById(user.userId);
     }
   },
   Mutation: {
@@ -39,12 +31,8 @@ module.exports = {
     async login(_, { email, password }) {
       const user = await User.findOne({ email });
 
-      if (!user) {
-        return null;
-      }
-
-      if (!await user.comparePassword(password)) {
-        return null;
+      if (!user || !await user.comparePassword(password)) {
+        throw new AuthenticationError('Wrong email or password');
       }
 
       return user.generateJWT();
