@@ -1,6 +1,11 @@
 # import User from "user.graphql"
 
 """
+Authentication token
+"""
+scalar Token
+
+"""
 Queries available on the Hawk API
 """
 type Query {
@@ -29,5 +34,9 @@ type Mutation {
   """
   Login user with provided email and password
   """
-  login(email: String!, password: String!): String
+  login(
+    "User email"
+    email: String!,
+    "User password"
+    password: String!): Token
 }

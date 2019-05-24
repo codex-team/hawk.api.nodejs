@@ -3,7 +3,13 @@ const argon2 = require('argon2');
 const { sign } = require('jsonwebtoken');
 const User = require('./models/user');
 
+const { GraphQLString } = require('graphql');
+
 module.exports = {
+  Token: {
+    GraphQLString,
+    name: 'Token'
+  },
   Query: {
     health: () => 'ok',
 
