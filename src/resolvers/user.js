@@ -17,7 +17,7 @@ module.exports = {
     /**
      * Returns authenticated user data
      * @param {ResolverObj} _
-     * @param {ResolverArgs}__
+     * @param {ResolverArgs} __
      * @param {Context}
      * @return {Promise<User>}
      */
@@ -48,7 +48,7 @@ module.exports = {
      * Login user with provided email and password
      * @param {ResolverObj} _
      * @param {String} email - user email
-     * @param {String} password
+     * @param {String} password - user password
      * @return {Promise<Token>}
      */
     async login(_, { email, password }) {
