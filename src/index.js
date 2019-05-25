@@ -50,28 +50,23 @@ class HawkAPI {
    * @return {Promise<Context>} - context
    */
   static async createContext({ req, res }) {
-    /**
-     * @const {Context}
-     */
-    const context = {
-      user: null
-    };
+    const user = {};
 
     let accessToken = req.headers['authorization'];
 
-    if (!accessToken) {
-      if (accessToken.startsWith('Bearer ')) {
-        accessToken = accessToken.slice(7);
-        try {
-          const data = await jwt.verify(accessToken, process.env.JWT_SECRET);
+    if (accessToken && accessToken.startsWith('Bearer ')) {
+      accessToken = accessToken.slice(7);
+      try {
+        console.log(accessToken);
+        const data = await jwt.verify(accessToken, process.env.JWT_SECRET);
 
-          context.user.id = data.id;
-        } catch (err) {
-        }
+        console.log(data);
+        user.id = data.userId;
+      } catch (err) {
       }
     }
 
-    return context;
+    return { user };
   }
 
   /**

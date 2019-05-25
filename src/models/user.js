@@ -43,7 +43,7 @@ userSchema.statics.create = async function (email) {
  */
 userSchema.methods.generateJWT = function () {
   return jwt.sign({
-    id: this._id
+    userId: this._id
   }, process.env.JWT_SECRET, { expiresIn: '1d' });
 };
 

@@ -12,7 +12,7 @@ module.exports = {
   },
   Query: {
     async me(_, __, { user }) {
-      if (!user.id) {
+      if (user && !user.id) {
         return null;
       }
 
