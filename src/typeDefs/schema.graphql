@@ -4,9 +4,7 @@ type Query {
   health: String!
 }
 
-"""
-Mutations available on the Hawk API
-"""
+"""Mutations available on the Hawk API"""
 type Mutation {
   """Unused field to let extend this type"""
   _ : Boolean
