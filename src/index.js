@@ -61,6 +61,7 @@ class HawkAPI {
 
         user.id = data.userId;
       } catch (err) {
+        console.log('Invalid token', err);
       }
     }
 
