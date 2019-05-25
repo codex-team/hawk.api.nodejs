@@ -57,10 +57,8 @@ class HawkAPI {
     if (accessToken && accessToken.startsWith('Bearer ')) {
       accessToken = accessToken.slice(7);
       try {
-        console.log(accessToken);
         const data = await jwt.verify(accessToken, process.env.JWT_SECRET);
 
-        console.log(data);
         user.id = data.userId;
       } catch (err) {
       }
