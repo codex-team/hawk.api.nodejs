@@ -2,6 +2,9 @@ const { GraphQLString } = require('graphql');
 const { AuthenticationError } = require('apollo-server-express');
 const User = require('../models/user');
 
+/**
+ * See all types and fields here {@see ../typeDefs/user.graphql}
+ */
 module.exports = {
   Token: {
     GraphQLString,
