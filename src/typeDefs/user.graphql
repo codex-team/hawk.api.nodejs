@@ -1,54 +1,39 @@
-"""
-Authentication token
-"""
+"""Authentication token"""
 scalar Token
 
-"""
-Represent API user
-"""
+"""Represent API user"""
 type User {
-  """
-  User's id
-  """
+  """User's id"""
   id: ID!
 
-  """
-  User's email
-  """
+  """User's email"""
   email: String!
 
-  """
-  User's name
-  """
+  """User's name"""
   name: String
 
-  """
-  User's picture
-  """
+  """User's picture"""
   picture: String
 }
 
 extend type Query {
-  """
-  Returns authenticated user data
-  """
+  """Returns authenticated user data"""
   me: User
 }
 
 extend type Mutation {
-  """
-  Register user with provided email. Returns auth token if registered
-  """
+  """Register user with provided email. Returns auth token if registered"""
   signUp(
     "Registration email"
-    email: String!): Token!
+    email: String!
+  ): Token!
 
-  """
-  Login user with provided email and password
-  """
+  """Login user with provided email and password"""
   login(
     "User email"
     email: String!,
+
     "User password"
-    password: String!): Token!
+    password: String!
+  ): Token!
 }

@@ -1,10 +1,6 @@
-"""
-Queries available on the Hawk API
-"""
+"""Queries available on the Hawk API"""
 type Query {
-  """
-  Healthcheck endpoint
-  """
+  """Healthcheck endpoint"""
   health: String!
 }
 
@@ -12,8 +8,6 @@ type Query {
 Mutations available on the Hawk API
 """
 type Mutation {
-  """
-  Unused field to let extend this type
-  """
+  """Unused field to let extend this type"""
   _ : Boolean
 }
