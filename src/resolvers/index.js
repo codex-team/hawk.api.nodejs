@@ -22,6 +22,10 @@ const { merge } = require('lodash');
  */
 const indexResolver = {
   Query: {
+    /**
+     * Healthcheck endpoint
+     * @return {string}
+     */
     health: () => 'ok'
   }
 };
