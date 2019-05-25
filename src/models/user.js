@@ -38,8 +38,12 @@ userSchema.statics.create = async function (email) {
 };
 
 /**
+ * @typedef {String} Token
+ */
+
+/**
  * Generates JWT
- * @returns {String} - generated JWT
+ * @returns {Token} - generated JWT
  */
 userSchema.methods.generateJWT = function () {
   return jwt.sign({
