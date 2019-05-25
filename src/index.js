@@ -1,11 +1,10 @@
 const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
 const mongoose = require('mongoose');
-const { importSchema } = require('graphql-import');
 const jwt = require('jsonwebtoken');
 
 const resolvers = require('./resolvers');
-const typeDefs = importSchema('./src/schema/schema.graphql');
+const typeDefs = require('./typeDefs');
 
 /**
  * Hawk API server

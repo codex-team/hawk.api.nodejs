@@ -1,0 +1,19 @@
+"""
+Queries available on the Hawk API
+"""
+type Query {
+  """
+  Healthcheck endpoint
+  """
+  health: String!
+}
+
+"""
+Mutations available on the Hawk API
+"""
+type Mutation {
+  """
+  Unused field to let extend this type
+  """
+  _ : Boolean
+}

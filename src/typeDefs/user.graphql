@@ -1,29 +1,34 @@
-# import User from "user.graphql"
-
 """
 Authentication token
 """
 scalar Token
 
 """
-Queries available on the Hawk API
+Represent API user
 """
-type Query {
+type User {
   """
-  Healthcheck endpoint
+  User's id
   """
-  health: String!
+  id: ID!
 
   """
-  Returns authenticated user data
+  User's email
   """
-  me: User
+  email: String!
+
+  """
+  User's name
+  """
+  name: String
+
+  """
+  User's picture
+  """
+  picture: String
 }
 
-"""
-Mutations available on the Hawk API
-"""
-type Mutation {
+extend type Mutation {
   """
   Register user with provided email. Returns auth token if registered
   """
@@ -39,4 +44,11 @@ type Mutation {
     email: String!,
     "User password"
     password: String!): Token!
+}
+
+extend type Query {
+  """
+  Returns authenticated user data
+  """
+  me: User
 }

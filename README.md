@@ -8,5 +8,5 @@
 
 ## Schema
 
-GraphQL API schema is located [here](src/schema/schema.graphql)
+GraphQL API schema is located [here](src/typeDefs)
 
