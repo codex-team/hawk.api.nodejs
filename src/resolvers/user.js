@@ -12,11 +12,11 @@ module.exports = {
   },
   Query: {
     async me(_, __, { user }) {
-      if (!user.userId) {
+      if (!user.id) {
         return null;
       }
 
-      return User.findById(user.userId);
+      return User.findById(user.id);
     }
   },
   Mutation: {

@@ -7,6 +7,12 @@ const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
 
 /**
+ * @typedef Context
+ * @property {Object} user - current user
+ * @property {String} user.id - current user id
+ */
+
+/**
  * Hawk API server
  *
  * @property {Express} app - Express app.
@@ -41,26 +47,31 @@ class HawkAPI {
    * Creates request context
    * @param {Request} req - Express request
    * @param {Response} res - Express response
-   * @return {Promise} - context
+   * @return {Promise<Context>} - context
    */
   static async createContext({ req, res }) {
+    /**
+     * @const {Context}
+     */
+    const context = {
+      user: null
+    };
+
     let accessToken = req.headers['authorization'];
 
     if (!accessToken) {
-      return false;
+      if (accessToken.startsWith('Bearer ')) {
+        accessToken = accessToken.slice(7);
+        try {
+          const data = await jwt.verify(accessToken, process.env.JWT_SECRET);
+
+          context.user.id = data.id;
+        } catch (err) {
+        }
+      }
     }
 
-    if (accessToken.startsWith('Bearer ')) {
-      accessToken = accessToken.slice(7);
-    }
-
-    try {
-      const data = await jwt.verify(accessToken, process.env.JWT_SECRET);
-
-      return { user: { userId: data.userId } };
-    } catch (err) {
-      return false;
-    }
+    return context;
   }
 
   /**
