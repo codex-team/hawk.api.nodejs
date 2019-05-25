@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
 /**
  * Creates new user in DB
  * @param {String} email - user email
- * @returns {Promise} - user details
+ * @returns {Promise<User>} - user details
  */
 userSchema.statics.create = async function (email) {
   // @todo do normal password generation

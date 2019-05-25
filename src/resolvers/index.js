@@ -3,7 +3,7 @@ const { merge } = require('lodash');
 
 /**
  * @typedef ResolverObj
- * @link https://www.apollographql.com/docs/graphql-tools/resolvers#resolver-function-signature
+ * @see https://www.apollographql.com/docs/graphql-tools/resolvers#resolver-function-signature
  * Object that contains the result returned from the resolver on the parent field,
  * or, in the case of a top-level Query field,
  * the rootValue passed from the server configuration.
@@ -12,13 +12,13 @@ const { merge } = require('lodash');
 
 /**
  * @typedef ResolverArgs
- * @link https://www.apollographql.com/docs/graphql-tools/resolvers#resolver-function-signature
+ * @see https://www.apollographql.com/docs/graphql-tools/resolvers#resolver-function-signature
  * Object with the arguments passed into the field in the query.
  * For example, if the field was called with author(name: "Ada"), the args object would be: { "name": "Ada" }.
  */
 
 /**
- * See all types and fields here {@see ../typeDefs/schema.graphql}
+ * See all types and fields here {@link ../typeDefs/schema.graphql}
  */
 const indexResolver = {
   Query: {
