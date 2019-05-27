@@ -1,6 +1,14 @@
 const env = require('./src/env');
 const { HawkAPI } = require('./src');
 
-const app = new HawkAPI();
+const start = async () => {
+  const app = new HawkAPI();
 
-app.start();
+  try {
+    await app.start();
+  } catch (err) {
+    console.log('Server runtime error' + err);
+  }
+};
+
+start();

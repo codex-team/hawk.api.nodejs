@@ -1,9 +1,16 @@
 const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 
 const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
+
+/**
+ * @typedef Context
+ * @property {Object} user - current user
+ * @property {String} user.id - current user id
+ */
 
 /**
  * Hawk API server
@@ -22,17 +29,43 @@ class HawkAPI {
   constructor() {
     this.config = {
       port: +process.env.PORT || 4000,
-      mongoURL: process.env.MONGO_URL || 'mongodb://root:root@localhost:27017/hawk?authSource=admin'
+      mongoURL: process.env.MONGO_URL || 'mongodb://localhost:27017/hawk'
     };
 
     this.app = express();
 
     this.server = new ApolloServer({
       typeDefs,
-      resolvers
+      resolvers,
+      context: HawkAPI.createContext
     });
 
     this.server.applyMiddleware({ app: this.app });
+  }
+
+  /**
+   * Creates request context
+   * @param {Request} req - Express request
+   * @param {Response} res - Express response
+   * @return {Promise<Context>} - context
+   */
+  static async createContext({ req, res }) {
+    const user = {};
+
+    let accessToken = req.headers['authorization'];
+
+    if (accessToken && accessToken.startsWith('Bearer ')) {
+      accessToken = accessToken.slice(7);
+      try {
+        const data = await jwt.verify(accessToken, process.env.JWT_SECRET);
+
+        user.id = data.userId;
+      } catch (err) {
+        console.log('Invalid token', err);
+      }
+    }
+
+    return { user };
   }
 
   /**
@@ -42,14 +75,17 @@ class HawkAPI {
    */
   async start() {
     await mongoose.connect(this.config.mongoURL, {
-      useNewUrlParser: true
+      useNewUrlParser: true,
+      useCreateIndex: true
     });
 
     return new Promise((resolve, reject) => {
-      this.app.listen({ port: this.config.port }, (e) => {
+      this.app.listen({ port: this.config.port }, e => {
         if (e) return reject(e);
 
-        console.log(`🚀 Server ready at :${this.config.port}${this.server.graphqlPath}`);
+        console.log(
+          `🚀 Server ready at :${this.config.port}${this.server.graphqlPath}`
+        );
         resolve();
       });
     });
