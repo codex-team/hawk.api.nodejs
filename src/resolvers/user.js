@@ -16,12 +16,12 @@ module.exports = {
   Query: {
     /**
      * Returns authenticated user data
-     * @param {ResolverObj} _
-     * @param {ResolverArgs} __
+     * @param {ResolverObj} _obj
+     * @param {ResolverArgs} _args
      * @param {Context}
      * @return {Promise<User>}
      */
-    async me(_, __, { user }) {
+    async me(_obj, _args, { user }) {
       if (user && !user.id) {
         return null;
       }
@@ -32,11 +32,11 @@ module.exports = {
   Mutation: {
     /**
      * Register user with provided email
-     * @param {ResolverObj} _
+     * @param {ResolverObj} _obj
      * @param {String} email - user email
      * @return {Promise<Token>}
      */
-    async signUp(_, { email }) {
+    async signUp(_obj, { email }) {
       const user = await User.create(email);
 
       console.log(`New user: email: ${user.email}, password: ${user.generatedPassword}`);
@@ -46,12 +46,12 @@ module.exports = {
 
     /**
      * Login user with provided email and password
-     * @param {ResolverObj} _
+     * @param {ResolverObj} _obj
      * @param {String} email - user email
      * @param {String} password - user password
      * @return {Promise<Token>}
      */
-    async login(_, { email, password }) {
+    async login(_obj, { email, password }) {
       const user = await User.findOne({ email });
 
       if (!user || !await user.comparePassword(password)) {
