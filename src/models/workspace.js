@@ -13,8 +13,18 @@ const WorkspaceSchema = new mongoose.Schema({
     type: String,
     default: '' // @todo default image for workspace
   },
-  users: [ { type: mongoose.Schema.ObjectId, ref: 'User' } ],
-  projects: [ { type: mongoose.Schema.ObjectId, ref: 'Project' } ]
+  users: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: 'User'
+    }
+  ],
+  projects: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: 'Project'
+    }
+  ]
 });
 
 const Workspace = mongoose.model('Workspace', WorkspaceSchema);

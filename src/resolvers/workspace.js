@@ -69,7 +69,7 @@ module.exports = {
         }
       }
 
-      if (userData.workspaces.indexOf(id) === -1) {
+      if (!userData.workspaces.includes(id)) {
         throw new ForbiddenError('Access denied');
       }
 
