@@ -1,0 +1,42 @@
+"""Represent workspace info"""
+type Workspace {
+  id: ID!
+  name: String
+  image: String
+  users: [User!]
+  projects: [Project!]
+}
+
+"""Represent project info"""
+type Project {
+  id: ID!
+}
+
+extend type Query {
+  """Returns all workspaces to which user has access"""
+  workspaces: [Workspace!]
+
+  """Returns workspace info"""
+  workspace(
+    "Workspace id"
+    id: ID!
+  ): Workspace
+}
+
+extend type Mutation {
+  """Create new workspace"""
+  createWorkspace(
+    "New workspace name"
+    name: String!,
+
+    "New workspace image"
+    image: String
+  ): ID!
+
+
+  """Joining workspace by current user"""
+  joinWorkspace(
+    "Joined workspace id"
+    id: ID!
+  ): String!
+}
