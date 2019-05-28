@@ -1,0 +1,22 @@
+version: "3.2"
+services:
+  hawk:
+    build:
+      dockerfile: "docker/Dockerfile.dev"
+      context: .
+    user: "node"
+    env_file:
+      - .env.dev
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - ${PORT}:${PORT}
+
+  mongodb:
+    image: mongo
+    volumes:
+      - mongodata:/data/db
+
+volumes:
+  mongodata:
