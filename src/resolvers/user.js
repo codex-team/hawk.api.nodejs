@@ -26,7 +26,7 @@ module.exports = {
         return null;
       }
 
-      return User.findById(user.id);
+      return User.findById(user.id).populate('workspaces');
     }
   },
   Mutation: {

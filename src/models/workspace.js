@@ -6,6 +6,9 @@ const WorkspaceSchema = new mongoose.Schema({
   name: {
     type: String
   },
+  description: {
+    type: String
+  },
   image: {
     type: String,
     default: '' // @todo default image for workspace
@@ -16,6 +19,4 @@ const WorkspaceSchema = new mongoose.Schema({
 
 const Workspace = mongoose.model('Workspace', WorkspaceSchema);
 
-module.exports = {
-  Workspace
-};
+module.exports = Workspace;

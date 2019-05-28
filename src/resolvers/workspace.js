@@ -1,5 +1,6 @@
-const { AppoloError } = require('apollo-server-express');
-const { MongoError, CastError } = require('mongodb');
+const { ApolloError, ForbiddenError } = require('apollo-server-express');
+const { MongoError } = require('mongodb');
+const { CastError } = require('mongoose');
 const Workspace = require('../models/workspace');
 const User = require('../models/user');
 
@@ -13,15 +14,15 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {ResolverArgs} _args
      * @param {Context}
-     * @return {Promise<User>}
+     * @return {Workspace[]}
      */
-    workspaces: async (_obj, _args, { req }) => {
-      if (!req.userId) {
-        return null;
+    workspaces: async (_obj, _args, { user }) => {
+      if (user && !user.id) {
+        throw new ForbiddenError('Only authorized users can do this');
       }
 
       try {
-        return (await User.findById(req.userId)
+        return (await User.findById(user.id)
           .populate({
             path: 'workspaces',
             populate: [
@@ -36,36 +37,40 @@ module.exports = {
             ]
           })).workspaces;
       } catch (err) {
-        return null;
+        console.error('Error finding workspaces', err);
+        throw new ApolloError('Something went wrong');
       }
     },
 
     /**
-     * Returns all user's workspaces
+     * Returns workspace info by id
      * @param {ResolverObj} _obj
      * @param {ResolverArgs} _args
+     * @param {String} _args.id - workspace id
      * @param {Context}
-     * @return {Promise<User>}
+     * @return {Workspace}
      */
-    workspace: async (_obj, { id }, { req }) => {
-      if (!req.userId) {
-        return null;
+    workspace: async (_obj, { id }, { user }) => {
+      if (user && !user.id) {
+        throw new ForbiddenError('Only authorized users can do this');
       }
+
+      let userData;
 
       // Check user access to the workspace
       try {
-        let user = await User.findById(req.userId);
-
-        if (user.workspaces.indexOf(id) == -1) {
-          // Access denied
-          return null;
-        }
+        userData = await User.findById(user.id);
       } catch (err) {
+        console.error('Error finding user', err);
         if (err instanceof MongoError) {
-          return null;
+          throw new ApolloError('Something went wrong');
         } else {
-          throw err;
+          throw new ApolloError('Unknown error');
         }
+      }
+
+      if (userData.workspaces.indexOf(id) === -1) {
+        throw new ForbiddenError('Access denied');
       }
 
       // We request the data of the workspace
@@ -83,10 +88,11 @@ module.exports = {
             }
           ]);
       } catch (err) {
+        console.error('Error finding workspace', err);
         if (err instanceof MongoError) {
-          return 'Error';
+          throw new ApolloError('Something went wrong');
         } else {
-          throw err;
+          throw new ApolloError('Unknown error');
         }
       }
     }
@@ -95,23 +101,26 @@ module.exports = {
     /**
      * Create new workspace
      * @param {ResolverObj} _obj
-     * @param {String} name - workspace name
-     * @param {String} image - workspace image
+     * @param {ResolverArgs} _args
+     * @param {String} _args.name - workspace name
+     * @param {String} _args.description - workspace description
+     * @param {String} _args.image - workspace image
      * @param {Context}
-     * @return {Promise<Token>}
+     * @return {String} created workspace id
      */
-    async createWorkspace(_obj, { name, image }, { req }) {
-      if (!req.userId) {
-        return false;
+    async createWorkspace(_obj, { name, description, image }, { user }) {
+      if (user && !user.id) {
+        throw new ForbiddenError('Only authorized users can do this');
       }
 
       // Perhaps here in the future it is worth passing an array of users
-      let ownerId = req.userId;
+      let ownerId = user.id;
 
       try {
         // Create new workspace in mongo
         let w = await Workspace.create({
           name: name,
+          description: description,
           users: [ ownerId ],
           image: image
         });
@@ -125,10 +134,11 @@ module.exports = {
 
         return w._id;
       } catch (err) {
+        console.error('Error finding workspace', err);
         if (err instanceof MongoError) {
-          return false;
+          throw new ApolloError('Something went wrong');
         } else {
-          throw err;
+          throw new ApolloError('Unknown error');
         }
       }
     },
@@ -136,16 +146,17 @@ module.exports = {
     /**
      * Joining workspace by current user
      * @param {ResolverObj} _obj
-     * @param {String} id - joined workspace id
+     * @param {ResolverArgs} _args
+     * @param {String} _args.id - joined workspace id
      * @param {Context}
-     * @return {Promise<Token>}
+     * @return {Boolean} - returns true if success
      */
-    async joinWorkspace(_obj, { id }, { req }) {
-      if (!req.userId) {
-        return 'Auth error';
+    async joinWorkspace(_obj, { id }, { user }) {
+      if (user && !user.id) {
+        throw new ForbiddenError('Only authorized users can do this');
       }
 
-      let userId = req.userId;
+      let userId = user.id;
       let workspaceId = id;
       let workspace;
 
@@ -153,22 +164,24 @@ module.exports = {
       try {
         workspace = await Workspace.findById(workspaceId);
       } catch (err) {
+        console.error('Error: ', err);
         if (err instanceof MongoError) {
-          return null;
+          throw new ApolloError('Something went wrong');
         }
         if (err instanceof CastError) {
-          return 'Error! Invalid id';
+          throw new ApolloError('Error! Invalid id');
         }
-        throw err;
+
+        throw new ApolloError('Unknown error');
       }
 
       if (!workspace) {
-        return 'Error! No workspace found';
+        throw new ApolloError('Error! No workspace found');
       }
 
       // Check that the user is not yet a member of workpace
       if (workspace.users && workspace.users.indexOf(userId) !== -1) {
-        return 'Error! Workspace already joined';
+        throw new ApolloError('Error! Workspace already joined');
       }
 
       // Update at the same time workspace and user models
@@ -186,12 +199,13 @@ module.exports = {
           })
         ]);
 
-        return 'OK';
+        return true;
       } catch (err) {
+        console.error('Error finding workspace', err);
         if (err instanceof MongoError) {
-          return 'Error!';
+          throw new ApolloError('Something went wrong');
         } else {
-          throw err;
+          throw new ApolloError('Unknown error');
         }
       }
     }

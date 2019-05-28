@@ -1,14 +1,27 @@
 """Represent workspace info"""
 type Workspace {
+  "Workspace id"
   id: ID!
+
+  "Workspace name"
   name: String
+
+  "Workspace description"
+  description: String
+
+  "Workspace logo picture"
   image: String
+
+  "Workspace members array"
   users: [User!]
+
+  "Workspace projects array"
   projects: [Project!]
 }
 
 """Represent project info"""
 type Project {
+  "Project id"
   id: ID!
 }
 
@@ -29,6 +42,9 @@ extend type Mutation {
     "New workspace name"
     name: String!,
 
+    "New workspace description"
+    description: String!,
+
     "New workspace image"
     image: String
   ): ID!
@@ -38,5 +54,5 @@ extend type Mutation {
   joinWorkspace(
     "Joined workspace id"
     id: ID!
-  ): String!
+  ): Boolean!
 }

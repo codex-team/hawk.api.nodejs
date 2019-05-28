@@ -1,4 +1,5 @@
 const user = require('./user');
+const workspace = require('./workspace');
 const { merge } = require('lodash');
 
 /**
@@ -32,5 +33,6 @@ const indexResolver = {
 
 module.exports = merge(
   indexResolver,
-  user
+  user,
+  workspace
 );
