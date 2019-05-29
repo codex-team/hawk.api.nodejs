@@ -16,7 +16,7 @@ module.exports = {
      * @param {Context}
      * @return {Workspace[]}
      */
-    workspaces: async (_obj, _args, { user }) => {
+    async workspaces(_obj, _args, { user }) {
       if (user && !user.id) {
         throw new ForbiddenError('Only authorized users can do this');
       }
@@ -114,11 +114,11 @@ module.exports = {
       }
 
       // Perhaps here in the future it is worth passing an array of users
-      let ownerId = user.id;
+      const ownerId = user.id;
 
       try {
         // Create new workspace in mongo
-        let w = await Workspace.create({
+        const w = await Workspace.create({
           name: name,
           description: description,
           users: [ ownerId ],
@@ -180,7 +180,7 @@ module.exports = {
       }
 
       // Check that the user is not yet a member of workpace
-      if (workspace.users && workspace.users.indexOf(userId) !== -1) {
+      if (workspace.users && workspace.users.includes(userId)) {
         throw new ApolloError('Error! Workspace already joined');
       }
 

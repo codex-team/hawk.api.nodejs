@@ -76,7 +76,8 @@ class HawkAPI {
   async start() {
     await mongoose.connect(this.config.mongoURL, {
       useNewUrlParser: true,
-      useCreateIndex: true
+      useCreateIndex: true,
+      useFindAndModify: false
     });
 
     return new Promise((resolve, reject) => {

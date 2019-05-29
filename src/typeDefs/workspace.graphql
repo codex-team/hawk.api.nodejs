@@ -1,27 +1,27 @@
 """Represent workspace info"""
 type Workspace {
-  "Workspace id"
+  """Workspace id"""
   id: ID!
 
-  "Workspace name"
+  """Workspace name"""
   name: String
 
-  "Workspace description"
+  """Workspace description"""
   description: String
 
-  "Workspace logo picture"
+  """Workspace logo picture"""
   image: String
 
-  "Workspace members array"
+  """Workspace members array"""
   users: [User!]
 
-  "Workspace projects array"
+  """Workspace projects array"""
   projects: [Project!]
 }
 
 """Represent project info"""
 type Project {
-  "Project id"
+  """Project id"""
   id: ID!
 }
 
