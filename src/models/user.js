@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 const argon2 = require('argon2');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const Workspace = require('./workspace');
+
+require('./workspace');
 
 const userSchema = new mongoose.Schema({
   email: {

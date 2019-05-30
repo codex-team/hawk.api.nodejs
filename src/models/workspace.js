@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
-const User = require('./user');
-const Project = require('./project');
+
+require('./user');
+require('./project');
 
 const WorkspaceSchema = new mongoose.Schema({
   name: {

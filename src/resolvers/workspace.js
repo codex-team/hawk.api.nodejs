@@ -45,12 +45,11 @@ module.exports = {
     /**
      * Returns workspace info by id
      * @param {ResolverObj} _obj
-     * @param {ResolverArgs} _args
-     * @param {String} _args.id - workspace id
+     * @param {String} id - workspace id
      * @param {Context}
      * @return {Workspace}
      */
-    workspace: async (_obj, { id }, { user }) => {
+    async workspace(_obj, { id }, { user }) {
       if (user && !user.id) {
         throw new ForbiddenError('Only authorized users can do this');
       }
@@ -101,10 +100,9 @@ module.exports = {
     /**
      * Create new workspace
      * @param {ResolverObj} _obj
-     * @param {ResolverArgs} _args
-     * @param {String} _args.name - workspace name
-     * @param {String} _args.description - workspace description
-     * @param {String} _args.image - workspace image
+     * @param {String} name - workspace name
+     * @param {String} description - workspace description
+     * @param {String} image - workspace image
      * @param {Context}
      * @return {String} created workspace id
      */
@@ -146,8 +144,7 @@ module.exports = {
     /**
      * Joining workspace by current user
      * @param {ResolverObj} _obj
-     * @param {ResolverArgs} _args
-     * @param {String} _args.id - joined workspace id
+     * @param {String} id - joined workspace id
      * @param {Context}
      * @return {Boolean} - returns true if success
      */
