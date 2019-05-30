@@ -20,7 +20,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  workspaces: [ { type: mongoose.Schema.ObjectId, ref: 'Workspace' } ]
+  workspaces: [
+    {
+      type: mongoose.Schema.ObjectId, ref: 'Workspace'
+    }
+  ]
 });
 
 /**
