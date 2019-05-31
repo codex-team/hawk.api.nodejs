@@ -40,7 +40,7 @@ docker-compose up -f docker-compose.prod.yml -d --build
 
 MongoDB container data is stored in `mongodata` volume
 
-Run this to delete volume and comtainers:
+Run this to delete volume and containers:
 
 ```bash
 docker-compose -f docker-compose.{dev,prod}.yml down
