@@ -21,7 +21,7 @@ module.exports = {
      * @param {ResolverArgs} _args
      * @param {Context}
      * @param {GraphQLResolveInfo} info
-     * @return {User}
+     * @return {Promise<User>}
      */
     async me(_obj, _args, { user }, info) {
       if (user && !user.id) {
