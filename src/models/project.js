@@ -3,7 +3,7 @@ const crypto = require('crypto');
 
 require('./user');
 
-const ProjectSchema = new mongoose.Schema({
+const projectSchema = new mongoose.Schema({
   token: {
     type: String
   },
@@ -38,7 +38,7 @@ const ProjectSchema = new mongoose.Schema({
  * @param {Function} done - callback function
  * @returns
  */
-ProjectSchema.statics.generateToken = async (project, done) => {
+projectSchema.statics.generateToken = async (project, done) => {
   let token, count;
 
   while (true) {
@@ -57,7 +57,7 @@ ProjectSchema.statics.generateToken = async (project, done) => {
   }
 };
 
-ProjectSchema.pre('save', function (next) {
+projectSchema.pre('save', function (next) {
   console.log(this.name);
   if (this.token) {
     return next();
@@ -66,6 +66,6 @@ ProjectSchema.pre('save', function (next) {
   this.constructor.generateToken(this, next);
 });
 
-const Project = mongoose.model('Project', ProjectSchema);
+const Project = mongoose.model('Project', projectSchema);
 
 module.exports = Project;

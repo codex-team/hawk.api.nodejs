@@ -13,10 +13,25 @@ type Workspace {
   image: String
 
   """Workspace members array"""
-  users: [User!]
+  users: [WorkspaceUser!]
 
   """Workspace projects array"""
   projects: [Project!]
+}
+
+"""Represent member of workspace with basic user info"""
+type WorkspaceUser {
+  """User's id"""
+  id: ID!
+
+  """User's email"""
+  email: String!
+
+  """User's name"""
+  name: String
+
+  """User's picture"""
+  picture: String
 }
 
 """Represent project info"""

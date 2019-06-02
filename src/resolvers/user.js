@@ -1,5 +1,6 @@
 const { GraphQLString } = require('graphql');
 const { AuthenticationError } = require('apollo-server-express');
+const getFieldName = require('graphql-list-fields');
 const User = require('../models/user');
 
 /**
@@ -19,14 +20,17 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {ResolverArgs} _args
      * @param {Context}
-     * @return {Promise<User>}
+     * @param {GraphQLResolveInfo} info
+     * @return {User}
      */
-    async me(_obj, _args, { user }) {
+    async me(_obj, _args, { user }, info) {
       if (user && !user.id) {
         return null;
       }
 
-      return User.findById(user.id).populate('workspaces');
+      const fields = getFieldName(info);
+
+      return User.findById(user.id).deepPopulate(fields);
     }
   },
   Mutation: {

@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
+const deepPopulate = require('mongoose-deep-populate')(mongoose);
 
 require('./user');
 require('./project');
 
-const WorkspaceSchema = new mongoose.Schema({
+const workspaceSchema = new mongoose.Schema({
   name: {
     type: String
   },
@@ -28,6 +29,8 @@ const WorkspaceSchema = new mongoose.Schema({
   ]
 });
 
-const Workspace = mongoose.model('Workspace', WorkspaceSchema);
+workspaceSchema.plugin(deepPopulate);
+
+const Workspace = mongoose.model('Workspace', workspaceSchema);
 
 module.exports = Workspace;

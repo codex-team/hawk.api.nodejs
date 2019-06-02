@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const deepPopulate = require('mongoose-deep-populate')(mongoose);
 const argon2 = require('argon2');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
@@ -26,6 +27,8 @@ const userSchema = new mongoose.Schema({
     }
   ]
 });
+
+userSchema.plugin(deepPopulate);
 
 /**
  * Creates new user in DB

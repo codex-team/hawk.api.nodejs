@@ -1,6 +1,6 @@
 const { ApolloError, ForbiddenError } = require('apollo-server-express');
 const { MongoError } = require('mongodb');
-const { CastError } = require('mongoose');
+const getFieldName = require('graphql-list-fields');
 const Workspace = require('../models/workspace');
 const User = require('../models/user');
 
@@ -14,28 +14,19 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {ResolverArgs} _args
      * @param {Context}
+     * @param {GraphQLResolveInfo} info
      * @return {Workspace[]}
      */
-    async workspaces(_obj, _args, { user }) {
+    async workspaces(_obj, _args, { user }, info) {
       if (user && !user.id) {
         throw new ForbiddenError('Only authorized users can do this');
       }
 
+      const fields = getFieldName(info);
+      const populatedFields = fields.map((item) => 'workspaces.' + item);
+
       try {
-        return (await User.findById(user.id)
-          .populate({
-            path: 'workspaces',
-            populate: [
-              {
-                path: 'users',
-                model: 'User'
-              },
-              {
-                path: 'projects',
-                model: 'Project'
-              }
-            ]
-          })).workspaces;
+        return (await User.findById(user.id).deepPopulate(populatedFields)).workspaces;
       } catch (err) {
         console.error('Error finding workspaces', err);
         throw new ApolloError('Something went wrong');
@@ -47,9 +38,10 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {String} id - workspace id
      * @param {Context}
+     * @param {GraphQLResolveInfo} info
      * @return {Workspace}
      */
-    async workspace(_obj, { id }, { user }) {
+    async workspace(_obj, { id }, { user }, info) {
       if (user && !user.id) {
         throw new ForbiddenError('Only authorized users can do this');
       }
@@ -72,20 +64,11 @@ module.exports = {
         throw new ForbiddenError('Access denied');
       }
 
-      // We request the data of the workspace
-      // with expanded users and projects fields
+      // We request the data of the workspace with expanded fields
+      const fields = getFieldName(info);
+
       try {
-        return await Workspace.findById(id)
-          .populate([
-            {
-              path: 'users',
-              model: 'User'
-            },
-            {
-              path: 'projects',
-              model: 'Project'
-            }
-          ]);
+        return await Workspace.findById(id).deepPopulate(fields);
       } catch (err) {
         console.error('Error finding workspace', err);
         if (err instanceof MongoError) {
