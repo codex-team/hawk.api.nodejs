@@ -18,7 +18,7 @@ type User {
 
 extend type Query {
   """Returns authenticated user data"""
-  me: User
+  me: User @requireAuth
 }
 
 extend type Mutation {
