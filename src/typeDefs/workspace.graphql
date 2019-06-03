@@ -41,9 +41,6 @@ type Project {
 }
 
 extend type Query {
-  """Returns all workspaces to which user has access"""
-  workspaces: [Workspace!]
-
   """Returns workspace info"""
   workspace(
     "Workspace id"

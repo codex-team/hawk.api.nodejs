@@ -10,30 +10,6 @@ const User = require('../models/user');
 module.exports = {
   Query: {
     /**
-     * Returns all user's workspaces
-     * @param {ResolverObj} _obj
-     * @param {ResolverArgs} _args
-     * @param {Context}
-     * @param {GraphQLResolveInfo} info
-     * @return {Workspace[]}
-     */
-    async workspaces(_obj, _args, { user }, info) {
-      if (user && !user.id) {
-        throw new ForbiddenError('Only authorized users can do this');
-      }
-
-      const fields = getFieldName(info);
-      const populatedFields = fields.map((item) => 'workspaces.' + item);
-
-      try {
-        return (await User.findById(user.id).deepPopulate(populatedFields)).workspaces;
-      } catch (err) {
-        console.error('Error finding workspaces', err);
-        throw new ApolloError('Something went wrong');
-      }
-    },
-
-    /**
      * Returns workspace info by id
      * @param {ResolverObj} _obj
      * @param {String} id - workspace id
