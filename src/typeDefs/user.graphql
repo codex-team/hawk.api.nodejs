@@ -1,8 +1,8 @@
 """Authentication token"""
 scalar Token
 
-"""Represent API user"""
-type User {
+"""Interface for public user fields"""
+interface BasicUser {
   """User's id"""
   id: ID!
 
@@ -14,8 +14,23 @@ type User {
 
   """User's picture"""
   picture: String
+}
 
-  """User's workspaces"""
+"""Represent API for current user"""
+type User  implements BasicUser {
+  """Current user's id"""
+  id: ID!
+
+  """Current user's email"""
+  email: String!
+
+  """Current user's name"""
+  name: String
+
+  """Current user's picture"""
+  picture: String
+
+  """Current user's workspaces"""
   workspaces: [Workspace!]
 }
 
