@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const crypto = require('crypto');
+const uuid = require('uuid');
 
 require('./user');
 
@@ -32,38 +32,12 @@ const projectSchema = new mongoose.Schema({
   }
 });
 
-/**
- * Create unique token for project
- * @param {Project} project - project object
- * @param {Function} done - callback function
- * @returns
- */
-projectSchema.statics.generateToken = async (project, done) => {
-  let token, count;
-
-  while (true) {
-    token = crypto.randomBytes(64).toString('hex');
-
-    try {
-      count = await project.model('Project').countDocuments({ token: token });
-    } catch (err) {
-      return done(err);
-    }
-
-    if (!count) {
-      project.token = token;
-      return done();
-    }
-  }
-};
-
 projectSchema.pre('save', function (next) {
-  console.log(this.name);
-  if (this.token) {
-    return next();
+  if (!this.token) {
+    this.token = uuid.v4();
   }
 
-  this.constructor.generateToken(this, next);
+  return next();
 });
 
 const Project = mongoose.model('Project', projectSchema);
