@@ -4,8 +4,6 @@
 
 Development docker image supports live reload
 
-Copy `.env.sample.docker` to `.env`
-
 env variables located right in compose file `docker-compose.dev.yml`
 
 Run to get started:
