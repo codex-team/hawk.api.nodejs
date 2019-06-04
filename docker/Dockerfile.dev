@@ -20,4 +20,4 @@ COPY . .
 
 USER node
 
-CMD ["yarn", "dev"]
+CMD ["nodemon", "app.js"]
