@@ -20,7 +20,7 @@ docker-compose -f docker-compose.dev.yml up -d --build
 
 ## Production
 
-Copy `.env.sample.docker` to `.env`
+Copy `.env.sample` to `.env`
 
 `NODE_ENV` is set to `production`
 
