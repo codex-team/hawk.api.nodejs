@@ -5,13 +5,14 @@ services:
       dockerfile: "docker/Dockerfile.dev"
       context: .
     user: "node"
-    env_file:
-      - .env.dev
     volumes:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
+    environment:
+      - JWT_SECRET=abacaba
+      - MONGO_URL=mongodb://mongodb:27017/hawk
     ports:
-      - ${PORT}:${PORT}
+      - "4000:4000"
 
   mongodb:
     image: mongo
