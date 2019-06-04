@@ -4,7 +4,9 @@
 
 Development docker image supports live reload
 
-`.env` variables are is separete file `.env.dev`
+Copy `.env.sample.docker` to `.env`
+
+env variables located right in compose file `docker-compose.dev.yml`
 
 Run to get started:
 
@@ -15,10 +17,12 @@ docker-compose -f docker-compose.dev.yml up -d
 To rebuild the image and run it:
 
 ```bash
-docker-compose up -f docker-compose.dev.yml -d --build
+docker-compose -f docker-compose.dev.yml up -d --build
 ```
 
 ## Production
+
+Copy `.env.sample.docker` to `.env`
 
 `NODE_ENV` is set to `production`
 
@@ -27,13 +31,13 @@ docker-compose up -f docker-compose.dev.yml -d --build
 Run to get started:
 
 ```bash
-docker-compose up -f docker-compose.prod.yml -d
+docker-compose -f docker-compose.prod.yml up  -d
 ```
 
 To rebuild the image and run it:
 
 ```bash
-docker-compose up -f docker-compose.prod.yml -d --build
+docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
 ## MongoDB
