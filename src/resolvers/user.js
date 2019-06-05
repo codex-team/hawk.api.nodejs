@@ -22,10 +22,6 @@ module.exports = {
      * @return {Promise<User>}
      */
     async me(_obj, _args, { user }) {
-      if (user && !user.id) {
-        return null;
-      }
-
       return User.findById(user.id);
     }
   },
