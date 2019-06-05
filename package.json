@@ -4,7 +4,8 @@
   "main": "app.js",
   "license": "UNLICENSED",
   "scripts": {
-    "start": "nodemon app.js",
+    "dev": "nodemon app.js",
+    "start": "node app.js",
     "lint": "eslint . --ext .js --fix"
   },
   "devDependencies": {
