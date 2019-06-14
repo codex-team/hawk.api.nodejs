@@ -45,11 +45,4 @@ extend type Mutation {
     "New workspace image"
     image: String
   ): ID! @requireAuth
-
-
-  """Joining workspace by current user"""
-  joinWorkspace(
-    "Joined workspace id"
-    id: ID!
-  ): Boolean! @requireAuth
 }
