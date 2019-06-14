@@ -3,16 +3,16 @@ scalar Token
 
 """Represent User type"""
 type User {
-  """Current user's id"""
+  """User's id"""
   id: ID!
 
-  """Current user's email"""
+  """User's email"""
   email: String!
 
-  """Current user's name"""
+  """User's name"""
   name: String
 
-  """Current user's picture"""
+  """User's picture"""
   picture: String
 }
 
