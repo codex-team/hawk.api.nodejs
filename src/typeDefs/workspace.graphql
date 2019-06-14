@@ -1,4 +1,4 @@
-"""Represent workspace info"""
+"""Represent Workspace info"""
 type Workspace {
   """Workspace id"""
   id: ID!
@@ -26,7 +26,10 @@ type Project {
 }
 
 extend type Query {
-  """Returns workspace info"""
+  """
+  Returns workspace(s) info
+  If ids = [] returns all user's workspaces
+  """
   workspaces(
     "Workspace(s) id(s)"
     ids: [ID] = []

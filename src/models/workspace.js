@@ -15,6 +15,7 @@ const workspaceSchema = new mongoose.Schema({
     type: String,
     default: '' // @todo default image for workspace
   },
+  // @todo make memeber type responsibe for permissions
   users: [
     {
       type: mongoose.Schema.ObjectId,
