@@ -10,41 +10,29 @@ const User = require('../models/user');
 module.exports = {
   Query: {
     /**
-     * Returns workspace info by id
+     * Returns workspace(s) info by id(s)
      * @param {ResolverObj} _obj
-     * @param {String} id - workspace id
+     * @param {String[]} ids - workspace ids
      * @param {Context}
      * @param {GraphQLResolveInfo} info
      * @return {Workspace}
      */
-    async workspace(_obj, { id }, { user }, info) {
-      if (user && !user.id) {
-        throw new ForbiddenError('Only authorized users can do this');
-      }
-
-      let userData;
-
-      // Check user access to the workspace
-      try {
-        userData = await User.findById(user.id);
-      } catch (err) {
-        console.error('Error finding user', err);
-        if (err instanceof MongoError) {
-          throw new ApolloError('Something went wrong');
-        } else {
-          throw new ApolloError('Unknown error');
-        }
-      }
-
-      if (!userData.workspaces.includes(id)) {
-        throw new ForbiddenError('Access denied');
-      }
+    async workspaces(_obj, { ids }, { user }, info) {
+      // @todo Check if we need to validate user existance
 
       // We request the data of the workspace with expanded fields
       const fields = getFieldName(info);
 
       try {
-        return await Workspace.findById(id).deepPopulate(fields);
+        if (ids.length === 0) {
+          return await Workspace.find({ users: user.id });
+        } else {
+          // Find provided list of workspaces with current user in `users`
+          return await Workspace.find({
+            users: user.id,
+            _id: { $in: ids }
+          }).deepPopulate(fields);
+        }
       } catch (err) {
         console.error('Error finding workspace', err);
         if (err instanceof MongoError) {
@@ -66,10 +54,6 @@ module.exports = {
      * @return {String} created workspace id
      */
     async createWorkspace(_obj, { name, description, image }, { user }) {
-      if (user && !user.id) {
-        throw new ForbiddenError('Only authorized users can do this');
-      }
-
       // Perhaps here in the future it is worth passing an array of users
       const ownerId = user.id;
 

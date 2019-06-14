@@ -12,26 +12,11 @@ type Workspace {
   """Workspace logo picture"""
   image: String
 
-  """Workspace members array"""
-  users: [Member!]
+  """Workspace users array"""
+  users: [User!]
 
   """Workspace projects array"""
   projects: [Project!]
-}
-
-"""Represent member of workspace with basic user info"""
-type Member implements BasicUser {
-  """Member's id"""
-  id: ID!
-
-  """Member's email"""
-  email: String!
-
-  """Member's name"""
-  name: String
-
-  """Member's picture"""
-  picture: String
 }
 
 """Represent project info"""
@@ -42,10 +27,10 @@ type Project {
 
 extend type Query {
   """Returns workspace info"""
-  workspace(
-    "Workspace id"
-    id: ID!
-  ): Workspace
+  workspaces(
+    "Workspace(s) id(s)"
+    ids: [ID] = []
+  ): [Workspace] @requireAuth
 }
 
 extend type Mutation {
@@ -59,12 +44,12 @@ extend type Mutation {
 
     "New workspace image"
     image: String
-  ): ID!
+  ): ID! @requireAuth
 
 
   """Joining workspace by current user"""
   joinWorkspace(
     "Joined workspace id"
     id: ID!
-  ): Boolean!
+  ): Boolean! @requireAuth
 }

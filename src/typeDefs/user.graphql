@@ -1,23 +1,8 @@
 """Authentication token"""
 scalar Token
 
-"""Interface for public user fields"""
-interface BasicUser {
-  """User's id"""
-  id: ID!
-
-  """User's email"""
-  email: String!
-
-  """User's name"""
-  name: String
-
-  """User's picture"""
-  picture: String
-}
-
 """Represent API for current user"""
-type User  implements BasicUser {
+type User {
   """Current user's id"""
   id: ID!
 
@@ -29,9 +14,6 @@ type User  implements BasicUser {
 
   """Current user's picture"""
   picture: String
-
-  """Current user's workspaces"""
-  workspaces: [Workspace!]
 }
 
 extend type Query {
