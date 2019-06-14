@@ -2,6 +2,7 @@ const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const requireAuthDirective = require('./directives/requireAuthDirective');
 
 const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
@@ -37,6 +38,9 @@ class HawkAPI {
     this.server = new ApolloServer({
       typeDefs,
       resolvers,
+      schemaDirectives: {
+        requireAuth: requireAuthDirective
+      },
       context: HawkAPI.createContext
     });
 
@@ -85,7 +89,7 @@ class HawkAPI {
         if (e) return reject(e);
 
         console.log(
-          `🚀 Server ready at :${this.config.port}${this.server.graphqlPath}`
+          `[${process.env.NODE_ENV}]🚀 Server ready at :${this.config.port}${this.server.graphqlPath}`
         );
         resolve();
       });

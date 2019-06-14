@@ -23,14 +23,8 @@ module.exports = {
      * @param {GraphQLResolveInfo} info
      * @return {Promise<User>}
      */
-    async me(_obj, _args, { user }, info) {
-      if (user && !user.id) {
-        return null;
-      }
-
-      const fields = getFieldName(info);
-
-      return User.findById(user.id).deepPopulate(fields);
+    async me(_obj, _args, { user }) {
+      return User.findById(user.id);
     }
   },
   Mutation: {

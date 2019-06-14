@@ -1,0 +1,23 @@
+version: "3.2"
+services:
+  hawk:
+    build:
+      dockerfile: "docker/Dockerfile.dev"
+      context: .
+    user: "node"
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - JWT_SECRET=abacaba
+      - MONGO_URL=mongodb://mongodb:27017/hawk
+    ports:
+      - "4000:4000"
+
+  mongodb:
+    image: mongo
+    volumes:
+      - mongodata:/data/db
+
+volumes:
+  mongodata:

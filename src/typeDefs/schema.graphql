@@ -1,3 +1,6 @@
+"""Access to the field only to authorized users"""
+directive @requireAuth on FIELD_DEFINITION
+
 """Queries available on the Hawk API"""
 type Query {
   """Healthcheck endpoint"""
