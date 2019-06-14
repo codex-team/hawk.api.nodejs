@@ -9,4 +9,3 @@
 ## Schema
 
 GraphQL API schema is located [here](src/typeDefs)
-

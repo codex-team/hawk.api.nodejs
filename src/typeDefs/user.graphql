@@ -1,7 +1,7 @@
 """Authentication token"""
 scalar Token
 
-"""Represent API user"""
+"""Represent User type"""
 type User {
   """User's id"""
   id: ID!

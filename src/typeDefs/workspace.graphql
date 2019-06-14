@@ -1,0 +1,51 @@
+"""Represent Workspace info"""
+type Workspace {
+  """Workspace id"""
+  id: ID!
+
+  """Workspace name"""
+  name: String
+
+  """Workspace description"""
+  description: String
+
+  """Workspace logo picture"""
+  image: String
+
+  """Workspace users array"""
+  users: [User!]
+
+  """Workspace projects array"""
+  projects: [Project!]
+}
+
+"""Represent project info"""
+type Project {
+  """Project id"""
+  id: ID!
+}
+
+extend type Query {
+  """
+  Returns workspace(s) info
+  If ids = [] returns all user's workspaces
+  """
+  workspaces(
+    "Workspace(s) id(s)"
+    ids: [ID] = []
+  ): [Workspace] @requireAuth
+}
+
+extend type Mutation {
+  """Create new workspace"""
+  createWorkspace(
+    "New workspace name"
+    name: String!,
+
+    "New workspace description"
+    description: String!,
+
+    "New workspace image"
+    image: String
+  ): ID! @requireAuth
+}

@@ -1,5 +1,6 @@
 const { GraphQLString } = require('graphql');
 const { AuthenticationError } = require('apollo-server-express');
+const getFieldName = require('graphql-list-fields');
 const User = require('../models/user');
 
 /**
@@ -19,6 +20,7 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {ResolverArgs} _args
      * @param {Context}
+     * @param {GraphQLResolveInfo} info
      * @return {Promise<User>}
      */
     async me(_obj, _args, { user }) {

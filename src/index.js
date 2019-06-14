@@ -80,7 +80,8 @@ class HawkAPI {
   async start() {
     await mongoose.connect(this.config.mongoURL, {
       useNewUrlParser: true,
-      useCreateIndex: true
+      useCreateIndex: true,
+      useFindAndModify: false
     });
 
     return new Promise((resolve, reject) => {
@@ -88,7 +89,9 @@ class HawkAPI {
         if (e) return reject(e);
 
         console.log(
-          `[${process.env.NODE_ENV}]🚀 Server ready at :${this.config.port}${this.server.graphqlPath}`
+          `[${process.env.NODE_ENV}]🚀 Server ready at :${this.config.port}${
+            this.server.graphqlPath
+          }`
         );
         resolve();
       });
