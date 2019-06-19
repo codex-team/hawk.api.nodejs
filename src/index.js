@@ -37,6 +37,7 @@ class HawkAPI {
 
     this.server = new ApolloServer({
       typeDefs,
+      debug: false,
       resolvers,
       schemaDirectives: {
         requireAuth: requireAuthDirective
@@ -65,7 +66,9 @@ class HawkAPI {
 
         user.id = data.userId;
       } catch (err) {
-        console.log('Invalid token', err);
+        if (err instanceof jwt.TokenExpiredError) {
+          user.accessTokenExpired = true;
+        } else console.log('Invalid token', err);
       }
     }
 
