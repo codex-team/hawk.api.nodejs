@@ -57,6 +57,9 @@ class HawkAPI {
   static async createContext({ req, res }) {
     const user = {};
 
+    // @todo deny access by refresh tokens
+    // @todo block used refresh token
+
     let accessToken = req.headers['authorization'];
 
     if (accessToken && accessToken.startsWith('Bearer ')) {
