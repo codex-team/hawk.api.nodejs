@@ -20,12 +20,13 @@ docker-compose -f docker-compose.dev.yml up -d --build
 
 ### Attaching to the API container
 
-To enter in the attache mode enter:
+To enter in the attach mode enter:
 ```bash
 docker attach <hawk_api_container_name>
 ```
 
-To exit the attache mode enter the following combination: `ctrl+p ctrl+q`
+To exit the attach mode enter the following combination: `ctrl+p ctrl+q`
+
 ## Production
 
 Copy `.env.sample` to `.env`
