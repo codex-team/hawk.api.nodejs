@@ -49,17 +49,25 @@ userSchema.statics.create = async function (email) {
 };
 
 /**
- * @typedef {String} Token
+ * @typedef {Object} Tokens
+ * @property {string} accessToken - user's access token
+ * @property {string} refreshToken - user's refresh token for getting new tokens pair
  */
 
 /**
  * Generates JWT
- * @returns {Token} - generated JWT
+ * @returns {Tokens} - generated Tokens pair
  */
-userSchema.methods.generateJWT = function () {
-  return jwt.sign({
+userSchema.methods.generateTokensPair = async function () {
+  const accessToken = await jwt.sign({
     userId: this._id
-  }, process.env.JWT_SECRET, { expiresIn: '1d' });
+  }, process.env.JWT_SECRET, { expiresIn: '15m' });
+
+  const refreshToken = await jwt.sign({
+    userId: this._id
+  }, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+  return { accessToken, refreshToken };
 };
 
 /**

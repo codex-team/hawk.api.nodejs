@@ -1,19 +1,11 @@
-const { GraphQLString } = require('graphql');
-const { AuthenticationError } = require('apollo-server-express');
-const getFieldName = require('graphql-list-fields');
+const { AuthenticationError, ApolloError } = require('apollo-server-express');
 const User = require('../models/user');
+const jwt = require('jsonwebtoken');
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
  */
 module.exports = {
-  /**
-   * @see Token
-   */
-  Token: {
-    GraphQLString,
-    name: 'Token'
-  },
   Query: {
     /**
      * Returns authenticated user data
@@ -39,7 +31,7 @@ module.exports = {
 
       console.log(`New user: email: ${user.email}, password: ${user.generatedPassword}`);
 
-      return user.generateJWT();
+      return user.generateTokensPair();
     },
 
     /**
@@ -56,7 +48,24 @@ module.exports = {
         throw new AuthenticationError('Wrong email or password');
       }
 
-      return user.generateJWT();
+      return user.generateTokensPair();
+    },
+
+    async refreshTokens(_obj, { refreshToken }) {
+      let userId;
+
+      try {
+        const data = await jwt.verify(refreshToken, process.env.JWT_SECRET);
+
+        userId = data.userId;
+      } catch (err) {
+        throw new AuthenticationError('Invalid refresh token');
+      }
+
+      const user = await User.findById(userId);
+
+      if (!user) throw new ApolloError('There is no users with that id');
+      return user.generateTokensPair();
     }
   }
 };
