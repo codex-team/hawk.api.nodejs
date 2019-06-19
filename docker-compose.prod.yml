@@ -8,6 +8,8 @@ services:
       - .env
     ports:
       - ${PORT}:${PORT}
+    depends_on:
+      - mongodb
 
   mongodb:
     image: mongo
