@@ -1,6 +1,8 @@
 """Authentication token"""
 type Tokens {
+  """User's access token"""
   accessToken: String!
+  """User's refresh token for getting new token pair"""
   refreshToken: String!
 }
 
