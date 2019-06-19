@@ -12,7 +12,6 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {ResolverArgs} _args
      * @param {Context}
-     * @param {GraphQLResolveInfo} info
      * @return {Promise<User>}
      */
     async me(_obj, _args, { user }) {
@@ -24,7 +23,7 @@ module.exports = {
      * Register user with provided email
      * @param {ResolverObj} _obj
      * @param {String} email - user email
-     * @return {Promise<Token>}
+     * @return {Promise<TokensPair>}
      */
     async signUp(_obj, { email }) {
       const user = await User.create(email);
@@ -39,7 +38,7 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {String} email - user email
      * @param {String} password - user password
-     * @return {Promise<Token>}
+     * @return {Promise<TokensPair>}
      */
     async login(_obj, { email, password }) {
       const user = await User.findOne({ email });
@@ -51,6 +50,12 @@ module.exports = {
       return user.generateTokensPair();
     },
 
+    /**
+     * Update user's tokens pair
+     * @param {ResolverObj} _obj
+     * @param {String} refreshToken - refresh token for getting new token pair
+     * @return {Promise<TokensPair>}
+     */
     async refreshTokens(_obj, { refreshToken }) {
       let userId;
 

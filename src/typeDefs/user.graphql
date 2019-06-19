@@ -40,7 +40,9 @@ extend type Mutation {
     password: String!
   ): Tokens!
 
+  """"Update user's tokens pair"""
   refreshTokens(
+    "Refresh token for getting new token pair"
     refreshToken: String!
   ): Tokens!
 }

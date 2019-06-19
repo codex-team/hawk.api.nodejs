@@ -49,14 +49,14 @@ userSchema.statics.create = async function (email) {
 };
 
 /**
- * @typedef {Object} Tokens
+ * @typedef {Object} TokensPair
  * @property {string} accessToken - user's access token
  * @property {string} refreshToken - user's refresh token for getting new tokens pair
  */
 
 /**
  * Generates JWT
- * @returns {Tokens} - generated Tokens pair
+ * @returns {TokensPair} - generated Tokens pair
  */
 userSchema.methods.generateTokensPair = async function () {
   const accessToken = await jwt.sign({
