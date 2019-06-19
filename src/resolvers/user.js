@@ -1,10 +1,11 @@
 const { AuthenticationError, ApolloError } = require('apollo-server-express');
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
-
+const { errorCodes } = require('../errors');
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
  */
+
 module.exports = {
   Query: {
     /**
@@ -26,7 +27,16 @@ module.exports = {
      * @return {Promise<TokensPair>}
      */
     async signUp(_obj, { email }) {
-      const user = await User.create(email);
+      let user;
+
+      try {
+        user = await User.create(email);
+      } catch (e) {
+        if (e.code.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
+          throw new AuthenticationError('User with such email already registered');
+        }
+        throw e;
+      }
 
       console.log(`New user: email: ${user.email}, password: ${user.generatedPassword}`);
 
