@@ -74,7 +74,7 @@ userSchema.methods.generateTokensPair = async function () {
  * Compare Password
  * @param {String} password - non-hashed password
  * @returns {Promise<boolean>} - compare result
- * */
+ */
 userSchema.methods.comparePassword = function (password) {
   return argon2.verify(this.password, password);
 };

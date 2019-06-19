@@ -1,4 +1,4 @@
-const env = require('./src/env');
+require('./src/env');
 const { HawkAPI } = require('./src');
 
 const start = async () => {
