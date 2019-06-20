@@ -1,7 +1,9 @@
 const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
-const mongoose = require('mongoose');
+// const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+
+const hawkDBConnection = require('./db/connection');
 const requireAuthDirective = require('./directives/requireAuthDirective');
 
 const resolvers = require('./resolvers');
@@ -30,7 +32,10 @@ class HawkAPI {
   constructor() {
     this.config = {
       port: +process.env.PORT || 4000,
-      mongoURL: process.env.MONGO_URL || 'mongodb://localhost:27017/hawk'
+      mongoURLAPI:
+        process.env.MONGO_URL_API || 'mongodb://localhost:27017/hawk',
+      mongoURLEvents:
+        process.env.MONGO_URL_EVENTS || 'mongodb://localhost:27017/events'
     };
 
     this.app = express();
@@ -78,11 +83,10 @@ class HawkAPI {
    * @returns {Promise<void>}
    */
   async start() {
-    await mongoose.connect(this.config.mongoURL, {
-      useNewUrlParser: true,
-      useCreateIndex: true,
-      useFindAndModify: false
-    });
+    hawkDBConnection.createConnections(
+      this.config.mongoURLAPI,
+      this.config.mongoURLEvents
+    );
 
     return new Promise((resolve, reject) => {
       this.app.listen({ port: this.config.port }, e => {

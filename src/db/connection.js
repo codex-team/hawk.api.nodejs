@@ -4,19 +4,33 @@ const mongoose = require('mongoose');
  * Singleton class for creating two separete connections to databases
  * Used in models
  *
- * @property {monoose.Connection} connectionAPI
- * @property {monoose.Connection} connectionEvents
+ * @property {mongoose.Connection} connectionAPI
+ * @property {mongoose.Connection} connectionEvents
  */
-class HawkConnections {
+class HawkDBConnections {
   /**
-   *Creates an instance of HawkConnections.
+   * Create database connections
+   *
+   * @param {string} mongoURLAPI
+   * @param {string} mongoURLEvents
    */
-  constructor() {
-    this.connectionAPI = mongoose.createConnection(process.env.MONGO_URL_API);
-    this.connectionEvents = mongoose.createConnection(
-      process.env.MONGO_URL_EVENTS
-    );
+  createConnections(mongoURLAPI, mongoURLEvents) {
+    if (!this.connectionAPI) {
+      this.connectionAPI = mongoose.createConnection(mongoURLAPI, {
+        useNewUrlParser: true,
+        useCreateIndex: true,
+        useFindAndModify: false
+      });
+    }
+
+    if (!this.connectionEvents) {
+      this.connectionEvents = mongoose.createConnection(mongoURLEvents, {
+        useNewUrlParser: true,
+        useCreateIndex: true,
+        useFindAndModify: false
+      });
+    }
   }
 }
 
-module.exports = new HawkConnections();
+module.exports = new HawkDBConnections();

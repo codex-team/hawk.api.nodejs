@@ -1,7 +1,7 @@
 const { GraphQLString } = require('graphql');
 const { AuthenticationError } = require('apollo-server-express');
 const getFieldName = require('graphql-list-fields');
-const User = require('../models/user');
+const User = require('../db/models/user');
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -37,7 +37,9 @@ module.exports = {
     async signUp(_obj, { email }) {
       const user = await User.create(email);
 
-      console.log(`New user: email: ${user.email}, password: ${user.generatedPassword}`);
+      console.log(
+        `New user: email: ${user.email}, password: ${user.generatedPassword}`
+      );
 
       return user.generateJWT();
     },
@@ -52,7 +54,7 @@ module.exports = {
     async login(_obj, { email, password }) {
       const user = await User.findOne({ email });
 
-      if (!user || !await user.comparePassword(password)) {
+      if (!user || !(await user.comparePassword(password))) {
         throw new AuthenticationError('Wrong email or password');
       }
 
