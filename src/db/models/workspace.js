@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const deepPopulate = require('mongoose-deep-populate')(mongoose);
 
+const { connectionAPI } = require('../connection');
+
 require('./user');
 require('./project');
 
@@ -32,6 +34,6 @@ const workspaceSchema = new mongoose.Schema({
 
 workspaceSchema.plugin(deepPopulate);
 
-const Workspace = mongoose.model('Workspace', workspaceSchema);
+const Workspace = connectionAPI.model('Workspace', workspaceSchema);
 
 module.exports = Workspace;

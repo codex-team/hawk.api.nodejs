@@ -1,12 +1,15 @@
 const mongoose = require('mongoose');
 const uuid = require('uuid');
 
+const { connectionAPI } = require('../connection');
+
 require('./user');
 
 const projectSchema = new mongoose.Schema(
   {
     token: {
-      type: String
+      type: String,
+      unique: true
     },
     name: {
       type: String
@@ -44,6 +47,6 @@ projectSchema.pre('save', function (next) {
   return next();
 });
 
-const Project = mongoose.model('Project', projectSchema);
+const Project = connectionAPI.model('Project', projectSchema);
 
 module.exports = Project;

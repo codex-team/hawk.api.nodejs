@@ -4,6 +4,8 @@ const argon2 = require('argon2');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
+const { connectionAPI } = require('../connection');
+
 require('./workspace');
 
 const userSchema = new mongoose.Schema({
@@ -23,7 +25,8 @@ const userSchema = new mongoose.Schema({
   },
   workspaces: [
     {
-      type: mongoose.Schema.ObjectId, ref: 'Workspace'
+      type: mongoose.Schema.ObjectId,
+      ref: 'Workspace'
     }
   ]
 });
@@ -57,9 +60,13 @@ userSchema.statics.create = async function (email) {
  * @returns {Token} - generated JWT
  */
 userSchema.methods.generateJWT = function () {
-  return jwt.sign({
-    userId: this._id
-  }, process.env.JWT_SECRET, { expiresIn: '1d' });
+  return jwt.sign(
+    {
+      userId: this._id
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '1d' }
+  );
 };
 
 /**
@@ -71,6 +78,6 @@ userSchema.methods.comparePassword = function (password) {
   return argon2.verify(this.password, password);
 };
 
-const User = mongoose.model('User', userSchema);
+const User = connectionAPI.model('User', userSchema);
 
 module.exports = User;
