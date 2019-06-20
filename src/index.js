@@ -1,6 +1,5 @@
 const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
-// const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 
 const hawkDBConnection = require('./db/connection');
@@ -83,6 +82,7 @@ class HawkAPI {
    * @returns {Promise<void>}
    */
   async start() {
+    // Connect to databases
     hawkDBConnection.createConnections(
       this.config.mongoURLAPI,
       this.config.mongoURLEvents

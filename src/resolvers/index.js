@@ -31,8 +31,4 @@ const indexResolver = {
   }
 };
 
-module.exports = merge(
-  indexResolver,
-  user,
-  workspace
-);
+module.exports = merge(indexResolver, user, workspace);

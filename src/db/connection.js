@@ -9,26 +9,42 @@ const mongoose = require('mongoose');
  */
 class HawkDBConnections {
   /**
+   *Creates an instance of HawkDBConnections.
+   */
+  constructor() {
+    /**
+     * Create placeholder connections to let load models before creating actual connection
+     */
+    this.connectionAPI = mongoose.createConnection();
+    this.connectionEvents = mongoose.createConnection();
+  }
+
+  /**
    * Create database connections
    *
-   * @param {string} mongoURLAPI
-   * @param {string} mongoURLEvents
+   * @param {string} mongoURLAPI - URL for Hawk API database
+   * @param {string} mongoURLEvents - URL fof Hawk Events database
+   * @param {object} config - config to pass to mongoose connection
+   * @param {boolean} config.useNewUrlParser - use new mongoose url parser
+   * @param {boolean} config.useCreateIndex - create index for models
    */
-  createConnections(mongoURLAPI, mongoURLEvents) {
-    if (!this.connectionAPI) {
-      this.connectionAPI = mongoose.createConnection(mongoURLAPI, {
-        useNewUrlParser: true,
-        useCreateIndex: true,
-        useFindAndModify: false
-      });
+  async createConnections(
+    mongoURLAPI,
+    mongoURLEvents,
+    config = {
+      useNewUrlParser: true,
+      useCreateIndex: true
+    }
+  ) {
+    if (this.connectionAPI._state !== mongoose.STATES.connected) {
+      this.connectionAPI = await mongoose.createConnection(mongoURLAPI, config);
     }
 
-    if (!this.connectionEvents) {
-      this.connectionEvents = mongoose.createConnection(mongoURLEvents, {
-        useNewUrlParser: true,
-        useCreateIndex: true,
-        useFindAndModify: false
-      });
+    if (this.connectionEvents._state !== mongoose.STATES.connected) {
+      this.connectionEvents = await mongoose.createConnection(
+        mongoURLEvents,
+        config
+      );
     }
   }
 }

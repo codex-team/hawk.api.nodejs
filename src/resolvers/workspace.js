@@ -1,8 +1,8 @@
 const { ApolloError } = require('apollo-server-express');
 const { MongoError } = require('mongodb');
 const getFieldName = require('graphql-list-fields');
-const Workspace = require('../models/workspace');
-const User = require('../models/user');
+const Workspace = require('../db/models/workspace');
+const User = require('../db/models/user');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
