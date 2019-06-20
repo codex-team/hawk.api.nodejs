@@ -36,15 +36,36 @@ class HawkDBConnections {
       useCreateIndex: true
     }
   ) {
-    if (this.connectionAPI._state !== mongoose.STATES.connected) {
-      this.connectionAPI = await mongoose.createConnection(mongoURLAPI, config);
+    // Logging if in development
+    if (process.env.NODE_ENV === 'development') {
+      // Events to log
+      const events = ['connected', 'close', 'error'];
+
+      [this.connectionAPI, this.connectionEvents].forEach(conn => {
+        events.forEach(event => {
+          conn.on(event, data => {
+            if (data) {
+              console.log(
+                `[mongo ${conn.host}:${conn.port}/${
+                  conn.name
+                }] ${event}\n ${data}`
+              );
+            } else {
+              console.log(
+                `[mongo ${conn.host}:${conn.port}/${conn.name}] ${event}`
+              );
+            }
+          });
+        });
+      });
     }
 
-    if (this.connectionEvents._state !== mongoose.STATES.connected) {
-      this.connectionEvents = await mongoose.createConnection(
-        mongoURLEvents,
-        config
-      );
+    if (this.connectionAPI.readyState !== mongoose.STATES.connected) {
+      await this.connectionAPI.openUri(mongoURLAPI, config);
+    }
+
+    if (this.connectionEvents.readyState !== mongoose.STATES.connected) {
+      await this.connectionEvents.openUri(mongoURLEvents, config);
     }
   }
 }
