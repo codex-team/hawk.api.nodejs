@@ -10,7 +10,8 @@ services:
       - /usr/src/app/node_modules
     environment:
       - JWT_SECRET=abacaba
-      - MONGO_URL=mongodb://mongodb:27017/hawk
+      - MONGO_URL_API=mongodb://mongodb:27017/hawk
+      - MONGO_URL_EVENTS=mongodb://mongodb_events:27017/events
     ports:
       - "4000:4000"
     depends_on:
@@ -20,6 +21,16 @@ services:
     image: mongo
     volumes:
       - mongodata:/data/db
+    ports:
+      - 27017:27017
+
+  mongodb_events:
+    image: mongo
+    volumes:
+      - eventsdata:/data/db
+    ports:
+      - 27018:27017
 
 volumes:
   mongodata:
+  eventsdata:
