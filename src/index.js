@@ -83,7 +83,7 @@ class HawkAPI {
    */
   async start() {
     // Connect to databases
-    hawkDBConnection.createConnections(
+    await hawkDBConnection.createConnections(
       this.config.mongoURLAPI,
       this.config.mongoURLEvents
     );
@@ -100,6 +100,14 @@ class HawkAPI {
         resolve();
       });
     });
+  }
+
+  /**
+   * Stop server
+   */
+  async stop() {
+    // @todo how to terminate express?
+    await hawkDBConnection.close();
   }
 }
 

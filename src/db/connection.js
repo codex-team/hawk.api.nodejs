@@ -39,7 +39,7 @@ class HawkDBConnections {
     // Logging if in development
     if (process.env.NODE_ENV === 'development') {
       // Events to log
-      const events = ['connected', 'close', 'error'];
+      const events = ['connected', 'close', 'error', 'disconnecting'];
 
       [this.connectionAPI, this.connectionEvents].forEach(conn => {
         events.forEach(event => {
@@ -67,6 +67,17 @@ class HawkDBConnections {
     if (this.connectionEvents.readyState !== mongoose.STATES.connected) {
       await this.connectionEvents.openUri(mongoURLEvents, config);
     }
+  }
+
+  /**
+   * Close connectons
+   *
+   * @returns Promise<void>
+   */
+  close() {
+    return Promise.all(
+      [this.connectionAPI, this.connectionEvents].map(conn => conn.close())
+    );
   }
 }
 
