@@ -4,7 +4,7 @@ const { connectionEvents } = require('../connection');
 /**
  * Hawk event format
  */
-let eventSchema = new mongoose.Schema({
+const eventSchema = new mongoose.Schema({
   /**
    * Type of an event
    */
