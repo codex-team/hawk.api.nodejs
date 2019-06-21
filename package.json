@@ -7,8 +7,10 @@
     "dev": "nodemon app.js",
     "start": "node app.js",
     "lint": "eslint . --ext .js --fix",
-    "dev:up": "docker-compose -f docker-compose.dev.yml up -d",
-    "dev:down": "docker-compose -f docker-compose.dev.yml down"
+    "dev:console": "node -r ./devconsole.js",
+    "docker:up": "docker-compose -f docker-compose.dev.yml up -d",
+    "docker:down": "docker-compose -f docker-compose.dev.yml down",
+    "docker:console": "docker-compose -f docker-compose.dev.yml exec hawk yarn dev:console"
   },
   "devDependencies": {
     "eslint": "^5.16.0",
