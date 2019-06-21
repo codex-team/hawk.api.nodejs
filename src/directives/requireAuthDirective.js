@@ -2,6 +2,9 @@ const {
   SchemaDirectiveVisitor,
   AuthenticationError
 } = require('apollo-server-express');
+const {
+  AccessTokenExpiredError
+} = require('../errors');
 const { defaultFieldResolver } = require('graphql');
 
 /**
@@ -23,6 +26,10 @@ class RequireAuthDirective extends SchemaDirectiveVisitor {
      */
     field.resolve = async function (...resolverArgs) {
       const [, , context] = resolverArgs;
+
+      if (context.user && context.user.accessTokenExpired) {
+        throw new AccessTokenExpiredError();
+      }
 
       if (context.user && !context.user.id) {
         throw new AuthenticationError(

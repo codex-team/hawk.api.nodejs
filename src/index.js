@@ -41,6 +41,7 @@ class HawkAPI {
 
     this.server = new ApolloServer({
       typeDefs,
+      debug: false,
       resolvers,
       schemaDirectives: {
         requireAuth: requireAuthDirective
@@ -60,6 +61,11 @@ class HawkAPI {
   static async createContext({ req, res }) {
     const user = {};
 
+    /*
+     * @todo deny access by refresh tokens
+     * @todo block used refresh token
+     */
+
     let accessToken = req.headers['authorization'];
 
     if (accessToken && accessToken.startsWith('Bearer ')) {
@@ -69,7 +75,9 @@ class HawkAPI {
 
         user.id = data.userId;
       } catch (err) {
-        console.log('Invalid token', err);
+        if (err instanceof jwt.TokenExpiredError) {
+          user.accessTokenExpired = true;
+        } else console.log('Invalid token', err);
       }
     }
 

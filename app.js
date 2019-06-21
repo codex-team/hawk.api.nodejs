@@ -1,7 +1,7 @@
 Error.stackTraceLimit = Infinity;
 
-require('./src/env');
-const { HawkAPI } = require('./src');
+require("./src/env");
+const { HawkAPI } = require("./src");
 
 const start = async () => {
   const app = new HawkAPI();
@@ -9,7 +9,7 @@ const start = async () => {
    * Exit handler, called when received SIGTERM/SIGINT (Ctrl+C)
    */
   const exitHandler = async () => {
-    console.log('Exiting...');
+    console.log("Exiting...");
     try {
       await app.stop();
     } catch (e) {
@@ -27,10 +27,10 @@ const start = async () => {
    * @param {Error} err - Exception
    */
   const exceptionHandler = async err => {
-    if (err.name == 'MongoNetworkError') {
-      console.error('Mongo connection error:');
+    if (err.name == "MongoNetworkError") {
+      console.error("Mongo connection error:");
     } else {
-      console.error('Uncaught exception:');
+      console.error("Uncaught exception:");
     }
     await exitHandler();
   };
@@ -41,10 +41,10 @@ const start = async () => {
     exceptionHandler(err);
   }
 
-  process.on('SIGINT', exitHandler);
-  process.on('SIGTERM', exitHandler);
-  process.on('uncaughtException', exceptionHandler);
-  process.on('unhandledRejection', exceptionHandler);
+  process.on("SIGINT", exitHandler);
+  process.on("SIGTERM", exitHandler);
+  process.on("uncaughtException", exceptionHandler);
+  process.on("unhandledRejection", exceptionHandler);
 };
 
 start();

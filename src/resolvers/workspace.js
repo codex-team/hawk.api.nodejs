@@ -32,7 +32,8 @@ module.exports = {
           // Return all user's workspaces if ids = []
           return await Workspace.find({ users: user.id });
         } else {
-          /* Find provided list of workspaces with current user in `users`
+          /*
+           * Find provided list of workspaces with current user in `users`
            * Request explanation: find workspaces with provided id
            * and filter out workspaces which user have access to
            */

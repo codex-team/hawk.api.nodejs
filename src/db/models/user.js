@@ -1,12 +1,12 @@
-const mongoose = require('mongoose');
-const deepPopulate = require('mongoose-deep-populate')(mongoose);
-const argon2 = require('argon2');
-const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
+const mongoose = require("mongoose");
+const deepPopulate = require("mongoose-deep-populate")(mongoose);
+const argon2 = require("argon2");
+const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 
-const { connectionAPI } = require('../connection');
+const { connectionAPI } = require("../connection");
 
-require('./workspace');
+require("./workspace");
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -21,12 +21,12 @@ const userSchema = new mongoose.Schema({
   },
   picture: {
     type: String,
-    default: ''
+    default: ""
   },
   workspaces: [
     {
       type: mongoose.Schema.ObjectId,
-      ref: 'Workspace'
+      ref: "Workspace"
     }
   ]
 });
@@ -38,9 +38,9 @@ userSchema.plugin(deepPopulate);
  * @param {String} email - user email
  * @returns {Promise<User>} - user details
  */
-userSchema.statics.create = async function (email) {
+userSchema.statics.create = async function(email) {
   // @todo do normal password generation
-  const generatedPassword = crypto.randomBytes(8).toString('hex');
+  const generatedPassword = crypto.randomBytes(8).toString("hex");
   const hashedPassword = await argon2.hash(generatedPassword);
   const userData = { email, password: hashedPassword };
   const user = new User(userData);
@@ -52,32 +52,44 @@ userSchema.statics.create = async function (email) {
 };
 
 /**
- * @typedef {String} Token
+ * @typedef {Object} TokensPair
+ * @property {string} accessToken - user's access token
+ * @property {string} refreshToken - user's refresh token for getting new tokens pair
  */
 
 /**
  * Generates JWT
- * @returns {Token} - generated JWT
+ * @returns {TokensPair} - generated Tokens pair
  */
-userSchema.methods.generateJWT = function () {
-  return jwt.sign(
+userSchema.methods.generateTokensPair = async function() {
+  const accessToken = await jwt.sign(
     {
       userId: this._id
     },
     process.env.JWT_SECRET,
-    { expiresIn: '1d' }
+    { expiresIn: "15m" }
   );
+
+  const refreshToken = await jwt.sign(
+    {
+      userId: this._id
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "30d" }
+  );
+
+  return { accessToken, refreshToken };
 };
 
 /**
  * Compare Password
  * @param {String} password - non-hashed password
  * @returns {Promise<boolean>} - compare result
- * */
-userSchema.methods.comparePassword = function (password) {
+ */
+userSchema.methods.comparePassword = function(password) {
   return argon2.verify(this.password, password);
 };
 
-const User = connectionAPI.model('User', userSchema);
+const User = connectionAPI.model("User", userSchema);
 
 module.exports = User;
