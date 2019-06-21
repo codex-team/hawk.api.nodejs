@@ -1,5 +1,5 @@
 /**
- * Developer console
+ * @file Developer console
  * Load like this: `node -r ./devconsole.js`
  *
  * Loads all mongoose models from `./src/db/models`

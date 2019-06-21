@@ -19,12 +19,6 @@ type Workspace {
   projects: [Project!]
 }
 
-"""Represent project info"""
-type Project {
-  """Project id"""
-  id: ID!
-}
-
 extend type Query {
   """
   Returns workspace(s) info

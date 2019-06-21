@@ -1,0 +1,49 @@
+"""
+Project representation
+"""
+type Project {
+  """
+  Project ID
+  """
+  id: ID!
+
+  """
+  Project token
+  """
+  token: String!
+
+  """
+  Project name
+  """
+  name: String!
+
+  """
+  Project description
+  """
+  description: String
+
+  """
+  Project domain
+  """
+  domain: String
+
+  """
+  Project URI
+  """
+  uri: String
+
+  """
+  Project logo
+  """
+  logo: String
+
+  """
+  User who created project
+  """
+  uidAdded: User!
+
+  """
+  DateTime of creation
+  """
+  dtAdded: DateTime!
+}

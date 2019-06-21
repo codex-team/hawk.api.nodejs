@@ -4,7 +4,8 @@
 const { gql } = require('apollo-server-express');
 const fs = require('fs');
 
-const schema = fs.readdirSync(__dirname)
+const schema = fs
+  .readdirSync(__dirname)
   .filter(name => name.endsWith('.graphql'))
   .map(fileName => fs.readFileSync(`${__dirname}/${fileName}`).toString())
   .join();
