@@ -1,6 +1,12 @@
-const { ApolloServer } = require('apollo-server-express');
+const {
+  ApolloServer,
+  ApolloError,
+  UserInputError
+} = require('apollo-server-express');
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const { MongoError } = require('mongodb');
+const { CastError } = require('mongoose');
 
 const hawkDBConnection = require('./db/connection');
 const requireAuthDirective = require('./directives/requireAuthDirective');
@@ -46,7 +52,24 @@ class HawkAPI {
       schemaDirectives: {
         requireAuth: requireAuthDirective
       },
-      context: HawkAPI.createContext
+      context: HawkAPI.createContext,
+      formatError: err => {
+        console.log(err);
+        if (err instanceof MongoError) {
+          // Mask MongoDB errors
+          console.error('Mongo error: ', err);
+        } else if (err instanceof ApolloError) {
+          // Pass errors from resolvers
+          return err;
+        } else if (err instanceof CastError) {
+          // Mongoose Cast Error when can't convert to ObjectId
+          return new UserInputError('Invalid ID');
+        } else {
+          console.error('Unknown error: ', err);
+        }
+
+        return new ApolloError('Something went wrong');
+      }
     });
 
     this.server.applyMiddleware({ app: this.app });
