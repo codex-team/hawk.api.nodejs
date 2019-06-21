@@ -1,26 +1,18 @@
-const { GraphQLString } = require('graphql');
-const { AuthenticationError } = require('apollo-server-express');
-const getFieldName = require('graphql-list-fields');
+const { AuthenticationError, ApolloError } = require('apollo-server-express');
 const User = require('../models/user');
-
+const jwt = require('jsonwebtoken');
+const { errorCodes } = require('../errors');
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
  */
+
 module.exports = {
-  /**
-   * @see Token
-   */
-  Token: {
-    GraphQLString,
-    name: 'Token'
-  },
   Query: {
     /**
      * Returns authenticated user data
      * @param {ResolverObj} _obj
      * @param {ResolverArgs} _args
      * @param {Context}
-     * @param {GraphQLResolveInfo} info
      * @return {Promise<User>}
      */
     async me(_obj, _args, { user }) {
@@ -32,14 +24,23 @@ module.exports = {
      * Register user with provided email
      * @param {ResolverObj} _obj
      * @param {String} email - user email
-     * @return {Promise<Token>}
+     * @return {Promise<TokensPair>}
      */
     async signUp(_obj, { email }) {
-      const user = await User.create(email);
+      let user;
+
+      try {
+        user = await User.create(email);
+      } catch (e) {
+        if (e.code.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
+          throw new AuthenticationError('User with such email already registered');
+        }
+        throw e;
+      }
 
       console.log(`New user: email: ${user.email}, password: ${user.generatedPassword}`);
 
-      return user.generateJWT();
+      return user.generateTokensPair();
     },
 
     /**
@@ -47,7 +48,7 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {String} email - user email
      * @param {String} password - user password
-     * @return {Promise<Token>}
+     * @return {Promise<TokensPair>}
      */
     async login(_obj, { email, password }) {
       const user = await User.findOne({ email });
@@ -56,7 +57,30 @@ module.exports = {
         throw new AuthenticationError('Wrong email or password');
       }
 
-      return user.generateJWT();
+      return user.generateTokensPair();
+    },
+
+    /**
+     * Update user's tokens pair
+     * @param {ResolverObj} _obj
+     * @param {String} refreshToken - refresh token for getting new token pair
+     * @return {Promise<TokensPair>}
+     */
+    async refreshTokens(_obj, { refreshToken }) {
+      let userId;
+
+      try {
+        const data = await jwt.verify(refreshToken, process.env.JWT_SECRET);
+
+        userId = data.userId;
+      } catch (err) {
+        throw new AuthenticationError('Invalid refresh token');
+      }
+
+      const user = await User.findById(userId);
+
+      if (!user) throw new ApolloError('There is no users with that id');
+      return user.generateTokensPair();
     }
   }
 };

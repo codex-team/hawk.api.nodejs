@@ -1,5 +1,10 @@
 """Authentication token"""
-scalar Token
+type Tokens {
+  """User's access token"""
+  accessToken: String!
+  """User's refresh token for getting new token pair"""
+  refreshToken: String!
+}
 
 """Represent User type"""
 type User {
@@ -26,7 +31,7 @@ extend type Mutation {
   signUp(
     "Registration email"
     email: String!
-  ): Token!
+  ): Tokens!
 
   """Login user with provided email and password"""
   login(
@@ -35,5 +40,11 @@ extend type Mutation {
 
     "User password"
     password: String!
-  ): Token!
+  ): Tokens!
+
+  """"Update user's tokens pair"""
+  refreshTokens(
+    "Refresh token for getting new token pair"
+    refreshToken: String!
+  ): Tokens!
 }
