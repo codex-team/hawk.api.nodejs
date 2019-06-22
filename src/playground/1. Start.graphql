@@ -1,5 +1,9 @@
-# Hi, Lets check out server
+# Hello!
+# Let's first check that our server is up and responding to requests
 
+# If all is well, this request should return 'ok'
 query {
   health
 }
+
+# Now, let's move to the next tab
