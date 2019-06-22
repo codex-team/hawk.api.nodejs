@@ -1,0 +1,48 @@
+# In this section, we will go through all the basic
+# requests and mutations required for user authentication.
+
+# Let's execute this query.
+# You can set the necessary variables in the section
+# at the bottom of the screen.
+mutation signUp($email: String!) {
+  signUp(email: $email) {
+    accessToken
+    refreshToken
+  }
+}
+
+# Now you have accessToken and refreshToken for you user
+# A letter with a password must also arrive in the mail
+# Аdd these values to the corresponding query variables
+# Also, add an access token to the 'authorization' header,
+# so that the server can recognize the user
+
+# To get a pair of tokens for a registered user, run this request
+mutation login($email: String!, $password: String!) {
+  login(email: $email, password: $password) {
+    accessToken
+    refreshToken
+  }
+}
+
+# To get information about an authorized user
+# (the token of which is specified in the header),
+# run the following request
+
+query me {
+  me {
+    id
+    email
+    name,
+    picture
+  }
+}
+
+# When you need to update
+# a pair of tokens execute this request
+mutation refreshTokens($refreshToken: String!) {
+  refreshTokens(refreshToken: $refreshToken) {
+    accessToken,
+    refreshToken
+  }
+}

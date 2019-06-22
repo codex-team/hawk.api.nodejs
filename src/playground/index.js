@@ -5,8 +5,11 @@ const headers = {
 };
 
 const variables = {
-  accessToken: 'lol'
+  email: 'my@email.com',
+  password: '<generated password>',
+  accessToken: '<access token>'
 };
+const stringifiedVars = JSON.stringify(variables, null, 2);
 
 const tabs = fs.readdirSync(__dirname)
   .filter(name => name.endsWith('.graphql'))
@@ -15,7 +18,7 @@ const tabs = fs.readdirSync(__dirname)
       name: fileName.slice(0, -8),
       endpoint: `http://localhost:${process.env.PORT}/graphql`,
       query: fs.readFileSync(`${__dirname}/${fileName}`).toString(),
-      variables: JSON.stringify(variables),
+      variables: stringifiedVars,
       headers
     };
   });
