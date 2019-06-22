@@ -38,6 +38,8 @@ class HawkAPI {
     this.server = new ApolloServer({
       typeDefs,
       debug: false,
+      introspection: true,
+      playground: true,
       resolvers,
       schemaDirectives: {
         requireAuth: requireAuthDirective
