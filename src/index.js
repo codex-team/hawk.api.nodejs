@@ -6,6 +6,7 @@ const requireAuthDirective = require('./directives/requireAuthDirective');
 
 const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
+const playground = require('./playground');
 
 /**
  * @typedef Context
@@ -39,7 +40,7 @@ class HawkAPI {
       typeDefs,
       debug: false,
       introspection: true,
-      playground: true,
+      playground,
       resolvers,
       schemaDirectives: {
         requireAuth: requireAuthDirective

@@ -1,0 +1,5 @@
+# Hi, Lets check out server
+
+query {
+  health
+}
