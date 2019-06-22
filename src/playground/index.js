@@ -1,5 +1,12 @@
 const fs = require('fs');
 
+const settings = {
+  'general.betaUpdates': false,
+  'prettier.useTabs': true,
+  'schema.disableComments': false,
+  'editor.reuseHeaders': true
+};
+
 const headers = {
   'authorization': 'Bearer <access token>'
 };
@@ -24,5 +31,6 @@ const tabs = fs.readdirSync(__dirname)
   });
 
 module.exports = {
+  settings,
   tabs
 };
