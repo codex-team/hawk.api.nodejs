@@ -23,7 +23,7 @@ class AccessTokenExpiredError extends ApolloError {
    * Error constructor
    */
   constructor() {
-    super('You need to refresh your tokens', errorCodes.ACCESS_TOKEN_EXPIRED_ERROR);
+    super('You need to refresh your tokens', errorCodes.AUTH_ACCESS_TOKEN_EXPIRED_ERROR);
   }
 }
 
