@@ -64,7 +64,7 @@ class HawkAPI {
 
     let accessToken = req.headers['authorization'];
 
-    if (accessToken && accessToken.startsWith('Bearer ')) {
+    if (accessToken && /^Bearer .*\..*\..*$/.test(accessToken)) {
       accessToken = accessToken.slice(7);
       try {
         const data = await jwt.verify(accessToken, process.env.JWT_SECRET);
@@ -73,7 +73,7 @@ class HawkAPI {
       } catch (err) {
         if (err instanceof jwt.TokenExpiredError) {
           user.accessTokenExpired = true;
-        } else console.log('Invalid token', err);
+        }
       }
     }
 
