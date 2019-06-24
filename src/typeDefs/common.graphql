@@ -1,0 +1,4 @@
+"""
+Type for date and time representation
+"""
+scalar DateTIme

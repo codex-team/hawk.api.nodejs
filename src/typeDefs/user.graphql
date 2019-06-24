@@ -1,48 +1,69 @@
-"""Authentication token"""
+"""
+Authentication token
+"""
 type Tokens {
-  """User's access token"""
+  """
+  User's access token
+  """
   accessToken: String!
-  """User's refresh token for getting new token pair"""
+  """
+  User's refresh token for getting new token pair
+  """
   refreshToken: String!
 }
 
-"""Represent User type"""
+"""
+Represent User type
+"""
 type User {
-  """User's id"""
+  """
+  User's id
+  """
   id: ID!
 
-  """User's email"""
+  """
+  User's email
+  """
   email: String!
 
-  """User's name"""
+  """
+  User's name
+  """
   name: String
 
-  """User's picture"""
+  """
+  User's picture
+  """
   picture: String
 }
 
 extend type Query {
-  """Returns authenticated user data"""
+  """
+  Returns authenticated user data
+  """
   me: User @requireAuth
 }
 
 extend type Mutation {
-  """Register user with provided email. Returns auth token if registered"""
-  signUp(
-    "Registration email"
-    email: String!
-  ): Tokens!
+  """
+  Register user with provided email. Returns auth token if registered
+  """
+  signUp("Registration email" email: String!): Tokens!
 
-  """Login user with provided email and password"""
+  """
+  Login user with provided email and password
+  """
   login(
     "User email"
-    email: String!,
+    email: String!
 
     "User password"
     password: String!
   ): Tokens!
 
-  """"Update user's tokens pair"""
+  """
+  "Update user's tokens pair
+  """
   refreshTokens(
     "Refresh token for getting new token pair"
     refreshToken: String!
