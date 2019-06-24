@@ -1,6 +1,7 @@
+const { merge } = require('lodash');
+const { GraphQLDateTime } = require('graphql-iso-date');
 const user = require('./user');
 const workspace = require('./workspace');
-const { merge } = require('lodash');
 
 /**
  * @typedef ResolverObj
@@ -28,11 +29,9 @@ const indexResolver = {
      * @return {string}
      */
     health: () => 'ok'
-  }
+  },
+  // DateTime scalar resolver
+  DateTime: GraphQLDateTime
 };
 
-module.exports = merge(
-  indexResolver,
-  user,
-  workspace
-);
+module.exports = merge(indexResolver, user, workspace);
