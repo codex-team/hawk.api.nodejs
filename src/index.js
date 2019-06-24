@@ -64,7 +64,7 @@ class HawkAPI {
 
     let accessToken = req.headers['authorization'];
 
-    if (accessToken && /^Bearer .*\..*\..*$/.test(accessToken)) {
+    if (accessToken && /^Bearer [a-z0-9-_+/=]+\.[a-z0-9-_+/=]+\.[a-z0-9-_+/=]+$/i.test(accessToken)) {
       accessToken = accessToken.slice(7);
       try {
         const data = await jwt.verify(accessToken, process.env.JWT_SECRET);
