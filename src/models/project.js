@@ -6,7 +6,8 @@ require('./user');
 const projectSchema = new mongoose.Schema(
   {
     token: {
-      type: String
+      type: String,
+      unique: true
     },
     name: {
       type: String
