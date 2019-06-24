@@ -2,3 +2,13 @@
 Type for date and time representation
 """
 scalar DateTime
+
+"""
+Type for representing JSON values
+"""
+scalar JSON
+
+"""
+Type for representing JSON objects
+"""
+scalar JSONObject
