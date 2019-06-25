@@ -9,7 +9,6 @@ const eventSchema = new mongoose.Schema({
    */
   catcherType: {
     type: String,
-    default: 'unknown',
     required: true
   },
 
