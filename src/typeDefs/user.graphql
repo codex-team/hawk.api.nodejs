@@ -62,7 +62,7 @@ extend type Mutation {
   ): Tokens!
 
   """
-  "Update user's tokens pair
+  Update user's tokens pair
   """
   refreshTokens(
     "Refresh token for getting new token pair"

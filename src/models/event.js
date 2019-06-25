@@ -9,115 +9,122 @@ const eventSchema = new mongoose.Schema({
    */
   catcherType: {
     type: String,
-    default: 'unknown'
+    default: 'unknown',
+    required: true
   },
 
   /**
    * Event data
    */
   payload: {
-    /**
-     * Event title
-     */
-    title: String,
+    type: {
+      /**
+       * Event title
+       */
+      title: {
+        type: String,
+        required: true
+      },
 
-    /**
-     * Event datetime
-     */
-    timestamp: Date,
+      /**
+       * Event datetime
+       */
+      timestamp: {
+        type: Date,
+        required: true
+      },
 
-    /**
-     * Event severity level
-     */
-    level: Number,
+      /**
+       * Event severity level
+       */
+      level: {
+        type: Number,
+        required: true
+      },
 
-    /**
-     * @optional
-     * Event stack array from the latest call to the earliest
-     */
-    backtrace: [
-      {
-        /**
-         * Source filepath
-         */
-        file: String,
+      /**
+       * Event stack array from the latest call to the earliest
+       */
+      backtrace: [
+        {
+          /**
+           * Source filepath
+           */
+          file: {
+            type: String,
+            required: true
+          },
 
-        /**
-         * Called line
-         */
-        line: Number,
+          /**
+           * Called line
+           */
+          line: {
+            type: Number,
+            required: true
+          },
 
-        /**
-         * @optional
-         * Part of source code file near the called line
-         */
-        sourceCode: [
-          {
-            /**
-             * Line's number
-             */
-            // eslint-disable-next-line camelcase
-            line: Number,
+          /**
+           * Part of source code file near the called line
+           */
+          sourceCode: [
+            {
+              /**
+               * Line's number
+               */
+              line: {
+                type: String,
+                required: true
+              },
 
-            /**
-             * Line's content
-             */
-            content: String
-          }
-        ]
-      }
-    ],
+              /**
+               * Line's content
+               */
+              content: {
+                type: String,
+                required: true
+              }
+            }
+          ]
+        }
+      ],
 
-    /**
-     * @optional
-     * Any additional data to be shown on the event's page
-     */
-    get: {
-      type: Map,
-      of: mongoose.Schema.Types.Mixed
+      /**
+       * GET params
+       */
+      get: Object,
+
+      /**
+       * POST params
+       */
+      post: Object,
+
+      /**
+       * HTTP headers
+       */
+      headers: Object,
+
+      /**
+       * Source code version identifier
+       * Version, modify timestamp or both of them combined
+       */
+      release: String,
+
+      /**
+       * Current authenticated user
+       */
+      user: {
+        id: Number,
+        name: String,
+        url: String,
+        photo: String
+      },
+
+      /**
+       * Any additional data
+       */
+      context: Object
     },
-
-    /**
-     * @optional
-     * Any additional data to be shown on the event's page
-     */
-    post: {
-      type: Map,
-      of: mongoose.Schema.Types.Mixed
-    },
-
-    /**
-     * @optional
-     * HTTP headers
-     */
-    headers: {
-      type: Map,
-      of: mongoose.Schema.Types.Mixed
-    },
-
-    /**
-     * @optional
-     * Source code version identifier
-     * Version, modify timestamp or both of them combined
-     */
-    release: String,
-
-    /**
-     * @optional
-     * Current authenticated user
-     */
-    user: {
-      id: Number,
-      name: String,
-      url: String,
-      photo: String
-    },
-
-    /**
-     * @optional
-     * Any additional data
-     */
-    context: mongoose.Schema.Types.Mixed
+    required: true
   }
 });
 
