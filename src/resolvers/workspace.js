@@ -22,7 +22,7 @@ module.exports = {
       // @todo Check if we need to validate user existance
 
       /*
-       * Get models fields reqeusted in query to populate
+       * Get models fields requested in query to populate
        * Used below in `deepPopulate`
        */
       const fields = getFieldName(info);
@@ -84,8 +84,7 @@ module.exports = {
 
         return workspace;
       } catch (err) {
-        console.error('Error creating workspace', err);
-        throw err;
+        throw new ApolloError('Something went wrong');
       }
     }
   }
