@@ -47,5 +47,5 @@ extend type Mutation {
 
     "New workspace image"
     image: String
-  ): ID! @requireAuth
+  ): Workspace! @requireAuth
 }
