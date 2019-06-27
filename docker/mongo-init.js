@@ -3,7 +3,7 @@ config = {
   "members" : [
     {
       "_id" : 0,
-      "host" : "mongodb://0.0.0.0:27017/"
+      "host" : "mongodb:27017"
     }
   ]
 };
