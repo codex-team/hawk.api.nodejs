@@ -25,7 +25,7 @@ services:
       - ./docker/mongo-init.js:/scripts/mongo-init.js
     ports:
       - 27017:27017
-    entrypoint: [ "/usr/bin/mongod", "--replSet", "rs0" ]
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0" ]
 
 volumes:
   mongodata:
