@@ -14,7 +14,7 @@ module.exports = {
      * Returns all user's workspaces if ids = []
      * @param {ResolverObj} _obj
      * @param {String[]} ids - workspace ids
-     * @param {Context} - Apollo's resolver context argument {@see ../index.js}
+     * @param {Context.user} user - current authorized user {@see ../index.js}
      * @param {GraphQLResolveInfo} info - Apollo's resolver info argument {@see ./index.js}
      * @return {Workspace[]}
      */
@@ -22,7 +22,7 @@ module.exports = {
       // @todo Check if we need to validate user existance
 
       /*
-       * Get models fields reqeusted in query to populate
+       * Get models fields requested in query to populate
        * Used below in `deepPopulate`
        */
       const fields = getFieldName(info);
@@ -59,7 +59,7 @@ module.exports = {
      * @param {String} name - workspace name
      * @param {String} description - workspace description
      * @param {String} image - workspace image
-     * @param {Context}
+     * @param {Context.user} user - current authorized user {@see ../index.js}
      * @return {String} created workspace id
      */
     async createWorkspace(_obj, { name, description, image }, { user }) {
@@ -82,14 +82,9 @@ module.exports = {
           }
         });
 
-        return workspace._id;
+        return workspace;
       } catch (err) {
-        console.error('Error finding workspace', err);
-        if (err instanceof MongoError) {
-          throw new ApolloError('Something went wrong');
-        } else {
-          throw new ApolloError('Unknown error');
-        }
+        throw new ApolloError('Something went wrong');
       }
     }
   }
