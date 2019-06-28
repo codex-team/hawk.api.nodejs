@@ -31,7 +31,7 @@ class YandexProvider extends EmailProvider {
    * Send email to specified receiver from template
    * @param {string} to - email's receivers
    * @param {string} templateName - email's subject
-   * @param {Object} variables - template variables
+   * @param {Object} [variables] - template variables
    */
   async send(to, templateName, variables) {
     if (!templateName) throw new Error('Email\'s template name must be specified');
