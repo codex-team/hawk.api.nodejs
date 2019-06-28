@@ -3,6 +3,7 @@ const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 const { errorCodes } = require('../errors');
 const emailProvider = require('../email');
+const { names: emailTemplatesNames } = require('../email/templates');
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -32,15 +33,17 @@ module.exports = {
 
       try {
         user = await User.create(email);
-        emailProvider.send(email, 'successfulSignUp');
+        emailProvider.send(email, emailTemplatesNames.SUCCESSFUL_SIGN_UP,
+          {
+            email,
+            password: user.generatedPassword
+          });
       } catch (e) {
         if (e.code.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
           throw new AuthenticationError('User with such email already registered');
         }
         throw e;
       }
-
-      console.log(`New user: email: ${user.email}, password: ${user.generatedPassword}`);
 
       return user.generateTokensPair();
     },
