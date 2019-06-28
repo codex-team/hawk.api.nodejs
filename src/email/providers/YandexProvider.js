@@ -36,7 +36,7 @@ class YandexProvider extends EmailProvider {
   async send(to, templateName, variables) {
     if (!templateName) throw new Error('Email\'s template name must be specified');
 
-    const emailContent = this.render(templateName, variables);
+    const emailContent = YandexProvider.render(templateName, variables);
 
     const mailOptions = {
       from: `"${process.env.YANDEX_SENDER_NAME}" <${process.env.YANDEX_SENDER_ADDRESS}>`, // sender address
