@@ -1,4 +1,5 @@
 const templates = require('../templates');
+const mustache = require('mustache');
 
 /**
  * @typedef {Object} EmailContent
@@ -19,7 +20,8 @@ class EmailProvider {
    * @param {string} templateName - email's subject
    * @param {Object} [variables] - template variables
    */
-  send(to, templateName, variables) {}
+  send(to, templateName, variables) {
+  }
 
   /**
    * Render template with variables
@@ -28,7 +30,12 @@ class EmailProvider {
    * @return {EmailContent}
    */
   static render(templateName, variables) {
-    return templates.content[templateName];
+    const template = templates.content[templateName];
+
+    Object.keys(template).forEach(key => {
+      template[key] = mustache.render(template[key], variables);
+    });
+    return template;
   }
 }
 

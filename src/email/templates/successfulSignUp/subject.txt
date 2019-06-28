@@ -1,1 +1,1 @@
-Welcome to Hawk, {{userEmail}}
+Welcome to Hawk, {{email}}
