@@ -18,4 +18,19 @@ const templates = fs.readdirSync(__dirname)
     return accumulator;
   }, {});
 
-module.exports = templates;
+/**
+ * @enum {String} - available template names
+ */
+const templateNames = {
+  /**
+   * Welcome letter with password
+   * @var {String} email - user's email
+   * @var {String} password - user's password
+   */
+  SUCCESSFUL_SIGN_UP: 'successfulSignUp'
+};
+
+module.exports = {
+  content: templates,
+  names: templateNames
+};
