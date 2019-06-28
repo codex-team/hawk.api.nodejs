@@ -11,6 +11,12 @@ services:
     environment:
       - JWT_SECRET=abacaba
       - MONGO_URL=mongodb://mongodb:27017/hawk
+      - YANDEX_MAIL_HOST=smtp.yandex.ru
+      - YANDEX_MAIL_PORT=465
+      - YANDEX_MAIL_USERNAME=
+      - YANDEX_MAIL_PASSWORD=
+      - YANDEX_SENDER_NAME=
+      - YANDEX_SENDER_ADDRESS=
     ports:
       - "4000:4000"
     depends_on:
