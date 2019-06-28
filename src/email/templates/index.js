@@ -1,5 +1,8 @@
 const fs = require('fs');
 
+/**
+ * @type {Object} - contains email content (subject, text, html) for each template
+ */
 const templates = fs.readdirSync(__dirname)
   .filter(name => !name.endsWith('.js'))
   .reduce((accumulator, templateName) => {
