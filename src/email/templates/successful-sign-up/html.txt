@@ -1,0 +1,2 @@
+Hi <br>
+Your password is: {{password}}
