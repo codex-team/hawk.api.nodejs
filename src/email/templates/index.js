@@ -30,7 +30,7 @@ const templateNames = {
    * @var {String} email - user's email
    * @var {String} password - user's password
    */
-  SUCCESSFUL_SIGN_UP: 'successfulSignUp'
+  SUCCESSFUL_SIGN_UP: 'successful-sign-up'
 };
 
 module.exports = {
