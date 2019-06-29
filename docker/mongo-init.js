@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 config = {
   "_id" : "rs0",
   "members" : [
