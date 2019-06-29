@@ -44,7 +44,11 @@ class YandexProvider extends EmailProvider {
       ...emailContent
     };
 
-    return this.transporter.sendMail(mailOptions);
+    try {
+      await this.transporter.sendMail(mailOptions);
+    } catch (e) {
+      console.log('Error sending letter. Try to check the environment settings (in .env file).');
+    }
   }
 }
 
