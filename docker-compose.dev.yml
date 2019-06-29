@@ -22,8 +22,10 @@ services:
     image: mongo
     volumes:
       - mongodata:/data/db
+      - ./docker/mongo-init.js:/scripts/mongo-init.js
     ports:
       - 27017:27017
+    command: --bind_ip_all --replSet rs0
 
 volumes:
   mongodata:
