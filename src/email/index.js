@@ -1,3 +1,3 @@
-const YandexProvider = require('./providers/YandexProvider');
+const SMTPProvider = require('./providers/SMTPProvider');
 
-module.exports = new YandexProvider();
+module.exports = new SMTPProvider();

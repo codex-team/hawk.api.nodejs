@@ -2,9 +2,9 @@ const nodemailer = require('nodemailer');
 const EmailProvider = require('./EmailProvider');
 
 /**
- * Class representing Yandex email service provider
+ * Class representing any SMTP email service
  */
-class YandexProvider extends EmailProvider {
+class SMTPProvider extends EmailProvider {
   /**
    * Creates provider instance
    */
@@ -12,12 +12,12 @@ class YandexProvider extends EmailProvider {
     super();
 
     this.config = {
-      host: process.env.YANDEX_MAIL_HOST,
-      port: process.env.YANDEX_MAIL_PORT,
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
       secure: true,
       auth: {
-        user: process.env.YANDEX_MAIL_USERNAME,
-        pass: process.env.YANDEX_MAIL_PASSWORD
+        user: process.env.SMTP_USERNAME,
+        pass: process.env.SMTP_PASSWORD
       }
     };
 
@@ -36,10 +36,10 @@ class YandexProvider extends EmailProvider {
   async send(to, templateName, variables) {
     if (!templateName) throw new Error('Email\'s template name must be specified');
 
-    const emailContent = YandexProvider.render(templateName, variables);
+    const emailContent = SMTPProvider.render(templateName, variables);
 
     const mailOptions = {
-      from: `"${process.env.YANDEX_SENDER_NAME}" <${process.env.YANDEX_SENDER_ADDRESS}>`, // sender address
+      from: `"${process.env.SMTP_SENDER_NAME}" <${process.env.SMTP_SENDER_ADDRESS}>`, // sender address
       to,
       ...emailContent
     };
@@ -52,4 +52,4 @@ class YandexProvider extends EmailProvider {
   }
 }
 
-module.exports = YandexProvider;
+module.exports = SMTPProvider;
