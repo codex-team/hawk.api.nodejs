@@ -18,6 +18,7 @@ const ObjectID = mongodbDriver.ObjectID;
  * @property {string} password - user's password
  * @property {string} [picture] - user's picture URL
  * @property {string} [name] - user's name
+ * @property {string} [generatedPassword] - user's original password (this field appears only after registration)
  */
 
 /**
@@ -73,6 +74,25 @@ class User {
    */
   static async findById(id) {
     const searchResult = await this.collection.findOne({ _id: new ObjectID(id) });
+
+    return new User({
+      id: searchResult._id,
+      password: searchResult.password,
+      email: searchResult.email,
+      name: searchResult.name,
+      picture: searchResult.picture
+    });
+  }
+
+  /**
+   * Finds user by his email
+   * @param {User.id} email - user's email
+   * @return {Promise<User>}
+   */
+  static async findByEmail(email) {
+    const searchResult = await this.collection.findOne({ email });
+
+    if (!searchResult) return null;
 
     return new User({
       id: searchResult._id,
