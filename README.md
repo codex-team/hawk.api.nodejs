@@ -1,7 +1,7 @@
 # Hawk API
 
 ## Start API
-For deployment (both in production and in maiden), you can use Docker.
+For deployment (both in production and in development), you can use Docker.
 See Docker instructions [here](DOCKER.md).
 
 Also you can run Hawk API manually:
