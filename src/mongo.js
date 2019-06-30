@@ -13,7 +13,7 @@ const connectionConfig = {
 };
 
 /**
- * Setups connections to the databases (common hawk and events databases)
+ * Setups connections to the databases (hawk api and events databases)
  * @return {Promise<void>}
  */
 async function setupConnections() {
