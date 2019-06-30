@@ -56,9 +56,10 @@ class User {
     const hashedPassword = await argon2.hash(generatedPassword);
 
     const userData = { email, password: hashedPassword };
-    const savedUser = (await this.collection.insertOne(userData)).ops[0];
+    const userId = (await this.collection.insertOne(userData)).insertedId;
+
     const user = new User({
-      id: savedUser._id,
+      id: userId,
       ...userData
     });
 
