@@ -17,21 +17,10 @@ const connectionConfig = {
  * @return {Promise<void>}
  */
 async function setupConnections() {
-  const hawkConnection = new Promise((resolve, reject) => {
-    mongo.connect(hawkDBUrl, connectionConfig, (err, db) => {
-      if (err) return reject(err);
-      resolve(db.db());
-    });
-  });
-
-  const eventsConnection = new Promise((resolve, reject) => {
-    mongo.connect(eventsDBUrl, connectionConfig, (err, db) => {
-      if (err) return reject(err);
-      resolve(db.db());
-    });
-  });
-
-  const [hawkDB, eventsDB] = await Promise.all([hawkConnection, eventsConnection]);
+  const [hawkDB, eventsDB] = (await Promise.all([
+    mongo.connect(hawkDBUrl, connectionConfig),
+    mongo.connect(eventsDBUrl, connectionConfig)
+  ])).map(client => client.db());
 
   databases.hawk = hawkDB;
   databases.events = eventsDB;
