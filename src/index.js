@@ -1,6 +1,6 @@
 const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
-const db = require('./db');
+const mongo = require('./mongo');
 const jwt = require('jsonwebtoken');
 const requireAuthDirective = require('./directives/requireAuthDirective');
 
@@ -86,7 +86,7 @@ class HawkAPI {
    * @returns {Promise<void>}
    */
   async start() {
-    await db.setupConnections();
+    await mongo.setupConnections();
 
     return new Promise((resolve, reject) => {
       this.app.listen({ port: this.config.port }, e => {

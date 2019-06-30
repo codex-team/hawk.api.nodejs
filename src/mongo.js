@@ -3,8 +3,14 @@ const mongo = require('mongodb').MongoClient;
 const hawkDBUrl = process.env.MONGO_HAWK_DB_URL || 'mongodb://localhost:27017/hawk';
 const eventsDBUrl = process.env.MONGO_EVENTS_DB_URL || 'mongodb://localhost:27017/events';
 
-let hawkDB = null;
-let eventsDB = null;
+const databases = {
+  hawk: null,
+  events: null
+};
+
+const connectionConfig = {
+  useNewUrlParser: true
+};
 
 /**
  * Setups connections to the databases (common hawk and events databases)
@@ -12,24 +18,26 @@ let eventsDB = null;
  */
 async function setupConnections() {
   const hawkConnection = new Promise((resolve, reject) => {
-    mongo.connect(hawkDBUrl, (err, client) => {
+    mongo.connect(hawkDBUrl, connectionConfig, (err, db) => {
       if (err) return reject(err);
-      resolve(client);
+      resolve(db.db());
     });
   });
 
   const eventsConnection = new Promise((resolve, reject) => {
-    mongo.connect(eventsDBUrl, (err, client) => {
+    mongo.connect(eventsDBUrl, connectionConfig, (err, db) => {
       if (err) return reject(err);
-      resolve(client);
+      resolve(db.db());
     });
   });
 
-  [hawkDB, eventsDB] = await Promise.all([hawkConnection, eventsConnection]);
+  const [hawkDB, eventsDB] = await Promise.all([hawkConnection, eventsConnection]);
+
+  databases.hawk = hawkDB;
+  databases.events = eventsDB;
 }
 
 module.exports = {
   setupConnections,
-  hawkDB,
-  eventsDB
+  databases
 };
