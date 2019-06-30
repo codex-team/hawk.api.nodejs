@@ -1,6 +1,6 @@
 const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
-const mongoose = require('mongoose');
+const mongo = require('./mongo');
 const jwt = require('jsonwebtoken');
 const requireAuthDirective = require('./directives/requireAuthDirective');
 
@@ -93,11 +93,7 @@ class HawkAPI {
    * @returns {Promise<void>}
    */
   async start() {
-    await mongoose.connect(this.config.mongoURL, {
-      useNewUrlParser: true,
-      useCreateIndex: true,
-      useFindAndModify: false
-    });
+    await mongo.setupConnections();
 
     return new Promise((resolve, reject) => {
       this.app.listen({ port: this.config.port }, e => {
