@@ -1,11 +1,23 @@
 # Hawk API
 
-## Start server
+## Start API
+For deployment (both in production and in development), you can use Docker.
+See Docker instructions [here](DOCKER.md).
+
+Also you can run Hawk API manually:
 - Start MongoDB
-- Write MongoDB URL to .env file
-- Run `yarn start`
+- Write necessary info to .env file
+- Run `yarn start` or `yarn dev`
 - Go to `localhost:4000/graphql`
 
 ## Schema
 
-GraphQL API schema is located [here](src/typeDefs)
+GraphQL API schema is located [here](src/typeDefs).
+
+## GraphQL Playground
+For queries testing you can enable GraphQL playground.
+The corresponding setting is in the `.env` file (`PLAYGROUND_ENABLE`).
+If the playground is turned on, you can access it via `/graphql` route.
+
+To execute the request, enter it in the input field on the left and click on the request execution button.
+On the right side you will see the result of the query.
