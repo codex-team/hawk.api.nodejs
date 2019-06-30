@@ -8,6 +8,11 @@ const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
 
 /**
+ * Option to enable playground
+ */
+const PLAYGROUND_ENABLE = process.env.PLAYGROUND_ENABLE === 'true';
+
+/**
  * @typedef Context
  * @property {Object} user - current user
  * @property {String} user.id - current user id
@@ -39,6 +44,8 @@ class HawkAPI {
       typeDefs,
       debug: false,
       resolvers,
+      playground: PLAYGROUND_ENABLE,
+      introspection: PLAYGROUND_ENABLE,
       schemaDirectives: {
         requireAuth: requireAuthDirective
       },
