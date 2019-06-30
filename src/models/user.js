@@ -25,8 +25,8 @@ const ObjectID = mongodbDriver.ObjectID;
  */
 class User {
   /**
-   *
-   * @param userData
+   * Creates User instance
+   * @param {UserSchema} userData - user's data
    */
   constructor(userData) {
     this.id = userData.id;
