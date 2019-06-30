@@ -11,7 +11,7 @@ services:
     environment:
       - JWT_SECRET=abacaba
       - MONGO_URL=mongodb://mongodb:27017/hawk
-      - PLAYGROUNG_ENABLE=true
+      - PLAYGROUND_ENABLE=true
     ports:
       - "4000:4000"
     depends_on:

@@ -10,7 +10,7 @@ const typeDefs = require('./typeDefs');
 /**
  * Option to enable playground
  */
-const PLAYGROUND_ENABLE = process.env.PLAYGROUNG_ENABLE === 'true';
+const PLAYGROUND_ENABLE = process.env.PLAYGROUND_ENABLE === 'true';
 
 /**
  * @typedef Context
