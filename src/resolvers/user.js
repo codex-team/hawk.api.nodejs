@@ -56,7 +56,7 @@ module.exports = {
      * @return {Promise<TokensPair>}
      */
     async login(_obj, { email, password }) {
-      const user = await User.findOne({ email });
+      const user = await User.findByEmail(email);
 
       if (!user || !await user.comparePassword(password)) {
         throw new AuthenticationError('Wrong email or password');
