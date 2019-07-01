@@ -8,7 +8,7 @@ const mongo = require('../mongo');
 
 /**
  * Membership model
- * The class provides the opportunity to work with the collections of the workspace team.
+ * The class provides the opportunity to work with the collections of the user's membership list
  */
 class Membership {
   /**
@@ -28,9 +28,9 @@ class Membership {
   }
 
   /**
-   * Adds new member to the workspace team
+   * Adds new workspace to the user's membership list
    * @param {String} workspaceId - user's id to add
-   * @returns {Promise<TeamDocumentSchema>} - created workspace
+   * @returns {Promise<TeamDocumentSchema>} - created document
    */
   async addWorkspace(workspaceId) {
     const documentId = (await this.collection.insertOne({

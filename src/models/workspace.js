@@ -4,7 +4,7 @@ const mongo = require('../mongo');
  * @typedef {Object} WorkspaceSchema
  * @property {string} id - workspace's id
  * @property {string} name - workspace's name
- * @property {string} description - workspace's description
+ * @property {string} [description] - workspace's description
  * @property {string} [picture] - workspace's picture URL
  */
 
