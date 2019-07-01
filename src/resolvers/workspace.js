@@ -20,8 +20,6 @@ module.exports = {
      * @return {Workspace[]}
      */
     async workspaces(_obj, { ids }, { user }, info) {
-      // @todo Check if we need to validate user existance
-
       /*
        * Get models fields requested in query to populate
        * Used below in `deepPopulate`
