@@ -8,10 +8,12 @@ const mongo = require('../mongo');
 
 /**
  * Team model
+ * The class provides the opportunity to work with the collections of the workspace team.
  */
 class Team {
   /**
    * Creates Team model instance
+   * @param {String} workspaceId - workspace id associated with the team
    */
   constructor(workspaceId) {
     this.workspaceId = workspaceId;
