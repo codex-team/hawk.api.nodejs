@@ -68,6 +68,10 @@ class Event {
    * @param {string} token - event token
    */
   static async findByToken({ token, limit = 10, skip = 0 } = {}) {
+    if (!token) {
+      throw new Error('token is not provided');
+    }
+
     const cursor = this.collection.find({ token }, { limit, skip });
 
     // Memory overflow?
