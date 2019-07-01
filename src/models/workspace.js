@@ -1,36 +1,47 @@
-const mongoose = require('mongoose');
-const deepPopulate = require('mongoose-deep-populate')(mongoose);
+const mongo = require('../mongo');
 
-require('./user');
-require('./project');
+/**
+ * @typedef {Object} WorkspaceSchema
+ * @property {string} id - workspace's id
+ * @property {string} [name] - workspace's name
+ * @property {string} [picture] - workspace's picture URL
+ */
 
-const workspaceSchema = new mongoose.Schema({
-  name: {
-    type: String
-  },
-  description: {
-    type: String
-  },
-  image: {
-    type: String,
-    default: '' // @todo default image for workspace
-  },
-  users: [
-    {
-      type: mongoose.Schema.ObjectId,
-      ref: 'User'
-    }
-  ],
-  projects: [
-    {
-      type: mongoose.Schema.ObjectId,
-      ref: 'Project'
-    }
-  ]
-});
+/**
+ * Workspace model
+ */
+class Workspace {
+  /**
+   * Creates Workspace instance
+   * @param {WorkspaceSchema} workspaceData - workspace's data
+   */
+  constructor(workspaceData) {
+    this.id = workspaceData.id;
+    this.name = workspaceData.name;
+    this.picture = workspaceData.picture;
+  }
 
-workspaceSchema.plugin(deepPopulate);
+  /**
+   * Model's collection
+   * @return {Collection}
+   */
+  static get collection() {
+    return mongo.databases.hawk.collection('workspaces');
+  }
 
-const Workspace = mongoose.model('Workspace', workspaceSchema);
+  /**
+   * Creates new workspace in DB
+   * @param {WorkspaceSchema} workspaceData - workspace's data
+   * @returns {Promise<Workspace>} - created workspace
+   */
+  static async create(workspaceData) {
+    const workspaceId = (await this.collection.insertOne(workspaceData)).insertedId;
+
+    return new Workspace({
+      id: workspaceId,
+      ...workspaceData
+    });
+  }
+}
 
 module.exports = Workspace;

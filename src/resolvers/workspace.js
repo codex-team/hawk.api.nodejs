@@ -2,7 +2,6 @@ const { ApolloError } = require('apollo-server-express');
 const { MongoError } = require('mongodb');
 const getFieldName = require('graphql-list-fields');
 const Workspace = require('../models/workspace');
-const User = require('../models/user');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
@@ -63,26 +62,12 @@ module.exports = {
      * @return {String} created workspace id
      */
     async createWorkspace(_obj, { name, description, image }, { user }) {
-      // Perhaps here in the future it is worth passing an array of users
-      const ownerId = user.id;
-
       try {
-        // Create new workspace in mongo
-        const workspace = await Workspace.create({
+        return await Workspace.create({
           name: name,
           description: description,
-          users: [ ownerId ],
           image: image
         });
-
-        // update the list of workspaces at user model
-        await User.findByIdAndUpdate(ownerId, {
-          $push: {
-            workspaces: workspace._id
-          }
-        });
-
-        return workspace;
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
