@@ -3,6 +3,7 @@ const { MongoError } = require('mongodb');
 const getFieldName = require('graphql-list-fields');
 const Workspace = require('../models/workspace');
 const Team = require('../models/team');
+const Membership = require('../models/membership');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
@@ -65,6 +66,8 @@ module.exports = {
     async createWorkspace(_obj, { name, description, image }, { user }) {
       const ownerId = user.id;
 
+      // @todo make workspace creation via transactions
+
       try {
         const workspace = await Workspace.create({
           name: name,
@@ -75,6 +78,10 @@ module.exports = {
         const team = new Team(workspace.id);
 
         await team.addMember(ownerId);
+
+        const membership = new Membership(ownerId);
+
+        await membership.addWorkspace(workspace.id);
 
         return workspace;
       } catch (err) {
