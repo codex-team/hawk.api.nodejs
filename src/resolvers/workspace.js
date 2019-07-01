@@ -2,7 +2,8 @@ const { ApolloError } = require('apollo-server-express');
 const { MongoError } = require('mongodb');
 const getFieldName = require('graphql-list-fields');
 const Workspace = require('../models/workspace');
-const User = require('../models/user');
+const Team = require('../models/team');
+const Membership = require('../models/membership');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
@@ -19,8 +20,6 @@ module.exports = {
      * @return {Workspace[]}
      */
     async workspaces(_obj, { ids }, { user }, info) {
-      // @todo Check if we need to validate user existance
-
       /*
        * Get models fields requested in query to populate
        * Used below in `deepPopulate`
@@ -63,24 +62,24 @@ module.exports = {
      * @return {String} created workspace id
      */
     async createWorkspace(_obj, { name, description, image }, { user }) {
-      // Perhaps here in the future it is worth passing an array of users
       const ownerId = user.id;
 
+      // @todo make workspace creation via transactions
+
       try {
-        // Create new workspace in mongo
         const workspace = await Workspace.create({
           name: name,
           description: description,
-          users: [ ownerId ],
           image: image
         });
 
-        // update the list of workspaces at user model
-        await User.findByIdAndUpdate(ownerId, {
-          $push: {
-            workspaces: workspace._id
-          }
-        });
+        const team = new Team(workspace.id);
+
+        await team.addMember(ownerId);
+
+        const membership = new Membership(ownerId);
+
+        await membership.addWorkspace(workspace.id);
 
         return workspace;
       } catch (err) {
