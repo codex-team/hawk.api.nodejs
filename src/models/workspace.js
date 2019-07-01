@@ -1,7 +1,7 @@
 const mongo = require('../mongo');
 
 /**
- * @typedef {Object} WorkspaceSchema
+ * @typedef {Object} TeamSchema
  * @property {string} id - workspace's id
  * @property {string} [name] - workspace's name
  * @property {string} [picture] - workspace's picture URL
@@ -13,7 +13,7 @@ const mongo = require('../mongo');
 class Workspace {
   /**
    * Creates Workspace instance
-   * @param {WorkspaceSchema} workspaceData - workspace's data
+   * @param {TeamSchema} workspaceData - workspace's data
    */
   constructor(workspaceData) {
     this.id = workspaceData.id;
@@ -31,7 +31,7 @@ class Workspace {
 
   /**
    * Creates new workspace in DB
-   * @param {WorkspaceSchema} workspaceData - workspace's data
+   * @param {TeamSchema} workspaceData - workspace's data
    * @returns {Promise<Workspace>} - created workspace
    */
   static async create(workspaceData) {
