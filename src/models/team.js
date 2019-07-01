@@ -8,7 +8,7 @@ const mongo = require('../mongo');
 
 /**
  * Team model
- * The class provides the opportunity to work with the collections of the workspace team
+ * The class representing Workspace-->User relationship
  */
 class Team {
   /**

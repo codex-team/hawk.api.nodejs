@@ -8,7 +8,7 @@ const mongo = require('../mongo');
 
 /**
  * Membership model
- * The class provides the opportunity to work with the collections of the user's membership list
+ * The class representing User-->Workspace relationship
  */
 class Membership {
   /**
