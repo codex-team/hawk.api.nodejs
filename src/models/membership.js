@@ -42,6 +42,34 @@ class Membership {
       workspaceId
     };
   }
+
+  async getAllWorkspaces() {
+    const res = this.collection.aggregate([
+      {
+        $lookup: {
+          from: 'workspaces',
+          localField: 'workspaceId',
+          foreignField: '_id',
+          as: 'workspace'
+        }
+      },
+      {
+        $unwind: '$workspace'
+      },
+      {
+        $replaceRoot: {
+          newRoot: '$workspace'
+        }
+      },
+      {
+        $addFields: {
+          id: '$_id'
+        }
+      }
+    ]);
+
+    return res.toArray();
+  }
 }
 
 module.exports = Membership;
