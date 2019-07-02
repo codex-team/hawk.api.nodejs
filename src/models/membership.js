@@ -1,4 +1,5 @@
 const mongo = require('../mongo');
+const { ObjectID } = require('mongodb');
 
 /**
  * @typedef {Object} MembershipDocumentSchema
@@ -43,8 +44,15 @@ class Membership {
     };
   }
 
-  async getAllWorkspaces() {
-    const res = this.collection.aggregate([
+  /**
+   * Get user's workspaces by ids
+   * @param {string[]} [ids = []] - workspaces ids. If not provided
+   * @return {Promise<Workspace[]>}
+   */
+  async getWorkspaces(ids = []) {
+    ids = ids.map(id => new ObjectID(id));
+
+    const pipeline = [
       {
         $lookup: {
           from: 'workspaces',
@@ -65,10 +73,20 @@ class Membership {
         $addFields: {
           id: '$_id'
         }
-      }
-    ]);
+      } ];
 
-    return res.toArray();
+    if (ids.length) {
+      return this.collection.aggregate([
+        { $match: {
+          workspaceId: {
+            $in: ids
+          }
+        }
+        },
+        ...pipeline
+      ]).toArray();
+    }
+    return this.collection.aggregate(pipeline).toArray();
   }
 }
 
