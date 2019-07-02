@@ -1,6 +1,6 @@
 const { ObjectID } = require('mongodb');
 const mongo = require('../mongo');
-const { pickTo } = require('../utils');
+const { pickFieldsTo } = require('../utils');
 
 /**
  * @typedef {Object} BacktraceSourceCode
@@ -51,7 +51,7 @@ class Event {
     if (!eventData) {
       throw new Error('eventData not provided');
     }
-    pickTo(this, eventData, 'catcherType', 'payload');
+    pickFieldsTo(this, eventData, 'catcherType', 'payload');
   }
 
   /**
@@ -84,11 +84,11 @@ class Event {
    * @param {string|ObjectID} id - event id
    */
   static async findById(id) {
-    const seachResult = await this.collection.findOne({
+    const searchResult = await this.collection.findOne({
       _id: new ObjectID(id)
     });
 
-    return new Event({ id: seachResult._id, ...seachResult });
+    return new Event({ id: searchResult._id, ...searchResult });
   }
 }
 

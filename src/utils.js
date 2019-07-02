@@ -3,12 +3,12 @@
  *
  * @param {Object} obj - target object
  * @param {...string} fields - fields to pick
- * @returns {Object} object with required fileds
+ * @returns {Object} object with required fields
  */
-function pick(obj, ...fields) {
-  return fields.reduce((a, x) => {
-    if (obj.hasOwnProperty(x)) a[x] = obj[x];
-    return a;
+function pickFields(obj, ...fields) {
+  return fields.reduce((acc, field) => {
+    if (obj.hasOwnProperty(field)) acc[field] = obj[field];
+    return acc;
   }, {});
 }
 
@@ -19,7 +19,7 @@ function pick(obj, ...fields) {
  * @param {Object} source - source object
  * @param {...string} fields - fields to copy
  */
-function pickTo(target, source, ...fields) {
+function pickFieldsTo(target, source, ...fields) {
   fields.forEach(field => {
     if (source.hasOwnProperty(field)) {
       target[field] = source[field];
@@ -28,6 +28,6 @@ function pickTo(target, source, ...fields) {
 }
 
 module.exports = {
-  pick,
-  pickTo
+  pickFields,
+  pickFieldsTo
 };
