@@ -1,6 +1,5 @@
 const { ObjectID } = require('mongodb');
 const mongo = require('../mongo');
-const { pickFieldsTo } = require('../utils');
 
 /**
  * @typedef {Object} BacktraceSourceCode
@@ -25,6 +24,7 @@ const { pickFieldsTo } = require('../utils');
 
 /**
  * @typedef {Object} EventSchema
+ * @property {string|ObjectID} _id - event ID
  * @property {string} catcherType - type of an event
  * @property {Object} payload - event data
  * @property {string} payload.title - event title
@@ -41,38 +41,38 @@ const { pickFieldsTo } = require('../utils');
 
 /**
  * Event model
+ * Represents events for given project
+ *
+ * @property {string|ObjectID} projectId - project ID
  */
 class Event {
   /**
    * Creates Event instance
-   * @param {EventSchema} eventData - event data
+   * @param {string|ObjectID} projectId - project ID
    */
-  constructor(eventData) {
-    if (!eventData) {
-      throw new Error('eventData not provided');
+  constructor(projectId) {
+    if (!projectId) {
+      throw new Error('projectId not provided');
     }
-    pickFieldsTo(this, eventData, 'catcherType', 'payload');
+    this.projectId = new ObjectID(projectId);
+    this.collection = mongo.databases.events.collection(
+      'events:' + this.projectId
+    );
   }
 
   /**
-   * Model's collection
-   * @return {Collection}
-   */
-  static get collection() {
-    return mongo.databases.events.collection('events');
-  }
-
-  /**
-   * Finds events by token
+   * Finds events
    *
-   * @param {string} token - event token
+   * @param {object} [query={}] - query
+   * @param {Number} [limit=10] - query limit
+   * @param {Number} [skip=0] - query skip
+   * @returns {EventSchema[]} - events matching query
    */
-  static async findByToken({ token, limit = 10, skip = 0 } = {}) {
-    if (!token) {
-      throw new Error('token is not provided');
-    }
-
-    const cursor = this.collection.find({ token }, { limit, skip });
+  async find(query = {}, limit = 10, skip = 0) {
+    const cursor = this.collection
+      .find(query)
+      .limit(limit)
+      .skip(skip);
 
     // Memory overflow?
     return cursor.toArray();
@@ -82,13 +82,12 @@ class Event {
    * Find event by id
    *
    * @param {string|ObjectID} id - event id
+   * @returns {EventSchema} - event
    */
-  static async findById(id) {
-    const searchResult = await this.collection.findOne({
+  async findById(id) {
+    return this.collection.findOne({
       _id: new ObjectID(id)
     });
-
-    return new Event({ id: searchResult._id, ...searchResult });
   }
 }
 
