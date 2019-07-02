@@ -78,16 +78,13 @@ class User {
 
     return new User({
       id: searchResult._id,
-      password: searchResult.password,
-      email: searchResult.email,
-      name: searchResult.name,
-      picture: searchResult.picture
+      ...searchResult
     });
   }
 
   /**
    * Finds user by his email
-   * @param {User.id} email - user's email
+   * @param {User.email} email - user's email
    * @return {Promise<User>}
    */
   static async findByEmail(email) {
@@ -97,10 +94,7 @@ class User {
 
     return new User({
       id: searchResult._id,
-      password: searchResult.password,
-      email: searchResult.email,
-      name: searchResult.name,
-      picture: searchResult.picture
+      ...searchResult
     });
   }
 
