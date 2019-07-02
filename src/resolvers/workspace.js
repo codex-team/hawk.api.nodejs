@@ -66,7 +66,7 @@ module.exports = {
   Workspace: {
     /**
      * Fetch workspaces users
-     * @param {ResolverObj} rootResolverResult
+     * @param {ResolverObj} rootResolverResult - result from resolver above
      * @return {Promise<User[]>}
      */
     async users(rootResolverResult) {
