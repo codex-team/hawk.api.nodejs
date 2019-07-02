@@ -74,15 +74,17 @@ class Membership {
         $addFields: {
           id: '$_id'
         }
-      } ];
+      }
+    ];
 
     if (ids.length) {
       return this.collection.aggregate([
-        { $match: {
-          workspaceId: {
-            $in: ids
+        {
+          $match: {
+            workspaceId: {
+              $in: ids
+            }
           }
-        }
         },
         ...pipeline
       ]).toArray();
