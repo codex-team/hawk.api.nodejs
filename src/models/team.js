@@ -1,5 +1,5 @@
 const mongo = require('../mongo');
-
+const { ObjectID } = require('mongodb');
 /**
  * @typedef {Object} TeamDocumentSchema
  * @property {string} id - document's id
@@ -34,13 +34,43 @@ class Team {
    */
   async addMember(memberId) {
     const documentId = (await this.collection.insertOne({
-      userId: memberId
+      userId: new ObjectID(memberId)
     })).insertedId;
 
     return {
       id: documentId,
       userId: memberId
     };
+  }
+
+  /**
+   * Returns all users data in the team
+   * @return {Promise<User[]>}
+   */
+  getAllUsers() {
+    return this.collection.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'users'
+        }
+      },
+      {
+        $unwind: '$users'
+      },
+      {
+        $replaceRoot: {
+          newRoot: '$users'
+        }
+      },
+      {
+        $addFields: {
+          id: '$_id'
+        }
+      }
+    ]).toArray();
   }
 }
 

@@ -62,5 +62,17 @@ module.exports = {
         throw new ApolloError('Something went wrong');
       }
     }
+  },
+  Workspace: {
+    /**
+     * Fetch workspaces users
+     * @param {ResolverObj} rootResolverResult
+     * @return {Promise<User[]>}
+     */
+    async users(rootResolverResult) {
+      const team = new Team(rootResolverResult.id);
+
+      return team.getAllUsers();
+    }
   }
 };
