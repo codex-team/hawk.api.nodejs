@@ -44,9 +44,9 @@ module.exports = {
 
       try {
         const workspace = await Workspace.create({
-          name: name,
-          description: description,
-          image: image
+          name,
+          description,
+          image
         });
 
         const team = new Team(workspace.id);
