@@ -24,7 +24,7 @@ const mongo = require('../mongo');
 
 /**
  * @typedef {Object} EventSchema
- * @property {string|ObjectID} _id - event ID
+ * @property {string|ObjectID} id - event ID
  * @property {string} catcherType - type of an event
  * @property {Object} payload - event data
  * @property {string} payload.title - event title
@@ -75,7 +75,11 @@ class Event {
       .skip(skip);
 
     // Memory overflow?
-    return cursor.toArray();
+    return (await cursor.toArray()).map(event => ({
+      id: event._id,
+      catcherType: event.catcherType,
+      payload: event.payload
+    }));
   }
 
   /**
@@ -85,9 +89,15 @@ class Event {
    * @returns {EventSchema} - event
    */
   async findById(id) {
-    return this.collection.findOne({
+    const searchResult = this.collection.findOne({
       _id: new ObjectID(id)
     });
+
+    return {
+      id: searchResult._id,
+      catcherType: searchResult.catcherType,
+      payload: searchResult.payload
+    };
   }
 }
 
