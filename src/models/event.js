@@ -52,7 +52,7 @@ class Event {
    */
   constructor(projectId) {
     if (!projectId) {
-      throw new Error('projectId not provided');
+      throw new Error('Can not construct Event model, because projectId is not provided');
     }
     this.projectId = new ObjectID(projectId);
     this.collection = mongo.databases.events.collection(
