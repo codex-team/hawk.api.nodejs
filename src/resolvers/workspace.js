@@ -22,32 +22,15 @@ module.exports = {
     async workspaces(_obj, { ids }, { user }, info) {
       /*
        * Get models fields requested in query to populate
-       * Used below in `deepPopulate`
        */
       const fields = getFieldName(info);
 
       try {
-        if (ids.length === 0) {
-          // Return all user's workspaces if ids = []
-          return await Workspace.find({ users: user.id });
-        } else {
-          /*
-           * Find provided list of workspaces with current user in `users`
-           * Request explanation: find workspaces with provided id
-           * and filter out workspaces which user have access to
-           */
-          return await Workspace.find({
-            users: user.id,
-            _id: { $in: ids }
-          }).deepPopulate(fields);
-        }
+        const membership = new Membership(user.id);
+
+        return membership.getWorkspaces(ids);
       } catch (err) {
         console.error('Error finding workspace', err);
-        if (err instanceof MongoError) {
-          throw new ApolloError('Something went wrong');
-        } else {
-          throw new ApolloError('Unknown error');
-        }
       }
     }
   },
