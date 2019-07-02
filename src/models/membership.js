@@ -46,7 +46,8 @@ class Membership {
 
   /**
    * Get user's workspaces by ids
-   * @param {string[]} [ids = []] - workspaces ids. If not provided
+   * Returns all user's workspaces if ids = []
+   * @param {string[]} [ids = []] - workspaces ids
    * @return {Promise<Workspace[]>}
    */
   async getWorkspaces(ids = []) {

@@ -1,6 +1,4 @@
 const { ApolloError } = require('apollo-server-express');
-const { MongoError } = require('mongodb');
-const getFieldName = require('graphql-list-fields');
 const Workspace = require('../models/workspace');
 const Team = require('../models/team');
 const Membership = require('../models/membership');
@@ -20,17 +18,12 @@ module.exports = {
      * @return {Workspace[]}
      */
     async workspaces(_obj, { ids }, { user }, info) {
-      /*
-       * Get models fields requested in query to populate
-       */
-      const fields = getFieldName(info);
-
       try {
         const membership = new Membership(user.id);
 
         return membership.getWorkspaces(ids);
       } catch (err) {
-        console.error('Error finding workspace', err);
+        throw new ApolloError('Something went wrong');
       }
     }
   },
