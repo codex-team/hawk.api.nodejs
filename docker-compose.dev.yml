@@ -10,6 +10,7 @@ services:
       - /usr/src/app/node_modules
     environment:
       - JWT_SECRET=abacaba
+      - JWT_SECRET_EVENTS=qwerty
       - PLAYGROUND_ENABLE=true
       - MONGO_HAWK_DB_URL=mongodb://mongodb:27017/hawk
       - MONGO_EVENTS_DB_URL=mongodb://mongodb:27017/hawk_events
