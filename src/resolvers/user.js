@@ -26,7 +26,7 @@ module.exports = {
      * Register user with provided email
      * @param {ResolverObj} _obj
      * @param {String} email - user email
-     * @return {Promise<true>}
+     * @return {Promise<boolean>}
      */
     async signUp(_obj, { email }) {
       let user;
