@@ -9,7 +9,6 @@ const { sign } = require('jsonwebtoken');
  * @property {string} name - project name
  * @property {string} [description] - project description
  * @property {string} [domain] - project domain
- * @property {string} [uri] - project uri
  * @property {string} [logo] - project logo
  * @property {string|ObjectID} [uidAdded] - user who added the project
  */
@@ -21,7 +20,7 @@ const { sign } = require('jsonwebtoken');
  */
 
 /**
- * @typedef {Object} ProjectWorkspaceSchema
+ * @typedef {Object} ProjectToWorkspaceSchema
  * @property {string|ObjectID} id - ProjectWorkspace ID
  * @property {string|ObjectID} projectID - project ID
  * @property {string} [projectUri] - project unique URI
@@ -135,9 +134,9 @@ class Project {
  * ProjectWorkspace model
  * Represents Project-Workspace relationship
  */
-class ProjectWorkspace {
+class ProjectToWorkspace {
   /**
-   * Creates an instance of ProjectWorkspace
+   * Creates an instance of ProjectToWorkspace
    * @param {string|ObjectID} workspaceId
    */
   constructor(workspaceId) {
@@ -153,7 +152,7 @@ class ProjectWorkspace {
    * @param {object} [query={}] - query
    * @param {number} [limit=10] - query limit
    * @param {number} [skip=0] - query skip
-   * @returns {ProjectWorkspaceSchema[]}
+   * @returns {ProjectToWorkspaceSchema[]}
    */
   async find(query = {}, limit = 10, skip = 0) {
     const cursor = this.collection
@@ -171,7 +170,7 @@ class ProjectWorkspace {
    * Find projectWorkspace by ID
    *
    * @param {string|ObjectID} projectWorkspaceId
-   * @returns {null|ProjectWorkspaceSchema}
+   * @returns {null|ProjectToWorkspaceSchema}
    */
   async findById(projectWorkspaceId) {
     const projectWorkspace = await this.collection.findOne({
@@ -191,5 +190,5 @@ class ProjectWorkspace {
 
 module.exports = {
   Project,
-  ProjectWorkspace
+  ProjectToWorkspace
 };
