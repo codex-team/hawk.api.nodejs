@@ -42,7 +42,7 @@ class Project {
    *
    * @param {ProjectSchema} projectData
    */
-  contructor(projectData) {
+  constructor(projectData) {
     if (!projectData) {
       throw new Error(
         'Can not construct Project model, because projectData is not provided'
@@ -70,7 +70,7 @@ class Project {
   }
 
   /**
-   * Cretaes new project in DB
+   * Creates new project in DB
    * @param {ProjectSchema} projectData
    * @returns {Project}
    */
@@ -95,7 +95,7 @@ class Project {
    * Finds project
    *
    * @param {object} [query={}] - query
-   * @param {number} [limit=10] - query limti
+   * @param {number} [limit=10] - query limit
    * @param {number} [skip=0] - query skip
    * @returns {ProjectSchema[]} - projects matching query
    */
@@ -135,11 +135,11 @@ class Project {
 
 /**
  * ProjectWorkspace model
- * Represents Project-Workspace relatonship
+ * Represents Project-Workspace relationship
  */
 class ProjectWorkspace {
   /**
-   *Creates an instance of ProjectWorkspace
+   * Creates an instance of ProjectWorkspace
    * @param {string|ObjectID} workspaceId
    */
   constructor(workspaceId) {
@@ -153,7 +153,7 @@ class ProjectWorkspace {
    * Find ProjectWorkspace
    *
    * @param {object} [query={}] - query
-   * @param {number} [limit=10] - query limti
+   * @param {number} [limit=10] - query limit
    * @param {number} [skip=0] - query skip
    * @returns {ProjectWorkspaceSchema[]}
    */
