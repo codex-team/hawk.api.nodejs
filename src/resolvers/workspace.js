@@ -1,6 +1,4 @@
 const { ApolloError } = require('apollo-server-express');
-const { MongoError } = require('mongodb');
-const getFieldName = require('graphql-list-fields');
 const Workspace = require('../models/workspace');
 const Team = require('../models/team');
 const Membership = require('../models/membership');
@@ -20,34 +18,12 @@ module.exports = {
      * @return {Workspace[]}
      */
     async workspaces(_obj, { ids }, { user }, info) {
-      /*
-       * Get models fields requested in query to populate
-       * Used below in `deepPopulate`
-       */
-      const fields = getFieldName(info);
-
       try {
-        if (ids.length === 0) {
-          // Return all user's workspaces if ids = []
-          return await Workspace.find({ users: user.id });
-        } else {
-          /*
-           * Find provided list of workspaces with current user in `users`
-           * Request explanation: find workspaces with provided id
-           * and filter out workspaces which user have access to
-           */
-          return await Workspace.find({
-            users: user.id,
-            _id: { $in: ids }
-          }).deepPopulate(fields);
-        }
+        const membership = new Membership(user.id);
+
+        return membership.getWorkspaces(ids);
       } catch (err) {
-        console.error('Error finding workspace', err);
-        if (err instanceof MongoError) {
-          throw new ApolloError('Something went wrong');
-        } else {
-          throw new ApolloError('Unknown error');
-        }
+        throw new ApolloError('Something went wrong');
       }
     }
   },
@@ -68,9 +44,9 @@ module.exports = {
 
       try {
         const workspace = await Workspace.create({
-          name: name,
-          description: description,
-          image: image
+          name,
+          description,
+          image
         });
 
         const team = new Team(workspace.id);
@@ -85,6 +61,18 @@ module.exports = {
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
+    }
+  },
+  Workspace: {
+    /**
+     * Fetch workspaces users
+     * @param {ResolverObj} rootResolverResult - result from resolver above
+     * @return {Promise<User[]>}
+     */
+    async users(rootResolverResult) {
+      const team = new Team(rootResolverResult.id);
+
+      return team.getAllUsers();
     }
   }
 };
