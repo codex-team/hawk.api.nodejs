@@ -5,7 +5,7 @@ const mongo = require('../mongo');
  * @property {string} id - workspace's id
  * @property {string} name - workspace's name
  * @property {string} [description] - workspace's description
- * @property {string} [picture] - workspace's picture URL
+ * @property {string} [image] - workspace's picture URL
  */
 
 /**
@@ -19,7 +19,7 @@ class Workspace {
   constructor(workspaceData) {
     this.id = workspaceData.id;
     this.name = workspaceData.name;
-    this.picture = workspaceData.picture;
+    this.image = workspaceData.image;
     this.description = workspaceData.description;
   }
 
