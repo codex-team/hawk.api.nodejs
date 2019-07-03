@@ -80,7 +80,7 @@ class Project {
 
     const token = await sign({ projectId }, process.env.JWT_SECRET_EVENTS);
 
-    await this.collection.findOneAndUpdate({ _id: projectId }, { token });
+    await this.collection.updateOne({ _id: projectId }, { token });
 
     return new Project({
       id: projectId,
