@@ -38,7 +38,6 @@ module.exports = {
             email,
             password: user.generatedPassword
           });
-        console.log(user.generatedPassword);
       } catch (e) {
         if (e.code.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
           throw new AuthenticationError('User with such email already registered');
