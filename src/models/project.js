@@ -1,11 +1,10 @@
-// const mongoose = require('mongoose');
 const mongo = require('../mongo');
 const { ObjectID } = require('mongodb');
 const { sign } = require('jsonwebtoken');
 
 /**
  * @typedef {Object} ProjectSchema
- * @typedef {string|ObjectID} [id] - project id
+ * @typedef {string|ObjectID} id - project id
  * @property {string} [token] - project token
  * @property {string} name - project name
  * @property {string} [description] - project description
@@ -13,7 +12,6 @@ const { sign } = require('jsonwebtoken');
  * @property {string} [uri] - project uri
  * @property {string} [logo] - project logo
  * @property {string|ObjectID} [uidAdded] - user who added the project
- * @property {Date} [createdAt] - project date of creation
  */
 
 /**
