@@ -2,16 +2,20 @@ const { ValidationError } = require('apollo-server-express');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
 
+/**
+ * See all types and fields here {@see ../typeDefs/workspace.graphql}
+ */
 module.exports = {
   Mutation: {
     /**
+     * Creates project
      *
-     *
-     * @param {*} _obj
-     * @param {*} { workspaceId, name }
-     * @param {*} { user }
-     * @param {*} _info
-     * @returns
+     * @param {ResolverObj} _obj
+     * @param {string} workspaceId - workspace ID
+     * @param {string} name - project name
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {GraphQLResolveInfo} info - Apollo's resolver info argument {@see ./index.js}
+     * @return {Project[]}
      */
     async createProject(_obj, { workspaceId, name }, { user }, _info) {
       // Check workspace ID
@@ -19,15 +23,11 @@ module.exports = {
         workspaceId
       ]);
 
-      console.log(workspace);
-
       if (!workspace) {
         throw new ValidationError('No such workspace');
       }
 
       const project = await Project.create({ name });
-
-      console.log(project);
 
       // Create Project to Workspace relationship
       new ProjectToWorkspace(workspaceId).create({ projectId: project.id });
