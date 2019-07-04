@@ -97,14 +97,14 @@ module.exports = {
      * @returns {Promise<Boolean>}
      */
     async resetPassword(_obj, { email }) {
-      const user = User.findByEmail(email);
+      const user = await User.findByEmail(email);
 
       if (!user) {
         return true;
       }
 
       try {
-        let newPassword = User.generatePassword();
+        let newPassword = await User.generatePassword();
 
         newPassword = await User.hashPassword(newPassword);
 
@@ -118,6 +118,7 @@ module.exports = {
           password: newPassword
         });
       } catch (err) {
+        console.error(err);
         throw new ApolloError('Something went wrong');
       }
 
