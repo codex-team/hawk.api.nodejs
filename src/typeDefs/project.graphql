@@ -47,3 +47,7 @@ type Project {
   """
   dtAdded: DateTime!
 }
+
+extend type Mutation {
+  createProject(workspaceId: ID!, name: String!): Project! @requireAuth
+}

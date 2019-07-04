@@ -2,6 +2,7 @@ const { ApolloError } = require('apollo-server-express');
 const Workspace = require('../models/workspace');
 const Team = require('../models/team');
 const Membership = require('../models/membership');
+const { ProjectToWorkspace } = require('../models/project');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
@@ -73,6 +74,12 @@ module.exports = {
       const team = new Team(rootResolverResult.id);
 
       return team.getAllUsers();
+    },
+
+    async projects(rootResolverResult, { ids }) {
+      const projectToWorkspace = new ProjectToWorkspace(rootResolverResult.id);
+
+      return projectToWorkspace.getProjects(ids);
     }
   }
 };
