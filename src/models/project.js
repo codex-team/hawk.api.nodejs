@@ -193,7 +193,7 @@ class ProjectToWorkspace {
    * @param {ProjectToWorkspaceSchema} projectToWorkspaceData
    * @returns {Promise<Object>}
    */
-  async create(projectToWorkspaceData) {
+  async add(projectToWorkspaceData) {
     const projectToWorkspace = await this.collection.insertOne(
       projectToWorkspaceData
     );
