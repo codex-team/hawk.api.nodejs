@@ -49,5 +49,13 @@ type Project {
 }
 
 extend type Mutation {
-  createProject(workspaceId: ID!, name: String!): Project! @requireAuth
+  """
+  Create project in given workspace
+  """
+  createProject(
+    "Workspace ID"
+    workspaceId: ID!
+    "Project name"
+    name: String!
+  ): Project! @requireAuth
 }

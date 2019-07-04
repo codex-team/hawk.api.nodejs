@@ -205,7 +205,8 @@ class ProjectToWorkspace {
   }
 
   /**
-   * Gets projects by id
+   * Gets projects in workspace.
+   * If ids were not passed, returns all projects in workspace.
    *
    * @param {string[]|ObjectID[]} ids - project(s) id(s)
    * @returns {ProjectSchema[]}
