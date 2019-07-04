@@ -92,10 +92,32 @@ class User {
    *
    * @param {object} query - query to match
    * @param {object} data - update data
-   * @returns {Promise<void>}
+   * @returns {Promise<number>} - number of documents modified
    */
   static async update(query, data) {
-    await this.collection.updateOne(query, { $set: data });
+    return (await this.collection.updateOne(query, { $set: data }))
+      .modifiedCount;
+  }
+
+  /**
+   * Change user's password
+   * Hashes new password and updates the document
+   *
+   * @param {string|ObjectID} userId - user ID
+   * @param {string} newPassword - new user password
+   * @returns {Promise<void>}
+   */
+  static async changePassword(userId, newPassword) {
+    const hashedPassword = await this.hashPassword(newPassword);
+
+    const status = await this.update(
+      { _id: new ObjectID(userId) },
+      { $set: { password: hashedPassword } }
+    );
+
+    if (status !== 1) {
+      throw new Error("Can't change password");
+    }
   }
 
   /**

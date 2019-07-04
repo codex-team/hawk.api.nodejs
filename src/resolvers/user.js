@@ -104,11 +104,9 @@ module.exports = {
       }
 
       try {
-        let newPassword = await User.generatePassword();
+        const newPassword = await User.generatePassword();
 
-        newPassword = await User.hashPassword(newPassword);
-
-        await User.update({ _id: user.id }, { password: newPassword });
+        await User.changePassword(user.id, newPassword);
 
         /**
          * @todo Make email queue
@@ -118,7 +116,6 @@ module.exports = {
           password: newPassword
         });
       } catch (err) {
-        console.error(err);
         throw new ApolloError('Something went wrong');
       }
 
