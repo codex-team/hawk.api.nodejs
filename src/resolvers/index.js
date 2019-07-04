@@ -3,6 +3,7 @@ const { GraphQLDateTime } = require('graphql-iso-date');
 const { GraphQLJSON, GraphQLJSONObject } = require('graphql-type-json');
 const user = require('./user');
 const workspace = require('./workspace');
+const project = require('./project');
 
 /**
  * @typedef ResolverObj
@@ -39,8 +40,4 @@ const indexResolver = {
   JSONObject: GraphQLJSONObject
 };
 
-module.exports = merge(
-  indexResolver,
-  user,
-  workspace
-);
+module.exports = merge(indexResolver, user, workspace, project);

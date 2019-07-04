@@ -34,20 +34,30 @@ class SMTPProvider extends EmailProvider {
    * @param {Object} [variables] - template variables
    */
   async send(to, templateName, variables) {
-    if (!templateName) throw new Error('Email\'s template name must be specified');
+    if (!templateName) {
+      throw new Error("Email's template name must be specified");
+    }
 
     const emailContent = SMTPProvider.render(templateName, variables);
 
     const mailOptions = {
-      from: `"${process.env.SMTP_SENDER_NAME}" <${process.env.SMTP_SENDER_ADDRESS}>`, // sender address
+      from: `"${process.env.SMTP_SENDER_NAME}" <${
+        process.env.SMTP_SENDER_ADDRESS
+      }>`, // sender address
       to,
       ...emailContent
     };
 
+    if (process.env.NODE_ENV === 'development') {
+      console.log(emailContent);
+    }
+
     try {
       await this.transporter.sendMail(mailOptions);
     } catch (e) {
-      console.log('Error sending letter. Try to check the environment settings (in .env file).');
+      console.error(
+        'Error sending letter. Try to check the environment settings (in .env file).'
+      );
     }
   }
 }

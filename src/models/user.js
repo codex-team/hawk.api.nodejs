@@ -74,7 +74,9 @@ class User {
    * @return {Promise<User>}
    */
   static async findById(id) {
-    const searchResult = await this.collection.findOne({ _id: new ObjectID(id) });
+    const searchResult = await this.collection.findOne({
+      _id: new ObjectID(id)
+    });
 
     return new User({
       id: searchResult._id,
@@ -103,16 +105,24 @@ class User {
    * @returns {TokensPair} - generated Tokens pair
    */
   async generateTokensPair() {
-    const accessToken = await jwt.sign({
-      userId: this.id
-    }, process.env.JWT_SECRET, { expiresIn: '15m' });
+    const accessToken = await jwt.sign(
+      {
+        userId: this.id
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
 
-    const refreshToken = await jwt.sign({
-      userId: this.id
-    }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    const refreshToken = await jwt.sign(
+      {
+        userId: this.id
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
 
     return { accessToken, refreshToken };
-  };
+  }
 
   /**
    * Compare unhashed password with user's password
@@ -121,7 +131,7 @@ class User {
    */
   async comparePassword(password) {
     return argon2.verify(this.password, password);
-  };
+  }
 }
 
 module.exports = User;
