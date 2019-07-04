@@ -20,8 +20,7 @@ class EmailProvider {
    * @param {string} templateName - email's subject
    * @param {Object} [variables] - template variables
    */
-  send(to, templateName, variables) {
-  }
+  send(to, templateName, variables) {}
 
   /**
    * Render template with variables
@@ -30,7 +29,7 @@ class EmailProvider {
    * @return {EmailContent}
    */
   static render(templateName, variables) {
-    const template = templates.content[templateName];
+    const template = { ...templates.content[templateName] };
 
     Object.keys(template).forEach(key => {
       template[key] = mustache.render(template[key], variables);
