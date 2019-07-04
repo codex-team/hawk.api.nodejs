@@ -26,26 +26,27 @@ module.exports = {
      * Register user with provided email
      * @param {ResolverObj} _obj
      * @param {String} email - user email
-     * @return {Promise<TokensPair>}
+     * @return {Promise<boolean>}
      */
     async signUp(_obj, { email }) {
       let user;
 
       try {
         user = await User.create(email);
-        emailProvider.send(email, emailTemplatesNames.SUCCESSFUL_SIGN_UP,
-          {
-            email,
-            password: user.generatedPassword
-          });
+        emailProvider.send(email, emailTemplatesNames.SUCCESSFUL_SIGN_UP, {
+          email,
+          password: user.generatedPassword
+        });
       } catch (e) {
         if (e.code.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
-          throw new AuthenticationError('User with such email already registered');
+          throw new AuthenticationError(
+            'User with such email already registered'
+          );
         }
         throw e;
       }
 
-      return user.generateTokensPair();
+      return true;
     },
 
     /**
@@ -58,7 +59,7 @@ module.exports = {
     async login(_obj, { email, password }) {
       const user = await User.findByEmail(email);
 
-      if (!user || !await user.comparePassword(password)) {
+      if (!user || !(await user.comparePassword(password))) {
         throw new AuthenticationError('Wrong email or password');
       }
 

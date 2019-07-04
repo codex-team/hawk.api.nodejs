@@ -46,9 +46,9 @@ extend type Query {
 
 extend type Mutation {
   """
-  Register user with provided email. Returns auth token if registered
+  Register user with provided email. Returns true if registred
   """
-  signUp("Registration email" email: String!): Tokens!
+  signUp("Registration email" email: String!): Boolean!
 
   """
   Login user with provided email and password
