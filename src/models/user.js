@@ -52,8 +52,8 @@ class User {
    */
   static async create(email) {
     // @todo normal password generation
-    const generatedPassword = crypto.randomBytes(8).toString('hex');
-    const hashedPassword = await argon2.hash(generatedPassword);
+    const generatedPassword = this.generatePassword();
+    const hashedPassword = await this.hashPassword(generatedPassword);
 
     const userData = { email, password: hashedPassword };
     const userId = (await this.collection.insertOne(userData)).insertedId;
@@ -69,12 +69,44 @@ class User {
   }
 
   /**
+   * Generate 16bytes password
+   *
+   * @returns {String}
+   */
+  static async generatePassword() {
+    return crypto.randomBytes(8).toString('hex');
+  }
+
+  /**
+   * Hash password
+   *
+   * @param {String} password
+   * @returns {Promise<string>}
+   */
+  static async hashPassword(password) {
+    return argon2.hash(password);
+  }
+
+  /**
+   * Update user fileds
+   *
+   * @param {object} query - query to match
+   * @param {object} data - update data
+   * @returns {Promise<void>}
+   */
+  static async update(query, data) {
+    await this.collection.updateOne(query, { $set: data });
+  }
+
+  /**
    * Finds user by his id
    * @param {User.id} id - user's id
    * @return {Promise<User>}
    */
   static async findById(id) {
-    const searchResult = await this.collection.findOne({ _id: new ObjectID(id) });
+    const searchResult = await this.collection.findOne({
+      _id: new ObjectID(id)
+    });
 
     return new User({
       id: searchResult._id,
@@ -103,16 +135,24 @@ class User {
    * @returns {TokensPair} - generated Tokens pair
    */
   async generateTokensPair() {
-    const accessToken = await jwt.sign({
-      userId: this.id
-    }, process.env.JWT_SECRET, { expiresIn: '15m' });
+    const accessToken = await jwt.sign(
+      {
+        userId: this.id
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
 
-    const refreshToken = await jwt.sign({
-      userId: this.id
-    }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    const refreshToken = await jwt.sign(
+      {
+        userId: this.id
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
 
     return { accessToken, refreshToken };
-  };
+  }
 
   /**
    * Compare unhashed password with user's password
@@ -121,7 +161,7 @@ class User {
    */
   async comparePassword(password) {
     return argon2.verify(this.password, password);
-  };
+  }
 }
 
 module.exports = User;
