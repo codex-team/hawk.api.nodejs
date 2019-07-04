@@ -88,7 +88,7 @@ class User {
   }
 
   /**
-   * Update user fileds
+   * Update user fields
    *
    * @param {object} query - query to match
    * @param {object} data - update data
