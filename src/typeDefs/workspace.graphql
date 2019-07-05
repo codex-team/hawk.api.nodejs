@@ -50,7 +50,7 @@ extend type Mutation {
     name: String!
 
     "New workspace description"
-    description: String!
+    description: String
 
     "New workspace image"
     image: String
