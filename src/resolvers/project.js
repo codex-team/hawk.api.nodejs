@@ -1,6 +1,7 @@
 const { ValidationError } = require('apollo-server-express');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
+const { ObjectID } = require('mongodb');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
@@ -26,7 +27,10 @@ module.exports = {
         throw new ValidationError('No such workspace');
       }
 
-      const project = await Project.create({ name });
+      const project = await Project.create({
+        name,
+        uidAdded: new ObjectID(user.id)
+      });
 
       // Create Project to Workspace relationship
       new ProjectToWorkspace(workspaceId).add({ projectId: project.id });
