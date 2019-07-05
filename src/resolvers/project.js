@@ -1,7 +1,8 @@
 const { ValidationError } = require('apollo-server-express');
+const { ObjectID } = require('mongodb');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
-const { ObjectID } = require('mongodb');
+const Event = require('../models/event');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
@@ -36,6 +37,22 @@ module.exports = {
       new ProjectToWorkspace(workspaceId).add({ projectId: project.id });
 
       return project;
+    }
+  },
+  Project: {
+    /**
+     * Find project events
+     *
+     * @param {ResolverObj} rootResolverResult - result from resolver above
+     * @param {number} limit - query limit
+     * @param {number} skip - query skip
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @returns {Promise<EventSchema[]>}
+     */
+    async events(rootResolverResult, { limit, skip }, { user }) {
+      const event = new Event(rootResolverResult.id);
+
+      return event.find({}, limit, skip);
     }
   }
 };
