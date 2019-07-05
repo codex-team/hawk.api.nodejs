@@ -33,9 +33,9 @@ type Project {
   uri: String
 
   """
-  Project logo
+  Project image
   """
-  logo: String
+  image: String
 
   """
   User who created project
