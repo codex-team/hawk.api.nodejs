@@ -97,6 +97,9 @@ module.exports = {
      * @returns {Promise<Boolean>}
      */
     async resetPassword(_obj, { email }) {
+      /**
+       * @todo Better password reset via one-time link
+       */
       const user = await User.findByEmail(email);
 
       if (!user) {
