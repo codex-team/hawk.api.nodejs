@@ -65,16 +65,19 @@ module.exports = {
     },
 
     async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user }) {
+      // @todo implement invitation confirmation by user
       const membership = new Membership(user.id);
 
       const [ workspace ] = await membership.getWorkspaces([ workspaceId ]);
 
       if (!workspace) throw new ApolloError('There is no workspace with that id');
 
+      // @todo invite users to workspace, even if they are not registered
       const invitedUser = await User.findByEmail(userEmail);
 
       if (!invitedUser) throw new ApolloError('There is no user with that email');
 
+      // @todo make via transactions
       await new Membership(invitedUser.id).addWorkspace(workspaceId);
       await new Team(workspaceId).addMember(invitedUser.id);
 
