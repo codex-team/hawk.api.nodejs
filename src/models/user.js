@@ -112,7 +112,7 @@ class User {
 
     const status = await this.update(
       { _id: new ObjectID(userId) },
-      { $set: { password: hashedPassword } }
+      { password: hashedPassword }
     );
 
     if (status !== 1) {
