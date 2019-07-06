@@ -64,6 +64,14 @@ module.exports = {
       }
     },
 
+    /**
+     * Invite user to workspace
+     * @param {ResolverObj} _obj
+     * @param {String} userEmail - email of the user to invite
+     * @param {Workspace.id} workspaceId - id of the workspace to which the user is invited
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @return {Promise<boolean>} - true if operation is successful
+     */
     async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user }) {
       // @todo implement invitation confirmation by user
       const membership = new Membership(user.id);
