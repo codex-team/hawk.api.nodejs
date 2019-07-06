@@ -55,7 +55,7 @@ type EventPayload {
   """
   Event timestamp
   """
-  timestamp: DateTime!
+  timestamp: Number!
 
   """
   Event severity level
@@ -99,6 +99,11 @@ type EventPayload {
 }
 
 type Event {
+  """
+  Event id
+  """
+  id: ID!
+
   """
   Catcher type
   """
