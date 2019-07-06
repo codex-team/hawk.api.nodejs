@@ -56,5 +56,15 @@ extend type Mutation {
     image: String
   ): Workspace! @requireAuth
 
-  inviteToWorkspace(userEmail: String!, workspaceId: ID!): Boolean!
+  """
+  Invite user to workspace
+  Returns true if operation is successful
+  """
+  inviteToWorkspace(
+    "Email of the user to invite"
+    userEmail: String!
+
+    "id of the workspace to which the user is invited"
+    workspaceId: ID!
+  ): Boolean! @requireAuth
 }
