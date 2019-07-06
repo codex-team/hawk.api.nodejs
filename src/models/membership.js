@@ -35,7 +35,7 @@ class Membership {
    */
   async addWorkspace(workspaceId) {
     const documentId = (await this.collection.insertOne({
-      workspaceId: workspaceId
+      workspaceId: new ObjectID(workspaceId)
     })).insertedId;
 
     return {
