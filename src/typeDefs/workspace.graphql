@@ -55,4 +55,6 @@ extend type Mutation {
     "New workspace image"
     image: String
   ): Workspace! @requireAuth
+
+  inviteToWorkspace(userEmail: String!, workspaceId: ID!): Boolean!
 }

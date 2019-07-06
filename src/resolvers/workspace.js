@@ -2,6 +2,7 @@ const { ApolloError } = require('apollo-server-express');
 const Workspace = require('../models/workspace');
 const Team = require('../models/team');
 const Membership = require('../models/membership');
+const User = require('../models/user');
 const { ProjectToWorkspace } = require('../models/project');
 
 /**
@@ -15,10 +16,9 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {String[]} ids - workspace ids
      * @param {Context.user} user - current authorized user {@see ../index.js}
-     * @param {GraphQLResolveInfo} info - Apollo's resolver info argument {@see ./index.js}
      * @return {Workspace[]}
      */
-    async workspaces(_obj, { ids }, { user }, info) {
+    async workspaces(_obj, { ids }, { user }) {
       try {
         const membership = new Membership(user.id);
 
@@ -62,6 +62,23 @@ module.exports = {
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
+    },
+
+    async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user }) {
+      const membership = new Membership(user.id);
+
+      const [ workspace ] = await membership.getWorkspaces([ workspaceId ]);
+
+      if (!workspace) throw new ApolloError('There is no workspace with that id');
+
+      const invitedUser = await User.findByEmail(userEmail);
+
+      if (!invitedUser) throw new ApolloError('There is no user with that email');
+
+      await new Membership(invitedUser.id).addWorkspace(workspaceId);
+      await new Team(workspaceId).addMember(invitedUser.id);
+
+      return true;
     }
   },
   Workspace: {
