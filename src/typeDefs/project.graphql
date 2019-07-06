@@ -43,11 +43,6 @@ type Project {
   uidAdded: User!
 
   """
-  DateTime of creation
-  """
-  dtAdded: DateTime!
-
-  """
   Project events
   """
   events(limit: Int! = 10, skip: Int! = 0): [Event!]
