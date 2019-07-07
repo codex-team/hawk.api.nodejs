@@ -87,6 +87,42 @@ module.exports = {
 
       if (!user) throw new ApolloError('There is no users with that id');
       return user.generateTokensPair();
+    },
+
+    /**
+     * Reset user password
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} email - user email
+     * @returns {Promise<Boolean>}
+     */
+    async resetPassword(_obj, { email }) {
+      /**
+       * @todo Better password reset via one-time link
+       */
+      const user = await User.findByEmail(email);
+
+      if (!user) {
+        return true;
+      }
+
+      try {
+        const newPassword = await User.generatePassword();
+
+        await User.changePassword(user.id, newPassword);
+
+        /**
+         * @todo Make email queue
+         */
+        emailProvider.send(email, emailTemplatesNames.PASSWORD_RESET, {
+          email,
+          password: newPassword
+        });
+      } catch (err) {
+        throw new ApolloError('Something went wrong');
+      }
+
+      return true;
     }
   }
 };
