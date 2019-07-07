@@ -45,7 +45,7 @@ type Project {
   """
   Project events
   """
-  events(limit: Int! = 10, skip: Int! = 0): [Event!]
+  events(limit: Int! = 10, skip: Int! = 0): [Event!] @requireAuth
 }
 
 extend type Mutation {
