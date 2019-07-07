@@ -52,7 +52,7 @@ class User {
    */
   static async create(email) {
     // @todo normal password generation
-    const generatedPassword = this.generatePassword();
+    const generatedPassword = await this.generatePassword();
     const hashedPassword = await this.hashPassword(generatedPassword);
 
     const userData = { email, password: hashedPassword };
@@ -71,10 +71,15 @@ class User {
   /**
    * Generate 16bytes password
    *
-   * @returns {String}
+   * @returns {Promise<String>}
    */
-  static async generatePassword() {
-    return crypto.randomBytes(8).toString('hex');
+  static generatePassword() {
+    return new Promise((resolve, reject) => {
+      crypto.randomBytes(8, (err, buff) => {
+        if (err) return reject(err);
+        resolve(buff.toString('hex'));
+      });
+    });
   }
 
   /**
