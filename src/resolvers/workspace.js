@@ -2,6 +2,7 @@ const { ApolloError } = require('apollo-server-express');
 const Workspace = require('../models/workspace');
 const Team = require('../models/team');
 const Membership = require('../models/membership');
+const User = require('../models/user');
 const { ProjectToWorkspace } = require('../models/project');
 
 /**
@@ -15,10 +16,9 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {String[]} ids - workspace ids
      * @param {Context.user} user - current authorized user {@see ../index.js}
-     * @param {GraphQLResolveInfo} info - Apollo's resolver info argument {@see ./index.js}
      * @return {Workspace[]}
      */
-    async workspaces(_obj, { ids }, { user }, info) {
+    async workspaces(_obj, { ids }, { user }) {
       try {
         const membership = new Membership(user.id);
 
@@ -62,6 +62,36 @@ module.exports = {
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
+    },
+
+    /**
+     * Invite user to workspace
+     * @param {ResolverObj} _obj
+     * @param {String} userEmail - email of the user to invite
+     * @param {Workspace.id} workspaceId - id of the workspace to which the user is invited
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @return {Promise<boolean>} - true if operation is successful
+     */
+    async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user }) {
+      // @todo implement invitation confirmation by user
+      const [ workspace ] = await new Membership(user.id).getWorkspaces([ workspaceId ]);
+
+      if (!workspace) throw new ApolloError('There is no workspace with that id');
+
+      // @todo invite users to workspace, even if they are not registered
+      const invitedUser = await User.findByEmail(userEmail);
+
+      if (!invitedUser) throw new ApolloError('There is no user with that email');
+
+      const [ isUserInThatWorkspace ] = await new Membership(invitedUser.id).getWorkspaces([ workspaceId ]);
+
+      if (isUserInThatWorkspace) throw new ApolloError('User already in this workspace');
+
+      // @todo make via transactions
+      await new Membership(invitedUser.id).addWorkspace(workspaceId);
+      await new Team(workspaceId).addMember(invitedUser.id);
+
+      return true;
     }
   },
   Workspace: {
