@@ -5,7 +5,7 @@ const { Project, ProjectToWorkspace } = require('../models/project');
 const Event = require('../models/event');
 
 /**
- * See all types and fields here {@see ../typeDefs/workspace.graphql}
+ * See all types and fields here {@see ../typeDefs/project.graphql}
  */
 module.exports = {
   Mutation: {
@@ -43,14 +43,14 @@ module.exports = {
     /**
      * Find project events
      *
-     * @param {ResolverObj} rootResolverResult - result from resolver above
+     * @param {Project} id  - id of project (root resolver)
      * @param {number} limit - query limit
      * @param {number} skip - query skip
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @returns {Promise<EventSchema[]>}
      */
-    async events(rootResolverResult, { limit, skip }, { user }) {
-      const event = new Event(rootResolverResult.id);
+    async events({ id }, { limit, skip }) {
+      const event = new Event(id);
 
       return event.find({}, limit, skip);
     }
