@@ -43,7 +43,7 @@ module.exports = {
     /**
      * Find project events
      *
-     * @param {Project} id  - id of project (root resolver)
+     * @param {String} id  - id of project (root resolver)
      * @param {number} limit - query limit
      * @param {number} skip - query skip
      * @param {Context.user} user - current authorized user {@see ../index.js}
