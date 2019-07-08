@@ -55,7 +55,7 @@ type EventPayload {
   """
   Event timestamp
   """
-  timestamp: Int!
+  timestamp: DateTime!
 
   """
   Event severity level
