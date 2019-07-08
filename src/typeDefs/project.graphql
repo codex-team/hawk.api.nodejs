@@ -43,9 +43,9 @@ type Project {
   uidAdded: User!
 
   """
-  DateTime of creation
+  Project events
   """
-  dtAdded: DateTime!
+  events(limit: Int! = 10, skip: Int! = 0): [Event!] @requireAuth
 }
 
 extend type Mutation {

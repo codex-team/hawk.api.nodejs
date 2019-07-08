@@ -1,9 +1,11 @@
 const { ValidationError } = require('apollo-server-express');
+const { ObjectID } = require('mongodb');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
+const Event = require('../models/event');
 
 /**
- * See all types and fields here {@see ../typeDefs/workspace.graphql}
+ * See all types and fields here {@see ../typeDefs/project.graphql}
  */
 module.exports = {
   Mutation: {
@@ -26,12 +28,31 @@ module.exports = {
         throw new ValidationError('No such workspace');
       }
 
-      const project = await Project.create({ name });
+      const project = await Project.create({
+        name,
+        uidAdded: new ObjectID(user.id)
+      });
 
       // Create Project to Workspace relationship
       new ProjectToWorkspace(workspaceId).add({ projectId: project.id });
 
       return project;
+    }
+  },
+  Project: {
+    /**
+     * Find project events
+     *
+     * @param {String} id  - id of project (root resolver)
+     * @param {number} limit - query limit
+     * @param {number} skip - query skip
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @returns {Promise<EventSchema[]>}
+     */
+    async events({ id }, { limit, skip }) {
+      const event = new Event(id);
+
+      return event.find({}, limit, skip);
     }
   }
 };
