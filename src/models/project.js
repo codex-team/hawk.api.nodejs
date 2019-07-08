@@ -9,8 +9,8 @@ const { sign } = require('jsonwebtoken');
  * @property {string} name - project name
  * @property {string} [description] - project description
  * @property {string} [domain] - project domain
- * @property {string} [logo] - project logo
- * @property {string|ObjectID} [uidAdded] - user who added the project
+ * @property {string} [image] - project image
+ * @property {string|ObjectID} uidAdded - user who added the project
  */
 
 /**
@@ -52,9 +52,8 @@ class Project {
     this.description = projectData.description;
     this.domain = projectData.domain;
     this.uri = projectData.uri;
-    this.logo = projectData.logo;
+    this.image = projectData.image;
     this.uidAdded = projectData.uidAdded;
-    this.createdAt = projectData.createdAt;
   }
 
   /**

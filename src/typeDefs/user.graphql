@@ -68,4 +68,9 @@ extend type Mutation {
     "Refresh token for getting new token pair"
     refreshToken: String!
   ): Tokens!
+
+  """
+  Reset user's password
+  """
+  resetPassword("User email" email: String!): Boolean!
 }

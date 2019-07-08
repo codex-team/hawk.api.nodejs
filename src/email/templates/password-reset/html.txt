@@ -1,0 +1,2 @@
+Hi! <br>
+Your new password is: {{password}}
