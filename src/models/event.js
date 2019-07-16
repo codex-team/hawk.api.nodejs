@@ -71,6 +71,7 @@ class Event {
   async find(query = {}, limit = 10, skip = 0) {
     const cursor = this.collection
       .find(query)
+      .sort([ ['_id', -1] ])
       .limit(limit)
       .skip(skip);
 
