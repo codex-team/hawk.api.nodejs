@@ -3,6 +3,7 @@ const express = require('express');
 const mongo = require('./mongo');
 const jwt = require('jsonwebtoken');
 const requireAuthDirective = require('./directives/requireAuthDirective');
+const http = require('http');
 
 const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
@@ -37,7 +38,6 @@ class HawkAPI {
       port: +process.env.PORT || 4000,
       mongoURL: process.env.MONGO_URL || 'mongodb://localhost:27017/hawk'
     };
-
     this.app = express();
 
     this.server = new ApolloServer({
@@ -49,30 +49,35 @@ class HawkAPI {
       schemaDirectives: {
         requireAuth: requireAuthDirective
       },
+      subscriptions: {
+        onConnect: HawkAPI.onWebSocketConnection
+      },
       context: HawkAPI.createContext
     });
 
     this.server.applyMiddleware({ app: this.app });
+    this.httpServer = http.createServer(this.app);
+    this.server.installSubscriptionHandlers(this.httpServer);
   }
 
   /**
    * Creates request context
    * @param {Request} req - Express request
-   * @param {Response} res - Express response
+   * @param {Object} connection - websocket connection (for subscriptions)
    * @return {Promise<Context>} - context
    */
-  static async createContext({ req, res }) {
+  static async createContext({ req, connection }) {
     const user = {};
-
     /*
      * @todo deny access by refresh tokens
      * @todo block used refresh token
      */
 
-    let accessToken = req.headers['authorization'];
+    const authorizationHeader = connection ? connection.context.headers.authorization : req.headers['authorization'];
 
-    if (accessToken && /^Bearer [a-z0-9-_+/=]+\.[a-z0-9-_+/=]+\.[a-z0-9-_+/=]+$/i.test(accessToken)) {
-      accessToken = accessToken.slice(7);
+    if (authorizationHeader && /^Bearer [a-z0-9-_+/=]+\.[a-z0-9-_+/=]+\.[a-z0-9-_+/=]+$/i.test(authorizationHeader)) {
+      const accessToken = authorizationHeader.slice(7);
+
       try {
         const data = await jwt.verify(accessToken, process.env.JWT_SECRET);
 
@@ -88,6 +93,15 @@ class HawkAPI {
   }
 
   /**
+   * Fires when coming new subscription
+   * @param {Object} connectionParams
+   * @return {Promise<{headers: {authorization: string}}>} - context for subscription request
+   */
+  static async onWebSocketConnection(connectionParams) {
+    return { headers: { authorization: connectionParams.authorization } };
+  }
+
+  /**
    * Start API server
    *
    * @returns {Promise<void>}
@@ -96,7 +110,7 @@ class HawkAPI {
     await mongo.setupConnections();
 
     return new Promise((resolve, reject) => {
-      this.app.listen({ port: this.config.port }, e => {
+      this.httpServer.listen({ port: this.config.port }, e => {
         if (e) return reject(e);
 
         console.log(
