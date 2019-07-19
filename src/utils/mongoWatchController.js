@@ -9,10 +9,6 @@ async function asyncForEach(array, callback) {
 }
 
 class MongoWatchController {
-  constructor() {
-    this.watchingProjects = {};
-  }
-
   async getEventEmitterForUserProjects(userId) {
     const allWorkspaces = await (new Membership(userId)).getWorkspaces();
     const allProjects = [];
@@ -42,6 +38,7 @@ class MongoWatchController {
     });
 
     return {
+      changeStreams,
       on(eventName, handler) {
         changeStreams.forEach(stream => stream.on(eventName, handler));
       }
@@ -93,8 +90,8 @@ class MongoWatchController {
         value: done ? undefined : await pullValue()
       }),
       return: async () => {
+        emitter.changeStreams.forEach(stream => stream.close());
         done = true;
-        // emitter[offMethod](event, handler);
         return { done };
       },
       throw: async (error) => {
