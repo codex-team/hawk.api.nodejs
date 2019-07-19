@@ -4,6 +4,7 @@ const { GraphQLJSON, GraphQLJSONObject } = require('graphql-type-json');
 const user = require('./user');
 const workspace = require('./workspace');
 const project = require('./project');
+const event = require('./event');
 
 /**
  * @typedef ResolverObj
@@ -40,4 +41,4 @@ const indexResolver = {
   JSONObject: GraphQLJSONObject
 };
 
-module.exports = merge(indexResolver, user, workspace, project);
+module.exports = merge(indexResolver, user, workspace, project, event);

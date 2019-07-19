@@ -114,3 +114,11 @@ type Event {
   """
   payload: EventPayload!
 }
+
+type Subscription {
+  eventOccurred: String @requireAuth
+}
+
+extend type Query {
+  fire: Boolean
+}
