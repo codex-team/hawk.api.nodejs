@@ -1,29 +1,16 @@
-const { PubSub } = require('apollo-server-express');
-const pubsub = new PubSub();
+const MongoWatchController = require('../utils/mongoWatchController');
+
+const controller = new MongoWatchController();
 
 module.exports = {
   Subscription: {
     eventOccurred: {
-      subscribe: (payload, args, context, info) => {
-        return pubsub.asyncIterator([ 'eventOccurred' ]);
+      subscribe: (payload, args, context) => {
+        return controller.getAsyncIteratorForUserEvents(context.user.id);
       },
-      resolve: (payload, args, context, info) => 'ddawdesdwawoooork'
-    }
-  },
-  Query: {
-    fire: () => {
-      pubsub.publish('eventOccurred', { eventOccurred: { lol: 'lol' } });
-      return true;
+      resolve: (payload) => {
+        return payload.fullDocument;
+      }
     }
   }
 };
-
-class MongoWatchController {
-  constructor() {
-    this.watchingProjects = {};
-  }
-
-  setupWatchingForUserProject(userId) {
-    // find all users projects
-  }
-}

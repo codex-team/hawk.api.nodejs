@@ -116,9 +116,5 @@ type Event {
 }
 
 type Subscription {
-  eventOccurred: String @requireAuth
-}
-
-extend type Query {
-  fire: Boolean
+  eventOccurred: Event @requireAuth
 }
