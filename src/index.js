@@ -50,6 +50,7 @@ class HawkAPI {
         requireAuth: requireAuthDirective
       },
       subscriptions: {
+        path: '/subscriptions',
         onConnect: HawkAPI.onWebSocketConnection
       },
       context: HawkAPI.createContext
@@ -113,11 +114,8 @@ class HawkAPI {
       this.httpServer.listen({ port: this.config.port }, e => {
         if (e) return reject(e);
 
-        console.log(
-          `[${process.env.NODE_ENV}]🚀 Server ready at :${this.config.port}${
-            this.server.graphqlPath
-          }`
-        );
+        console.log(`🚀 Server ready at http://localhost:${this.config.port}${this.server.graphqlPath}`);
+        console.log(`🚀 Subscriptions ready at ws://localhost:${this.config.port}${this.server.subscriptionsPath}`);
         resolve();
       });
     });
