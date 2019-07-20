@@ -90,27 +90,19 @@ class MongoWatchController {
       if (pullQueue.length !== 0) {
         const resolver = pullQueue.shift();
 
-        resolver(...args);
+        resolver(args);
       } else {
         pushQueue.push(args);
       }
     };
 
-    const handler = (...args) => {
-      pushValue(args);
-    };
-
     // if there are some event in pushQueue -- resolve it. Else push resolver to the pullQueue
     const pullValue = async () => {
-      if (!emitter) {
-        emitter = await this.getEventEmitterForUserProjects(userId);
-        emitter.on('change', handler);
-      }
       return new Promise(resolve => {
         if (pushQueue.length !== 0) {
           const args = pushQueue.shift();
 
-          resolve(...args);
+          resolve(args);
         } else {
           pullQueue.push(resolve);
         }
@@ -124,13 +116,19 @@ class MongoWatchController {
       },
 
       // next value of the iterator
-      next: async () => ({
-        done,
-        value: done ? undefined : await pullValue()
-      }),
+      next: async () => {
+        if (!emitter) {
+          emitter = await this.getEventEmitterForUserProjects(userId);
+          emitter.on('change', pushValue);
+        }
+        return {
+          done,
+          value: done ? undefined : await pullValue()
+        };
+      },
 
       // called when iterator ends work
-      return: () => {
+      return: async () => {
         emitter.close();
         done = true;
         return { done };
