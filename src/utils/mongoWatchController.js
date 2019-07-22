@@ -25,7 +25,7 @@ class MongoWatchController {
   /**
    * Setup watch streams on events collections and return common event emitter for all this streams
    * @param {String} userId - id of the user whose events we will watch
-   * @return {Promise<Object>}
+   * @return {Promise<{on: function, close: function}>}
    */
   async getEventEmitterForUserProjects(userId) {
     // @todo optimize query for getting all user's projects
