@@ -48,7 +48,6 @@ class MongoWatchController {
     );
 
     return {
-
       /**
        * Adds the handler function for the event named eventName
        * @param {String} eventName - event name to subscribe
