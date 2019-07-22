@@ -94,7 +94,7 @@ class HawkAPI {
   }
 
   /**
-   * Fires when coming new subscription
+   * Fires when coming new Websocket connection
    * @param {Object} connectionParams
    * @return {Promise<{headers: {authorization: string}}>} - context for subscription request
    */
