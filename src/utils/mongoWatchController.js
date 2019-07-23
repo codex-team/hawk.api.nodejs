@@ -69,6 +69,7 @@ class MongoWatchController {
 
   /**
    * Setups watch streams and returns async iterator which will be resolved when event will come
+   * Used to implement user subscriptions for updating the event list
    * @param {String} userId - id of the user whose events we will watch
    * @return {AsyncIterator<EventSchema>}
    */

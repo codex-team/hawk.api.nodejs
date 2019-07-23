@@ -57,6 +57,10 @@ class HawkAPI {
     });
 
     this.server.applyMiddleware({ app: this.app });
+    /**
+     * In apollo-server-express integration it is necessary to use existing HTTP server to use GraphQL subscriptions
+     * {@see https://www.apollographql.com/docs/apollo-server/features/subscriptions/#subscriptions-with-additional-middleware}
+     */
     this.httpServer = http.createServer(this.app);
     this.server.installSubscriptionHandlers(this.httpServer);
   }
@@ -95,11 +99,16 @@ class HawkAPI {
 
   /**
    * Fires when coming new Websocket connection
+   * Returns authorization headers for building request context
    * @param {Object} connectionParams
    * @return {Promise<{headers: {authorization: string}}>} - context for subscription request
    */
   static async onWebSocketConnection(connectionParams) {
-    return { headers: { authorization: connectionParams.authorization } };
+    return {
+      headers: {
+        authorization: connectionParams.authorization
+      }
+    };
   }
 
   /**
