@@ -1,4 +1,8 @@
 const MongoWatchController = require('../utils/mongoWatchController');
+const Membership = require('../models/membership');
+const { ProjectToWorkspace } = require('../models/project');
+const mongo = require('../mongo');
+const asyncForEach = require('../utils/asyncForEach');
 
 const watchController = new MongoWatchController();
 
@@ -16,7 +20,28 @@ module.exports = {
        * @return {AsyncIterator<EventSchema>}
        */
       subscribe: (_obj, _args, context) => {
-        return watchController.getAsyncIteratorForUserEvents(context.user.id);
+        const userId = context.user.id;
+        const eventsCollections = new Promise(async resolve => {
+          // @todo optimize query for getting all user's projects
+
+          // Find all user's workspaces
+          const allWorkspaces = await (new Membership(userId)).getWorkspaces();
+          const allProjects = [];
+
+          // Find all user's projects
+          await asyncForEach(allWorkspaces, async workspace => {
+            const allProjectsInWorkspace = await new ProjectToWorkspace(workspace.id).getProjects();
+
+            allProjects.push(...allProjectsInWorkspace);
+          });
+
+          resolve(allProjects.map(project =>
+            mongo.databases.events
+              .collection('events:' + project.id)
+          ));
+        });
+
+        return watchController.getAsyncIteratorForCollectionChangesEvents(eventsCollections);
       },
 
       /**

@@ -1,7 +1,4 @@
-const Membership = require('../models/membership');
-const { ProjectToWorkspace } = require('../models/project');
-const mongo = require('../mongo');
-const asyncForEach = require('./asyncForEach');
+const AsyncIteratorForEmitter = require('./asyncIteratorForEmitter');
 
 /**
  * An array of aggregation pipeline stages through which to pass change stream documents.
@@ -23,127 +20,47 @@ const pipeline = [
  */
 class MongoWatchController {
   /**
-   * Setup watch streams on events collections and return common event emitter for all this streams
-   * @param {String} userId - id of the user whose events we will watch
-   * @return {Promise<{on: function, close: function}>}
+   * Setups watch streams and returns async iterator which will be resolved when event will come
+   * Used to implement user subscriptions for updating the event list
+   * @param {String} collectionsResolver - resolver that returns collections to observe
+   * @return {AsyncIterator<EventSchema>}
    */
-  async getEventEmitterForUserProjects(userId) {
-    // @todo optimize query for getting all user's projects
+  getAsyncIteratorForCollectionChangesEvents(collectionsResolver) {
+    const emitterPromise = new Promise(async resolve => {
+      const collection = await collectionsResolver;
 
-    // Find all user's workspaces
-    const allWorkspaces = await (new Membership(userId)).getWorkspaces();
-    const allProjects = [];
-
-    // Find all user's projects
-    await asyncForEach(allWorkspaces, async workspace => {
-      const allProjectsInWorkspace = await new ProjectToWorkspace(workspace.id).getProjects();
-
-      allProjects.push(...allProjectsInWorkspace);
+      resolve(new MongoCollectionsChangedEmitter(collection));
     });
 
-    const changeStreams = allProjects.map(project =>
-      mongo.databases.events
-        .collection('events:' + project.id)
-        .watch(pipeline)
-    );
+    return new AsyncIteratorForEmitter(emitterPromise, 'change');
+  }
+}
 
-    return {
-      /**
-       * Adds the handler function for the event named eventName
-       * @param {String} eventName - event name to subscribe
-       * @param {function} handler - event handler
-       */
-      on(eventName, handler) {
-        changeStreams.forEach(stream => stream.on(eventName, handler));
-      },
-
-      /**
-       * Closes all changeStreams inside of event emitter
-       */
-      close() {
-        changeStreams.forEach(stream => stream.close());
-      }
-    };
+/**
+ * Emit events when observed collections changed
+ */
+class MongoCollectionsChangedEmitter {
+  /**
+   * @param {Promise<Collection>} collections - collections to observe
+   */
+  constructor(collections) {
+    this.changeStreams = collections.map(collection => collection.watch(pipeline));
   }
 
   /**
-   * Setups watch streams and returns async iterator which will be resolved when event will come
-   * Used to implement user subscriptions for updating the event list
-   * @param {String} userId - id of the user whose events we will watch
-   * @return {AsyncIterator<EventSchema>}
+   * Adds the handler function for the event named eventName
+   * @param {String} eventName - event name to subscribe
+   * @param {function} handler - event handler
    */
-  getAsyncIteratorForUserEvents(userId) {
-    // contains not called resolvers
-    const pullQueue = [];
+  on(eventName, handler) {
+    this.changeStreams.forEach(stream => stream.on(eventName, handler));
+  }
 
-    // contains unprocessed events
-    const pushQueue = [];
-
-    // is iterator done his work
-    let done = false;
-
-    // event emitter for subscribing
-    let emitter;
-
-    // pushes value from emitter event to the pushQueue or resolves it if pullQueue is not empty
-    const pushValue = async (args) => {
-      if (pullQueue.length !== 0) {
-        const resolver = pullQueue.shift();
-
-        resolver(args);
-      } else {
-        pushQueue.push(args);
-      }
-    };
-
-    // if there are some event in pushQueue -- resolve it. Else push resolver to the pullQueue
-    const pullValue = async () => {
-      return new Promise(resolve => {
-        if (pushQueue.length !== 0) {
-          const args = pushQueue.shift();
-
-          resolve(args);
-        } else {
-          pullQueue.push(resolve);
-        }
-      });
-    };
-
-    return {
-      // specifies the default AsyncIterator for an object
-      [Symbol.asyncIterator]() {
-        return this;
-      },
-
-      // next value of the iterator
-      next: async () => {
-        if (!emitter) {
-          emitter = await this.getEventEmitterForUserProjects(userId);
-          emitter.on('change', pushValue);
-        }
-        return {
-          done,
-          value: done ? undefined : await pullValue()
-        };
-      },
-
-      // called when iterator ends work
-      return: async () => {
-        emitter.close();
-        done = true;
-        return { done };
-      },
-
-      // called when any error occurred
-      throw: async (error) => {
-        emitter.close();
-        done = true;
-        return {
-          done,
-          value: Promise.reject(error)
-        };
-      }
-    };
+  /**
+   * Closes all changeStreams inside of event emitter
+   */
+  close() {
+    this.changeStreams.forEach(stream => stream.close());
   }
 }
 
