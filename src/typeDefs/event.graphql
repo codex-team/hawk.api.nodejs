@@ -114,3 +114,10 @@ type Event {
   """
   payload: EventPayload!
 }
+
+type Subscription {
+  """
+  Sends new events from all user projects
+  """
+  eventOccurred: Event! @requireAuth
+}
