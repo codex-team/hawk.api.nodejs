@@ -106,7 +106,7 @@ class HawkAPI {
   static async onWebSocketConnection(connectionParams) {
     return {
       headers: {
-        authorization: connectionParams.authorization
+        authorization: connectionParams.authorization || connectionParams.Authorization
       }
     };
   }
