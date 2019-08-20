@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const requireAuthDirective = require('./directives/requireAuthDirective');
 const http = require('http');
 const { initializeStrategies } = require('./passport');
+const { authRouter } = require('./auth');
 
 const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
@@ -42,6 +43,8 @@ class HawkAPI {
     this.app = express();
 
     initializeStrategies();
+
+    this.app.use(authRouter);
 
     this.server = new ApolloServer({
       typeDefs,
