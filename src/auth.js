@@ -18,7 +18,9 @@ authRouter.get(
   AUTH_ROUTES.GITHUB_CALLBACK,
   passport.authenticate('github', { failureRedirect: '/login' }),
   (req, res) => {
-    res.json(User.generateTokensPair.call({ id: req.user.id }));
+    const user = new User({ id: req.user.id });
+
+    res.json(user.generateTokensPair());
   }
 );
 
