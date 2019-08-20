@@ -31,7 +31,10 @@ const initializeStrategies = () => {
       (accessToken, refreshToken, profile, cb) => {
         /**
          * @todo: check user in database, create if not exists
+         *  return user id
          */
+        console.log({ accessToken, refreshToken, profile });
+        cb(null, profile);
       }
     )
   );

@@ -12,6 +12,8 @@ const AUTH_ROUTES = {
 
 const authRouter = express.Router();
 
+authRouter.use(passport.initialize());
+
 authRouter.get(AUTH_ROUTES.GITHUB_REDIR, passport.authenticate('github'));
 
 authRouter.get(
