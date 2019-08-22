@@ -2,6 +2,7 @@ const passport = require('passport');
 const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
 const { Strategy: GitHubStrategy } = require('passport-github');
 const { AUTH_ROUTES } = require('./auth');
+const User = require('./models/user');
 
 /**
  * Initialize passport.js authentication strategies
@@ -28,13 +29,25 @@ const initializeStrategies = () => {
           (process.env.API_URL || 'http://127.0.0.1:4000') +
           AUTH_ROUTES.GITHUB_CALLBACK
       },
-      (accessToken, refreshToken, profile, cb) => {
-        /**
-         * @todo: check user in database, create if not exists
-         *  return user id
-         */
-        console.log({ accessToken, refreshToken, profile });
-        cb(null, profile);
+      async (accessToken, refreshToken, profile, cb) => {
+        console.log(profile);
+        try {
+          let user = await User.findOne({ githubId: profile.id });
+
+          if (user) {
+            return cb(null, user);
+          }
+
+          user = await User.createByGithub({
+            id: profile.id,
+            name: profile.displayName,
+            picture: profile.photos[0].value
+          });
+
+          return cb(null, user);
+        } catch (err) {
+          return cb(err, null);
+        }
       }
     )
   );

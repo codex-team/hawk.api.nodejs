@@ -18,11 +18,12 @@ authRouter.get(AUTH_ROUTES.GITHUB_REDIR, passport.authenticate('github'));
 
 authRouter.get(
   AUTH_ROUTES.GITHUB_CALLBACK,
-  passport.authenticate('github', { failureRedirect: '/login' }),
-  (req, res) => {
-    const user = new User({ id: req.user.id });
-
-    res.json(user.generateTokensPair());
+  passport.authenticate('github', {
+    session: false,
+    failureRedirect: '/login'
+  }),
+  async (req, res) => {
+    res.json(await req.user.generateTokensPair());
   }
 );
 
