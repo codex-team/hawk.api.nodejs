@@ -30,7 +30,6 @@ const initializeStrategies = () => {
           AUTH_ROUTES.GITHUB_CALLBACK
       },
       async (accessToken, refreshToken, profile, cb) => {
-        console.log(profile);
         try {
           let user = await User.findOne({ githubId: profile.id });
 
