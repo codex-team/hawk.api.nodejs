@@ -4,6 +4,8 @@ const mongo = require('./mongo');
 const jwt = require('jsonwebtoken');
 const requireAuthDirective = require('./directives/requireAuthDirective');
 const http = require('http');
+const { initializeStrategies } = require('./passport');
+const { authRouter } = require('./auth');
 
 const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
@@ -39,6 +41,10 @@ class HawkAPI {
       mongoURL: process.env.MONGO_URL || 'mongodb://localhost:27017/hawk'
     };
     this.app = express();
+
+    initializeStrategies();
+
+    this.app.use(authRouter);
 
     this.server = new ApolloServer({
       typeDefs,
@@ -78,9 +84,16 @@ class HawkAPI {
      * @todo block used refresh token
      */
 
-    const authorizationHeader = connection ? connection.context.headers.authorization : req.headers['authorization'];
+    const authorizationHeader = connection
+      ? connection.context.headers.authorization
+      : req.headers['authorization'];
 
-    if (authorizationHeader && /^Bearer [a-z0-9-_+/=]+\.[a-z0-9-_+/=]+\.[a-z0-9-_+/=]+$/i.test(authorizationHeader)) {
+    if (
+      authorizationHeader &&
+      /^Bearer [a-z0-9-_+/=]+\.[a-z0-9-_+/=]+\.[a-z0-9-_+/=]+$/i.test(
+        authorizationHeader
+      )
+    ) {
       const accessToken = authorizationHeader.slice(7);
 
       try {
@@ -106,7 +119,8 @@ class HawkAPI {
   static async onWebSocketConnection(connectionParams) {
     return {
       headers: {
-        authorization: connectionParams.authorization || connectionParams.Authorization
+        authorization:
+          connectionParams.authorization || connectionParams.Authorization
       }
     };
   }
@@ -123,8 +137,16 @@ class HawkAPI {
       this.httpServer.listen({ port: this.config.port }, e => {
         if (e) return reject(e);
 
-        console.log(`🚀 Server ready at http://localhost:${this.config.port}${this.server.graphqlPath}`);
-        console.log(`🚀 Subscriptions ready at ws://localhost:${this.config.port}${this.server.subscriptionsPath}`);
+        console.log(
+          `🚀 Server ready at http://localhost:${this.config.port}${
+            this.server.graphqlPath
+          }`
+        );
+        console.log(
+          `🚀 Subscriptions ready at ws://localhost:${this.config.port}${
+            this.server.subscriptionsPath
+          }`
+        );
         resolve();
       });
     });
