@@ -13,7 +13,10 @@ const authRouter = express.Router();
 
 authRouter.use(passport.initialize());
 
-authRouter.get(AUTH_ROUTES.GITHUB_REDIR, passport.authenticate('github'));
+authRouter.get(
+  AUTH_ROUTES.GITHUB_REDIR,
+  passport.authenticate('github', { scope: [ 'read:user' ] })
+);
 
 authRouter.get(
   AUTH_ROUTES.GITHUB_CALLBACK,
