@@ -13,25 +13,26 @@
   "devDependencies": {
     "eslint": "^5.16.0",
     "eslint-config-codex": "github:codex-team/eslint-config",
-    "eslint-plugin-import": "^2.17.2",
+    "eslint-plugin-import": "^2.18.2",
     "husky": "^2.3.0",
     "lint-staged": "^8.1.7",
-    "nodemon": "^1.18.11"
+    "nodemon": "^1.19.1"
   },
   "dependencies": {
-    "apollo-server-express": "^2.4.8",
+    "apollo-server-express": "^2.9.0",
     "argon2": "^0.22.0",
     "dotenv": "^7.0.0",
-    "express": "^4.16.4",
-    "graphql": "^14.2.1",
+    "express": "^4.17.1",
+    "graphql": "^14.5.3",
     "graphql-iso-date": "^3.6.1",
     "graphql-list-fields": "^2.0.2",
     "graphql-type-json": "^0.3.0",
     "jsonwebtoken": "^8.5.1",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.15",
     "mongodb": "^3.2.7",
     "mustache": "^3.0.1",
     "nodemailer": "^6.2.1",
-    "uuid": "^3.3.2"
+    "tinkoff-api": "git+https://github.com/codex-team/tinkoff-api.git#apiV1",
+    "uuid": "^3.3.3"
   }
 }
