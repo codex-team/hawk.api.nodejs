@@ -25,7 +25,12 @@ authRouter.get(
     failureRedirect: '/login'
   }),
   async (req, res) => {
-    res.json(await req.user.generateTokensPair());
+    // res.json(await req.user.generateTokensPair());
+    const { accessToken, refreshToken } = await req.user.generateTokensPair();
+
+    res.redirect(
+      `${process.env.GARAGE_LOGIN_URL}?access_token=${accessToken}&refresh_token=${refreshToken}`
+    );
   }
 );
 
