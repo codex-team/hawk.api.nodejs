@@ -51,7 +51,7 @@ class Event {
    * Creates Event instance
    * @param {EventSchema} schema - event's schema
    */
-  constructor(schema) {
+  constructor(schema = {}) {
     if (schema) {
       this.fillModel(schema);
     }
