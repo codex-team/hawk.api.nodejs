@@ -152,6 +152,25 @@ class User {
   }
 
   /**
+   * Update user profile data
+   *
+   * @param {string|ObjectID} userId - user ID
+   * @param {string} name - user name
+   * @param {string} email - user email
+   * @returns {Promise<void>}
+   */
+  static async updateProfile(userId, name, email) {
+    const status = await this.update(
+      { _id: new ObjectID(userId) },
+      { name, email }
+    );
+
+    if (status !== 1) {
+      throw new Error('Can\'t update profile');
+    }
+  }
+
+  /**
    * Finds user by his id
    * @param {User.id} id - user's id
    * @return {Promise<User>}
