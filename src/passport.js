@@ -62,12 +62,6 @@ const initializeStrategies = () => {
           AUTH_ROUTES.GOOGLE_CALLBACK
       },
       async (accessToken, refreshToken, profile, cb) => {
-        /*
-         * User.findOrCreate({ googleId: profile.id }, function (err, user) {
-         *   return cb(err, user);
-         * });
-         */
-        console.log(profile);
         try {
           let user = await User.findOne({ googleId: profile.id });
 
