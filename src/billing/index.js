@@ -9,6 +9,12 @@ const PAYMENT_CONFIRMED = 'CONFIRMED';
  * Billing class
  */
 class Billing {
+  /**
+   * Callback action for Tinkoff payment notification {@link https://oplata.tinkoff.ru/landing/develop/notifications/parametres}
+   * @param req
+   * @param res
+   * @return {Promise<*>}
+   */
   static async notifyCallback(req, res) {
     const body = req.body;
     const api = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
@@ -19,12 +25,14 @@ class Billing {
       return res.send('ERROR');
     }
 
+    // Send authorized payments to RabbitMQ
     if (body.Status === PAYMENT_AUTHORIZED) {
       body.Timestamp = new Date();
       await rabbitmq.publish('merchant', 'merchant/authorized', JSON.stringify(body));
       return res.send('OK');
     }
 
+    // Just ACK payment confirmation notification
     if (body.Status === PAYMENT_CONFIRMED) {
       return res.send('OK');
     }
