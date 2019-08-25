@@ -7,6 +7,7 @@ services:
     user: "node"
     volumes:
       - ./:/usr/src/app
+      - /usr/src/app/node_modules
     environment:
       - JWT_SECRET=abacaba
       - JWT_SECRET_EVENTS=qwerty
