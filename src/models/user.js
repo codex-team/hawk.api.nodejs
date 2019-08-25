@@ -18,6 +18,7 @@ const ObjectID = mongodbDriver.ObjectID;
  * @property {string} password - user's password
  * @property {string} [picture] - user's picture URL
  * @property {string} [name] - user's name
+ * @property {string} [githubId] - user's GitHub profile id
  * @property {string} [generatedPassword] - user's original password (this field appears only after registration)
  */
 
@@ -35,6 +36,7 @@ class User {
     this.email = userData.email;
     this.name = userData.name;
     this.picture = userData.picture;
+    this.githubId = userData.githubId;
   }
 
   /**
@@ -64,6 +66,30 @@ class User {
     });
 
     user.generatedPassword = generatedPassword;
+
+    return user;
+  }
+
+  /**
+   * Creates new user id DB by GitHub provider
+   * @param {string} id - GitHub profile id
+   * @param {string} name - GitHub profile name
+   * @param {string} picture - GitHub profile avatar url
+   * @return {Promise<User>}
+   */
+  static async createByGithub({ id, name, picture }) {
+    if (!id || !name || !picture) {
+      throw new Error('Required parameters are not provided');
+    }
+
+    const userData = { githubId: id, name, picture };
+
+    const userId = (await this.collection.insertOne(userData)).insertedId;
+
+    const user = new User({
+      id: userId,
+      ...userData
+    });
 
     return user;
   }
@@ -148,6 +174,22 @@ class User {
    */
   static async findByEmail(email) {
     const searchResult = await this.collection.findOne({ email });
+
+    if (!searchResult) return null;
+
+    return new User({
+      id: searchResult._id,
+      ...searchResult
+    });
+  }
+
+  /**
+   * Find user by query
+   * @param {object} query - query object
+   * @return {Promise<User>|null}
+   */
+  static async findOne(query) {
+    const searchResult = await this.collection.findOne(query);
 
     if (!searchResult) return null;
 

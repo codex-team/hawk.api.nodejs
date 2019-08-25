@@ -33,6 +33,9 @@
     "mongodb": "^3.2.7",
     "mustache": "^3.0.1",
     "nodemailer": "^6.2.1",
+    "passport": "^0.4.0",
+    "passport-github": "^1.1.0",
+    "passport-jwt": "^4.0.0",
     "tinkoff-api": "git+https://github.com/codex-team/tinkoff-api.git#apiV1",
     "uuid": "^3.3.3"
   }

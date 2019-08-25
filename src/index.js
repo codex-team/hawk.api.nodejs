@@ -6,7 +6,8 @@ const jwt = require('jsonwebtoken');
 const requireAuthDirective = require('./directives/requireAuthDirective');
 const http = require('http');
 const billing = require('./billing/index');
-
+const { initializeStrategies } = require('./passport');
+const { authRouter } = require('./auth');
 const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
 
@@ -44,6 +45,9 @@ class HawkAPI {
 
     this.app.use(express.json());
     this.app.post('/billing', billing.notifyCallback);
+    this.app.use(authRouter);
+
+    initializeStrategies();
 
     this.server = new ApolloServer({
       typeDefs,
@@ -82,10 +86,16 @@ class HawkAPI {
      * @todo deny access by refresh tokens
      * @todo block used refresh token
      */
+    const authorizationHeader = connection
+      ? connection.context.headers.authorization
+      : req.headers['authorization'];
 
-    const authorizationHeader = connection ? connection.context.headers.authorization : req.headers.authorization;
-
-    if (authorizationHeader && /^Bearer [a-z0-9-_+/=]+\.[a-z0-9-_+/=]+\.[a-z0-9-_+/=]+$/i.test(authorizationHeader)) {
+    if (
+      authorizationHeader &&
+      /^Bearer [a-z0-9-_+/=]+\.[a-z0-9-_+/=]+\.[a-z0-9-_+/=]+$/i.test(
+        authorizationHeader
+      )
+    ) {
       const accessToken = authorizationHeader.slice(7);
 
       try {
@@ -111,7 +121,8 @@ class HawkAPI {
   static async onWebSocketConnection(connectionParams) {
     return {
       headers: {
-        authorization: connectionParams.authorization || connectionParams.Authorization
+        authorization:
+          connectionParams.authorization || connectionParams.Authorization
       }
     };
   }
@@ -129,8 +140,16 @@ class HawkAPI {
       this.httpServer.listen({ port: this.config.port }, e => {
         if (e) return reject(e);
 
-        console.log(`🚀 Server ready at http://localhost:${this.config.port}${this.server.graphqlPath}`);
-        console.log(`🚀 Subscriptions ready at ws://localhost:${this.config.port}${this.server.subscriptionsPath}`);
+        console.log(
+          `🚀 Server ready at http://localhost:${this.config.port}${
+            this.server.graphqlPath
+          }`
+        );
+        console.log(
+          `🚀 Subscriptions ready at ws://localhost:${this.config.port}${
+            this.server.subscriptionsPath
+          }`
+        );
         resolve();
       });
     });
