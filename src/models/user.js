@@ -16,7 +16,7 @@ const ObjectID = mongodbDriver.ObjectID;
  * @property {string} id - user's id
  * @property {string} email - user's email
  * @property {string} password - user's password
- * @property {string} [picture] - user's picture URL
+ * @property {string} [image] - user's image URL
  * @property {string} [name] - user's name
  * @property {string} [generatedPassword] - user's original password (this field appears only after registration)
  */
@@ -34,7 +34,7 @@ class User {
     this.password = userData.password;
     this.email = userData.email;
     this.name = userData.name;
-    this.picture = userData.picture;
+    this.image = userData.image;
   }
 
   /**
