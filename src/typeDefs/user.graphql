@@ -32,9 +32,9 @@ type User {
   name: String
 
   """
-  User's picture
+  User's image
   """
-  picture: String
+  image: String
 }
 
 extend type Query {
