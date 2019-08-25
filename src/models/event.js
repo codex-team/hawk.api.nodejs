@@ -1,5 +1,3 @@
-const { ObjectID } = require('mongodb');
-
 /**
  * @typedef {Object} BacktraceSourceCode
  * @property {Number} line - line's number
@@ -23,8 +21,8 @@ const { ObjectID } = require('mongodb');
 
 /**
  * @typedef {Object} EventSchema
- * @property {string|ObjectID} id - event ID
- * @property {string} catcherType - type of an event
+ * @property {String} id - event ID
+ * @property {String} catcherType - type of an event
  * @property {Number} count - event repetitions count
  * @property {String} groupHash - event's hash (catcherType + title + salt)
  * @property {Object} payload - event data
@@ -35,7 +33,7 @@ const { ObjectID } = require('mongodb');
  * @property {Object} [payload.get] - GET params
  * @property {Object} [payload.post] - POST params
  * @property {Object} [payload.headers] - HTTP headers
- * @property {string} [payload.release] - source code version identifier; version, modify timestamp or both of them combined
+ * @property {String} [payload.release] - source code version identifier; version, modify timestamp or both of them combined
  * @property {EventUser} [payload.user] - current authenticated user
  * @property {Object} [payload.context] - any additional data
  */

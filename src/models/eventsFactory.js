@@ -62,6 +62,9 @@ class EventsFactory {
    * @returns {Event[]} - events matching query
    */
   async find(query = {}, limit = 10, skip = 0) {
+    limit = this.validateLimit(limit);
+    skip = this.validateSkip(skip);
+
     const cursor = this.getCollection(this.TYPES.EVENTS)
       .find(query)
       .sort([ ['_id', -1] ])
@@ -108,7 +111,9 @@ class EventsFactory {
    * @param {Number} limit - events count limitations
    * @return {RecentEventSchema[]}
    */
-  async findRecent(limit) {
+  async findRecent(limit = 10) {
+    limit = this.validateLimit(limit);
+
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS)
       .find({})
       .sort([ ['count', -1] ])
@@ -139,6 +144,9 @@ class EventsFactory {
    * @return {Event}
    */
   async getRepetitions(eventId, limit = 10, skip = 0) {
+    limit = this.validateLimit(limit);
+    skip = this.validateSkip(skip);
+
     const eventOriginal = await this.findById(eventId);
     const cursor = this.getCollection(this.TYPES.REPETITIONS)
       .find({
@@ -157,6 +165,31 @@ class EventsFactory {
       eventOriginal.payload = _.merge({}, eventOriginal.payload, data);
       return new Event(eventOriginal);
     });
+  }
+  /**
+   * Validates limit value
+   * @param limit
+   * @return {Number}
+   */
+  validateLimit(limit) {
+    limit = Math.max(0, limit);
+
+    if (limit > 100) {
+      throw Error('Invalid limit value');
+    }
+  }
+
+  /**
+   * Validate skip value
+   * @param skip
+   * @return {Number}
+   */
+  validateSkip(skip) {
+    skip = Math.max(0, skip);
+
+    if (skip > 100) {
+      throw Error('Invalid skip value');
+    }
   }
 }
 
