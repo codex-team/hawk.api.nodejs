@@ -1,8 +1,9 @@
 const MongoWatchController = require('../utils/mongoWatchController');
 const Membership = require('../models/membership');
 const { ProjectToWorkspace } = require('../models/project');
-const mongo = require('../mongo');
+const EventService = require('../services/eventService');
 const asyncForEach = require('../utils/asyncForEach');
+const mongo = require('../mongo');
 
 const watchController = new MongoWatchController();
 
@@ -10,6 +11,14 @@ const watchController = new MongoWatchController();
  * See all types and fields here {@see ../typeDefs/event.graphql}
  */
 module.exports = {
+  Query: {
+    async events(_obj, { projectId }) {
+      const service = new EventService(projectId);
+      const events = await service.find({}, 10);
+
+      return events;
+    }
+  },
   Subscription: {
     eventOccurred: {
       /**

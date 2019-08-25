@@ -1,5 +1,4 @@
 const { ObjectID } = require('mongodb');
-const mongo = require('../mongo');
 
 /**
  * @typedef {Object} BacktraceSourceCode
@@ -48,57 +47,37 @@ const mongo = require('../mongo');
 class Event {
   /**
    * Creates Event instance
-   * @param {string|ObjectID} projectId - project ID
+   * @param {string|ObjectID} eventId - event ID
    */
-  constructor(projectId) {
-    if (!projectId) {
-      throw new Error('Can not construct Event model, because projectId is not provided');
+  constructor(eventId = '') {
+    this._id = eventId;
+    this.catcherType = '';
+    this.payload = {};
+  }
+
+  /**
+   * @return {string|ObjectID}
+   */
+  get id() {
+    return this._id;
+  }
+
+  /**
+   * @param {EventSchema} schema
+   *
+   * @returns Event
+   */
+  static fillModel(schema) {
+    const model = new Event();
+
+    for (const prop in model) {
+      if (!model.hasOwnProperty(prop)) {
+        continue;
+      }
+      model[prop] = schema[prop];
     }
-    this.projectId = new ObjectID(projectId);
-    this.collection = mongo.databases.events.collection(
-      'events:' + this.projectId
-    );
-  }
 
-  /**
-   * Finds events
-   *
-   * @param {object} [query={}] - query
-   * @param {Number} [limit=10] - query limit
-   * @param {Number} [skip=0] - query skip
-   * @returns {EventSchema[]} - events matching query
-   */
-  async find(query = {}, limit = 10, skip = 0) {
-    const cursor = this.collection
-      .find(query)
-      .sort([ ['_id', -1] ])
-      .limit(limit)
-      .skip(skip);
-
-    // Memory overflow?
-    return (await cursor.toArray()).map(event => ({
-      id: event._id,
-      catcherType: event.catcherType,
-      payload: event.payload
-    }));
-  }
-
-  /**
-   * Find event by id
-   *
-   * @param {string|ObjectID} id - event id
-   * @returns {EventSchema} - event
-   */
-  async findById(id) {
-    const searchResult = this.collection.findOne({
-      _id: new ObjectID(id)
-    });
-
-    return {
-      id: searchResult._id,
-      catcherType: searchResult.catcherType,
-      payload: searchResult.payload
-    };
+    return model;
   }
 }
 

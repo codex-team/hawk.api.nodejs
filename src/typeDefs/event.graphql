@@ -60,12 +60,12 @@ type EventPayload {
   """
   Event severity level
   """
-  level: Int!
+  level: Int
 
   """
   Event stack array from the latest call to the earliest
   """
-  backtrace: [EventBacktrace!]
+  backtrace: [EventBacktrace]
 
   """
   Additional data about GET request
@@ -85,7 +85,7 @@ type EventPayload {
   """
   Source code version identifier
   """
-  release: String
+  release: String!
 
   """
   Current authenticated user
@@ -120,4 +120,10 @@ type Subscription {
   Sends new events from all user projects
   """
   eventOccurred: Event! @requireAuth
+}
+
+extend type Query {
+  """
+  """
+  events("project id" projectId: ID): [Event]
 }
