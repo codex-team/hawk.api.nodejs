@@ -11,9 +11,11 @@ const _ = require('lodash');
  */
 
 /**
- * EventService
+ * EventsFactory
+ *
+ * Creational Class for Event's Model
  */
-class EventService {
+class EventsFactory {
   /**
    * @return {{EVENTS: string, DAILY_EVENTS: string, REPETITIONS: string}}
    * @constructor
@@ -38,9 +40,12 @@ class EventService {
   }
 
   /**
-   * @param type
+   * Returns pointer to the collection
    *
-   * @returns {string}
+   * @param {String} type - each events in order to optimization holds data in different collections.
+   *                      This argument defines which collection need to be used.
+   *
+   * @returns {String}
    */
   getCollection(type) {
     return mongo.databases.events.collection(
@@ -49,7 +54,7 @@ class EventService {
   }
 
   /**
-   * Finds events
+   * Finds events by passed query
    *
    * @param {object} [query={}] - query
    * @param {Number} [limit=10] - query limit
@@ -63,19 +68,18 @@ class EventService {
       .limit(limit)
       .skip(skip);
 
-    // Memory overflow?
     const result = await cursor.toArray();
 
     return result.map(data => {
-      return Event.fillModel(data);
+      return new Event(data);
     });
   }
 
   /**
    * Find event by id
    *
-   * @param {string|ObjectID} id - event id
-   * @returns {Event} - event
+   * @param {string|ObjectID} id - event's id
+   * @returns {Event}
    */
   async findById(id) {
     const searchResult = await this.getCollection(this.TYPES.EVENTS)
@@ -83,10 +87,10 @@ class EventService {
         _id: new ObjectID(id)
       });
 
-    return Event.fillModel(searchResult);
+    return new Event(searchResult);
   }
   /**
-   * Find event by any query
+   * Find an event by any custom query
    *
    * @param {object} query - any custom mongo query
    * @return {Event}
@@ -95,11 +99,13 @@ class EventService {
     const searchResult = await this.getCollection(this.TYPES.EVENTS)
       .findOne(query);
 
-    return Event.fillModel(searchResult);
+    return new Event(searchResult);
   }
 
   /**
-   * @param limit
+   * Returns events that grouped by day
+   *
+   * @param {Number} limit - events count limitations
    * @return {RecentEventSchema[]}
    */
   async findRecent(limit) {
@@ -118,16 +124,19 @@ class EventService {
       return {
         event: event,
         count: data.count,
-        date: data.currentDate
+        date: data.date
       };
     }));
   }
 
   /**
-   * @param eventId
-   * @param limit
-   * @param skip
-   * @return {Promise<void>}
+   * Returns Event's repetitions
+   *
+   * @param {string|ObjectID} eventId - Event's id
+   * @param {Number} limit - count limitations
+   * @param {Number} skip - selection offset
+   *
+   * @return {Event}
    */
   async getRepetitions(eventId, limit = 10, skip = 0) {
     const eventOriginal = await this.findById(eventId);
@@ -146,9 +155,9 @@ class EventService {
       delete data.groupHash;
 
       eventOriginal.payload = _.merge({}, eventOriginal.payload, data);
-      return Event.fillModel(eventOriginal);
+      return new Event(eventOriginal);
     });
   }
 }
 
-module.exports = EventService;
+module.exports = EventsFactory;

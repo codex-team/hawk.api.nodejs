@@ -26,7 +26,7 @@ const { ObjectID } = require('mongodb');
  * @property {string|ObjectID} id - event ID
  * @property {string} catcherType - type of an event
  * @property {Number} count - event repetitions count
- * @property {String} groupHash - event's hash
+ * @property {String} groupHash - event's hash (catcherType + title + salt)
  * @property {Object} payload - event data
  * @property {string} payload.title - event title
  * @property {Date} payload.timestamp - event datetime
@@ -49,14 +49,12 @@ const { ObjectID } = require('mongodb');
 class Event {
   /**
    * Creates Event instance
-   * @param {string|ObjectID} eventId - event ID
+   * @param {EventSchema} schema - event's schema
    */
-  constructor(eventId = '') {
-    this._id = eventId;
-    this.catcherType = '';
-    this.count = 0;
-    this.groupHash = '';
-    this.payload = {};
+  constructor(schema) {
+    if (schema) {
+      this.fillModel(schema);
+    }
   }
 
   /**
@@ -67,21 +65,18 @@ class Event {
   }
 
   /**
+   * Fills current instance with schema properties
    * @param {EventSchema} schema
    *
    * @returns Event
    */
-  static fillModel(schema) {
-    const model = new Event();
-
-    for (const prop in model) {
-      if (!model.hasOwnProperty(prop)) {
+  fillModel(schema) {
+    for (const prop in schema) {
+      if (!schema.hasOwnProperty(prop)) {
         continue;
       }
-      model[prop] = schema[prop];
+      this[prop] = schema[prop];
     }
-
-    return model;
   }
 }
 

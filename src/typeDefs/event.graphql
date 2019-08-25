@@ -122,12 +122,12 @@ type RecentEvent {
   event: Event!
 
   """
-  Event's count
+  Event occurrence count
   """
   count: Int!
 
   """
-  Event's date
+  Event occurrence date
   """
   date: String!
 }
@@ -146,14 +146,17 @@ extend type Query {
   events("project id" projectId: ID, "limit" limit: Int, "skip" skip: Int): [Event]!
 
   """
+  Returns recent events grouped by day
   """
   recent("project id" projectId: ID, "limit" limit: Int): [RecentEvent]!
 
   """
+  Returns an event
   """
   event("project id" projectId: ID, "event id" eventId: ID): Event!
 
   """
+  Returns repetitions list
   """
   repetitions("project id" projectId: ID, "event id" eventId: ID, "limit" limit: Int, "skip" skip: Int): [Event]!
 }

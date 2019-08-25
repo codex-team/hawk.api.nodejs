@@ -1,7 +1,7 @@
 const MongoWatchController = require('../utils/mongoWatchController');
 const Membership = require('../models/membership');
 const { ProjectToWorkspace } = require('../models/project');
-const EventService = require('../services/eventService');
+const EventsFactory = require('../models/eventsFactory');
 const asyncForEach = require('../utils/asyncForEach');
 const mongo = require('../mongo');
 
@@ -13,48 +13,66 @@ const watchController = new MongoWatchController();
 module.exports = {
   Query: {
     /**
+     * Returns Events list ordered by timestamp
      *
-     * @param _obj
-     * @param projectId
-     * @param limit
-     * @param skip
-     * @return {Promise<void>}
+     * @param {ResolverObj} _obj
+     * @param {String} projectId
+     * @param {Number} limit
+     * @param {Number} skip
+     *
+     * @return {Event[]}
      */
     async events(_obj, { projectId, limit, skip }) {
-      const service = new EventService(projectId);
+      const service = new EventsFactory(projectId);
       const events = await service.find({}, limit, skip);
 
       return events;
     },
 
     /**
+     * Returns recent Events grouped by day
+     *
      * @param {ResolverObj} _obj
      * @param {String} projectId
      * @param {Number} limit
+     *
      * @return {RecentEvent[]}
      */
     async recent(_obj, { projectId, limit = 50 }) {
-      const service = new EventService(projectId);
+      const service = new EventsFactory(projectId);
       const recentEvents = await service.findRecent(limit);
 
       return recentEvents;
     },
 
     /**
-     * @param _obj
-     * @param projectId
-     * @param eventId
+     * Returns event information in the project
+     *
+     * @param {ResolverObj} _obj
+     * @param {String} projectId
+     * @param {String} eventId
+     *
      * @return {Event}
      */
     async event(_obj, { projectId, eventId }) {
-      const service = new EventService(projectId);
+      const service = new EventsFactory(projectId);
       const event = await service.findById(eventId);
 
       return event;
     },
 
+    /**
+     * Returns repetitions list of the event
+     *
+     * @param {ResolverObj} _obj
+     * @param {String} projectId
+     * @param {String} eventId
+     * @param {Number} limit
+     * @param {Number} skip
+     * @return {Event[]}
+     */
     async repetitions(_obj, { projectId, eventId, limit, skip }) {
-      const service = new EventService(projectId);
+      const service = new EventsFactory(projectId);
       const events = await service.getRepetitions(eventId, limit, skip);
 
       return events;
