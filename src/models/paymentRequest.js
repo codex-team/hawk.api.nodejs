@@ -1,20 +1,12 @@
 const crypto = require('crypto');
-const mongo = require('../mongo');
 const mongodbDriver = require('mongodb');
-const ObjectID = mongodbDriver.ObjectID;
 const User = require('../models/user');
 const Membership = require('../models/membership');
 
-/**
- * @typedef {Object} PaymentQuery
- * @property {string} language - user's language
- * @property {int} amount - payment amount
- */
-
-const NotificationURL = 'https://19479a33.ngrok.io/billing';
-const EmailCompany = 'team@hawk.so';
+const EmailCompany = process.env.BILLING_COMPANY_EMAIL;
 const OSNTaxation = 'osn';
 const TaxNone = 'none';
+const PaymentDescription = 'Deposit for Hawk.so';
 
 /**
  * PaymentRequest model
@@ -32,14 +24,13 @@ class PaymentRequest {
       OrderId: orderId,
       Language: paymentRequest.language,
       CustomerKey: userData.id,
-      Description: 'Deposit for Hawk.so',
-      NotificationURL,
+      Description: PaymentDescription,
       Receipt: {
         Email: userData.email,
         EmailCompany,
         Taxation: OSNTaxation,
         Items: [ {
-          Name: 'Make deposit',
+          Name: 'Deposit',
           Price: paymentRequest.amount,
           Quantity: 1,
           Amount: paymentRequest.amount,
@@ -51,14 +42,6 @@ class PaymentRequest {
   }
 
   /**
-   * Model's collection
-   * @return {Collection}
-   */
-  static get collection() {
-    return mongo.databases.hawk.collection('paymentRequests');
-  }
-
-  /**
    * Generate unique payment Id
    * @return {string}
    */
@@ -67,9 +50,9 @@ class PaymentRequest {
   }
 
   /**
-   * Creates new user in DB
+   * Create new payment
    * @param {String} userId - user's id
-   * @param {PaymentQuery} paymentQuery - payment query params
+   * @param {Object} paymentQuery - payment query params
    * @returns {Object} - payment object
    */
   static async create(userId, paymentQuery) {
@@ -81,29 +64,7 @@ class PaymentRequest {
       throw Error('Invalid workspaceId');
     }
 
-    // const paymentRequest = {
-    //   orderId,
-    //   workspaceId: paymentQuery.workspaceId,
-    //   userId: userData.id,
-    //   timestamp: new Date()
-    // };
-
-    // await this.collection.insertOne(paymentRequest);
     return PaymentRequest.generatePaymentObject(paymentQuery, userData, orderId);
-  }
-
-  /**
-   * Add bank payment Id to the payment order
-   * @param orderId - orderId in database
-   * @param params - params to set
-   * @return {Promise}
-   */
-  static async setParams(orderId, params) {
-    return this.collection.updateOne({ orderId }, { $set: params });
-  }
-
-  static async findByOrderId(orderId) {
-    return this.collection.findOne({ orderId });
   }
 }
 

@@ -19,6 +19,7 @@
     "nodemon": "^1.19.1"
   },
   "dependencies": {
+    "amqplib": "^0.5.5",
     "apollo-server-express": "^2.9.0",
     "argon2": "^0.22.0",
     "dotenv": "^7.0.0",

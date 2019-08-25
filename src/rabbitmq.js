@@ -1,5 +1,6 @@
 const amqplib = require('amqplib');
 
+const rabbitMQURL = process.env.AMQP_URL || 'amqp://guest:guest@localhost:5672/';
 let channel = null;
 
 /**
@@ -7,7 +8,7 @@ let channel = null;
  * @return {Promise<void>}
  */
 async function setupConnections() {
-  return amqplib.connect('amqp://localhost')
+  return amqplib.connect(rabbitMQURL)
     .then(conn => conn.createChannel())
     .then(ch => {
       channel = ch;

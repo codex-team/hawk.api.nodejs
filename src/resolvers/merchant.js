@@ -8,7 +8,7 @@ const rabbitmq = require('../rabbitmq');
 module.exports = {
   Query: {
     /**
-     * API Query method for getting of payment link
+     * API Query method for getting payment link
      * @return {string}
      */
     async paymentLink(_obj, { paymentQuery }, { user }) {
@@ -21,17 +21,15 @@ module.exports = {
         throw Error(`Merchant API error: ${result.Message} ${result.Details}`);
       }
 
-      await rabbitmq.publish('merchant', 'merchant/linkRequest', JSON.stringify({
+      await rabbitmq.publish('merchant', 'merchant/initialized', JSON.stringify({
         orderId: result.OrderId,
         paymentId: result.PaymentId,
         paymentURL: result.PaymentURL,
         workspaceId: paymentQuery.workspaceId,
         userId: user.id,
-        timestamp: new Date()
+        timestamp: new Date(),
+        status: result.Status
       }));
-
-      // await PaymentRequest.setParams(paymentRequest.OrderId, { paymentId: result.PaymentId });
-
       return result;
     }
   }
