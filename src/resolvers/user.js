@@ -123,6 +123,35 @@ module.exports = {
       }
 
       return true;
+    },
+
+    /**
+     * Update profile user data
+     *
+     * @param {ResolverObj} _obj
+     *
+     * @param {string} name
+     * @param {string} email
+     * @param {User} user
+     */
+    async updateProfile(_obj, { name, email }, { user }) {
+      try {
+        await User.updateProfile(user.id, name, email);
+      } catch (err) {
+        throw new ApolloError('Something went wrong');
+      }
+
+      return true;
     }
+
+    /*
+     * async updateImage(_obj, { image }) {
+     *
+     * },
+     *
+     * async changePassword(_obj, { oldPassword, newPassword }) {
+     *
+     * }
+     */
   }
 };
