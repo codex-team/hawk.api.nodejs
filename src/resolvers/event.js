@@ -13,13 +13,16 @@ const watchController = new MongoWatchController();
 module.exports = {
   Query: {
     /**
+     *
      * @param _obj
      * @param projectId
-     * @return {Event[]}
+     * @param limit
+     * @param skip
+     * @return {Promise<void>}
      */
-    async events(_obj, { projectId }) {
+    async events(_obj, { projectId, limit, skip }) {
       const service = new EventService(projectId);
-      const events = await service.find({}, 10);
+      const events = await service.find({}, limit, skip);
 
       return events;
     },
@@ -30,11 +33,31 @@ module.exports = {
      * @param {Number} limit
      * @return {RecentEvent[]}
      */
-    async recent(_obj, { projectId, limit }) {
+    async recent(_obj, { projectId, limit = 50 }) {
       const service = new EventService(projectId);
-      const recentEvents = await service.findRecent(10);
+      const recentEvents = await service.findRecent(limit);
 
       return recentEvents;
+    },
+
+    /**
+     * @param _obj
+     * @param projectId
+     * @param eventId
+     * @return {Event}
+     */
+    async event(_obj, { projectId, eventId }) {
+      const service = new EventService(projectId);
+      const event = await service.findById(eventId);
+
+      return event;
+    },
+
+    async repetitions(_obj, { projectId, eventId, limit, skip }) {
+      const service = new EventService(projectId);
+      const events = await service.getRepetitions(eventId, limit, skip);
+
+      return events;
     }
   },
   Subscription: {

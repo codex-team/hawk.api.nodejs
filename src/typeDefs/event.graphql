@@ -143,9 +143,17 @@ extend type Query {
   """
   Returns projects events
   """
-  events("project id" projectId: ID): [Event]
+  events("project id" projectId: ID, "limit" limit: Int, "skip" skip: Int): [Event]!
 
   """
   """
-  recent("project id" projectId: ID, "limit" limit: Int): [RecentEvent]
+  recent("project id" projectId: ID, "limit" limit: Int): [RecentEvent]!
+
+  """
+  """
+  event("project id" projectId: ID, "event id" eventId: ID): Event!
+
+  """
+  """
+  repetitions("project id" projectId: ID, "event id" eventId: ID, "limit" limit: Int, "skip" skip: Int): [Event]!
 }

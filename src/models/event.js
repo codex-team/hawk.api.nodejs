@@ -25,6 +25,8 @@ const { ObjectID } = require('mongodb');
  * @typedef {Object} EventSchema
  * @property {string|ObjectID} id - event ID
  * @property {string} catcherType - type of an event
+ * @property {Number} count - event repetitions count
+ * @property {String} groupHash - event's hash
  * @property {Object} payload - event data
  * @property {string} payload.title - event title
  * @property {Date} payload.timestamp - event datetime
@@ -52,6 +54,8 @@ class Event {
   constructor(eventId = '') {
     this._id = eventId;
     this.catcherType = '';
+    this.count = 0;
+    this.groupHash = '';
     this.payload = {};
   }
 

@@ -1,6 +1,7 @@
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
+const _ = require('lodash');
 
 /**
  * @typedef {Object} RecentEventSchema
@@ -120,6 +121,33 @@ class EventService {
         date: data.currentDate
       };
     }));
+  }
+
+  /**
+   * @param eventId
+   * @param limit
+   * @param skip
+   * @return {Promise<void>}
+   */
+  async getRepetitions(eventId, limit = 10, skip = 0) {
+    const eventOriginal = await this.findById(eventId);
+    const cursor = this.getCollection(this.TYPES.REPETITIONS)
+      .find({
+        groupHash: eventOriginal.groupHash
+      })
+      .sort([ ['_id', -1] ])
+      .limit(limit)
+      .skip(skip);
+
+    const result = await cursor.toArray();
+
+    return result.map(data => {
+      delete data._id;
+      delete data.groupHash;
+
+      eventOriginal.payload = _.merge({}, eventOriginal.payload, data);
+      return Event.fillModel(eventOriginal);
+    });
   }
 }
 
