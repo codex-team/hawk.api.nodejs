@@ -95,6 +95,30 @@ class User {
   }
 
   /**
+   * Creates new user id DB by Google provider
+   * @param {string} id - Google profile id
+   * @param {string} name - Google profile name
+   * @param {string} picture - Google profile avatar url
+   * @return {Promise<User>}
+   */
+  static async createByGoogle({ id, name, picture }) {
+    if (!id || !name || !picture) {
+      throw new Error('Required parameters are not provided');
+    }
+
+    const userData = { googleId: id, name, picture };
+
+    const userId = (await this.collection.insertOne(userData)).insertedId;
+
+    const user = new User({
+      id: userId,
+      ...userData
+    });
+
+    return user;
+  }
+
+  /**
    * Generate 16bytes password
    *
    * @returns {Promise<String>}
