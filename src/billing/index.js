@@ -2,6 +2,9 @@ const PaymentRequest = require('../models/paymentRequest');
 const TinkoffAPI = require('tinkoff-api');
 const rabbitmq = require('../rabbitmq');
 
+const PAYMENT_AUTHORIZED = 'AUTHORIZED';
+const PAYMENT_CONFIRMED = 'CONFIRMED';
+
 /**
  * Billing class
  */
@@ -16,13 +19,13 @@ class Billing {
       return res.send('ERROR');
     }
 
-    if (body.Status === 'AUTHORIZED') {
+    if (body.Status === PAYMENT_AUTHORIZED) {
       body.Timestamp = new Date();
       await rabbitmq.publish('merchant', 'merchant/authorized', JSON.stringify(body));
       return res.send('OK');
     }
 
-    if (body.Status === 'CONFIRMED') {
+    if (body.Status === PAYMENT_CONFIRMED) {
       return res.send('OK');
     }
   };
