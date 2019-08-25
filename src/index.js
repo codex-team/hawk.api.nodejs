@@ -1,9 +1,11 @@
 const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
 const mongo = require('./mongo');
+const rabbitmq = require('./rabbitmq');
 const jwt = require('jsonwebtoken');
 const requireAuthDirective = require('./directives/requireAuthDirective');
 const http = require('http');
+const billing = require('./billing/index');
 
 const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
@@ -39,6 +41,9 @@ class HawkAPI {
       mongoURL: process.env.MONGO_URL || 'mongodb://localhost:27017/hawk'
     };
     this.app = express();
+
+    this.app.use(express.json());
+    this.app.post('/billing', billing.notifyCallback);
 
     this.server = new ApolloServer({
       typeDefs,
@@ -78,7 +83,7 @@ class HawkAPI {
      * @todo block used refresh token
      */
 
-    const authorizationHeader = connection ? connection.context.headers.authorization : req.headers['authorization'];
+    const authorizationHeader = connection ? connection.context.headers.authorization : req.headers.authorization;
 
     if (authorizationHeader && /^Bearer [a-z0-9-_+/=]+\.[a-z0-9-_+/=]+\.[a-z0-9-_+/=]+$/i.test(authorizationHeader)) {
       const accessToken = authorizationHeader.slice(7);
@@ -118,6 +123,7 @@ class HawkAPI {
    */
   async start() {
     await mongo.setupConnections();
+    await rabbitmq.setupConnections();
 
     return new Promise((resolve, reject) => {
       this.httpServer.listen({ port: this.config.port }, e => {

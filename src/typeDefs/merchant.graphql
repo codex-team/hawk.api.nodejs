@@ -3,16 +3,6 @@ Payment link structure
 """
 type PaymentLink {
   """
-  Order id in seller's system
-  """
-  OrderId: String
-
-  """
-  Payment id in seller's system
-  """
-  PaymentId: String
-
-  """
   Total payment amount in kopecs
   """
   Amount: Int
@@ -26,156 +16,36 @@ type PaymentLink {
   If the payment is successfull
   """
   Success: Boolean
+
+  """
+  URL to the payment page
+  """
+  PaymentURL: String
 }
 
 """
-Payment request structure
+Payment query structure
 """
-input PaymentRequest {
+input PaymentQuery {
   """
-  Order id in seller's system
+  Payment page language
   """
-  OrderId: String!
+  language: String!
 
   """
   Total payment amount in kopecs
   """
-  Amount: Int!
+  amount: Int!
 
   """
-  Additional data in JSON format
+  Workspace id for which the payment will be made
   """
-  Data: JSONObject
-
-  """
-  Receipt object
-  """
-  Receipt: Receipt
-
-  """
-  Payment page language
-  """
-  Language: String
-
-  """
-  CustomerKey id in seller's system
-  """
-  CustomerKey: String
-
-  """
-  Should be Y if the payment is recurrent
-  """
-  Recurrent: String
-
-  """
-  Link is valid due date
-  """
-  RedirectDueDate: String
-
-  """
-  Callback URL for sending notification after payment
-  """
-  NotificationURL: String
-
-  """
-  URL for user redirect after successfull payment
-  """
-  SuccessURL: String
-
-  """
-  URL for user redirect after failed payment
-  """
-  FailURL: String
-
-  """
-  Payment type. Can be one-stage or two-stage
-  """
-  PayType: String
-}
-
-"""
-Receipt item structure
-"""
-input ReceiptItem {
-  """
-  Product name
-  """
-  Name: String!
-
-  """
-  Product price in kopecs
-  """
-  Price: Int!
-
-  """
-  Product quantity
-  """
-  Quantity: Int!
-
-  """
-  Total amount in kopecs
-  """
-  Amount: Int!
-
-  """
-  Payment method. Can be full_prepayment, prepayment, advance, full_payment, partial_payment, credit, credit_payment
-  """
-  PaymentMethod: String
-
-  """
-  Payment object type. Default value is commodity
-  """
-  PaymentObject: String
-
-  """
-  Taxation type. Can be none, vat0, vat0, vat20, vat110, vat120
-  """
-  Tax: String!
-
-  """
-  Ean13 code
-  """
-  Ean13: String
-
-  """
-  Shop code
-  """
-  ShopCode: String
-}
-
-"""
-Receipt structure
-"""
-input Receipt {
-  """
-  Email of the receipt receiver
-  """
-  Email: String!
-
-  """
-  Client phone number
-  """
-  Phone: String!
-
-  """
-  Email of the receipt sender
-  """
-  EmailCompany: String!
-
-  """
-  Taxation system. Can be osn, usn_income, usn_income_outcome, envdm, esn, patent
-  """
-  Taxation: String!
-
-  """
-  Items in receipt
-  """
-  Items: [ReceiptItem]!
+  workspaceId: String!
 }
 
 extend type Query {
   """
   Returns JSON data with payment link
   """
-  paymentLink("Payment Request" paymentRequest: PaymentRequest!): PaymentLink @requireAuth
+  paymentLink("Payment query" paymentQuery: PaymentQuery!): PaymentLink @requireAuth
 }
