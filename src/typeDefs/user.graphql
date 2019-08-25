@@ -73,4 +73,9 @@ extend type Mutation {
   Reset user's password
   """
   resetPassword("User email" email: String!): Boolean!
+
+  """
+  Update user's profile
+  """
+  updateProfile("User name" name: String!, "User email" email: String!): Boolean!
 }
