@@ -3,11 +3,18 @@ const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
 
 /**
+ * @typedef {Object} RecentEventSchema
+ * @property {Event} event - event model
+ * @property {Number} count - recent error occurred count
+ * @property {String} data - error occurred date (string)
+ */
+
+/**
  * EventService
  */
 class EventService {
   /**
-   * @return {{EVENTS: string, DAILYEVENTS: string, REPETITIONS: string}}
+   * @return {{EVENTS: string, DAILY_EVENTS: string, REPETITIONS: string}}
    * @constructor
    */
   get TYPES() {
@@ -70,12 +77,49 @@ class EventService {
    * @returns {Event} - event
    */
   async findById(id) {
-    const searchResult = this.getCollection(this.TYPES.EVENTS)
+    const searchResult = await this.getCollection(this.TYPES.EVENTS)
       .findOne({
         _id: new ObjectID(id)
       });
 
     return Event.fillModel(searchResult);
+  }
+  /**
+   * Find event by any query
+   *
+   * @param {object} query - any custom mongo query
+   * @return {Event}
+   */
+  async findOneByQuery(query) {
+    const searchResult = await this.getCollection(this.TYPES.EVENTS)
+      .findOne(query);
+
+    return Event.fillModel(searchResult);
+  }
+
+  /**
+   * @param limit
+   * @return {RecentEventSchema[]}
+   */
+  async findRecent(limit) {
+    const cursor = this.getCollection(this.TYPES.DAILY_EVENTS)
+      .find({})
+      .sort([ ['count', -1] ])
+      .limit(limit);
+
+    const result = await cursor.toArray();
+
+    return Promise.all(result.map(async (data) => {
+      const event = await this.findOneByQuery({
+        groupHash: data.groupHash
+      });
+
+      return {
+        event: event,
+        count: data.count,
+        date: data.currentDate
+      };
+    }));
   }
 }
 

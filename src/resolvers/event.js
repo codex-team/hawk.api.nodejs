@@ -12,11 +12,29 @@ const watchController = new MongoWatchController();
  */
 module.exports = {
   Query: {
+    /**
+     * @param _obj
+     * @param projectId
+     * @return {Event[]}
+     */
     async events(_obj, { projectId }) {
       const service = new EventService(projectId);
       const events = await service.find({}, 10);
 
       return events;
+    },
+
+    /**
+     * @param {ResolverObj} _obj
+     * @param {String} projectId
+     * @param {Number} limit
+     * @return {RecentEvent[]}
+     */
+    async recent(_obj, { projectId, limit }) {
+      const service = new EventService(projectId);
+      const recentEvents = await service.findRecent(10);
+
+      return recentEvents;
     }
   },
   Subscription: {
