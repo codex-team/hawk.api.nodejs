@@ -117,7 +117,7 @@ class EventsFactory {
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS)
       .find({})
-      .sort([ ['count', -1] ])
+      .sort({ _id: -1, count: -1 })
       .limit(limit);
 
     const result = await cursor.toArray();
@@ -179,6 +179,8 @@ class EventsFactory {
     if (limit > 100) {
       throw Error('Invalid limit value');
     }
+
+    return limit;
   }
 
   /**
@@ -192,6 +194,8 @@ class EventsFactory {
     if (skip > 100) {
       throw Error('Invalid skip value');
     }
+
+    return skip;
   }
 }
 
