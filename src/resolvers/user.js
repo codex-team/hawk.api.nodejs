@@ -1,4 +1,4 @@
-const { AuthenticationError, ApolloError } = require('apollo-server-express');
+const { AuthenticationError, ApolloError, UserInputError } = require('apollo-server-express');
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 const { errorCodes } = require('../errors');
@@ -135,6 +135,18 @@ module.exports = {
      * @param {User} user
      */
     async updateProfile(_obj, { name, email }, { user }) {
+      const re = /\S+@\S+\.\S+/;
+
+      if (!re.test(String(email).toLowerCase())) {
+        throw new UserInputError('Wrong email format');
+      }
+
+      const userWithEmail = (await User.findByEmail(email));
+
+      if (userWithEmail && userWithEmail.id.toString() !== user.id) {
+        throw new UserInputError('This email is taken');
+      }
+
       try {
         await User.updateProfile(user.id, name, email);
       } catch (err) {

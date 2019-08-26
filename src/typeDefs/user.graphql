@@ -77,5 +77,11 @@ extend type Mutation {
   """
   Update user's profile
   """
-  updateProfile("User name" name: String!, "User email" email: String!): Boolean!
+  updateProfile(
+    "User name"
+    name: String!
+
+    "User email"
+    email: String!
+  ): Boolean!
 }
