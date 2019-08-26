@@ -177,6 +177,8 @@ class EventsFactory {
     if (limit > 100) {
       throw Error('Invalid limit value');
     }
+
+    return limit;
   }
 
   /**
@@ -190,6 +192,8 @@ class EventsFactory {
     if (skip > 100) {
       throw Error('Invalid skip value');
     }
+
+    return skip;
   }
 }
 
