@@ -24,7 +24,7 @@ type User {
   """
   User's email
   """
-  email: String!
+  email: String
 
   """
   User's name
@@ -32,9 +32,9 @@ type User {
   name: String
 
   """
-  User's picture
+  User's image
   """
-  picture: String
+  image: String
 }
 
 extend type Query {
@@ -73,4 +73,30 @@ extend type Mutation {
   Reset user's password
   """
   resetPassword("User email" email: String!): Boolean!
+
+  """
+  Update user's profile
+  """
+  updateProfile(
+    "User name"
+    name: String!
+
+    "User email"
+    email: String!
+  ): Boolean! @requireAuth
+
+  """
+  Change user password
+  """
+  changePassword(
+    """
+    Current user password
+    """
+    oldPassword: String!
+
+    """
+    New user password
+    """
+    newPassword: String!
+  ): Boolean! @requireAuth
 }
