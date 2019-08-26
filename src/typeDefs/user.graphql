@@ -83,7 +83,7 @@ extend type Mutation {
 
     "User email"
     email: String!
-  ): Boolean!
+  ): Boolean! @requireAuth
 
   """
   Change user password
@@ -98,5 +98,5 @@ extend type Mutation {
     New user password
     """
     newPassword: String!
-  ): Boolean!
+  ): Boolean! @requireAuth
 }
