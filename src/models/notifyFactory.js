@@ -85,7 +85,7 @@ class NotifyFactory {
    * Update Notify
    *
    * @param {Notify} notify - Notify to update
-   * @returns {Promise<Notfy|null>}
+   * @returns {Promise<Notify|null>}
    */
   async update(notify) {
     if (!notify.projectId) {

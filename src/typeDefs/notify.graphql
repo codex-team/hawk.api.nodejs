@@ -1,0 +1,151 @@
+"""
+Email notifications settings
+"""
+type EmailNotifySettings {
+  """
+  Notifications enabled?
+  """
+  enabled: Boolean!
+
+  """
+  Email
+  """
+  value: String!
+}
+
+"""
+Telegram notifications settings
+"""
+type TelegramNotifySettings {
+  """
+  Notifications enabled?
+  """
+  enabled: Boolean!
+
+  """
+  Telegram CodeX Bot hook
+  """
+  value: String!
+}
+
+"""
+Slack notifications settings
+"""
+type SlackNotifySettings {
+  """
+  Notifications enabled?
+  """
+  enabled: Boolean!
+
+  """
+  Slack webhook
+  """
+  value: String!
+}
+
+"""
+Notify settings
+"""
+type NotifySettings {
+  """
+  Email notifications settings
+  """
+  email: EmailNotifySettings!
+
+  """
+  Telegram notofications settings
+  """
+  tg: TelegramNotifySettings!
+
+
+  """
+  Slack notifications settings
+  """
+  slack: SlackNotifySettings!
+}
+
+"""
+Project notify settings
+"""
+type Notify {
+  """
+  Project ID
+  """
+  projectId: ID!
+
+  """
+  Notify settings
+  """
+  settings: NotifySettings!
+}
+
+"""
+Input type for email
+"""
+input EmailInput {
+  """
+  Notifications enabled?
+  """
+  enabled: Boolean
+
+  """
+  Email
+  """
+  value: String
+}
+
+"""
+Input type for Telegram
+"""
+input TelegramInput {
+  """
+  Notifications enabled?
+  """
+  enabled: Boolean
+
+  """
+  Telegram CodeX Bot hook
+  """
+  value: String
+}
+
+"""
+Input type for Slack
+"""
+input SlackInput {
+  """
+  Notifications enabled?
+  """
+  enabled: Boolean
+
+  """
+  Slack webhook
+  """
+  value: String
+}
+
+input NotifyInput {
+  """
+  Email notifications settings
+  """
+  email: EmailInput
+
+  """
+  Telegram notofications settings
+  """
+  tg: TelegramInput
+
+
+  """
+  Slack notifications settings
+  """
+  slack: SlackInput
+}
+
+extend type Query {
+  notifications("Project ID(s)" ids: [ID] = [], "limit" limit: Int = 10,  "skip" skip: Int = 0): [Notify!] @requireAuth
+}
+
+extend type Mutation {
+  updateSettings("Project ID" projectId: ID!, "Notify settings" settings: NotifyInput!): Boolean @requireAuth
+}
