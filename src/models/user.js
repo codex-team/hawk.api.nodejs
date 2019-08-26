@@ -155,10 +155,18 @@ class User {
    * Update user profile data
    *
    * @param {string|ObjectID} userId - user ID
-   * @param {UserSchema} user – user object
+   * @param {Object} user – user object
    * @returns {Promise<void>}
    */
   static async updateProfile(userId, user) {
+    const userProps = { name: true, email: true, image: true };
+
+    for (const prop in user) {
+      if (!userProps[prop]) {
+        throw new Error(`User object has invalid property '${prop}'`);
+      }
+    }
+
     try {
       await this.update(
         { _id: new ObjectID(userId) },
