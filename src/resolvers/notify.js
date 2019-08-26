@@ -10,22 +10,16 @@ module.exports = {
     /**
      * Get notifications settings
      * @param {ResolverObj} _obj
-     * @param {String[]} ids - array of project ids to get
-     * @param {Number} limit - limit
-     * @param {Number} skip - skip
+     * @param {String} id - array of project ids to get
      * @param user - current authorized user {@see ../index.js}
-     * @returns {Promise<Notify[]>}
+     * @returns {Promise<Notify|null>}
      */
-    async notifications(_obj, { ids, limit, skip }, { user }) {
-      const factory = new NotifyFactory(user.id);
+    async notificationSettings(_obj, { projectId }, { user }) {
+      // todo: check if project exists & user belongs to the project
 
-      ids = ids.map(id => new ObjectID(id));
+      const factory = new NotifyFactory(projectId);
 
-      if (ids.length) {
-        return factory.find({ projectId: { $in: ids } }, limit, skip);
-      }
-
-      return factory.find({}, limit, skip);
+      return factory.findByUserId(user.id);
     }
   },
   Mutation: {
@@ -37,9 +31,11 @@ module.exports = {
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @returns {Promise<Notify|null>}
      */
-    async updateSettings(_obj, { projectId, settings }, { user }) {
-      const factory = new NotifyFactory(user.id);
-      const notify = new Notify({ projectId: new ObjectID(projectId), settings });
+    async updateNotificationSettings(_obj, { projectId, settings }, { user }) {
+      // todo: check if project exists & user belongs to the project
+
+      const factory = new NotifyFactory(projectId);
+      const notify = new Notify({ userId: new ObjectID(user.id), settings });
 
       return factory.update(notify);
     }

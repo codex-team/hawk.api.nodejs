@@ -2,8 +2,6 @@ const mongo = require('../mongo');
 const Notify = require('./notify');
 const { ObjectID } = require('mongodb');
 
-// const _ = require('lodash');
-
 /**
  * NotifyFactory
  *
@@ -12,15 +10,15 @@ const { ObjectID } = require('mongodb');
 class NotifyFactory {
   /**
    * Creates NotifyFactory instance
-   * @param {string|ObjectID} userId
+   * @param {string|ObjectID} projectId
    */
-  constructor(userId) {
-    if (!userId) {
-      throw new Error('Can not construct Notify model, because userId is not provided');
+  constructor(projectId) {
+    if (!projectId) {
+      throw new Error('Can not construct Notify model, because projectId is not provided');
     }
-    this.userId = userId;
+    this.projectId = projectId;
 
-    this.collection = mongo.databases.hawk.collection('notifies:' + this.userId);
+    this.collection = mongo.databases.hawk.collection('notifies:' + this.projectId);
   }
 
   /**
@@ -48,24 +46,24 @@ class NotifyFactory {
   }
 
   /**
-   * Find Notify by project ID
+   * Find Notify by user ID
    *
-   * @param projectId
-   * @returns {Promise<Notify>}
+   * @param userId
+   * @returns {Promise<Notify|null>}
    */
-  async findByProjectId(projectId) {
-    const searchResult = await this.collection.findOne({ projectId: new ObjectID(projectId) });
+  async findByUserId(userId) {
+    const searchResult = await this.collection.findOne({ projectId: new ObjectID(userId) });
 
-    return new Notify(searchResult);
+    return searchResult ? new Notify(searchResult) : null;
   }
 
   /**
    * Converts nested objects to one objects with properties as paths to nested props
    * Example:
    *
-   * objectToPath({projectId: ObjectID("5d63c84aa17ed33e62ed2edb"), settings: {email: {enabled: true}}})
+   * objectToPath({userId: ObjectID("5d63c84aa17ed33e62ed2edb"), settings: {email: {enabled: true}}})
    *
-   * // { projectId: 5d63c84aa17ed33e62ed2edb, 'settings.email.enabled': true }
+   * // { userId: 5d63c84aa17ed33e62ed2edb, 'settings.email.enabled': true }
    * @param obj - Object
    * @param [curr] - current property
    * @param [dict] - result
@@ -85,16 +83,16 @@ class NotifyFactory {
    * Update Notify
    *
    * @param {Notify} notify - Notify to update
-   * @returns {Promise<Notify|null>}
+   * @returns {Promise<Boolean|null>}
    */
   async update(notify) {
-    if (!notify.projectId) {
-      throw new Error('Can not update Notify, because projectId is not provided');
+    if (!notify.userId) {
+      throw new Error('Can not update Notify, because userId is not provided');
     }
 
-    const updated = await this.collection.updateOne({ projectId: notify.projectId }, { $set: NotifyFactory.propsToPaths(notify) });
+    const updated = await this.collection.updateOne({ userId: notify.userId }, { $set: NotifyFactory.propsToPaths(notify) }, { upsert: true });
 
-    if (updated.matchedCount === 0) {
+    if (updated.matchedCount === 0 && updated.upsertedCount === 0) {
       return null;
     }
 
@@ -104,17 +102,17 @@ class NotifyFactory {
   /**
    * Create Notify
    *
-   * @param {ObjectID} projectId - Project ID
+   * @param {ObjectID} userId - User ID
    * @param {NotifySettings} settings - Notify settings
    * @returns {Promise<Notify>}
    */
-  async create(projectId, settings = {}) {
-    if (!projectId) {
-      throw new Error('Can not create Notify, because projectId is not provided');
+  async create(userId, settings = {}) {
+    if (!userId) {
+      throw new Error('Can not create Notify, because userId is not provided');
     }
-    const inserted = await this.collection.insertOne({ projectId, settings });
+    const inserted = await this.collection.insertOne({ userId, settings });
 
-    return new Notify({ _id: inserted.insertedId, projectId, settings });
+    return new Notify({ _id: inserted.insertedId, userId, settings });
   }
 
   /**

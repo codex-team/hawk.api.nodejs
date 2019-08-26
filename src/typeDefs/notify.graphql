@@ -69,11 +69,6 @@ Project notify settings
 """
 type Notify {
   """
-  Project ID
-  """
-  projectId: ID!
-
-  """
   Notify settings
   """
   settings: NotifySettings!
@@ -143,9 +138,9 @@ input NotifyInput {
 }
 
 extend type Query {
-  notifications("Project ID(s)" ids: [ID] = [], "limit" limit: Int = 10,  "skip" skip: Int = 0): [Notify!] @requireAuth
+  notificationSettings("Project ID" projectId: ID!): Notify @requireAuth
 }
 
 extend type Mutation {
-  updateSettings("Project ID" projectId: ID!, "Notify settings" settings: NotifyInput!): Boolean @requireAuth
+  updateNotificationSettings("Project ID" projectId: ID!, "Notify settings" settings: NotifyInput!): Boolean @requireAuth
 }

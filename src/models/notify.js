@@ -14,7 +14,7 @@
 /**
  * @typedef {Object} NotifySchema
  * @property {ObjectID} id - notify ID
- * @property {ObjectID} projectId - project ID
+ * @property {ObjectID} userId - user ID
  * @property {NotifySettings} settings - notify settings
  */
 
