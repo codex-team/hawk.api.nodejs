@@ -5,7 +5,7 @@ const mongo = require('../mongo');
  * @property {string} id - workspace's id
  * @property {string} name - workspace's name
  * @property {string} [description] - workspace's description
- * @property {string} [image] - workspace's picture URL
+ * @property {string} [image] - workspace's image URL
  */
 
 /**
