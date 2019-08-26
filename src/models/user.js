@@ -74,15 +74,15 @@ class User {
    * Creates new user id DB by GitHub provider
    * @param {string} id - GitHub profile id
    * @param {string} name - GitHub profile name
-   * @param {string} picture - GitHub profile avatar url
+   * @param {string} image - GitHub profile avatar url
    * @return {Promise<User>}
    */
-  static async createByGithub({ id, name, picture }) {
-    if (!id || !name || !picture) {
+  static async createByGithub({ id, name, image }) {
+    if (!id || !name || !image) {
       throw new Error('Required parameters are not provided');
     }
 
-    const userData = { githubId: id, name, picture };
+    const userData = { githubId: id, name, image };
 
     const userId = (await this.collection.insertOne(userData)).insertedId;
 

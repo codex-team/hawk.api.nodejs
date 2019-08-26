@@ -18,7 +18,7 @@ type Workspace {
   description: String
 
   """
-  Workspace logo picture
+  Workspace logo image
   """
   image: String
 
