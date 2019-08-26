@@ -160,12 +160,12 @@ class User {
    * @returns {Promise<void>}
    */
   static async updateProfile(userId, name, email) {
-    const status = await this.update(
-      { _id: new ObjectID(userId) },
-      { name, email }
-    );
-
-    if (status !== 1) {
+    try {
+      await this.update(
+        { _id: new ObjectID(userId) },
+        { name, email }
+      );
+    } catch (e) {
       throw new Error('Can\'t update profile');
     }
   }
