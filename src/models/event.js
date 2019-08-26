@@ -70,7 +70,7 @@ class Event {
    */
   fillModel(schema) {
     for (const prop in schema) {
-      if (!schema.hasOwnProperty(prop)) {
+      if (!Object.prototype.hasOwnProperty.call(schema, prop)) {
         continue;
       }
       this[prop] = schema[prop];

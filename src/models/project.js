@@ -14,20 +14,10 @@ const { sign } = require('jsonwebtoken');
  */
 
 /**
- * @typedef {Object} NotifyProvider
- * @property {boolean} enabled - is notifications enabled
- * @property {string} value - hook or email
- */
-
-/**
  * @typedef {Object} ProjectToWorkspaceSchema
  * @property {string|ObjectID} id - ProjectWorkspace ID
  * @property {string|ObjectID} projectId - project ID
  * @property {string} [projectUri] - project unique URI
- * @property {Object} [notifies] - notification settings
- * @property {NotifyProvider} [notifies.email]
- * @property {NotifyProvider} [notifies.tg]
- * @property {NotifyProvider} [notifies.slack]
  */
 
 /**

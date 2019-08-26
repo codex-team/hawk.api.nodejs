@@ -15,6 +15,8 @@
  * @typedef {Object} NotifySchema
  * @property {ObjectID} id - notify ID
  * @property {ObjectID} userId - user ID
+ * @property {{ALL: number, ONLY_NEW: number, INCLUDING: number}} actionType - action type
+ * @property {string} words - filter words when action type is INCLUDING
  * @property {NotifySettings} settings - notify settings
  */
 
@@ -48,7 +50,7 @@ class Notify {
    */
   fillModel(schema) {
     for (const prop in schema) {
-      if (!schema.hasOwnProperty(prop)) {
+      if (!Object.prototype.hasOwnProperty.call(schema, prop)) {
         continue;
       }
       this[prop] = schema[prop];
