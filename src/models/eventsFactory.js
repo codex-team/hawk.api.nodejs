@@ -92,6 +92,7 @@ class EventsFactory {
 
     return new Event(searchResult);
   }
+
   /**
    * Find an event by any custom query
    *
@@ -116,7 +117,7 @@ class EventsFactory {
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS)
       .find({})
-      .sort([ ['_id', -1], ['count', -1] ])
+      .sort({ _id: -1, count: -1 })
       .limit(limit);
 
     const result = await cursor.toArray();
@@ -166,6 +167,7 @@ class EventsFactory {
       return new Event(eventOriginal);
     });
   }
+
   /**
    * Validates limit value
    * @param limit
