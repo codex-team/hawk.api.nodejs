@@ -129,10 +129,10 @@ module.exports = {
      * Update profile user data
      *
      * @param {ResolverObj} _obj
-     *
      * @param {string} name
      * @param {string} email
      * @param {User} user
+     * @returns {Promise<Boolean>}
      */
     async updateProfile(_obj, { name, email }, { user }) {
       const re = /\S+@\S+\.\S+/;
@@ -154,16 +154,32 @@ module.exports = {
       }
 
       return true;
-    }
+    },
 
-    /*
-     * async updateImage(_obj, { image }) {
+    /**
+     * Change user password
      *
-     * },
+     * @param {ResolverObj} _obj
      *
-     * async changePassword(_obj, { oldPassword, newPassword }) {
-     *
-     * }
+     * @param {string} oldPassword
+     * @param {string} newPassword
+     * @param {User} user
+     * @returns {Promise<Boolean>}
      */
+    async changePassword(_obj, { oldPassword, newPassword }, { user }) {
+      user = await User.findById(user.id);
+
+      if (!user || !(await user.comparePassword(oldPassword))) {
+        throw new AuthenticationError('Wrong old password. Try again.');
+      }
+
+      try {
+        await User.changePassword(user.id, newPassword);
+      } catch (err) {
+        throw new ApolloError('Something went wrong');
+      }
+
+      return true;
+    }
   }
 };
