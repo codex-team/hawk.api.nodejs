@@ -148,7 +148,7 @@ module.exports = {
       }
 
       try {
-        await User.updateProfile(user.id, name, email);
+        await User.updateProfile(user.id, { name, email });
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }

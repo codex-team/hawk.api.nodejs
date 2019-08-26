@@ -155,15 +155,14 @@ class User {
    * Update user profile data
    *
    * @param {string|ObjectID} userId - user ID
-   * @param {string} name - user name
-   * @param {string} email - user email
+   * @param {UserSchema} user – user object
    * @returns {Promise<void>}
    */
-  static async updateProfile(userId, name, email) {
+  static async updateProfile(userId, user) {
     try {
       await this.update(
         { _id: new ObjectID(userId) },
-        { name, email }
+        user
       );
     } catch (e) {
       throw new Error('Can\'t update profile');
