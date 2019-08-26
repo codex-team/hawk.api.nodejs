@@ -136,7 +136,7 @@ module.exports = {
      * @return {Promise<Boolean>}
      */
     async updateProfile(_obj, { name, email }, { user }) {
-      if (!validateEmail(email)) {
+      if (email && !validateEmail(email)) {
         throw new UserInputError('Wrong email format');
       }
 
