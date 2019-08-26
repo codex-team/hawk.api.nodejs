@@ -52,7 +52,7 @@ class NotifyFactory {
    * @returns {Promise<Notify|null>}
    */
   async findByUserId(userId) {
-    const searchResult = await this.collection.findOne({ projectId: new ObjectID(userId) });
+    const searchResult = await this.collection.findOne({ userId: new ObjectID(userId) });
 
     return searchResult ? new Notify(searchResult) : null;
   }
