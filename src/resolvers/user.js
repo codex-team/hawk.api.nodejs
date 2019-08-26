@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { errorCodes } = require('../errors');
 const emailProvider = require('../email');
 const { names: emailTemplatesNames } = require('../email/templates');
+const { validateEmail } = require('../utils/validator');
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -132,17 +133,16 @@ module.exports = {
      * @param {string} name
      * @param {string} email
      * @param {User} user
-     * @returns {Promise<Boolean>}
+     * @return {Promise<Boolean>}
      */
     async updateProfile(_obj, { name, email }, { user }) {
-      const re = /\S+@\S+\.\S+/;
-
-      if (!re.test(String(email).toLowerCase())) {
+      if (!validateEmail(email)) {
         throw new UserInputError('Wrong email format');
       }
 
       const userWithEmail = (await User.findByEmail(email));
 
+      // TODO: replace with email verification
       if (userWithEmail && userWithEmail.id.toString() !== user.id) {
         throw new UserInputError('This email is taken');
       }
@@ -164,7 +164,7 @@ module.exports = {
      * @param {string} oldPassword
      * @param {string} newPassword
      * @param {User} user
-     * @returns {Promise<Boolean>}
+     * @return {Promise<Boolean>}
      */
     async changePassword(_obj, { oldPassword, newPassword }, { user }) {
       user = await User.findById(user.id);
