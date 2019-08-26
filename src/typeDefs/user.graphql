@@ -84,4 +84,19 @@ extend type Mutation {
     "User email"
     email: String!
   ): Boolean!
+
+  """
+  Change user password
+  """
+  changePassword(
+    """
+    Current user password
+    """
+    oldPassword: String!
+
+    """
+    New user password
+    """
+    newPassword: String!
+  ): Boolean!
 }
