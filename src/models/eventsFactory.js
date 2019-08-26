@@ -92,6 +92,7 @@ class EventsFactory {
 
     return new Event(searchResult);
   }
+
   /**
    * Find an event by any custom query
    *
@@ -166,6 +167,7 @@ class EventsFactory {
       return new Event(eventOriginal);
     });
   }
+
   /**
    * Validates limit value
    * @param limit
