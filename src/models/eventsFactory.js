@@ -116,7 +116,7 @@ class EventsFactory {
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS)
       .find({})
-      .sort([ ['date', -1], ['count', -1] ])
+      .sort([ ['_id', -1], ['count', -1] ])
       .limit(limit);
 
     const result = await cursor.toArray();
