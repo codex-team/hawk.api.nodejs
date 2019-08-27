@@ -47,7 +47,7 @@ type Project {
   """
   events(limit: Int! = 10, skip: Int! = 0): [Event!] @requireAuth
 
-  recentEvents("limit" limit: Int): [RecentEvent]!
+  recentEvents("limit" limit: Int): [RecentEvent]! @requireAuth
 }
 
 extend type Mutation {
