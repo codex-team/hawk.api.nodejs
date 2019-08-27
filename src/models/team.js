@@ -4,6 +4,7 @@ const { ObjectID } = require('mongodb');
  * @typedef {Object} TeamDocumentSchema
  * @property {string} id - document's id
  * @property {ObjectID} userId - team member id
+ * @property {boolean} isPending - shows if member is pending
  */
 
 /**
@@ -30,11 +31,13 @@ class Team {
   /**
    * Adds new member to the workspace team
    * @param {String} memberId - user's id to add
+   * @param pending
    * @returns {Promise<TeamDocumentSchema>} - added document
    */
-  async addMember(memberId) {
+  async addMember(memberId, pending = false) {
     const documentId = (await this.collection.insertOne({
-      userId: new ObjectID(memberId)
+      userId: new ObjectID(memberId),
+      isPending: pending
     })).insertedId;
 
     return {
@@ -44,11 +47,105 @@ class Team {
   }
 
   /**
+   * Remove member from workspace
+   *
+   * @param {string} memberId - id of member to remove
+   * @returns {Promise<{userId: *}>}
+   */
+  async removeMember(memberId) {
+    await this.collection.removeOne({
+      userId: new ObjectID(memberId)
+    });
+
+    return {
+      userId: memberId
+    };
+  }
+
+  /**
+   * Grant admin permissions
+   *
+   * @param {string} memberId - id of member to grant permissions
+   * @param {boolean} state - state of permissions
+   * @returns {Promise<{id: *, userId: *}>}
+   */
+  async grantAdmin(memberId, state = true) {
+    const documentId = (await this.collection.updateOne(
+      {
+        userId: new ObjectID(memberId)
+      },
+      {
+        $set: { isAdmin: state }
+      }
+    ));
+
+    return {
+      id: documentId,
+      userId: memberId
+    };
+  }
+
+  /**
+   * Add unregistered member to the workspace
+   *
+   * @param {string} memberEmail
+   * @returns {Promise<{userEmail: *, id: *}>}
+   */
+  async addUnregisteredMember(memberEmail) {
+    const documentId = (await this.collection.insertOne({
+      userEmail: memberEmail,
+      isPending: true
+    })).insertedId;
+
+    return {
+      id: documentId,
+      userEmail: memberEmail
+    };
+  }
+
+  /**
+   * Confirm membership of user
+   *
+   * @param {User} member - member to confirm
+   * @returns {Promise<boolean>}
+   */
+  async confirmMembership(member) {
+    const { matchedCount, modifiedCount } = await this.collection.updateOne(
+      {
+        userId: new ObjectID(member.id)
+      },
+      { $set: { isPending: false } }
+    );
+
+    if (matchedCount > 0 && modifiedCount === 0) {
+      throw new Error('User is already confirmed the invitation');
+    }
+
+    if (!matchedCount) {
+      await this.collection.updateOne(
+        {
+          userEmail: member.email
+        },
+        { $set: { isPending: false, userId: new ObjectID(member.id) }, $unset: { userEmail: 1 } }
+      );
+
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Returns all users data in the team
    * @return {Promise<User[]>}
    */
   getAllUsers() {
     return this.collection.aggregate([
+      {
+        $match: {
+          isPending: false
+        }
+      },
       {
         $lookup: {
           from: 'users',
@@ -62,12 +159,48 @@ class Team {
       },
       {
         $replaceRoot: {
-          newRoot: '$users'
+          newRoot: { $mergeObjects: ['$users', { isAdmin: '$isAdmin' } ] }
         }
       },
       {
         $addFields: {
           id: '$_id'
+        }
+      }
+    ]).toArray();
+  }
+
+  /**
+   * Returns all pending users
+   *
+   * @returns {Promise<User[]>}
+   */
+  getPendingUsers() {
+    return this.collection.aggregate([
+      {
+        $match: {
+          isPending: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'users'
+        }
+      },
+      {
+        $unwind: {
+          path: '$users',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: ['$users', { isPending: '$isPending', email: '$userEmail' } ]
+          }
         }
       }
     ]).toArray();
