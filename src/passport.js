@@ -40,7 +40,7 @@ const initializeStrategies = () => {
           user = await User.createByGithub({
             id: profile.id,
             name: profile.displayName,
-            picture: profile.photos[0].value
+            image: profile.photos[0].value
           });
 
           return cb(null, user);

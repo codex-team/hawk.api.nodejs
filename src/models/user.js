@@ -16,7 +16,7 @@ const ObjectID = mongodbDriver.ObjectID;
  * @property {string} id - user's id
  * @property {string} email - user's email
  * @property {string} password - user's password
- * @property {string} [picture] - user's picture URL
+ * @property {string} [image] - user's image URL
  * @property {string} [name] - user's name
  * @property {string} [githubId] - user's GitHub profile id
  * @property {string} [generatedPassword] - user's original password (this field appears only after registration)
@@ -35,7 +35,7 @@ class User {
     this.password = userData.password;
     this.email = userData.email;
     this.name = userData.name;
-    this.picture = userData.picture;
+    this.image = userData.image;
     this.githubId = userData.githubId;
   }
 
@@ -74,15 +74,15 @@ class User {
    * Creates new user id DB by GitHub provider
    * @param {string} id - GitHub profile id
    * @param {string} name - GitHub profile name
-   * @param {string} picture - GitHub profile avatar url
+   * @param {string} image - GitHub profile avatar url
    * @return {Promise<User>}
    */
-  static async createByGithub({ id, name, picture }) {
-    if (!id || !name || !picture) {
+  static async createByGithub({ id, name, image }) {
+    if (!id || !name || !image) {
       throw new Error('Required parameters are not provided');
     }
 
-    const userData = { githubId: id, name, picture };
+    const userData = { githubId: id, name, image };
 
     const userId = (await this.collection.insertOne(userData)).insertedId;
 
@@ -148,6 +148,32 @@ class User {
 
     if (status !== 1) {
       throw new Error("Can't change password");
+    }
+  }
+
+  /**
+   * Update user profile data
+   *
+   * @param {string|ObjectID} userId - user ID
+   * @param {Object} user – user object
+   * @returns {Promise<void>}
+   */
+  static async updateProfile(userId, user) {
+    const userProps = { name: true, email: true, image: true };
+
+    for (const prop in user) {
+      if (!userProps[prop]) {
+        throw new Error(`User object has invalid property '${prop}'`);
+      }
+    }
+
+    try {
+      await this.update(
+        { _id: new ObjectID(userId) },
+        user
+      );
+    } catch (e) {
+      throw new Error('Can\'t update profile');
     }
   }
 
