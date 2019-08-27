@@ -43,9 +43,73 @@ input PaymentQuery {
   workspaceId: String!
 }
 
+"""
+Card data input
+"""
+input CardData {
+  """
+  Card expiration date
+  """
+  expDate: String
+
+  """
+  Card Number
+  """
+  cardNumber: String
+}
+
+type CardInfo {
+  """
+  Card number (Pan)
+  """
+  pan: String
+
+  """
+  Card ID
+  """
+  cardId: String
+
+  """
+  Rebill Id for recurrent payment
+  """
+  rebillId: String
+
+  """
+  Card expiration date
+  """
+  expDate: String
+
+  """
+  Card Type
+  """
+  cardType: String
+
+  """
+  Card Number
+  """
+  cardNumber: String
+}
+
 extend type Query {
   """
   Returns JSON data with payment link
   """
   paymentLink("Payment query" paymentQuery: PaymentQuery!): PaymentLink @requireAuth
+
+  """
+  Get attached cards
+  """
+  getCardList: [CardInfo!] @requireAuth
+}
+
+extend type Mutation {
+  """
+  Add card
+  """
+  addCard(cardData: CardData!): Boolean! @requireAuth
+
+  """
+  Remove card
+  """
+  removeCard(cardData: CardData!): Boolean! @requireAuth
 }
