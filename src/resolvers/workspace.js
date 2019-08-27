@@ -99,13 +99,14 @@ module.exports = {
      * Update workspace settings
      *
      * @param {ResolverObj} _obj
-     * @param {Workspace.id} workspaceId - id of the updated workspace
-     * @param {Workspace.name} name - workspace name
-     * @param {Workspace.description} description - workspace description
+     * @param {string} workspaceId - id of the updated workspace
+     * @param {string} name - workspace name
+     * @param {string} description - workspace description
      * @param {Context.user} user - current authorized user
      * @returns {Promise<Boolean>}
      */
     async updateWorkspace(_obj, { id, name, description }, { user }) {
+      // @makeAnIssue Create directives for arguments validation
       if (!Validator.string(name)) throw new UserInputError('Invalid name length');
       if (!Validator.string(description, 0)) throw new UserInputError('Invalid description length');
 

@@ -1,4 +1,3 @@
-const mongo = require('../mongo');
 const mongodbDriver = require('mongodb');
 const ObjectID = mongodbDriver.ObjectID;
 
