@@ -111,5 +111,5 @@ extend type Mutation {
   """
   Remove card
   """
-  removeCard(cardData: CardData!): Boolean! @requireAuth
+  removeCard(cardNumber: String!): Boolean! @requireAuth
 }

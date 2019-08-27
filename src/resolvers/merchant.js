@@ -1,4 +1,5 @@
 const PaymentRequest = require('../models/paymentRequest');
+const UserCard = require('../models/userCard');
 const TinkoffAPI = require('tinkoff-api');
 const rabbitmq = require('../rabbitmq');
 
@@ -31,6 +32,26 @@ module.exports = {
         status: result.Status
       }));
       return result;
+    },
+    async getCardList(_obj, { paymentQuery }, { user }) {
+      return UserCard.findByUserId(user.id);
+    }
+  },
+  Mutation: {
+    async addCard(_obj, { cardData }, { user }) {
+      const card = await UserCard.findOne({ cardNumber: cardData.cardNumber });
+      if (card) {
+        return false;
+      } else {
+        UserCard.create({
+          userId: user.id,
+          ...cardData
+        });
+        return true;
+      }
+    },
+    async removeCard(_obj, { cardNumber }, { user }) {
+      return (await UserCard.remove({ cardNumber, userId: user.id })).deletedCount === 1;
     }
   }
 };
