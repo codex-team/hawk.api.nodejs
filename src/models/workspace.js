@@ -1,4 +1,8 @@
 const mongo = require('../mongo');
+const mongodbDriver = require('mongodb');
+const ObjectID = mongodbDriver.ObjectID;
+const Model = require('./model');
+const objectHasOnlyProps = require('../utils/objectHasOnlyProps');
 
 /**
  * @typedef {Object} WorkspaceSchema
@@ -11,12 +15,13 @@ const mongo = require('../mongo');
 /**
  * Workspace model
  */
-class Workspace {
+class Workspace extends Model {
   /**
    * Creates Workspace instance
    * @param {WorkspaceSchema} workspaceData - workspace's data
    */
   constructor(workspaceData) {
+    super();
     this.id = workspaceData.id;
     this.name = workspaceData.name;
     this.image = workspaceData.image;
@@ -43,6 +48,28 @@ class Workspace {
       id: workspaceId,
       ...workspaceData
     });
+  }
+
+  /**
+   * Update workspace data
+   *
+   * @param {string|ObjectID} workspaceId - workspace ID
+   * @param {Workspace} workspace – workspace data
+   * @returns {Promise<void>}
+   */
+  static async updateWorkspace(workspaceId, workspace) {
+    if (!await objectHasOnlyProps(workspace, { name: true, description: true, image: true })) {
+      throw new Error('User object has invalid properties\'');
+    }
+
+    try {
+      await this.update(
+        { _id: new ObjectID(workspaceId) },
+        workspace
+      );
+    } catch (e) {
+      throw new Error('Can\'t update workspace');
+    }
   }
 }
 

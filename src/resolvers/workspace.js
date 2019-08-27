@@ -1,9 +1,10 @@
-const { ApolloError } = require('apollo-server-express');
+const { ApolloError, UserInputError } = require('apollo-server-express');
 const Workspace = require('../models/workspace');
 const Team = require('../models/team');
 const Membership = require('../models/membership');
 const User = require('../models/user');
 const { ProjectToWorkspace } = require('../models/project');
+const Validator = require('../utils/validator');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
@@ -90,6 +91,35 @@ module.exports = {
       // @todo make via transactions
       await new Membership(invitedUser.id).addWorkspace(workspaceId);
       await new Team(workspaceId).addMember(invitedUser.id);
+
+      return true;
+    },
+
+    /**
+     * Update workspace settings
+     *
+     * @param {ResolverObj} _obj
+     * @param {Workspace.id} workspaceId - id of the updated workspace
+     * @param {Workspace.name} name - workspace name
+     * @param {Workspace.description} description - workspace description
+     * @param {Context.user} user - current authorized user
+     * @returns {Promise<Boolean>}
+     */
+    async updateWorkspace(_obj, { id, name, description }, { user }) {
+      if (!Validator.string(name)) throw new UserInputError('Invalid name length');
+      if (!Validator.string(description, 0)) throw new UserInputError('Invalid description length');
+
+      const [ workspace ] = await new Membership(user.id).getWorkspaces([ id ]);
+
+      if (!workspace) {
+        throw new ApolloError('There is no workspace with that id');
+      }
+
+      try {
+        await Workspace.updateWorkspace(workspace.id, { name, description });
+      } catch (err) {
+        throw new ApolloError('Something went wrong');
+      }
 
       return true;
     }
