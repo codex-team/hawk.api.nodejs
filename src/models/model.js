@@ -37,7 +37,7 @@ class Model {
 
   /**
    * Finds record by its id
-   * @param {BaseModel.id} id - record's id
+   * @param {String} id - record's id
    * @return {Promise<BaseModel>}
    */
   static async findById(id) {
