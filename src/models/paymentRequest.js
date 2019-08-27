@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const mongodbDriver = require('mongodb');
 const User = require('../models/user');
 const Membership = require('../models/membership');
 

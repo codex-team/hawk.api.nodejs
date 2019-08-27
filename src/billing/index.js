@@ -1,4 +1,3 @@
-const PaymentRequest = require('../models/paymentRequest');
 const TinkoffAPI = require('tinkoff-api');
 const rabbitmq = require('../rabbitmq');
 
