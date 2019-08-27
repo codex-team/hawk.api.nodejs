@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const mongo = require('../mongo');
 const mongodbDriver = require('mongodb');
 const ObjectID = mongodbDriver.ObjectID;
+const Model = require('./model');
+const objectHasOnlyProps = require('../utils/objectHasOnlyProps');
 
 /**
  * @typedef {Object} TokensPair
@@ -25,12 +27,13 @@ const ObjectID = mongodbDriver.ObjectID;
 /**
  * User model
  */
-class User {
+class User extends Model {
   /**
    * Creates User instance
    * @param {UserSchema} userData - user's data
    */
   constructor(userData) {
+    super();
     this.id = userData.id;
     this.password = userData.password;
     this.email = userData.email;
@@ -119,18 +122,6 @@ class User {
   }
 
   /**
-   * Update user fields
-   *
-   * @param {object} query - query to match
-   * @param {object} data - update data
-   * @returns {Promise<number>} - number of documents modified
-   */
-  static async update(query, data) {
-    return (await this.collection.updateOne(query, { $set: data }))
-      .modifiedCount;
-  }
-
-  /**
    * Change user's password
    * Hashes new password and updates the document
    *
@@ -159,12 +150,8 @@ class User {
    * @returns {Promise<void>}
    */
   static async updateProfile(userId, user) {
-    const userProps = { name: true, email: true, image: true };
-
-    for (const prop in user) {
-      if (!userProps[prop]) {
-        throw new Error(`User object has invalid property '${prop}'`);
-      }
+    if (!await objectHasOnlyProps(user, { name: true, email: true, image: true })) {
+      throw new Error('User object has invalid properties\'');
     }
 
     try {
@@ -178,44 +165,12 @@ class User {
   }
 
   /**
-   * Finds user by his id
-   * @param {User.id} id - user's id
-   * @return {Promise<User>}
-   */
-  static async findById(id) {
-    const searchResult = await this.collection.findOne({
-      _id: new ObjectID(id)
-    });
-
-    return new User({
-      id: searchResult._id,
-      ...searchResult
-    });
-  }
-
-  /**
    * Finds user by his email
    * @param {User.email} email - user's email
    * @return {Promise<User>}
    */
   static async findByEmail(email) {
     const searchResult = await this.collection.findOne({ email });
-
-    if (!searchResult) return null;
-
-    return new User({
-      id: searchResult._id,
-      ...searchResult
-    });
-  }
-
-  /**
-   * Find user by query
-   * @param {object} query - query object
-   * @return {Promise<User>|null}
-   */
-  static async findOne(query) {
-    const searchResult = await this.collection.findOne(query);
 
     if (!searchResult) return null;
 
