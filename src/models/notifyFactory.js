@@ -58,6 +58,15 @@ class NotifyFactory {
   }
 
   /**
+   * Returns real type of passed variable
+   * @param obj
+   * @return {string}
+   */
+  static typeOf(obj) {
+    return Object.prototype.toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase();
+  }
+
+  /**
    * Converts nested objects to one objects with properties as paths to nested props
    * Example:
    *
@@ -70,7 +79,7 @@ class NotifyFactory {
    */
   static propsToPaths(obj, curr = null, dict = {}) {
     Object.keys(obj).forEach((key) => {
-      if (typeof (obj[key]) === 'object' && !(obj[key] instanceof ObjectID)) {
+      if (NotifyFactory.typeOf(obj[key]) === 'object' && !(obj[key] instanceof ObjectID)) {
         this.propsToPaths(obj[key], curr ? `${curr}.${key}` : key, dict);
       } else {
         dict[curr ? `${curr}.${key}` : key] = obj[key];
