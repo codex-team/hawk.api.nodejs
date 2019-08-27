@@ -47,6 +47,9 @@ type Project {
   """
   events(limit: Int! = 10, skip: Int! = 0): [Event!] @requireAuth
 
+  """
+  Returns recent events grouped by day
+  """
   recentEvents("limit" limit: Int): [RecentEvent]! @requireAuth
 }
 

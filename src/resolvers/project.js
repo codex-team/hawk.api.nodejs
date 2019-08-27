@@ -62,6 +62,7 @@ module.exports = {
      * @return {RecentEvent[]}
      */
     async recentEvents({ id }, { limit }) {
+      // @makeAnIssue remove aliases to event resolvers in project resolvers
       return eventResolvers.Query.recent({}, { projectId: id, limit });
     }
   }
