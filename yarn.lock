@@ -4200,8 +4200,8 @@ timed-out@^4.0.0:
   integrity sha1-8y6srFoXW+ol1/q1Zas+2HQe9W8=
 
 "tinkoff-api@git+https://github.com/codex-team/tinkoff-api.git#apiV1":
-  version "0.1.0"
-  resolved "git+https://github.com/codex-team/tinkoff-api.git#c79e8bc658a683c3075f961cfd55adabc41cee2e"
+  version "0.1.1"
+  resolved "git+https://github.com/codex-team/tinkoff-api.git#f6b0b270b3a55770bcfb4569019ff25c57532afe"
   dependencies:
     axios "^0.19.0"
     debug "^2.6.8"
