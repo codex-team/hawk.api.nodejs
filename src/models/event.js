@@ -1,6 +1,3 @@
-const { ObjectID } = require('mongodb');
-const mongo = require('../mongo');
-
 /**
  * @typedef {Object} BacktraceSourceCode
  * @property {Number} line - line's number
@@ -24,8 +21,10 @@ const mongo = require('../mongo');
 
 /**
  * @typedef {Object} EventSchema
- * @property {string|ObjectID} id - event ID
- * @property {string} catcherType - type of an event
+ * @property {String} id - event ID
+ * @property {String} catcherType - type of an event
+ * @property {Number} count - event repetitions count
+ * @property {String} groupHash - event's hash (catcherType + title + salt)
  * @property {Object} payload - event data
  * @property {string} payload.title - event title
  * @property {Date} payload.timestamp - event datetime
@@ -34,7 +33,7 @@ const mongo = require('../mongo');
  * @property {Object} [payload.get] - GET params
  * @property {Object} [payload.post] - POST params
  * @property {Object} [payload.headers] - HTTP headers
- * @property {string} [payload.release] - source code version identifier; version, modify timestamp or both of them combined
+ * @property {String} [payload.release] - source code version identifier; version, modify timestamp or both of them combined
  * @property {EventUser} [payload.user] - current authenticated user
  * @property {Object} [payload.context] - any additional data
  */
@@ -48,57 +47,34 @@ const mongo = require('../mongo');
 class Event {
   /**
    * Creates Event instance
-   * @param {string|ObjectID} projectId - project ID
+   * @param {EventSchema} schema - event's schema
    */
-  constructor(projectId) {
-    if (!projectId) {
-      throw new Error('Can not construct Event model, because projectId is not provided');
+  constructor(schema = {}) {
+    if (schema) {
+      this.fillModel(schema);
     }
-    this.projectId = new ObjectID(projectId);
-    this.collection = mongo.databases.events.collection(
-      'events:' + this.projectId
-    );
   }
 
   /**
-   * Finds events
-   *
-   * @param {object} [query={}] - query
-   * @param {Number} [limit=10] - query limit
-   * @param {Number} [skip=0] - query skip
-   * @returns {EventSchema[]} - events matching query
+   * @return {string|ObjectID}
    */
-  async find(query = {}, limit = 10, skip = 0) {
-    const cursor = this.collection
-      .find(query)
-      .sort([ ['_id', -1] ])
-      .limit(limit)
-      .skip(skip);
-
-    // Memory overflow?
-    return (await cursor.toArray()).map(event => ({
-      id: event._id,
-      catcherType: event.catcherType,
-      payload: event.payload
-    }));
+  get id() {
+    return this._id;
   }
 
   /**
-   * Find event by id
+   * Fills current instance with schema properties
+   * @param {EventSchema} schema
    *
-   * @param {string|ObjectID} id - event id
-   * @returns {EventSchema} - event
+   * @returns Event
    */
-  async findById(id) {
-    const searchResult = this.collection.findOne({
-      _id: new ObjectID(id)
-    });
-
-    return {
-      id: searchResult._id,
-      catcherType: searchResult.catcherType,
-      payload: searchResult.payload
-    };
+  fillModel(schema) {
+    for (const prop in schema) {
+      if (!schema.hasOwnProperty(prop)) {
+        continue;
+      }
+      this[prop] = schema[prop];
+    }
   }
 }
 

@@ -18,7 +18,7 @@ type Workspace {
   description: String
 
   """
-  Workspace logo picture
+  Workspace logo image
   """
   image: String
 
@@ -66,5 +66,19 @@ extend type Mutation {
 
     "id of the workspace to which the user is invited"
     workspaceId: ID!
+  ): Boolean! @requireAuth
+
+  """
+  Update workspace settings
+  """
+  updateWorkspace(
+    "What workspace to update"
+    id: ID!
+
+    "Workspace name"
+    name: String!
+
+    "Workspace description"
+    description: String
   ): Boolean! @requireAuth
 }

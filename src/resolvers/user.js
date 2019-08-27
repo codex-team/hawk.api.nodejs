@@ -1,9 +1,10 @@
-const { AuthenticationError, ApolloError } = require('apollo-server-express');
+const { AuthenticationError, ApolloError, UserInputError } = require('apollo-server-express');
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 const { errorCodes } = require('../errors');
 const emailProvider = require('../email');
 const { names: emailTemplatesNames } = require('../email/templates');
+const { validateEmail } = require('../utils/validator');
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -118,6 +119,62 @@ module.exports = {
           email,
           password: newPassword
         });
+      } catch (err) {
+        throw new ApolloError('Something went wrong');
+      }
+
+      return true;
+    },
+
+    /**
+     * Update profile user data
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} name
+     * @param {string} email
+     * @param {User} user
+     * @return {Promise<Boolean>}
+     */
+    async updateProfile(_obj, { name, email }, { user }) {
+      if (email && !validateEmail(email)) {
+        throw new UserInputError('Wrong email format');
+      }
+
+      const userWithEmail = (await User.findByEmail(email));
+
+      // TODO: replace with email verification
+      if (userWithEmail && userWithEmail.id.toString() !== user.id) {
+        throw new UserInputError('This email is taken');
+      }
+
+      try {
+        await User.updateProfile(user.id, { name, email });
+      } catch (err) {
+        throw new ApolloError('Something went wrong');
+      }
+
+      return true;
+    },
+
+    /**
+     * Change user password
+     *
+     * @param {ResolverObj} _obj
+     *
+     * @param {string} oldPassword
+     * @param {string} newPassword
+     * @param {User} user
+     * @return {Promise<Boolean>}
+     */
+    async changePassword(_obj, { oldPassword, newPassword }, { user }) {
+      user = await User.findById(user.id);
+
+      if (!user || !(await user.comparePassword(oldPassword))) {
+        throw new AuthenticationError('Wrong old password. Try again.');
+      }
+
+      try {
+        await User.changePassword(user.id, newPassword);
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
