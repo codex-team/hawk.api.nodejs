@@ -23,6 +23,8 @@ module.exports = {
     async paymentLink(_obj, { paymentQuery }, { user }) {
       const bankApi = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
 
+      // set rebillId by default
+      paymentQuery.rebillId = 'Y';
       const paymentRequest = await PaymentRequest.create(user.id, paymentQuery);
       const result = await bankApi.initPayment(paymentRequest);
 
