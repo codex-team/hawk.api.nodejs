@@ -64,15 +64,23 @@ type NotifySettings {
   slack: SlackNotifySettings!
 }
 
+
 """
 Project notify settings
 """
 type Notify {
   """
+  Notify action type
+  """
+  actionType: Int
+
+  """
   Notify settings
   """
   settings: NotifySettings!
 }
+
+#######################################
 
 """
 Input type for email
@@ -119,7 +127,10 @@ input SlackInput {
   value: String
 }
 
-input NotifyInput {
+"""
+Input type for notify settings
+"""
+input NotifySettingsInput {
   """
   Email notifications settings
   """
@@ -137,10 +148,22 @@ input NotifyInput {
   slack: SlackInput
 }
 
+input NotifyInput {
+  """
+  Notify action type
+  """
+  actionType: Int
+
+  """
+  Notify settings
+  """
+  settings: NotifySettingsInput
+}
+
 extend type Query {
   notificationSettings("Project ID" projectId: ID!): Notify @requireAuth
 }
 
 extend type Mutation {
-  updateNotificationSettings("Project ID" projectId: ID!, "Notify settings" settings: NotifyInput!): Boolean @requireAuth
+  updateNotificationSettings("Project ID" projectId: ID!, "Notify" notify: NotifyInput!): Boolean @requireAuth
 }

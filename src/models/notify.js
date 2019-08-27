@@ -15,7 +15,7 @@
  * @typedef {Object} NotifySchema
  * @property {ObjectID} id - notify ID
  * @property {ObjectID} userId - user ID
- * @property {{ALL: number, ONLY_NEW: number, INCLUDING: number}} actionType - action type
+ * @property {number} actionType - action type. {ONLY_NEW: 1, ALL: 2, INCLUDING: 3}
  * @property {string} words - filter words when action type is INCLUDING
  * @property {NotifySettings} settings - notify settings
  */

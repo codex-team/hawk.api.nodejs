@@ -31,13 +31,13 @@ module.exports = {
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @returns {Promise<Notify|null>}
      */
-    async updateNotificationSettings(_obj, { projectId, settings }, { user }) {
+    async updateNotificationSettings(_obj, { projectId, notify }, { user }) {
       // todo: check if project exists & user belongs to the project
 
       const factory = new NotifyFactory(projectId);
-      const notify = new Notify({ userId: new ObjectID(user.id), settings });
+      const updatedNotify = new Notify({ userId: new ObjectID(user.id), ...notify });
 
-      return factory.update(notify);
+      return factory.update(updatedNotify);
     }
   }
 };
