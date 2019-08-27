@@ -2,7 +2,7 @@ const { ValidationError } = require('apollo-server-express');
 const { ObjectID } = require('mongodb');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
-const Event = require('../models/event');
+const eventResolvers = require('./event');
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -50,9 +50,19 @@ module.exports = {
      * @returns {Promise<EventSchema[]>}
      */
     async events({ id }, { limit, skip }) {
-      const event = new Event(id);
+      return eventResolvers.Query.events({}, { projectId: id, limit, skip });
+    },
 
-      return event.find({}, limit, skip);
+    /**
+     * Returns recent Events grouped by day
+     *
+     * @param {ResolverObj} _obj
+     * @param {Number} limit - limit for events count
+     *
+     * @return {RecentEvent[]}
+     */
+    async recentEvents({ id }, { limit }) {
+      return eventResolvers.Query.recent({}, { projectId: id, limit });
     }
   }
 };
