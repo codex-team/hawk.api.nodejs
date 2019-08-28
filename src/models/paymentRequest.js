@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const mongo = require('../mongo');
 const User = require('../models/user');
 const Membership = require('../models/membership');
 
@@ -36,7 +37,8 @@ class PaymentRequest {
           Tax: TaxNone
         } ]
       },
-      PayType: 'T'
+      PayType: 'T',
+      DATA: paymentRequest.data
     };
   }
 

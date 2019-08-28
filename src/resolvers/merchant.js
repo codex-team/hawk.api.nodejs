@@ -2,6 +2,7 @@ const PaymentRequest = require('../models/paymentRequest');
 const UserCard = require('../models/userCard');
 const TinkoffAPI = require('tinkoff-api');
 const rabbitmq = require('../rabbitmq');
+const PaymentTransaction = require('../models/paymentTransaction');
 
 /**
  * @typedef {Object} PaymentLink
@@ -25,6 +26,10 @@ module.exports = {
 
       // set rebillId by default
       paymentQuery.rebillId = 'Y';
+      paymentQuery.data = {
+        UserId: user.id,
+        WorkspaceId: paymentQuery.workspaceId
+      };
       const paymentRequest = await PaymentRequest.create(user.id, paymentQuery);
       const result = await bankApi.initPayment(paymentRequest);
 
@@ -32,14 +37,18 @@ module.exports = {
         throw Error(`Merchant API error: ${result.Message} ${result.Details}`);
       }
 
-      await rabbitmq.publish('merchant', 'merchant/initialized', JSON.stringify({
-        orderId: result.OrderId,
-        paymentId: result.PaymentId,
-        paymentURL: result.PaymentURL,
-        workspaceId: paymentQuery.workspaceId,
+      const transaction = await PaymentTransaction.create({
         userId: user.id,
-        timestamp: new Date(),
-        status: result.Status
+        workspaceId: paymentQuery.workspaceId,
+        amount: result.Amount,
+        orderId: paymentRequest.OrderId,
+        paymentId: result.PaymentId,
+        timestamp: parseInt((Date.now() / 1000).toFixed(0))
+      });
+
+      await rabbitmq.publish('merchant', 'merchant/initialized', JSON.stringify({
+        paymentURL: result.PaymentURL,
+        ...transaction
       }));
       return result;
     },
