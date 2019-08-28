@@ -50,7 +50,7 @@ class Team {
    * Remove member from workspace
    *
    * @param {string} memberId - id of member to remove
-   * @returns {Promise<{userId: *}>}
+   * @returns {Promise<{userId: string}>}
    */
   async removeMember(memberId) {
     await this.collection.removeOne({
@@ -66,7 +66,7 @@ class Team {
    * Remove member from workspace by email
    *
    * @param {string} memberEmail - email of member to remove
-   * @returns {Promise<{userId: *}>}
+   * @returns {Promise<{userId: string}>}
    */
   async removeMemberByEmail(memberEmail) {
     await this.collection.removeOne({
@@ -83,7 +83,7 @@ class Team {
    *
    * @param {string} memberId - id of member to grant permissions
    * @param {boolean} state - state of permissions
-   * @returns {Promise<{id: *, userId: *}>}
+   * @returns {Promise<{id: string, userId: string}>}
    */
   async grantAdmin(memberId, state = true) {
     const documentId = (await this.collection.updateOne(
@@ -105,7 +105,7 @@ class Team {
    * Add unregistered member to the workspace
    *
    * @param {string} memberEmail - invited member`s email
-   * @returns {Promise<{userEmail: *, id: *}>}
+   * @returns {Promise<{userEmail: string, id: string}>}
    */
   async addUnregisteredMember(memberEmail) {
     const documentId = (await this.collection.insertOne({
