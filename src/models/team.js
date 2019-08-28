@@ -31,7 +31,7 @@ class Team {
   /**
    * Adds new member to the workspace team
    * @param {String} memberId - user's id to add
-   * @param pending
+   * @param {boolean} pending - if true, mark member as pending
    * @returns {Promise<TeamDocumentSchema>} - added document
    */
   async addMember(memberId, pending = false) {
@@ -88,7 +88,7 @@ class Team {
   /**
    * Add unregistered member to the workspace
    *
-   * @param {string} memberEmail
+   * @param {string} memberEmail - invited member`s email
    * @returns {Promise<{userEmail: *, id: *}>}
    */
   async addUnregisteredMember(memberEmail) {
