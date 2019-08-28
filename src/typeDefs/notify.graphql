@@ -10,7 +10,7 @@ type EmailNotifySettings {
   """
   Email
   """
-  value: String!
+  value: String
 }
 
 """
@@ -25,7 +25,7 @@ type TelegramNotifySettings {
   """
   Telegram CodeX Bot hook
   """
-  value: String!
+  value: String
 }
 
 """
@@ -40,7 +40,7 @@ type SlackNotifySettings {
   """
   Slack webhook
   """
-  value: String!
+  value: String
 }
 
 """
@@ -50,18 +50,18 @@ type NotifySettings {
   """
   Email notifications settings
   """
-  email: EmailNotifySettings!
+  email: EmailNotifySettings
 
   """
   Telegram notofications settings
   """
-  tg: TelegramNotifySettings!
+  tg: TelegramNotifySettings
 
 
   """
   Slack notifications settings
   """
-  slack: SlackNotifySettings!
+  slack: SlackNotifySettings
 }
 
 
@@ -75,9 +75,14 @@ type Notify {
   actionType: Int
 
   """
+  Words for INCLUDING action type
+  """
+  words: String
+
+  """
   Notify settings
   """
-  settings: NotifySettings!
+  settings: NotifySettings
 }
 
 #######################################
@@ -153,6 +158,11 @@ input NotifyInput {
   Notify action type
   """
   actionType: Int
+
+  """
+  Words for INCLUDING action type
+  """
+  words: String
 
   """
   Notify settings
