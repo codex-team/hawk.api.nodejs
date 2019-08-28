@@ -63,6 +63,22 @@ class Team {
   }
 
   /**
+   * Remove member from workspace by email
+   *
+   * @param {string} memberEmail - email of member to remove
+   * @returns {Promise<{userId: *}>}
+   */
+  async removeMemberByEmail(memberEmail) {
+    await this.collection.removeOne({
+      userEmail: memberEmail
+    });
+
+    return {
+      userEmail: memberEmail
+    };
+  }
+
+  /**
    * Grant admin permissions
    *
    * @param {string} memberId - id of member to grant permissions

@@ -217,13 +217,13 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {Workspace.id} workspaceId - id of the workspace where the user should be removed
      * @param {User.id} userId - id of user to remove
+     * @param {User.email} userEmail - email of user to remove
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @return {Promise<boolean>} - true if operation is successful
      * @returns {Promise<boolean>}
      */
-    async removeMemberFromWorkspace(_obj, { workspaceId, userId }, { user }) {
+    async removeMemberFromWorkspace(_obj, { workspaceId, userId, userEmail }, { user }) {
       const team = new Team(workspaceId);
-      const membership = new Membership(userId);
 
       const users = await team.getAllUsers();
 
@@ -237,8 +237,14 @@ module.exports = {
         throw new ApolloError('Not enough permissions');
       }
 
-      await team.removeMember(userId);
-      await membership.removeWorkspace(workspaceId);
+      if (userId) {
+        const membership = new Membership(userId);
+
+        await team.removeMember(userId);
+        await membership.removeWorkspace(workspaceId);
+      } else {
+        await team.removeMemberByEmail(userEmail);
+      }
 
       return true;
     }
