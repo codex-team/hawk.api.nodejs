@@ -139,7 +139,14 @@ module.exports = {
       } else {
         // @todo check if workspace allows invitations through general link
 
-        await new Team(workspaceId).addMember(currentUser.id);
+        const team = new Team(workspaceId);
+        const members = await team.getAllUsers();
+
+        if (members.find(m => m.id.toString() === currentUser.id.toString())) {
+          throw new ApolloError('You are already member of this workspace');
+        }
+
+        await team.addMember(currentUser.id);
 
         membershipExists = false;
       }

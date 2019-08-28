@@ -108,6 +108,12 @@ class Team {
    * @returns {Promise<{userEmail: string, id: string}>}
    */
   async addUnregisteredMember(memberEmail) {
+    const foundDocument = await this.collection.findOne({ userEmail: memberEmail });
+
+    if (foundDocument) {
+      throw new Error('User is already invited to this workspace');
+    }
+
     const documentId = (await this.collection.insertOne({
       userEmail: memberEmail,
       isPending: true
