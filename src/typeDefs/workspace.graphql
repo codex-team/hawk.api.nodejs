@@ -147,7 +147,7 @@ extend type Mutation {
     userId: ID!
 
     """
-    Permissions state (true to grant, false to withdraw
+    Permissions state (true to grant, false to withdraw)
     """
     state: Boolean = true
   ): Boolean! @requireAuth
