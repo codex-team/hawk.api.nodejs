@@ -1,0 +1,4 @@
+Hi <br>
+You have been invited to {{name}} workspace.<br>
+Please, follow the link to join:<br>
+<a href="{{inviteLink}}">{{inviteLink}}</a>
