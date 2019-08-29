@@ -35,10 +35,15 @@ class Team {
    * @returns {Promise<TeamDocumentSchema>} - added document
    */
   async addMember(memberId, pending = false) {
-    const documentId = (await this.collection.insertOne({
-      userId: new ObjectID(memberId),
-      isPending: pending
-    })).insertedId;
+    const doc = {
+      userId: new ObjectID(memberId)
+    };
+
+    if (pending) {
+      doc.pending = pending;
+    }
+
+    const documentId = (await this.collection.insertOne(doc)).insertedId;
 
     return {
       id: documentId,
@@ -136,7 +141,7 @@ class Team {
       {
         userId: new ObjectID(member.id)
       },
-      { $set: { isPending: false } }
+      { $unset: { isPending: 1 } }
     );
 
     if (matchedCount > 0 && modifiedCount === 0) {
@@ -148,7 +153,7 @@ class Team {
         {
           userEmail: member.email
         },
-        { $set: { isPending: false, userId: new ObjectID(member.id) }, $unset: { userEmail: 1 } }
+        { $set: { userId: new ObjectID(member.id) }, $unset: { userEmail: 1, isPending: 1 } }
       );
 
       return false;
@@ -165,7 +170,7 @@ class Team {
     return this.collection.aggregate([
       {
         $match: {
-          isPending: false
+          isPending: { $exists: false }
         }
       },
       {
@@ -186,7 +191,8 @@ class Team {
       },
       {
         $addFields: {
-          id: '$_id'
+          id: '$_id',
+          isPending: false
         }
       }
     ]).toArray();

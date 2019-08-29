@@ -35,10 +35,15 @@ class Membership {
    * @returns {Promise<TeamDocumentSchema>} - created document
    */
   async addWorkspace(workspaceId, pending = false) {
-    const documentId = (await this.collection.insertOne({
-      workspaceId: new ObjectID(workspaceId),
-      isPending: pending
-    })).insertedId;
+    const doc = {
+      workspaceId: new ObjectID(workspaceId)
+    };
+
+    if (pending) {
+      doc.pending = pending;
+    }
+
+    const documentId = (await this.collection.insertOne(doc)).insertedId;
 
     return {
       id: documentId,
@@ -73,7 +78,7 @@ class Membership {
       {
         workspaceId: new ObjectID(workspaceId)
       },
-      { $set: { isPending: false } }
+      { $unset: { isPending: 1 } }
     );
   }
 
@@ -97,7 +102,7 @@ class Membership {
       },
       {
         $match: {
-          isPending: false
+          isPending: { $exists: false }
         }
       },
       {
@@ -110,7 +115,8 @@ class Membership {
       },
       {
         $addFields: {
-          id: '$_id'
+          id: '$_id',
+          isPending: false
         }
       }
     ];
