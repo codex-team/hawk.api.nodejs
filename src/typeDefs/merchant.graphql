@@ -1,0 +1,115 @@
+"""
+Payment link structure
+"""
+type PaymentLink {
+  """
+  Total payment amount in kopecs
+  """
+  Amount: Int
+
+  """
+  Payment status
+  """
+  Status: String
+
+  """
+  If the payment is successfull
+  """
+  Success: Boolean
+
+  """
+  URL to the payment page
+  """
+  PaymentURL: String
+}
+
+"""
+Payment query structure
+"""
+input PaymentQuery {
+  """
+  Payment page language
+  """
+  language: String!
+
+  """
+  Total payment amount in kopecs
+  """
+  amount: Int!
+
+  """
+  Workspace id for which the payment will be made
+  """
+  workspaceId: String!
+}
+
+"""
+Card data input
+"""
+input CardData {
+  """
+  Card expiration date
+  """
+  expDate: String
+
+  """
+  Card Number
+  """
+  cardNumber: String
+}
+
+type CardInfo {
+  """
+  Card number (Pan)
+  """
+  pan: String
+
+  """
+  Card ID
+  """
+  cardId: String
+
+  """
+  Rebill Id for recurrent payment
+  """
+  rebillId: String
+
+  """
+  Card expiration date
+  """
+  expDate: String
+
+  """
+  Card Type
+  """
+  cardType: String
+
+  """
+  Card Number
+  """
+  cardNumber: String
+}
+
+extend type Query {
+  """
+  Returns JSON data with payment link
+  """
+  paymentLink("Payment query" paymentQuery: PaymentQuery!): PaymentLink @requireAuth
+
+  """
+  Get attached cards
+  """
+  getCardList: [CardInfo!] @requireAuth
+}
+
+extend type Mutation {
+  """
+  Add card
+  """
+  addCard(cardData: CardData!): Boolean! @requireAuth
+
+  """
+  Remove card
+  """
+  removeCard(cardNumber: String!): Boolean! @requireAuth
+}

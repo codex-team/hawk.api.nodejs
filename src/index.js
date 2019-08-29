@@ -1,12 +1,13 @@
 const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
 const mongo = require('./mongo');
+const rabbitmq = require('./rabbitmq');
 const jwt = require('jsonwebtoken');
 const requireAuthDirective = require('./directives/requireAuthDirective');
 const http = require('http');
+const billing = require('./billing/index');
 const { initializeStrategies } = require('./passport');
 const { authRouter } = require('./auth');
-
 const resolvers = require('./resolvers');
 const typeDefs = require('./typeDefs');
 
@@ -42,9 +43,11 @@ class HawkAPI {
     };
     this.app = express();
 
-    initializeStrategies();
-
+    this.app.use(express.json());
+    this.app.post('/billing', billing.notifyCallback);
     this.app.use(authRouter);
+
+    initializeStrategies();
 
     this.server = new ApolloServer({
       typeDefs,
@@ -83,7 +86,6 @@ class HawkAPI {
      * @todo deny access by refresh tokens
      * @todo block used refresh token
      */
-
     const authorizationHeader = connection
       ? connection.context.headers.authorization
       : req.headers['authorization'];
@@ -132,6 +134,7 @@ class HawkAPI {
    */
   async start() {
     await mongo.setupConnections();
+    await rabbitmq.setupConnections();
 
     return new Promise((resolve, reject) => {
       this.httpServer.listen({ port: this.config.port }, e => {

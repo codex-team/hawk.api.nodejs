@@ -47,6 +47,7 @@ module.exports = {
       try {
         const workspace = await Workspace.create({
           name,
+          balance: 0,
           description,
           image
         });
