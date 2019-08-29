@@ -40,7 +40,8 @@ const templateNames = {
    * @var {String} password - user's password
    */
   SUCCESSFUL_SIGN_UP: 'successful-sign-up',
-  PASSWORD_RESET: 'password-reset'
+  PASSWORD_RESET: 'password-reset',
+  WORKSPACE_INVITE: 'workspace-invite'
 };
 
 module.exports = {

@@ -1,3 +1,35 @@
+type Member {
+  """
+  User's id
+  """
+  id: ID
+
+  """
+  User's email
+  """
+  email: String!
+
+  """
+  User's name
+  """
+  name: String
+
+  """
+  User's image
+  """
+  image: String
+
+  """
+  True is user has admin permissions
+  """
+  isAdmin: Boolean
+
+  """
+  True if user invitation should be confirmed
+  """
+  isPending: Boolean
+}
+
 """
 Represent Workspace info
 """
@@ -25,7 +57,12 @@ type Workspace {
   """
   Workspace users array
   """
-  users: [User!]
+  users: [Member!]
+
+  """
+  Workspace pending users array
+  """
+  pendingUsers: [Member!]
 
   """
   Workspace projects array
@@ -80,5 +117,59 @@ extend type Mutation {
 
     "Workspace description"
     description: String
+  ): Boolean! @requireAuth
+
+  """
+  Confirm invitation to workspace
+  Returns true if operation is successful
+  """
+  confirmInvitation(
+    "Hash from invitation link"
+    inviteHash: String
+
+    "Id of the workspace to which the user was invited"
+    workspaceId: ID!
+  ): Boolean! @requireAuth
+
+  """
+  Grant admin permissions
+  Returns true if operation is successful
+  """
+  grantAdmin(
+    """
+    Workspace ID
+    """
+    workspaceId: ID!
+
+    """
+    ID of user to grant permissions
+    """
+    userId: ID!
+
+    """
+    Permissions state (true to grant, false to withdraw)
+    """
+    state: Boolean = true
+  ): Boolean! @requireAuth
+
+  """
+  Remove member from workspace
+  Returns true if operation is successful
+  """
+  removeMemberFromWorkspace(
+    """
+    Workspace ID
+    """
+    workspaceId: ID!
+
+    """
+    ID of user to remove
+    """
+    userId: ID
+
+    """
+    Email of user to remove
+    """
+    userEmail: String!
   ): Boolean! @requireAuth
 }

@@ -1,10 +1,14 @@
 const { ApolloError, UserInputError } = require('apollo-server-express');
+const crypto = require('crypto');
+
 const Workspace = require('../models/workspace');
 const Team = require('../models/team');
 const Membership = require('../models/membership');
 const User = require('../models/user');
 const { ProjectToWorkspace } = require('../models/project');
 const Validator = require('../utils/validator');
+const emailProvider = require('../email');
+const { names: emailTemplatesNames } = require('../email/templates');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
@@ -55,6 +59,7 @@ module.exports = {
         const team = new Team(workspace.id);
 
         await team.addMember(ownerId);
+        await team.grantAdmin(ownerId);
 
         const membership = new Membership(ownerId);
 
@@ -75,7 +80,6 @@ module.exports = {
      * @return {Promise<boolean>} - true if operation is successful
      */
     async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user }) {
-      // @todo implement invitation confirmation by user
       const [ workspace ] = await new Membership(user.id).getWorkspaces([ workspaceId ]);
 
       if (!workspace) throw new ApolloError('There is no workspace with that id');
@@ -83,15 +87,76 @@ module.exports = {
       // @todo invite users to workspace, even if they are not registered
       const invitedUser = await User.findByEmail(userEmail);
 
-      if (!invitedUser) throw new ApolloError('There is no user with that email');
+      if (!invitedUser) {
+        await new Team(workspaceId).addUnregisteredMember(userEmail);
+      } else {
+        const [ isUserInThatWorkspace ] = await new Membership(invitedUser.id).getWorkspaces([ workspaceId ]);
 
-      const [ isUserInThatWorkspace ] = await new Membership(invitedUser.id).getWorkspaces([ workspaceId ]);
+        if (isUserInThatWorkspace) throw new ApolloError('User already invited to this workspace');
 
-      if (isUserInThatWorkspace) throw new ApolloError('User already in this workspace');
+        // @todo make via transactions
+        await new Membership(invitedUser.id).addWorkspace(workspaceId, true);
+        await new Team(workspaceId).addMember(invitedUser.id, true);
+      }
 
-      // @todo make via transactions
-      await new Membership(invitedUser.id).addWorkspace(workspaceId);
-      await new Team(workspaceId).addMember(invitedUser.id);
+      const linkHash = crypto
+        .createHash('sha256')
+        .update(`${workspaceId}:${userEmail}:${process.env.HASH_SALT}`)
+        .digest('hex');
+
+      const inviteLink = `${process.env.GARAGE_URL}/join/${workspaceId}/${linkHash}`;
+
+      emailProvider.send(userEmail, emailTemplatesNames.WORKSPACE_INVITE, {
+        name: workspace.name,
+        inviteLink
+      });
+
+      return true;
+    },
+
+    /**
+     * Confirm user invitation
+     *
+     * @param {ResolverObj} _obj
+     * @param {String} inviteHash - hash passed to the invite link
+     * @param {Workspace.id} workspaceId - id of the workspace to which the user is invited
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @return {Promise<boolean>} - true if operation is successful
+     */
+    async confirmInvitation(_obj, { inviteHash, workspaceId }, { user }) {
+      const currentUser = await User.findById(user.id);
+
+      let membershipExists;
+
+      if (inviteHash) {
+        const hash = crypto
+          .createHash('sha256')
+          .update(`${workspaceId}:${currentUser.email}:${process.env.HASH_SALT}`)
+          .digest('hex');
+
+        if (hash !== inviteHash) throw new ApolloError('The link is broken');
+
+        membershipExists = await new Team(workspaceId).confirmMembership(currentUser);
+      } else {
+        // @todo check if workspace allows invitations through general link
+
+        const team = new Team(workspaceId);
+        const members = await team.getAllUsers();
+
+        if (members.find(m => m.id.toString() === currentUser.id.toString())) {
+          throw new ApolloError('You are already member of this workspace');
+        }
+
+        await team.addMember(currentUser.id);
+
+        membershipExists = false;
+      }
+
+      if (membershipExists) {
+        await new Membership(user.id).confirmMembership(workspaceId);
+      } else {
+        await new Membership(user.id).addWorkspace(workspaceId);
+      }
 
       return true;
     },
@@ -124,6 +189,72 @@ module.exports = {
       }
 
       return true;
+    },
+
+    /**
+     * Grant admin permissions
+     *
+     * @param {ResolverObj} _obj
+     * @param {Workspace.id} workspaceId - id of the workspace
+     * @param {User.id} userId - id of user to grant permissions
+     * @param {boolean} state - state of permissions (true to grant, false to withdraw)
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @return {Promise<boolean>} - true if operation is successful
+     */
+    async grantAdmin(_obj, { workspaceId, userId, state }, { user }) {
+      const team = new Team(workspaceId);
+      const users = await team.getAllUsers();
+      const member = users.find(el => el._id.toString() === user.id);
+
+      if (!member) {
+        throw new ApolloError('You are not in the workspace');
+      }
+
+      if (!member.isAdmin) {
+        throw new ApolloError('Not enough permissions');
+      }
+
+      await team.grantAdmin(userId, state);
+
+      return true;
+    },
+
+    /**
+     * Remove user from workspace
+     *
+     * @param {ResolverObj} _obj
+     * @param {Workspace.id} workspaceId - id of the workspace where the user should be removed
+     * @param {User.id} userId - id of user to remove
+     * @param {User.email} userEmail - email of user to remove
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @return {Promise<boolean>} - true if operation is successful
+     * @returns {Promise<boolean>}
+     */
+    async removeMemberFromWorkspace(_obj, { workspaceId, userId, userEmail }, { user }) {
+      const team = new Team(workspaceId);
+
+      const users = await team.getAllUsers();
+
+      const member = users.find(el => el._id.toString() === user.id);
+
+      if (!member) {
+        throw new ApolloError('You are not in the workspace');
+      }
+
+      if (!member.isAdmin) {
+        throw new ApolloError('Not enough permissions');
+      }
+
+      if (userId) {
+        const membership = new Membership(userId);
+
+        await team.removeMember(userId);
+        await membership.removeWorkspace(workspaceId);
+      } else {
+        await team.removeMemberByEmail(userEmail);
+      }
+
+      return true;
     }
   },
   Workspace: {
@@ -136,6 +267,17 @@ module.exports = {
       const team = new Team(rootResolverResult.id);
 
       return team.getAllUsers();
+    },
+
+    /**
+     * Fetch pending users
+     * @param {ResolverObj} rootResolverResult - result from resolver above
+     * @return {Promise<User[]>}
+     */
+    async pendingUsers(rootResolverResult) {
+      const team = new Team(rootResolverResult.id);
+
+      return team.getPendingUsers();
     },
 
     /**
