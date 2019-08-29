@@ -46,7 +46,7 @@ class Notify {
    * Fills current instance with schema properties
    * @param {NotifySchema} schema
    *
-   * @returns Event
+   * @returns {Notify[]}
    */
   fillModel(schema) {
     for (const prop in schema) {

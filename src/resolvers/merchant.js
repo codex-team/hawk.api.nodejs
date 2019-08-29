@@ -67,6 +67,7 @@ module.exports = {
      */
     async addCard(_obj, { cardData }, { user }) {
       const card = await UserCard.findOne({ cardNumber: cardData.cardNumber });
+
       if (card) {
         return false;
       } else {

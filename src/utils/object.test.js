@@ -1,7 +1,7 @@
 const { ObjectID } = require('mongodb');
-const NotifyFactory = require('./notifyFactory');
+const { propsToPaths } = require('./object');
 
-describe('NotifyFactory', () => {
+describe('object utils', () => {
   describe('propsToPaths', () => {
     it('should be able to convet Notify to dotted-key/value pairs', () => {
       const original = {
@@ -22,7 +22,7 @@ describe('NotifyFactory', () => {
         'settings.email.value': 'test@test.com'
       };
 
-      expect(NotifyFactory.propsToPaths(original)).toEqual(expected);
+      expect(propsToPaths(original)).toEqual(expected);
     });
 
     it('should not convert arrays', () => {
@@ -30,7 +30,7 @@ describe('NotifyFactory', () => {
 
       const expected = { test: [1, 2, 3] };
 
-      expect(NotifyFactory.propsToPaths(original)).toEqual(expected);
+      expect(propsToPaths(original)).toEqual(expected);
     });
 
     it('should not convert ObjectID', () => {
@@ -38,7 +38,7 @@ describe('NotifyFactory', () => {
 
       const expected = { test: ObjectID('5d1dcfad01333a01c9cd540c') };
 
-      expect(NotifyFactory.propsToPaths(original)).toEqual(expected);
+      expect(propsToPaths(original)).toEqual(expected);
     });
 
     it('should handle array in nested propery', () => {
@@ -46,7 +46,7 @@ describe('NotifyFactory', () => {
 
       const expected = { 'prop1.prop2': [1, 2, 3] };
 
-      expect(NotifyFactory.propsToPaths(original)).toEqual(expected);
+      expect(propsToPaths(original)).toEqual(expected);
     });
   });
 });

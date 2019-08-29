@@ -88,7 +88,7 @@ class HawkAPI {
      */
     const authorizationHeader = connection
       ? connection.context.headers.authorization
-      : req.headers['authorization'];
+      : req.headers.authorization;
 
     if (
       authorizationHeader &&

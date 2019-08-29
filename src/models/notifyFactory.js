@@ -1,3 +1,5 @@
+const { propsToPaths } = require('../utils/object');
+const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Notify = require('./notify');
 const { ObjectID } = require('mongodb');
@@ -7,12 +9,13 @@ const { ObjectID } = require('mongodb');
  *
  * Creational class for Notify's Model
  */
-class NotifyFactory {
+class NotifyFactory extends Factory {
   /**
    * Creates NotifyFactory instance
    * @param {string|ObjectID} projectId
    */
   constructor(projectId) {
+    super();
     if (!projectId) {
       throw new Error('Can not construct Notify model, because projectId is not provided');
     }
@@ -48,44 +51,13 @@ class NotifyFactory {
   /**
    * Find Notify by user ID
    *
-   * @param userId
+   * @param {string} userId - User ID
    * @returns {Promise<Notify|null>}
    */
   async findByUserId(userId) {
     const searchResult = await this.collection.findOne({ userId: new ObjectID(userId) });
 
     return searchResult ? new Notify(searchResult) : null;
-  }
-
-  /**
-   * Returns real type of passed variable
-   * @param obj
-   * @return {string}
-   */
-  static typeOf(obj) {
-    return Object.prototype.toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase();
-  }
-
-  /**
-   * Converts nested objects to one objects with properties as paths to nested props
-   * Example:
-   *
-   * objectToPath({userId: ObjectID("5d63c84aa17ed33e62ed2edb"), settings: {email: {enabled: true}}})
-   *
-   * // { userId: 5d63c84aa17ed33e62ed2edb, 'settings.email.enabled': true }
-   * @param obj - Object
-   * @param [curr] - current property
-   * @param [dict] - result
-   */
-  static propsToPaths(obj, curr = null, dict = {}) {
-    Object.keys(obj).forEach((key) => {
-      if (NotifyFactory.typeOf(obj[key]) === 'object' && !(obj[key] instanceof ObjectID)) {
-        this.propsToPaths(obj[key], curr ? `${curr}.${key}` : key, dict);
-      } else {
-        dict[curr ? `${curr}.${key}` : key] = obj[key];
-      }
-    });
-    return dict;
   }
 
   /**
@@ -99,7 +71,7 @@ class NotifyFactory {
       throw new Error('Can not update Notify, because userId is not provided');
     }
 
-    const updated = await this.collection.updateOne({ userId: notify.userId }, { $set: NotifyFactory.propsToPaths(notify) }, { upsert: true });
+    const updated = await this.collection.updateOne({ userId: notify.userId }, { $set: propsToPaths(notify) }, { upsert: true });
 
     if (updated.matchedCount === 0 && updated.upsertedCount === 0) {
       return null;
@@ -122,36 +94,6 @@ class NotifyFactory {
     const inserted = await this.collection.insertOne({ userId, settings });
 
     return new Notify({ _id: inserted.insertedId, userId, settings });
-  }
-
-  /**
-   * Validates limit value
-   * @param limit
-   * @return {Number}
-   */
-  validateLimit(limit) {
-    limit = Math.max(0, limit);
-
-    if (limit > 100) {
-      throw Error('Invalid limit value');
-    }
-
-    return limit;
-  }
-
-  /**
-   * Validate skip value
-   * @param skip
-   * @return {Number}
-   */
-  validateSkip(skip) {
-    skip = Math.max(0, skip);
-
-    if (skip > 100) {
-      throw Error('Invalid skip value');
-    }
-
-    return skip;
   }
 }
 
