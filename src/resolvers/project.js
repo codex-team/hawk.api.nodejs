@@ -65,7 +65,7 @@ module.exports = {
       // @makeAnIssue remove aliases to event resolvers in project resolvers
       const result = await eventResolvers.Query.recent({}, { projectId: id, limit });
 
-      return [ { dailyInfo: result } ];
+      return result[0];
     }
   }
 };
