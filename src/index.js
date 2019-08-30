@@ -51,7 +51,7 @@ class HawkAPI {
 
     this.server = new ApolloServer({
       typeDefs,
-      debug: true,
+      debug: false,
       resolvers,
       playground: PLAYGROUND_ENABLE,
       introspection: PLAYGROUND_ENABLE,
