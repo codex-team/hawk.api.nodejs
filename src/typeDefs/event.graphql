@@ -113,6 +113,8 @@ type Event {
   Event payload
   """
   payload: EventPayload!
+
+  groupHash: String
 }
 
 type DailyEventInfo {
