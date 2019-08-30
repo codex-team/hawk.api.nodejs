@@ -1,5 +1,6 @@
 const mongo = require('../mongo');
 const Model = require('./model');
+const { ObjectID } = require('mongodb');
 
 /**
  * @typedef {Object} UserCardSchema
@@ -52,7 +53,7 @@ class UserCard extends Model {
    * @return {Promise<UserCard>}
    */
   static async find(userId, cardId) {
-    return this.collection.findOne({ userId, cardId });
+    return this.collection.findOne({ userId: new ObjectID(userId), cardId });
   }
 
   /**

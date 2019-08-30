@@ -59,6 +59,7 @@ module.exports = {
         amount: result.Amount,
         orderId: paymentRequest.OrderId,
         paymentId: result.PaymentId,
+        status: result.Status,
         timestamp: parseInt((Date.now() / 1000).toFixed(0))
       });
 
