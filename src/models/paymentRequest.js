@@ -1,12 +1,10 @@
 const crypto = require('crypto');
-const mongo = require('../mongo');
 const User = require('../models/user');
-const Membership = require('../models/membership');
 
 const EmailCompany = process.env.BILLING_COMPANY_EMAIL;
 const OSNTaxation = 'osn';
 const TaxNone = 'none';
-const PaymentDescription = 'Deposit for Hawk.so';
+const PaymentDescription = 'Card check payment. It will be refunded.';
 
 /**
  * PaymentRequest model
@@ -22,6 +20,7 @@ class PaymentRequest {
     return {
       Amount: paymentRequest.amount,
       OrderId: orderId,
+      Recurrent: paymentRequest.recurrent,
       Language: paymentRequest.language,
       CustomerKey: userData.id,
       Description: PaymentDescription,
@@ -59,11 +58,6 @@ class PaymentRequest {
   static async create(userId, paymentQuery) {
     const orderId = this.generateOrderId();
     const userData = await User.findById(userId);
-    const membership = await new Membership(userId).getWorkspaces([ paymentQuery.workspaceId ]);
-
-    if (membership.length !== 1) {
-      throw Error('Invalid workspaceId');
-    }
 
     return PaymentRequest.generatePaymentObject(paymentQuery, userData, orderId);
   }

@@ -26,8 +26,6 @@ class UserCard extends Model {
     this.rebillId = userCardData.rebillId;
     this.cardId = userCardData.cardId;
     this.expDate = userCardData.expDate;
-    this.cardType = userCardData.cardType;
-    this.cardNumber = userCardData.cardNumber;
   }
 
   /**
@@ -45,6 +43,16 @@ class UserCard extends Model {
    */
   static async findByUserId(userId) {
     return (await this.collection.find({ userId })).toArray();
+  }
+
+  /**
+   * Get card info
+   * @param {User.id} userId - user's id
+   * @param {UserCard.id} cardId - card's id
+   * @return {Promise<UserCard>}
+   */
+  static async find(userId, cardId) {
+    return this.collection.findOne({ userId, cardId });
   }
 
   /**
