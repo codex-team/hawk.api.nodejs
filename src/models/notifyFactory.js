@@ -73,11 +73,7 @@ class NotifyFactory extends Factory {
 
     const updated = await this.collection.updateOne({ userId: notify.userId }, { $set: propsToPaths(notify) }, { upsert: true });
 
-    if (!(updated.matchedCount || updated.upsertedCount)) {
-      return false;
-    }
-
-    return true;
+    return updated.matchedCount || updated.upsertedCount;
   }
 
   /**
