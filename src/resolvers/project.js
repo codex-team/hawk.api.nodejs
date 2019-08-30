@@ -8,6 +8,17 @@ const eventResolvers = require('./event');
  * See all types and fields here {@see ../typeDefs/project.graphql}
  */
 module.exports = {
+  Query: {
+    /**
+     * Returns project info
+     * @param {ResolverObj} _obj
+     * @param {String} id - project id
+     * @return {Promise<ProjectSchema>}
+     */
+    async project(_obj, { id }) {
+      return Project.findById(id);
+    }
+  },
   Mutation: {
     /**
      * Creates project
