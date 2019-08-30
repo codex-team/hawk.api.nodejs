@@ -32,7 +32,7 @@ class UserCard extends Model {
    * @return {Collection}
    */
   static get collection() {
-    return mongo.databases.hawk.collection('userCard');
+    return mongo.databases.hawk.collection('userCards');
   }
 
   /**
