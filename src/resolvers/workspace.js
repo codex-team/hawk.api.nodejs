@@ -5,6 +5,7 @@ const Workspace = require('../models/workspace');
 const Team = require('../models/team');
 const Membership = require('../models/membership');
 const User = require('../models/user');
+const Plan = require('../models/plan');
 const { ProjectToWorkspace } = require('../models/project');
 const Validator = require('../utils/validator');
 const emailProvider = require('../email');
@@ -49,11 +50,20 @@ module.exports = {
       // @todo make workspace creation via transactions
 
       try {
+        const defaultPlan = await Plan.getDefaultPlan();
+
+        const plan = {
+          subscriptionDate: Date.now() / 1000,
+          lastChargeDate: Date.now() / 1000,
+          name: defaultPlan.name
+        };
+
         const workspace = await Workspace.create({
           name,
           balance: 0,
           description,
-          image
+          image,
+          plan
         });
 
         const team = new Team(workspace.id);

@@ -114,9 +114,22 @@ class Membership {
         }
       },
       {
+        $lookup: {
+          from: 'plans',
+          localField: 'plan.name',
+          foreignField: 'name',
+          as: 'planInfo'
+        }
+      },
+      {
+        $unwind: '$planInfo'
+      },
+      {
         $addFields: {
           id: '$_id',
-          isPending: false
+          'plan.monthlyCharge': '$planInfo.monthlyCharge',
+          'plan.eventsLimit': '$planInfo.eventsLimit',
+          planInfo: '$$REMOVE'
         }
       }
     ];
