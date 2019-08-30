@@ -8,6 +8,17 @@ const eventResolvers = require('./event');
  * See all types and fields here {@see ../typeDefs/project.graphql}
  */
 module.exports = {
+  Query: {
+    /**
+     * Returns project's Model
+     * @param {ResolverObj} _obj
+     * @param {String} id - project id
+     * @return {Promise<ProjectSchema>}
+     */
+    async project(_obj, { id }) {
+      return Project.findById(id);
+    }
+  },
   Mutation: {
     /**
      * Creates project
@@ -63,7 +74,9 @@ module.exports = {
      */
     async recentEvents({ id }, { limit }) {
       // @makeAnIssue remove aliases to event resolvers in project resolvers
-      return eventResolvers.Query.recent({}, { projectId: id, limit });
+      const result = await eventResolvers.Query.recent({}, { projectId: id, limit });
+
+      return result.shift();
     }
   }
 };

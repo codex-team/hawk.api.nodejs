@@ -115,24 +115,27 @@ class EventsFactory {
   async findRecent(limit = 10) {
     limit = this.validateLimit(limit);
 
-    const cursor = this.getCollection(this.TYPES.DAILY_EVENTS)
-      .find({})
-      .sort({ _id: -1, count: -1 })
-      .limit(limit);
+    const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate([
+      { $sort: { _id: -1, count: -1 } },
+      { $limit: limit },
+      {
+        $group: {
+          _id: null,
+          groupHash: { $addToSet: '$groupHash' },
+          dailyInfo: { $push: '$$ROOT' }
+        }
+      },
+      {
+        $lookup: {
+          from: 'events:' + this.projectId,
+          localField: 'groupHash',
+          foreignField: 'groupHash',
+          as: 'events'
+        }
+      }
+    ]);
 
-    const result = await cursor.toArray();
-
-    return Promise.all(result.map(async (data) => {
-      const event = await this.findOneByQuery({
-        groupHash: data.groupHash
-      });
-
-      return {
-        event: event,
-        count: data.count,
-        date: data.date
-      };
-    }));
+    return cursor.toArray();
   }
 
   /**
