@@ -8,15 +8,13 @@ let channel = null;
  * @return {Promise<void>}
  */
 async function setupConnections() {
-  if (rabbitMQURL) {
-    return amqplib.connect(rabbitMQURL)
-      .then(conn => conn.createChannel())
-      .then(ch => {
-        channel = ch;
-      });
+  if (!rabbitMQURL) {
+    return null;
   }
 
-  return null;
+  const connection = await amqplib.connect(rabbitMQURL);
+
+  channel = await connection.createChannel();
 }
 
 /**

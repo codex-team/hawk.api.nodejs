@@ -73,8 +73,8 @@ class NotifyFactory extends Factory {
 
     const updated = await this.collection.updateOne({ userId: notify.userId }, { $set: propsToPaths(notify) }, { upsert: true });
 
-    if (updated.matchedCount === 0 && updated.upsertedCount === 0) {
-      return null;
+    if (!(updated.matchedCount || updated.upsertedCount)) {
+      return false;
     }
 
     return true;

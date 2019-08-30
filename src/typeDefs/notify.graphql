@@ -1,7 +1,19 @@
+interface ProviderSettings {
+  """
+  Notifications enabled?
+  """
+  enabled: Boolean!
+
+  """
+  Provider value
+  """
+  value: String
+}
+
 """
 Email notifications settings
 """
-type EmailNotifySettings {
+type EmailNotifySettings implements ProviderSettings {
   """
   Notifications enabled?
   """
@@ -16,7 +28,7 @@ type EmailNotifySettings {
 """
 Telegram notifications settings
 """
-type TelegramNotifySettings {
+type TelegramNotifySettings implements ProviderSettings{
   """
   Notifications enabled?
   """
@@ -31,7 +43,7 @@ type TelegramNotifySettings {
 """
 Slack notifications settings
 """
-type SlackNotifySettings {
+type SlackNotifySettings implements ProviderSettings{
   """
   Notifications enabled?
   """
@@ -175,5 +187,5 @@ extend type Query {
 }
 
 extend type Mutation {
-  updateNotificationSettings("Project ID" projectId: ID!, "Notify" notify: NotifyInput!): Boolean @requireAuth
+  updateNotificationSettings("Project ID" projectId: ID!, "Notify" notify: NotifyInput!): Boolean! @requireAuth
 }

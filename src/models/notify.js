@@ -1,6 +1,6 @@
 /**
  * @typedef {Object} ProviderSettings
- * @property {Boolean} enabled - provider enabled?
+ * @property {Boolean} enabled - is provider enabled
  * @property {String} value - provider hook/email/etc
  */
 
@@ -49,12 +49,9 @@ class Notify {
    * @returns {Notify[]}
    */
   fillModel(schema) {
-    for (const prop in schema) {
-      if (!Object.prototype.hasOwnProperty.call(schema, prop)) {
-        continue;
-      }
+    Object.keys(schema).forEach((prop) => {
       this[prop] = schema[prop];
-    }
+    });
   }
 }
 

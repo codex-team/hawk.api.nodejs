@@ -29,7 +29,7 @@ module.exports = {
      * @param {String} projectId - Project ID
      * @param {NotifySettings} settings - Notify settings
      * @param {Context.user} user - current authorized user {@see ../index.js}
-     * @returns {Promise<Notify|null>}
+     * @returns {Promise<Boolean>}
      */
     async updateNotificationSettings(_obj, { projectId, notify }, { user }) {
       // todo: check if project exists & user belongs to the project
