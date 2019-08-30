@@ -24,6 +24,8 @@ class Billing {
       return res.send('ERROR');
     }
 
+    console.log('NOTIFICATION FROM BANK => ', body);
+
     // Send authorized payments to RabbitMQ
     if (body.Status === PAYMENT_AUTHORIZED) {
       body.Timestamp = parseInt((Date.now() / 1000).toFixed(0));
