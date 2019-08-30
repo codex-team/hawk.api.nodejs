@@ -99,7 +99,7 @@ type EventPayload {
 }
 
 """
-Type representing Hawk event
+Type representing Hawk single Event
 """
 type Event {
   """

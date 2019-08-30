@@ -10,7 +10,7 @@ const eventResolvers = require('./event');
 module.exports = {
   Query: {
     /**
-     * Returns project info
+     * Returns project's Model
      * @param {ResolverObj} _obj
      * @param {String} id - project id
      * @return {Promise<ProjectSchema>}
@@ -76,7 +76,7 @@ module.exports = {
       // @makeAnIssue remove aliases to event resolvers in project resolvers
       const result = await eventResolvers.Query.recent({}, { projectId: id, limit });
 
-      return result[0];
+      return result.shift();
     }
   }
 };
