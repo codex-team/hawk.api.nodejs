@@ -28,11 +28,6 @@ Payment query structure
 """
 input PaymentQuery {
   """
-  Payment page language
-  """
-  language: String!
-
-  """
   Total payment amount in kopecs
   """
   amount: Int!
@@ -41,21 +36,11 @@ input PaymentQuery {
   Workspace id for which the payment will be made
   """
   workspaceId: String!
-}
-
-"""
-Card data input
-"""
-input CardData {
-  """
-  Card expiration date
-  """
-  expDate: String
 
   """
-  Card Number
+  Unique card identifier
   """
-  cardNumber: String
+  cardId: Int!
 }
 
 type CardInfo {
@@ -70,24 +55,9 @@ type CardInfo {
   cardId: String
 
   """
-  Rebill Id for recurrent payment
-  """
-  rebillId: String
-
-  """
   Card expiration date
   """
   expDate: String
-
-  """
-  Card Type
-  """
-  cardType: String
-
-  """
-  Card Number
-  """
-  cardNumber: String
 }
 
 extend type Query {
@@ -97,17 +67,17 @@ extend type Query {
   attachCard(language: String): PaymentLink @requireAuth
 
   """
+  Initialize recurrent payment
+  """
+  pay(paymentQuery: PaymentQuery!): Boolean! @requireAuth
+
+  """
   Get attached cards
   """
   getCardList: [CardInfo!] @requireAuth
 }
 
 extend type Mutation {
-  """
-  Add card
-  """
-  addCard(cardData: CardData!): Boolean! @requireAuth
-
   """
   Remove card
   """

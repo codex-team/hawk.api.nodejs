@@ -64,26 +64,67 @@ module.exports = {
      */
     async getCardList(_obj, { paymentQuery }, { user }) {
       return UserCard.findByUserId(user.id);
+    },
+    /**
+     * API Mutation method for payment
+     * @return {boolean}
+     */
+    async pay(_obj, { paymentQuery }, { user }) {
+      const bankApi = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
+
+      const card = await UserCard.find(user.id, paymentQuery.cardId);
+
+      if (!card) {
+        throw Error(`Merchant API error. Cannot find card: ${paymentQuery.cardId} for user ${user.id}`);
+      }
+
+      console.log(`Found card: ${card}`);
+
+      const paymentInitQuery = {
+        language: paymentQuery.language || 'en',
+        data: {
+          UserId: user.id
+        },
+        amount: paymentQuery.amount
+      };
+      const paymentRequest = await PaymentRequest.create(user.id, paymentInitQuery);
+      const result = await bankApi.initPayment(paymentRequest);
+
+      console.log(`Got result for charge init: ${JSON.stringify(result)}`);
+      if (!result.Success) {
+        throw Error(`Merchant API error: ${result.Message} ${result.Details}`);
+      }
+
+      const chargeRequest = {
+        PaymentId: result.PaymentId,
+        RebillId: card.rebillId
+      };
+      const chargeResult = await bankApi.charge(chargeRequest);
+
+      console.log(`Got result for charge: ${JSON.stringify(chargeResult)}`);
+
+      if (!process.env.BILLING_DEBUG) {
+        if (!chargeResult.Success) {
+          throw Error(`Merchant API error: ${chargeResult.Message}`);
+        }
+      }
+
+      const transaction = await PaymentTransaction.create({
+        userId: user.id,
+        workspaceId: paymentQuery.workspaceId,
+        amount: result.Amount,
+        orderId: paymentRequest.OrderId,
+        paymentId: result.PaymentId,
+        paymentType: 'CHARGE',
+        timestamp: parseInt((Date.now() / 1000).toFixed(0))
+      });
+
+      await rabbitmq.publish('merchant', 'merchant/charged', JSON.stringify(transaction));
+
+      return true;
     }
   },
   Mutation: {
-    /**
-     * API Mutation method for card attach
-     * @return {boolean}
-     */
-    async addCard(_obj, { cardData }, { user }) {
-      const card = await UserCard.findOne({ cardNumber: cardData.cardNumber });
-
-      if (card) {
-        return false;
-      } else {
-        UserCard.create({
-          userId: user.id,
-          ...cardData
-        });
-        return true;
-      }
-    },
     /**
      * API Mutation method for card detach
      * @return {boolean}
