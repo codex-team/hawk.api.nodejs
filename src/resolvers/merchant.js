@@ -5,8 +5,15 @@ const rabbitmq = require('../rabbitmq');
 const PaymentTransaction = require('../models/paymentTransaction');
 
 /**
+ * @typedef {Object} PaymentQuery
+ * @property {int} amount - total payment amount in kopecs
+ * @property {string} workspaceId - workspace identifier
+ * @property {string} cardId - card identifier from bank
+ */
+
+/**
  * @typedef {Object} PaymentLink
- * @property {string} amount - total payment amount in kopecs
+ * @property {int} amount - total payment amount in kopecs
  * @property {string} status - payment status
  * @property {string} success - if the payment is successfull
  * @property {string} paymentURL - URL to the payment page
@@ -19,6 +26,9 @@ module.exports = {
   Query: {
     /**
      * API Query method for getting payment link
+     * @param {ResolverObj} _obj
+     * @param {string} language
+     * @param {Object} user - current user object
      * @return {PaymentLink}
      */
     async attachCard(_obj, { language }, { user }) {
@@ -60,6 +70,9 @@ module.exports = {
     },
     /**
      * API Query method for getting all attached cards
+     * @param {ResolverObj} _obj
+     * @param {PaymentQuery} paymentQuery
+     * @param {Object} user - current user object
      * @return {UserCard[]}
      */
     async getCardList(_obj, { paymentQuery }, { user }) {
@@ -67,6 +80,9 @@ module.exports = {
     },
     /**
      * API Mutation method for payment
+     * @param {ResolverObj} _obj
+     * @param {PaymentQuery} paymentQuery
+     * @param {Object} user - current user object
      * @return {boolean}
      */
     async pay(_obj, { paymentQuery }, { user }) {
@@ -127,10 +143,13 @@ module.exports = {
   Mutation: {
     /**
      * API Mutation method for card detach
+     * @param {ResolverObj} _obj
+     * @param {int} cardId - card's identifier
+     * @param {Object} user - current user object
      * @return {boolean}
      */
-    async removeCard(_obj, { cardNumber }, { user }) {
-      return (await UserCard.remove({ cardNumber, userId: user.id })).deletedCount === 1;
+    async removeCard(_obj, { cardId }, { user }) {
+      return (await UserCard.remove({ cardId, userId: user.id })).deletedCount === 1;
     }
   }
 };
