@@ -141,6 +141,11 @@ type DailyEventInfo {
   Event occurrence date
   """
   date: String!
+
+  """
+  Last event occurrence timestamp
+  """
+  timestamp: DateTime!
 }
 
 type Subscription {
