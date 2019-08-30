@@ -50,7 +50,7 @@ type Project {
   """
   Returns recent events grouped by day
   """
-  recentEvents("limit" limit: Int): [RecentEvent]! @requireAuth
+  recentEvents("limit" limit: Int): [RecentEvents]! @requireAuth
 }
 
 extend type Mutation {

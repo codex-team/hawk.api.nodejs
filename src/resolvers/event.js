@@ -40,9 +40,8 @@ module.exports = {
      */
     async recent(_obj, { projectId, limit = 50 }) {
       const service = new EventsFactory(projectId);
-      const recentEvents = await service.findRecent(limit);
 
-      return recentEvents;
+      return service.findRecent(limit);
     },
 
     /**

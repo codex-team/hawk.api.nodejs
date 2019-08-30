@@ -115,11 +115,11 @@ type Event {
   payload: EventPayload!
 }
 
-type RecentEvent {
+type DailyEventInfo {
   """
   Event
   """
-  event: Event!
+  groupHash: String!
 
   """
   Event occurrence count
@@ -139,6 +139,11 @@ type Subscription {
   eventOccurred: Event! @requireAuth
 }
 
+type RecentEvents {
+  events: [Event!]
+  dailyInfo: [DailyEventInfo]
+}
+
 extend type Query {
   """
   Returns projects events
@@ -148,7 +153,7 @@ extend type Query {
   """
   Returns recent events grouped by day
   """
-  recent("project id" projectId: ID, "limit" limit: Int): [RecentEvent]!
+  recent("project id" projectId: ID, "limit" limit: Int): [DailyEventInfo]!
 
   """
   Returns an event
@@ -158,5 +163,5 @@ extend type Query {
   """
   Returns repetitions list
   """
-  repetitions("project id" projectId: ID, "event id" eventId: ID, "limit" limit: Int, "skip" skip: Int): [Event]!
+  repetitions("project id" projectId: ID!, "event id" eventId: ID!, "limit" limit: Int, "skip" skip: Int): [Event]!
 }
