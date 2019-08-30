@@ -12,7 +12,7 @@ const watchController = new MongoWatchController();
  */
 module.exports = {
   Event: {
-    id: parent => parent._id
+    id: parent => parent._id // rename MongoDB _id to id
   },
   Query: {
     /**

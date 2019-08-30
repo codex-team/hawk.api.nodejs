@@ -98,6 +98,9 @@ type EventPayload {
   context: JSONObject
 }
 
+"""
+Type representing Hawk event
+"""
 type Event {
   """
   Event id
@@ -114,12 +117,18 @@ type Event {
   """
   payload: EventPayload!
 
-  groupHash: String
+  """
+  Event group hash
+  """
+  groupHash: String!
 }
 
+"""
+Information about event per day
+"""
 type DailyEventInfo {
   """
-  Event
+  Event hash for grouping
   """
   groupHash: String!
 
@@ -141,8 +150,18 @@ type Subscription {
   eventOccurred: Event! @requireAuth
 }
 
+"""
+Event information per day with these events
+"""
 type RecentEvents {
+  """
+  Occured events list
+  """
   events: [Event!]
+
+  """
+  Information about occurred events per day
+  """
   dailyInfo: [DailyEventInfo]
 }
 
