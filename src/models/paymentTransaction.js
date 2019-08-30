@@ -29,6 +29,7 @@ class PaymentTransaction extends Model {
     this.orderId = transactionData.orderId;
     this.paymentId = transactionData.paymentId;
     this.timestamp = transactionData.timestamp;
+    this.status = transactionData.status;
   }
 
   /**
@@ -40,17 +41,12 @@ class PaymentTransaction extends Model {
   }
 
   /**
-   * Creates new payment transaction in DB
+   * Creates new payment transaction
    * @param {PaymentTransaction} transactionData - transaction data
    * @returns {Promise<PaymentTransaction>} - created transaction
    */
   static async create(transactionData) {
-    const transactionId = (await this.collection.insertOne(transactionData)).insertedId;
-
-    return new PaymentTransaction({
-      id: transactionId,
-      ...transactionData
-    });
+    return new PaymentTransaction(transactionData);
   }
 }
 

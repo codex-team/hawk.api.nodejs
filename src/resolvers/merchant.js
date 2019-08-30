@@ -6,18 +6,24 @@ const PaymentTransaction = require('../models/paymentTransaction');
 
 /**
  * @typedef {Object} PaymentQuery
- * @property {int} amount - total payment amount in kopecs
+ * @property {Number} amount - total payment amount in kopecs
  * @property {string} workspaceId - workspace identifier
  * @property {string} cardId - card identifier from bank
  */
 
 /**
  * @typedef {Object} PaymentLink
- * @property {int} amount - total payment amount in kopecs
+ * @property {Number} amount - total payment amount in kopecs
  * @property {string} status - payment status
  * @property {string} success - if the payment is successfull
  * @property {string} paymentURL - URL to the payment page
  */
+
+/**
+ * Tinkoff bank API
+ * @type {TinkoffAPI}
+ */
+const bankApi = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
 
 /**
  * See all types and fields here {@link ../typeDefs/merchant.graphql}
@@ -32,8 +38,6 @@ module.exports = {
      * @return {PaymentLink}
      */
     async attachCard(_obj, { language }, { user }) {
-      const bankApi = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
-
       const paymentQuery = {
         recurrent: 'Y',
         language: language || 'en',
@@ -59,6 +63,7 @@ module.exports = {
         amount: result.Amount,
         orderId: paymentRequest.OrderId,
         paymentId: result.PaymentId,
+        status: result.Status,
         timestamp: parseInt((Date.now() / 1000).toFixed(0))
       });
 
@@ -86,8 +91,6 @@ module.exports = {
      * @return {boolean}
      */
     async pay(_obj, { paymentQuery }, { user }) {
-      const bankApi = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
-
       const card = await UserCard.find(user.id, paymentQuery.cardId);
 
       if (!card) {
@@ -144,7 +147,7 @@ module.exports = {
     /**
      * API Mutation method for card detach
      * @param {ResolverObj} _obj
-     * @param {int} cardId - card's identifier
+     * @param {Number} cardId - card's identifier
      * @param {Object} user - current user object
      * @return {boolean}
      */
