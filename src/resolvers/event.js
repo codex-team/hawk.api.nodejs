@@ -11,6 +11,9 @@ const watchController = new MongoWatchController();
  * See all types and fields here {@see ../typeDefs/event.graphql}
  */
 module.exports = {
+  Event: {
+    id: parent => parent._id // rename MongoDB _id to id
+  },
   Query: {
     /**
      * Returns Events list ordered by timestamp
@@ -40,9 +43,8 @@ module.exports = {
      */
     async recent(_obj, { projectId, limit = 50 }) {
       const service = new EventsFactory(projectId);
-      const recentEvents = await service.findRecent(limit);
 
-      return recentEvents;
+      return service.findRecent(limit);
     },
 
     /**
