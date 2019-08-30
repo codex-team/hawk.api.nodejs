@@ -63,8 +63,6 @@ class User extends Model {
     const userData = { email, password: hashedPassword };
     const userId = (await this.collection.insertOne(userData)).insertedId;
 
-    console.log(generatedPassword);
-
     const user = new User({
       id: userId,
       ...userData
