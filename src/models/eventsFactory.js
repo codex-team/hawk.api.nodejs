@@ -117,6 +117,7 @@ class EventsFactory {
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate([
       { $sort: { _id: -1, count: -1 } },
+      { $limit: limit },
       {
         $group: {
           _id: null,
@@ -134,7 +135,7 @@ class EventsFactory {
       }
     ]);
 
-    return await cursor.toArray();
+    return cursor.toArray();
   }
 
   /**

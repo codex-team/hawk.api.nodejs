@@ -11,6 +11,9 @@ const watchController = new MongoWatchController();
  * See all types and fields here {@see ../typeDefs/event.graphql}
  */
 module.exports = {
+  Event: {
+    id: parent => parent._id
+  },
   Query: {
     /**
      * Returns Events list ordered by timestamp
