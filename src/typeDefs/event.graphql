@@ -98,6 +98,9 @@ type EventPayload {
   context: JSONObject
 }
 
+"""
+Type representing Hawk single Event
+"""
 type Event {
   """
   Event id
@@ -113,13 +116,21 @@ type Event {
   Event payload
   """
   payload: EventPayload!
+
+  """
+  Event group hash
+  """
+  groupHash: String!
 }
 
-type RecentEvent {
+"""
+Information about event per day
+"""
+type DailyEventInfo {
   """
-  Event
+  Event hash for grouping
   """
-  event: Event!
+  groupHash: String!
 
   """
   Event occurrence count
@@ -130,6 +141,11 @@ type RecentEvent {
   Event occurrence date
   """
   date: String!
+
+  """
+  Last event occurrence timestamp
+  """
+  timestamp: DateTime!
 }
 
 type Subscription {
@@ -137,6 +153,21 @@ type Subscription {
   Sends new events from all user projects
   """
   eventOccurred: Event! @requireAuth
+}
+
+"""
+Event information per day with these events
+"""
+type RecentEvents {
+  """
+  Occured events list
+  """
+  events: [Event!]
+
+  """
+  Information about occurred events per day
+  """
+  dailyInfo: [DailyEventInfo]
 }
 
 extend type Query {
@@ -148,7 +179,7 @@ extend type Query {
   """
   Returns recent events grouped by day
   """
-  recent("project id" projectId: ID, "limit" limit: Int): [RecentEvent]!
+  recent("project id" projectId: ID, "limit" limit: Int): [DailyEventInfo]!
 
   """
   Returns an event
@@ -158,5 +189,5 @@ extend type Query {
   """
   Returns repetitions list
   """
-  repetitions("project id" projectId: ID, "event id" eventId: ID, "limit" limit: Int, "skip" skip: Int): [Event]!
+  repetitions("project id" projectId: ID!, "event id" eventId: ID!, "limit" limit: Int, "skip" skip: Int): [Event]!
 }
