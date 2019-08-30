@@ -51,7 +51,7 @@ class HawkAPI {
 
     this.server = new ApolloServer({
       typeDefs,
-      debug: false,
+      debug: true,
       resolvers,
       playground: PLAYGROUND_ENABLE,
       introspection: PLAYGROUND_ENABLE,
@@ -88,7 +88,7 @@ class HawkAPI {
      */
     const authorizationHeader = connection
       ? connection.context.headers.authorization
-      : req.headers['authorization'];
+      : req.headers.authorization;
 
     if (
       authorizationHeader &&

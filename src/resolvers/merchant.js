@@ -21,25 +21,31 @@ module.exports = {
      * API Query method for getting payment link
      * @return {PaymentLink}
      */
-    async paymentLink(_obj, { paymentQuery }, { user }) {
+    async attachCard(_obj, { language }, { user }) {
       const bankApi = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
 
-      // set rebillId by default
-      paymentQuery.rebillId = 'Y';
-      paymentQuery.data = {
-        UserId: user.id,
-        WorkspaceId: paymentQuery.workspaceId
+      const paymentQuery = {
+        recurrent: 'Y',
+        language: language || 'en',
+        data: {
+          UserId: user.id
+        },
+        amount: 100
       };
+
       const paymentRequest = await PaymentRequest.create(user.id, paymentQuery);
+
+      console.log('INIT =>', paymentRequest);
+
       const result = await bankApi.initPayment(paymentRequest);
 
+      console.log(result);
       if (!result.Success) {
         throw Error(`Merchant API error: ${result.Message} ${result.Details}`);
       }
 
       const transaction = await PaymentTransaction.create({
         userId: user.id,
-        workspaceId: paymentQuery.workspaceId,
         amount: result.Amount,
         orderId: paymentRequest.OrderId,
         paymentId: result.PaymentId,
@@ -67,6 +73,7 @@ module.exports = {
      */
     async addCard(_obj, { cardData }, { user }) {
       const card = await UserCard.findOne({ cardNumber: cardData.cardNumber });
+
       if (card) {
         return false;
       } else {

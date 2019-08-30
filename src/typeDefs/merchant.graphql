@@ -92,9 +92,9 @@ type CardInfo {
 
 extend type Query {
   """
-  Returns JSON data with payment link
+  Returns JSON data with payment link and initiate card attach procedure
   """
-  paymentLink("Payment query" paymentQuery: PaymentQuery!): PaymentLink @requireAuth
+  attachCard(language: String): PaymentLink @requireAuth
 
   """
   Get attached cards
