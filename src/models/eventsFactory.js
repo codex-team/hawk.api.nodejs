@@ -116,7 +116,7 @@ class EventsFactory {
     limit = this.validateLimit(limit);
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate([
-      { $sort: { _id: -1, count: -1 } },
+      { $sort: { timestamp: -1 } },
       { $limit: limit },
       {
         $group: {
