@@ -26,7 +26,11 @@ async function setupConnections() {
  * @return {Promise<*>}
  */
 async function publish(exchange, route, message) {
-  return channel.publish(exchange, route, Buffer.from(message));
+  try {
+    return channel.publish(exchange, route, Buffer.from(message));
+  } catch (e) {
+    console.log('RabbitMQ error:', e);
+  }
 }
 
 module.exports = {

@@ -23,26 +23,6 @@ type PaymentLink {
   PaymentURL: String
 }
 
-"""
-Payment query structure
-"""
-input PaymentQuery {
-  """
-  Total payment amount in kopecs
-  """
-  amount: Int!
-
-  """
-  Workspace id for which the payment will be made
-  """
-  workspaceId: String!
-
-  """
-  Unique card identifier
-  """
-  cardId: Int!
-}
-
 type CardInfo {
   """
   Card number (Pan)
@@ -69,7 +49,47 @@ extend type Query {
   """
   Initialize recurrent payment
   """
-  pay(paymentQuery: PaymentQuery!): Boolean! @requireAuth
+  payWithCard(
+    """
+    Total payment amount in kopecs
+    """
+    amount: Int!
+
+    """
+    Workspace id for which the payment will be made
+    """
+    workspaceId: String!
+
+    """
+    Unique card identifier for recurrent payment. Omit this to pay with unattached card
+    """
+    cardId: Int!
+
+    """
+    Payment form language
+    """
+    language: String
+  ): Boolean! @requireAuth
+
+  """
+  Initialize recurrent payment
+  """
+  payOnce(
+    """
+    Total payment amount in kopecs
+    """
+    amount: Int!
+
+    """
+    Workspace id for which the payment will be made
+    """
+    workspaceId: String!
+
+    """
+    Payment form language
+    """
+    language: String
+  ): PaymentLink! @requireAuth
 
   """
   Get attached cards

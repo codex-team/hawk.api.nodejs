@@ -1,10 +1,12 @@
 const crypto = require('crypto');
 const User = require('../models/user');
+const TinkoffAPI = require('tinkoff-api');
 
 const EmailCompany = process.env.BILLING_COMPANY_EMAIL;
 const OSNTaxation = 'osn';
 const TaxNone = 'none';
 const PaymentDescription = 'Card check payment. It will be refunded.';
+const bankApi = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
 
 /**
  * PaymentRequest model
@@ -16,10 +18,10 @@ class PaymentRequest {
    * @param {UserSchema} userData - user's data
    * @param {UserSchema} orderId - unique order identifier
    */
-  static generatePaymentObject(paymentRequest, userData, orderId) {
+  static generatePaymentObject(paymentRequest, userData) {
     return {
       Amount: paymentRequest.amount,
-      OrderId: orderId,
+      OrderId: paymentRequest.orderId,
       Recurrent: paymentRequest.recurrent,
       Language: paymentRequest.language,
       CustomerKey: userData.id,
@@ -56,10 +58,28 @@ class PaymentRequest {
    * @returns {Object} - payment object
    */
   static async create(userId, paymentQuery) {
-    const orderId = this.generateOrderId();
     const userData = await User.findById(userId);
+    const paymentObject = PaymentRequest.generatePaymentObject(paymentQuery, userData);
 
-    return PaymentRequest.generatePaymentObject(paymentQuery, userData, orderId);
+    console.log('INIT =>', paymentObject);
+    return paymentObject;
+  }
+
+  /**
+   * Run API Init action
+   * @param userId
+   * @param paymentInitQuery
+   * @return {Promise<void>}
+   */
+  static async apiInitPayment(userId, paymentInitQuery) {
+    const paymentRequest = await PaymentRequest.create(userId, paymentInitQuery);
+    const result = await bankApi.initPayment(paymentRequest);
+
+    console.log(`Got result for Init payment: ${JSON.stringify(result)}`);
+    if (!result.Success) {
+      throw Error(`Merchant API error: ${result.Message} ${result.Details}`);
+    }
+    return result;
   }
 }
 
