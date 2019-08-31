@@ -108,10 +108,9 @@ type Event {
   id: ID!
 
   """
-  Events count
+  Event occurrence count
   """
   count: Int!
-
 
   """
   Catcher type
