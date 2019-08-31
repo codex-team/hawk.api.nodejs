@@ -3,6 +3,8 @@ const UserCard = require('../models/userCard');
 const TinkoffAPI = require('tinkoff-api');
 const rabbitmq = require('../rabbitmq');
 const PaymentTransaction = require('../models/paymentTransaction');
+const Membership = require('../models/membership');
+const Transaction = require('../models/transaction');
 
 /**
  * @typedef {Object} PaymentQuery
@@ -83,6 +85,33 @@ module.exports = {
     async getCardList(_obj, { paymentQuery }, { user }) {
       return UserCard.findByUserId(user.id);
     },
+
+    /**
+     * API Query method for getting all transactions for passed workspaces
+     * @param _obj
+     * @param {string[]} ids - ids of workspaces for which transactions have been requested
+     * @param {User} user - current authorized user
+     * @returns {Promise<Transaction>}
+     */
+    async transactions(_obj, { ids }, { user }) {
+      // @todo check if user has permissions to get transactions
+
+      const membership = new Membership(user.id);
+
+      const workspaces = await membership.getWorkspaces();
+      const allowedIds = workspaces.map(w => w.id.toString());
+
+      if (ids.length === 0) {
+        ids = allowedIds;
+      } else {
+        ids = ids.filter(id => allowedIds.includes(id));
+      }
+
+      return Transaction.getWorkspacesTransactions(ids);
+    }
+  },
+  Mutation: {
+
     /**
      * API Mutation method for payment
      * @param {ResolverObj} _obj
@@ -141,9 +170,8 @@ module.exports = {
       await rabbitmq.publish('merchant', 'merchant/charged', JSON.stringify(transaction));
 
       return true;
-    }
-  },
-  Mutation: {
+    },
+
     /**
      * API Mutation method for card detach
      * @param {ResolverObj} _obj
