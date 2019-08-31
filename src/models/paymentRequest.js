@@ -14,9 +14,9 @@ const bankApi = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TIN
 class PaymentRequest {
   /**
    * Return payment request JSON object
-   * @param {UserSchema} paymentRequest - user's data
+   * @param {Object} paymentRequest - payment params
    * @param {UserSchema} userData - user's data
-   * @param {UserSchema} orderId - unique order identifier
+   * @param {String} orderId - unique order identifier
    */
   static generatePaymentObject(paymentRequest, userData) {
     return {
@@ -67,9 +67,9 @@ class PaymentRequest {
 
   /**
    * Run API Init action
-   * @param userId
-   * @param paymentInitQuery
-   * @return {Promise<void>}
+   * @param {String} userId - user's id
+   * @param {Object} paymentInitQuery - payment params
+   * @return {Object} - payment response object from bank
    */
   static async apiInitPayment(userId, paymentInitQuery) {
     const paymentRequest = await PaymentRequest.create(userId, paymentInitQuery);
