@@ -122,7 +122,10 @@ class Membership {
         }
       },
       {
-        $unwind: '$planInfo'
+        $unwind: {
+          path: '$planInfo',
+          preserveNullAndEmptyArrays: true
+        },
       },
       {
         $addFields: {
