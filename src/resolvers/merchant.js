@@ -35,7 +35,7 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {string} language
      * @param {Object} user - current user object
-     * @return {PaymentLink}
+     * @return {Promise<PaymentLink>}
      */
     async attachCard(_obj, { language }, { user }) {
       const orderId = PaymentRequest.generateOrderId();
@@ -68,7 +68,7 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {PaymentQuery} paymentQuery
      * @param {Object} user - current user object
-     * @return {UserCard[]}
+     * @return {Promise<UserCard[]>}
      */
     async getCardList(_obj, { paymentQuery }, { user }) {
       return UserCard.findByUserId(user.id);
@@ -79,7 +79,7 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {PaymentQuery} paymentQuery
      * @param {Object} user - current user object
-     * @return {boolean}
+     * @return {Promise<boolean>}
      */
     async payWithCard(_obj, { amount, language, cardId, workspaceId }, { user }) {
       const orderId = PaymentRequest.generateOrderId();
@@ -131,7 +131,7 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {PaymentQuery} paymentQuery
      * @param {Object} user - current user object
-     * @return {boolean}
+     * @return {Promise<boolean>}
      */
     async payOnce(_obj, { amount, language, workspaceId }, { user }) {
       const orderId = PaymentRequest.generateOrderId();
@@ -165,7 +165,7 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {Number} cardId - card's identifier
      * @param {Object} user - current user object
-     * @return {boolean}
+     * @return {Promise<boolean>}
      */
     async removeCard(_obj, { cardId }, { user }) {
       return (await UserCard.remove({ cardId, userId: user.id })).deletedCount === 1;

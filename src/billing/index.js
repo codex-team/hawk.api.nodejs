@@ -12,7 +12,7 @@ class Billing {
    * Callback action for Tinkoff payment notification {@link https://oplata.tinkoff.ru/landing/develop/notifications/parametres}
    * @param req
    * @param res
-   * @return {Promise<*>}
+   * @return {Promise<void>}
    */
   static async notifyCallback(req, res) {
     const body = req.body;
