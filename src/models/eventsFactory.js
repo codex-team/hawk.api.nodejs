@@ -143,9 +143,11 @@ class EventsFactory {
 
     const result = (await cursor.toArray()).shift();
 
-    result.events.forEach(event => {
-      event.projectId = this.projectId;
-    });
+    if (result && result.events) {
+      result.events.forEach(event => {
+        event.projectId = this.projectId;
+      });
+    }
 
     return result;
   }
