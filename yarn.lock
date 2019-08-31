@@ -4181,9 +4181,9 @@ timed-out@^4.0.0:
   resolved "https://registry.yarnpkg.com/timed-out/-/timed-out-4.0.1.tgz#f32eacac5a175bea25d7fab565ab3ed8741ef56f"
   integrity sha1-8y6srFoXW+ol1/q1Zas+2HQe9W8=
 
-"tinkoff-api@git+https://github.com/codex-team/tinkoff-api.git#apiV1":
+"tinkoff-api@git+https://github.com/codex-team/tinkoff-api.git":
   version "0.1.1"
-  resolved "git+https://github.com/codex-team/tinkoff-api.git#f6b0b270b3a55770bcfb4569019ff25c57532afe"
+  resolved "git+https://github.com/codex-team/tinkoff-api.git#dd19d0f195192be546ac1090f3b0fb72de304ecc"
   dependencies:
     axios "^0.19.0"
     debug "^2.6.8"
