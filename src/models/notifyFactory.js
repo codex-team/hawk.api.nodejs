@@ -64,7 +64,7 @@ class NotifyFactory extends Factory {
    * Update Notify
    *
    * @param {NotifySchema} notify - Notify to update
-   * @returns {Promise<Boolean|null>}
+   * @returns {Promise<Boolean>}
    */
   async update(notify) {
     if (!notify.userId) {

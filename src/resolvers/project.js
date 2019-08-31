@@ -51,6 +51,7 @@ module.exports = {
 
       const project = await Project.create({
         name,
+        workspaceId,
         uidAdded: new ObjectID(user.id),
         notify: projectNotify
       });

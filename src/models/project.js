@@ -1,4 +1,5 @@
 const mongo = require('../mongo');
+const { propsToPaths } = require('../utils/object');
 const { ObjectID } = require('mongodb');
 const { sign } = require('jsonwebtoken');
 
@@ -11,6 +12,7 @@ const { sign } = require('jsonwebtoken');
  * @property {string} [domain] - project domain
  * @property {string} [image] - project image
  * @property {string|ObjectID} uidAdded - user who added the project
+ * @property {string} workspaceId - workspace ID
  * @property {NotifySchema} notify - Project notification settings
  */
 
@@ -45,6 +47,7 @@ class Project {
     this.uri = projectData.uri;
     this.image = projectData.image;
     this.uidAdded = projectData.uidAdded;
+    this.workspaceId = projectData.workspaceId;
     this.notify = projectData.notify;
   }
 
@@ -118,6 +121,22 @@ class Project {
       id: project._id,
       ...project
     });
+  }
+
+  /**
+   * Update project common notify settings.
+   * @param {string} projectId - project ID
+   * @param {NotifySchema} notify - Updated notify, w/o userId
+   * @returns {Promise<boolean>} - updated or not
+   */
+  static async updateNotify(projectId, notify) {
+    if (!projectId) {
+      throw new Error('projectId is required');
+    }
+
+    const updated = await this.collection.updateOne({ _id: new ObjectID(projectId) }, propsToPaths(notify));
+
+    return updated.matchedCount || updated.upsertedCount;
   }
 }
 

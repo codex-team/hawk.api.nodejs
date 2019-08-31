@@ -183,9 +183,25 @@ input NotifyInput {
 }
 
 extend type Query {
-  notificationSettings("Project ID" projectId: ID!): Notify @requireAuth
+  """
+  Get project personal notification settings
+  """
+  personalNotificationSettings("Project ID" projectId: ID!): Notify @requireAuth
+
+  """
+  Get project common notifcation settings
+  """
+  commonNotificationSettings("Project ID" projectId: ID!): Notify @requireAuth
 }
 
 extend type Mutation {
-  updateNotificationSettings("Project ID" projectId: ID!, "Notify" notify: NotifyInput!): Boolean! @requireAuth
+  """
+  Update project personal notification settings
+  """
+  updatePersonalNotificationSettings("Project ID" projectId: ID!, "Notify" notify: NotifyInput!): Notify! @requireAuth
+
+  """
+  Update project common notification settings
+  """
+  updateCommonNotificationSettings("Project ID" projectId: ID!, "Notify" notify: NotifyInput!): Notify! @requireAuth
 }
