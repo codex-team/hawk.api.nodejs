@@ -162,9 +162,6 @@ class EventsFactory {
     const result = await cursor.toArray();
 
     return result.map(repetition => {
-      delete repetition._id;
-      delete repetition.groupHash;
-
       eventOriginal.mergeWith(repetition);
       return eventOriginal;
     });
