@@ -62,7 +62,11 @@ class HawkAPI {
         path: '/subscriptions',
         onConnect: HawkAPI.onWebSocketConnection
       },
-      context: HawkAPI.createContext
+      context: HawkAPI.createContext,
+      formatError: error => {
+        console.error(error.originalError);
+        return error;
+      }
     });
 
     this.server.applyMiddleware({ app: this.app });
