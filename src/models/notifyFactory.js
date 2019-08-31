@@ -63,7 +63,7 @@ class NotifyFactory extends Factory {
   /**
    * Update Notify
    *
-   * @param {Notify} notify - Notify to update
+   * @param {NotifySchema} notify - Notify to update
    * @returns {Promise<Boolean|null>}
    */
   async update(notify) {

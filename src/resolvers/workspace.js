@@ -5,6 +5,8 @@ const Workspace = require('../models/workspace');
 const Team = require('../models/team');
 const Membership = require('../models/membership');
 const User = require('../models/user');
+const Notify = require('../models/notify');
+const NotifyFactory = require('../models/notifyFactory');
 const { ProjectToWorkspace } = require('../models/project');
 const Validator = require('../utils/validator');
 const emailProvider = require('../email');
@@ -156,6 +158,33 @@ module.exports = {
         await new Membership(user.id).confirmMembership(workspaceId);
       } else {
         await new Membership(user.id).addWorkspace(workspaceId);
+      }
+
+      /*
+       * Set default personal user settings for all project in workspace:
+       * Get all projects from workspace -> set notifies
+       */
+
+      const projectToWorkspace = ProjectToWorkspace(workspaceId);
+
+      const projects = await projectToWorkspace.find({});
+
+      for (const project of projects) {
+        try {
+          const notifyFactory = new NotifyFactory(project.id);
+          const notify = Notify.defaultNotify;
+
+          notify.userId = currentUser.id;
+          notify.settings.email.value = currentUser.email;
+
+          const result = await notifyFactory.update(notify);
+
+          if (!result) {
+            console.warn(`Couldn't set Notify for user ${currentUser.id}, projectId: ${project.id}`);
+          }
+        } catch (err) {
+          console.error(err);
+        }
       }
 
       return true;

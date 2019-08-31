@@ -11,6 +11,7 @@ const { sign } = require('jsonwebtoken');
  * @property {string} [domain] - project domain
  * @property {string} [image] - project image
  * @property {string|ObjectID} uidAdded - user who added the project
+ * @property {NotifySchema} notify - Project notification settings
  */
 
 /**
@@ -44,6 +45,7 @@ class Project {
     this.uri = projectData.uri;
     this.image = projectData.image;
     this.uidAdded = projectData.uidAdded;
+    this.notify = projectData.notify;
   }
 
   /**

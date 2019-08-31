@@ -53,6 +53,31 @@ class Notify {
       this[prop] = schema[prop];
     });
   }
+
+  /**
+   * Default notify settings.
+   * @returns {{actionType: number, settings: {tg: {value: string, enabled: boolean}, slack: {value: string, enabled: boolean}, email: {value: string, enabled: boolean}}, words: string}}
+   */
+  static get defaultNotify() {
+    return {
+      actionType: 1,
+      words: '',
+      settings: {
+        email: {
+          value: '',
+          enabled: true
+        },
+        tg: {
+          value: '',
+          enabled: false
+        },
+        slack: {
+          value: '',
+          enabled: false
+        }
+      }
+    };
+  }
 }
 
 module.exports = Notify;
