@@ -1,6 +1,6 @@
 const Model = require('./model');
-const mongo = require('../mongo')
-const {ObjectID} = require('mongodb');
+const mongo = require('../mongo');
+const { ObjectID } = require('mongodb');
 
 /**
  * Model representing transaction object
@@ -30,7 +30,7 @@ class Transaction extends Model {
   constructor(transactionData) {
     super();
 
-    const {type, amount, workspace, date, user, cardPan, _id} = transactionData
+    const { type, amount, workspace, date, user, cardPan, _id } = transactionData;
 
     this.id = _id.toString();
     this.type = type;
@@ -48,7 +48,6 @@ class Transaction extends Model {
    * @returns {Promise<Transaction>}
    */
   static async getWorkspacesTransactions(ids) {
-
     const pipeline = [
       {
         $match: {

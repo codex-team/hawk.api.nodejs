@@ -1,5 +1,5 @@
 const Model = require('./model');
-const mongo = require('../mongo')
+const mongo = require('../mongo');
 
 /**
  * Model representing workspace tariff plan
@@ -26,7 +26,7 @@ class Plan extends Model {
   constructor(planData) {
     super();
 
-    const { name, monthlyCharge, eventsLimit, _id } = planData
+    const { name, monthlyCharge, eventsLimit, _id } = planData;
 
     this.id = _id.toString();
     this.name = name;
@@ -48,7 +48,7 @@ class Plan extends Model {
    * @returns {Promise<Plan>}
    */
   static async getDefaultPlan() {
-    return this.findOne({default: true});
+    return this.findOne({ default: true });
   }
 }
 
