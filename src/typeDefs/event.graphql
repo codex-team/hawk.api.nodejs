@@ -85,7 +85,7 @@ type EventPayload {
   """
   Source code version identifier
   """
-  release: String!
+  release: String
 
   """
   Current authenticated user
@@ -106,6 +106,11 @@ type Event {
   Event id
   """
   id: ID!
+
+  """
+  Event occurrence count
+  """
+  count: Int!
 
   """
   Catcher type
