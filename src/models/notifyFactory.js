@@ -71,7 +71,7 @@ class NotifyFactory extends Factory {
       throw new Error('Can not update Notify, because userId is not provided');
     }
 
-    const updated = await this.collection.updateOne({ userId: notify.userId }, { $set: propsToPaths(notify) }, { upsert: true });
+    const updated = await this.collection.updateOne({ userId: new ObjectID(notify.userId) }, { $set: propsToPaths(notify) }, { upsert: true });
 
     return updated.matchedCount || updated.upsertedCount;
   }
@@ -90,6 +90,19 @@ class NotifyFactory extends Factory {
     const inserted = await this.collection.insertOne({ userId, settings });
 
     return new Notify({ _id: inserted.insertedId, userId, settings });
+  }
+
+  /**
+   * Delete notify
+   * @param {ObjectID|string} userId - User ID
+   * @returns {Promise<Boolean>}
+   */
+  async deleteOne(userId) {
+    if (!userId) {
+      throw new Error('Can not delete Notify, because userId is not provided');
+    }
+
+    return (await this.collection.deleteOne({ userId: new ObjectID(userId) })).deletedCount;
   }
 }
 

@@ -283,6 +283,16 @@ module.exports = {
         await team.removeMemberByEmail(userEmail);
       }
 
+      // Get workspace's projects -> delete notifies
+
+      const projects = await new ProjectToWorkspace(workspaceId).getProjects();
+
+      for (const project of projects) {
+        const notifyFactory = new NotifyFactory(project.id);
+
+        await notifyFactory.deleteOne(userId);
+      }
+
       return true;
     }
   },

@@ -1,7 +1,7 @@
 const { ObjectID } = require('mongodb');
 const Notify = require('../models/notify');
 const NotifyFactory = require('../models/notifyFactory');
-const Project = require('../models/project');
+const { Project } = require('../models/project');
 const Team = require('../models/team');
 
 /**
@@ -24,7 +24,7 @@ module.exports = {
        */
       if (!project) return null;
 
-      const team = Team(project.workspaceId);
+      const team = new Team(project.workspaceId);
 
       const teamInstance = await team.findByUserId(user.id);
 
@@ -59,7 +59,7 @@ module.exports = {
        */
       if (!project) return null;
 
-      const team = Team(project.workspaceId);
+      const team = new Team(project.workspaceId);
 
       const teamInstance = await team.findByUserId(user.id);
 
@@ -88,7 +88,7 @@ module.exports = {
        */
       if (!project) return null;
 
-      const team = Team(project.workspaceId);
+      const team = new Team(project.workspaceId);
 
       const teamInstance = await team.findByUserId(user.id);
 
@@ -129,7 +129,7 @@ module.exports = {
        */
       if (!project) return null;
 
-      const team = Team(project.workspaceId);
+      const team = new Team(project.workspaceId);
 
       const teamInstance = await team.findByUserId(user.id);
 
