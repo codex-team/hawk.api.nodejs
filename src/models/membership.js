@@ -5,6 +5,7 @@ const { ObjectID } = require('mongodb');
  * @typedef {Object} MembershipDocumentSchema
  * @property {string} id - document's id
  * @property {ObjectID} workspaceId - user workspace id
+ * @property {boolean} isPending - shows if member is pending
  */
 
 /**
@@ -33,15 +34,52 @@ class Membership {
    * @param {String} workspaceId - user's id to add
    * @returns {Promise<TeamDocumentSchema>} - created document
    */
-  async addWorkspace(workspaceId) {
-    const documentId = (await this.collection.insertOne({
+  async addWorkspace(workspaceId, pending = false) {
+    const doc = {
       workspaceId: new ObjectID(workspaceId)
-    })).insertedId;
+    };
+
+    if (pending) {
+      doc.pending = pending;
+    }
+
+    const documentId = (await this.collection.insertOne(doc)).insertedId;
 
     return {
       id: documentId,
       workspaceId
     };
+  }
+
+  /**
+   * Remove workspace from membership collection
+   *
+   * @param {string} workspaceId - id of workspace to remove
+   * @returns {Promise<{workspaceId: string}>}
+   */
+  async removeWorkspace(workspaceId) {
+    await this.collection.removeOne({
+      workspaceId: new ObjectID(workspaceId)
+    });
+
+    return {
+      workspaceId
+    };
+  }
+
+  /**
+   * Confirm membership of workspace by id
+   *
+   * @param {string} workspaceId - workspace id to confirm
+   * @returns {Promise<void>}
+   */
+  async confirmMembership(workspaceId) {
+    await this.collection.updateOne(
+      {
+        workspaceId: new ObjectID(workspaceId)
+      },
+      { $unset: { isPending: 1 } }
+    );
   }
 
   /**
@@ -63,6 +101,11 @@ class Membership {
         }
       },
       {
+        $match: {
+          isPending: { $exists: false }
+        }
+      },
+      {
         $unwind: '$workspace'
       },
       {
@@ -72,7 +115,8 @@ class Membership {
       },
       {
         $addFields: {
-          id: '$_id'
+          id: '$_id',
+          isPending: false
         }
       }
     ];

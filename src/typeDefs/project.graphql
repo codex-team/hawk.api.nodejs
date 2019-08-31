@@ -46,6 +46,18 @@ type Project {
   Project events
   """
   events(limit: Int! = 10, skip: Int! = 0): [Event!] @requireAuth
+
+  """
+  Returns recent events grouped by day
+  """
+  recentEvents("limit" limit: Int): RecentEvents @requireAuth
+}
+
+extend type Query {
+  """
+  Returns project info
+  """
+  project("Project id" id: ID!): Project @requireAuth
 }
 
 extend type Mutation {
