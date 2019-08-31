@@ -10,6 +10,13 @@ const { ObjectID } = require('mongodb');
  */
 
 /**
+ * @typedef {Object} EventRepetitionSchema
+ * @property {String} _id — repetition's identifier
+ * @property {String} groupHash - event's hash. Generates according to the rule described in EventSchema
+ * @property {EventPayload} payload - repetition's payload
+ */
+
+/**
  * EventsFactory
  *
  * Creational Class for Event's Model
@@ -144,9 +151,9 @@ class EventsFactory {
    * @param {Number} limit - count limitations
    * @param {Number} skip - selection offset
    *
-   * @return {Event}
+   * @return {EventRepetitionSchema[]}
    */
-  async getRepetitions(eventId, limit = 10, skip = 0) {
+  async getEventRepetitions(eventId, limit = 10, skip = 0) {
     limit = this.validateLimit(limit);
     skip = this.validateSkip(skip);
 
@@ -159,31 +166,7 @@ class EventsFactory {
       .limit(limit)
       .skip(skip);
 
-    const result = await cursor.toArray();
-
-    return result.map(repetition => {
-      eventOriginal.mergeWith(repetition);
-      return eventOriginal;
-    });
-  }
-
-  /**
-   * @param eventId
-   * @return {Promise<Event>}
-   */
-  async getActualEvent(eventId) {
-    const event = await this.findById(eventId);
-
-    const cursor = this.getCollection(this.TYPES.REPETITIONS)
-      .find({ groupHash: event.groupHash })
-      .sort({ _id: -1 })
-      .limit(1);
-
-    const result = await cursor.toArray();
-    const repetition = result.shift();
-
-    event.mergeWith(repetition);
-    return event;
+    return cursor.toArray();
   }
 
   /**

@@ -1,9 +1,9 @@
 const MongoWatchController = require('../utils/mongoWatchController');
 const Membership = require('../models/membership');
 const { ProjectToWorkspace } = require('../models/project');
-const EventsFactory = require('../models/eventsFactory');
 const asyncForEach = require('../utils/asyncForEach');
 const mongo = require('../mongo');
+const EventsFactory = require('../models/eventsFactory');
 
 const watchController = new MongoWatchController();
 
@@ -12,55 +12,7 @@ const watchController = new MongoWatchController();
  */
 module.exports = {
   Event: {
-    id: parent => parent._id // rename MongoDB _id to id
-  },
-  Query: {
-    /**
-     * Returns Events list ordered by timestamp
-     *
-     * @param {ResolverObj} _obj
-     * @param {String} projectId
-     * @param {Number} limit
-     * @param {Number} skip
-     *
-     * @return {Event[]}
-     */
-    async events(_obj, { projectId, limit, skip }) {
-      const service = new EventsFactory(projectId);
-      const events = await service.find({}, limit, skip);
-
-      return events;
-    },
-
-    /**
-     * Returns recent Events grouped by day
-     *
-     * @param {ResolverObj} _obj
-     * @param {String} projectId
-     * @param {Number} limit
-     *
-     * @return {RecentEvent[]}
-     */
-    async recent(_obj, { projectId, limit = 50 }) {
-      const service = new EventsFactory(projectId);
-
-      return service.findRecent(limit);
-    },
-
-    /**
-     * Returns event information in the project
-     *
-     * @param {ResolverObj} _obj
-     * @param {String} projectId
-     * @param {String} eventId
-     *
-     * @return {Event}
-     */
-    async event(_obj, { projectId, eventId }) {
-      const service = new EventsFactory(projectId);
-
-      return service.getActualEvent(eventId);
-    },
+    id: parent => parent._id, // rename MongoDB _id to id
 
     /**
      * Returns repetitions list of the event
@@ -70,12 +22,12 @@ module.exports = {
      * @param {String} eventId
      * @param {Number} limit
      * @param {Number} skip
-     * @return {Event[]}
+     * @return {EventRepetitionSchema[]}
      */
     async repetitions(_obj, { projectId, eventId, limit, skip }) {
       const service = new EventsFactory(projectId);
 
-      return service.getRepetitions(eventId, limit, skip);
+      return service.getEventRepetitions(eventId, limit, skip);
     }
   },
   Subscription: {

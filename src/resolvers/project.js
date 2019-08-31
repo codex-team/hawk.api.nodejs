@@ -2,7 +2,7 @@ const { ValidationError } = require('apollo-server-express');
 const { ObjectID } = require('mongodb');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
-const eventResolvers = require('./event');
+const EventsFactory = require('../models/eventsFactory');
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -52,16 +52,31 @@ module.exports = {
   },
   Project: {
     /**
+     * Find project's event
+     *
+     * @param {String} id  - id of project (root resolver)
+     * @param {String} eventId - event's identifier
+     * @returns {Event}
+     */
+    async event({ id }, { eventId }) {
+      const service = new EventsFactory(id);
+
+      return service.findById(eventId);
+    },
+
+    /**
      * Find project events
      *
      * @param {String} id  - id of project (root resolver)
      * @param {number} limit - query limit
      * @param {number} skip - query skip
      * @param {Context.user} user - current authorized user {@see ../index.js}
-     * @returns {Promise<EventSchema[]>}
+     * @returns {Event[]}
      */
     async events({ id }, { limit, skip }) {
-      return eventResolvers.Query.events({}, { projectId: id, limit, skip });
+      const service = new EventsFactory(id);
+
+      return service.find({}, limit, skip);
     },
 
     /**
@@ -73,10 +88,9 @@ module.exports = {
      * @return {RecentEvent[]}
      */
     async recentEvents({ id }, { limit }) {
-      // @makeAnIssue remove aliases to event resolvers in project resolvers
-      const result = await eventResolvers.Query.recent({}, { projectId: id, limit });
+      const service = new EventsFactory(id);
 
-      return result.shift();
+      return service.findRecent(limit);
     }
   }
 };

@@ -43,6 +43,11 @@ type Project {
   uidAdded: User!
 
   """
+  Project's Event
+  """
+  event(id: ID!): Event! @requireAuth
+
+  """
   Project events
   """
   events(limit: Int! = 10, skip: Int! = 0): [Event!] @requireAuth
