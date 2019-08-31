@@ -17,6 +17,7 @@
     "husky": "^2.3.0",
     "jest": "^24.9.0",
     "lint-staged": "^8.1.7",
+    "migrate-mongo": "^6.0.2",
     "nodemon": "^1.19.1"
   },
   "dependencies": {
