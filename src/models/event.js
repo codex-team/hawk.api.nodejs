@@ -1,5 +1,3 @@
-const utils = require('../utils/utils');
-
 /**
  * @typedef {Object} BacktraceSourceCode
  * @property {Number} line - line's number

@@ -58,10 +58,12 @@ module.exports = {
      * @param {String} eventId - event's identifier
      * @returns {Event}
      */
-    async event({ id }, { eventId }) {
+    async event({ id }, { id: eventId }) {
       const service = new EventsFactory(id);
+      const event = await service.findById(eventId);
 
-      return service.findById(eventId);
+      event.projectId = id;
+      return event;
     },
 
     /**
@@ -84,10 +86,10 @@ module.exports = {
      *
      * @param {ResolverObj} _obj
      * @param {Number} limit - limit for events count
-     *
+     * @param context
      * @return {RecentEvent[]}
      */
-    async recentEvents({ id }, { limit }) {
+    async recentEvents({ id }, { limit }, context) {
       const service = new EventsFactory(id);
 
       return service.findRecent(limit);

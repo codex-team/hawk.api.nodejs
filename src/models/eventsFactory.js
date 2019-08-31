@@ -141,7 +141,13 @@ class EventsFactory {
       }
     ]);
 
-    return cursor.toArray();
+    const result = (await cursor.toArray()).shift();
+
+    result.events.forEach(event => {
+      event.projectId = this.projectId;
+    });
+
+    return result;
   }
 
   /**
