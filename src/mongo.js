@@ -9,7 +9,11 @@ const databases = {
 };
 
 const connectionConfig = {
-  useNewUrlParser: true
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  reconnectTries: 60,
+  reconnectInterval: 1000,
+  autoReconnect: true
 };
 
 /**
