@@ -1,7 +1,6 @@
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
-const _ = require('lodash');
 
 /**
  * @typedef {Object} RecentEventSchema
@@ -73,8 +72,8 @@ class EventsFactory {
 
     const result = await cursor.toArray();
 
-    return result.map(data => {
-      return new Event(data);
+    return result.map(eventSchema => {
+      return new Event(eventSchema);
     });
   }
 
@@ -162,13 +161,32 @@ class EventsFactory {
 
     const result = await cursor.toArray();
 
-    return result.map(data => {
-      delete data._id;
-      delete data.groupHash;
+    return result.map(repetition => {
+      delete repetition._id;
+      delete repetition.groupHash;
 
-      eventOriginal.payload = _.merge({}, eventOriginal.payload, data);
-      return new Event(eventOriginal);
+      eventOriginal.mergeWith(repetition);
+      return eventOriginal;
     });
+  }
+
+  /**
+   * @param eventId
+   * @return {Promise<Event>}
+   */
+  async getActualEvent(eventId) {
+    const event = await this.findById(eventId);
+
+    const cursor = this.getCollection(this.TYPES.REPETITIONS)
+      .find({ groupHash: event.groupHash })
+      .sort({ _id: -1 })
+      .limit(1);
+
+    const result = await cursor.toArray();
+    const repetition = result.shift();
+
+    event.mergeWith(repetition);
+    return event;
   }
 
   /**

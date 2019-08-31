@@ -118,6 +118,11 @@ type Event {
   catcherType: String
 
   """
+  Event's first occurence
+  """
+  firstOccurence: DateTime!
+
+  """
   Event payload
   """
   payload: EventPayload!

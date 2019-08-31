@@ -1,3 +1,5 @@
+const utils = require('../utils/utils');
+
 /**
  * @typedef {Object} BacktraceSourceCode
  * @property {Number} line - line's number
@@ -21,7 +23,7 @@
 
 /**
  * @typedef {Object} EventSchema
- * @property {String} id - event ID
+ * @property {String} _id - event ID
  * @property {String} catcherType - type of an event
  * @property {Number} count - event repetitions count
  * @property {String} groupHash - event's hash (catcherType + title + salt)
@@ -42,7 +44,7 @@
  * Event model
  * Represents events for given project
  *
- * @property {string|ObjectID} projectId - project ID
+ * @implements EventSchema
  */
 class Event {
   /**
@@ -70,11 +72,31 @@ class Event {
    */
   fillModel(schema) {
     for (const prop in schema) {
+      // eslint-disable-next-line no-prototype-builtins
       if (!schema.hasOwnProperty(prop)) {
         continue;
       }
       this[prop] = schema[prop];
     }
+  }
+
+  /**
+   * Merges current Event with repetition
+   *
+   * @todo Repetitions will be declared via types according to the Event's payload
+   *
+   * @param {object} repetition
+   */
+  mergeWith(repetition) {
+    delete repetition._id;
+    delete repetition.groupHash;
+
+    /*
+     * save events first occurence before merging with repetition
+     * temporary solution
+     */
+    this.firstOccurence = this.payload.timestamp;
+    this.payload = utils.deepMerge({}, this.payload, repetition);
   }
 }
 
