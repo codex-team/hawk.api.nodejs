@@ -41,7 +41,7 @@ class UserCard extends Model {
    * @return {Promise<User>}
    */
   static async findByUserId(userId) {
-    return (await this.collection.find({ userId })).toArray();
+    return (await this.collection.find({ userId: new ObjectID(userId) })).toArray();
   }
 
   /**
