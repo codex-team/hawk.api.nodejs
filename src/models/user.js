@@ -20,8 +20,15 @@ const objectHasOnlyProps = require('../utils/objectHasOnlyProps');
  * @property {string} password - user's password
  * @property {string} [image] - user's image URL
  * @property {string} [name] - user's name
- * @property {string} [githubId] - user's GitHub profile id
  * @property {string} [generatedPassword] - user's original password (this field appears only after registration)
+ * @property {object} [github] - github authn data
+ * @property {number} [github.id] - github id
+ * @property {string} [github.login] - github login
+ * @property {string} [github.email] - github email
+ * @property {object} [google] - google authn data
+ * @property {number} [google.id] - google id
+ * @property {string} [google.login] - google login
+ * @property {string} [google.email] - google email
  */
 
 /**
@@ -52,15 +59,18 @@ class User extends Model {
 
   /**
    * Creates new user in DB
-   * @param {String} email - user email
+   * @param {UserSchema} userData - user email
+   * @param {boolean} generatePassword - generate password
    * @returns {Promise<User>} - user details
    */
-  static async create(email) {
+  static async create(userData, { generatePassword }) {
+    generatePassword = generatePassword || true;
     // @todo normal password generation
     const generatedPassword = await this.generatePassword();
-    const hashedPassword = await this.hashPassword(generatedPassword);
 
-    const userData = { email, password: hashedPassword };
+    if (generatePassword) {
+      userData.password = await this.hashPassword(generatedPassword);
+    }
     const userId = (await this.collection.insertOne(userData)).insertedId;
 
     const user = new User({
@@ -69,54 +79,6 @@ class User extends Model {
     });
 
     user.generatedPassword = generatedPassword;
-
-    return user;
-  }
-
-  /**
-   * Creates new user id DB by GitHub provider
-   * @param {string} id - GitHub profile id
-   * @param {string} name - GitHub profile name
-   * @param {string} image - GitHub profile avatar url
-   * @return {Promise<User>}
-   */
-  static async createByGithub({ id, name, image }) {
-    if (!id || !name || !image) {
-      throw new Error('Required parameters are not provided');
-    }
-
-    const userData = { githubId: id, name, image };
-
-    const userId = (await this.collection.insertOne(userData)).insertedId;
-
-    const user = new User({
-      id: userId,
-      ...userData
-    });
-
-    return user;
-  }
-
-  /**
-   * Creates new user id DB by Google provider
-   * @param {string} id - Google profile id
-   * @param {string} name - Google profile name
-   * @param {string} picture - Google profile avatar url
-   * @return {Promise<User>}
-   */
-  static async createByGoogle({ id, name, picture }) {
-    if (!id || !name || !picture) {
-      throw new Error('Required parameters are not provided');
-    }
-
-    const userData = { googleId: id, name, picture };
-
-    const userId = (await this.collection.insertOne(userData)).insertedId;
-
-    const user = new User({
-      id: userId,
-      ...userData
-    });
 
     return user;
   }
@@ -162,7 +124,7 @@ class User extends Model {
     );
 
     if (status !== 1) {
-      throw new Error("Can't change password");
+      throw new Error('Can\'t change password');
     }
   }
 

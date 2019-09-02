@@ -19,7 +19,7 @@ authRouter.use(passport.initialize());
 
 authRouter.get(
   AUTH_ROUTES.GITHUB_REDIR,
-  passport.authenticate('github', { scope: [ 'read:user' ] })
+  passport.authenticate('github')
 );
 
 authRouter.get(
@@ -41,7 +41,7 @@ authRouter.get(
 
 authRouter.get(
   AUTH_ROUTES.GOOGLE_REDIR,
-  passport.authenticate('google', { scope: [ 'profile' ] })
+  passport.authenticate('google')
 );
 
 authRouter.get(

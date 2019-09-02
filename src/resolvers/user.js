@@ -33,7 +33,7 @@ module.exports = {
       let user;
 
       try {
-        user = await User.create(email);
+        user = await User.create({ email }, { generatePassword: true });
         emailProvider.send(email, emailTemplatesNames.SUCCESSFUL_SIGN_UP, {
           email,
           password: user.generatedPassword
