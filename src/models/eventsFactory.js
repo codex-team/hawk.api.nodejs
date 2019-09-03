@@ -110,7 +110,7 @@ class EventsFactory {
    * Returns events that grouped by day
    *
    * @param {Number} limit - events count limitations
-   * @param skip
+   * @param {Number} skip - certain number of documents to skip
    * @return {RecentEventSchema[]}
    */
   async findRecent(limit = 10, skip = 0) {
