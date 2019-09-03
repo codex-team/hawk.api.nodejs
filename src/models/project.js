@@ -134,9 +134,11 @@ class Project {
       throw new Error('projectId is required');
     }
 
-    const updated = await this.collection.updateOne({ _id: new ObjectID(projectId) }, propsToPaths(notify));
+    const fields = propsToPaths({ notify });
 
-    return updated.matchedCount || updated.upsertedCount;
+    const updated = await this.collection.updateOne({ _id: new ObjectID(projectId) }, { $set: fields }, { upsert: true });
+
+    return updated.modifiedCount || updated.upsertedCount || updated.matchedCount;
   }
 }
 

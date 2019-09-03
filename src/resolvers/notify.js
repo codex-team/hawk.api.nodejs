@@ -100,7 +100,7 @@ module.exports = {
       const factory = new NotifyFactory(projectId);
       const updatedNotify = new Notify({ userId: new ObjectID(user.id), ...notify });
 
-      const success = factory.update(updatedNotify);
+      const success = await factory.update(updatedNotify);
 
       if (!success) throw new Error('Failed to update user notify');
 
@@ -138,7 +138,7 @@ module.exports = {
        */
       if (!teamInstance || !teamInstance.isAdmin) return null;
 
-      const success = Project.updateNotify(projectId, notify);
+      const success = await Project.updateNotify(projectId, notify);
 
       if (!success) throw new Error('Failed to update project notify');
 
