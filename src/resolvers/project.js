@@ -69,12 +69,12 @@ module.exports = {
      *
      * @param {ResolverObj} _obj
      * @param {Number} limit - limit for events count
-     *
+     * @param {Number} skip - certain number of documents to skip
      * @return {RecentEvent[]}
      */
-    async recentEvents({ id }, { limit }) {
+    async recentEvents({ id }, { limit, skip }) {
       // @makeAnIssue remove aliases to event resolvers in project resolvers
-      const result = await eventResolvers.Query.recent({}, { projectId: id, limit });
+      const result = await eventResolvers.Query.recent({}, { projectId: id, limit, skip });
 
       return result.shift();
     }

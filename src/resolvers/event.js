@@ -27,24 +27,23 @@ module.exports = {
      */
     async events(_obj, { projectId, limit, skip }) {
       const service = new EventsFactory(projectId);
-      const events = await service.find({}, limit, skip);
 
-      return events;
+      return service.find({}, limit, skip);
     },
 
     /**
      * Returns recent Events grouped by day
      *
      * @param {ResolverObj} _obj
-     * @param {String} projectId
-     * @param {Number} limit
-     *
+     * @param {String} projectId - id of the project
+     * @param {Number} limit - maximum number of results
+     * @param {Number} skip - certain number of documents to skip
      * @return {RecentEvent[]}
      */
-    async recent(_obj, { projectId, limit = 50 }) {
+    async recent(_obj, { projectId, limit = 50, skip = 0 }) {
       const service = new EventsFactory(projectId);
 
-      return service.findRecent(limit);
+      return service.findRecent(limit, skip);
     },
 
     /**
@@ -58,26 +57,24 @@ module.exports = {
      */
     async event(_obj, { projectId, eventId }) {
       const service = new EventsFactory(projectId);
-      const event = await service.findById(eventId);
 
-      return event;
+      return service.findById(eventId);
     },
 
     /**
      * Returns repetitions list of the event
      *
      * @param {ResolverObj} _obj
-     * @param {String} projectId
      * @param {String} eventId
-     * @param {Number} limit
-     * @param {Number} skip
+     * @param {String} projectId - id of the project
+     * @param {Number} limit - maximum number of results
+     * @param {Number} skip - certain number of documents to skip
      * @return {Event[]}
      */
     async repetitions(_obj, { projectId, eventId, limit, skip }) {
       const service = new EventsFactory(projectId);
-      const events = await service.getRepetitions(eventId, limit, skip);
 
-      return events;
+      return service.getRepetitions(eventId, limit, skip);
     }
   },
   Subscription: {

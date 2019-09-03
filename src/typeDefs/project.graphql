@@ -45,12 +45,24 @@ type Project {
   """
   Project events
   """
-  events(limit: Int! = 10, skip: Int! = 0): [Event!] @requireAuth
+  events(
+    "Maximum number of results"
+    limit: Int! = 50
+
+    "Certain number of documents to skip"
+    skip: Int! = 0
+  ): [Event!] @requireAuth
 
   """
   Returns recent events grouped by day
   """
-  recentEvents("limit" limit: Int): RecentEvents @requireAuth
+  recentEvents(
+    "Maximum number of results"
+    limit: Int! = 50
+
+    "Certain number of documents to skip"
+    skip: Int! = 0
+  ): RecentEvents @requireAuth
 }
 
 extend type Query {
