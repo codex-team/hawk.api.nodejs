@@ -24,14 +24,13 @@ module.exports = {
      * @return {EventRepetitionSchema[]}
      */
     async repetitions({ _id, projectId }, { limit, skip }) {
-      console.log(limit);
-      console.log(projectId);
-      console.log(_id);
-
       const service = new EventsFactory(projectId);
 
       return service.getEventRepetitions(_id, limit, skip);
     }
+  },
+  Repetitions: {
+    id: parent => parent._id // rename MongoDB _id to id
   },
   Subscription: {
     eventOccurred: {
