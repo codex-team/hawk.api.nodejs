@@ -28,8 +28,10 @@ class PaymentTransaction extends Model {
     this.amount = transactionData.amount;
     this.orderId = transactionData.orderId;
     this.paymentId = transactionData.paymentId;
+    this.paymentType = transactionData.paymentType;
     this.timestamp = transactionData.timestamp;
     this.status = transactionData.status;
+    this.cardId = transactionData.cardId;
   }
 
   /**
