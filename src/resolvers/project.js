@@ -59,8 +59,8 @@ module.exports = {
      * @returns {Event}
      */
     async event({ id }, { id: eventId }) {
-      const service = new EventsFactory(id);
-      const event = await service.findById(eventId);
+      const factory = new EventsFactory(id);
+      const event = await factory.findById(eventId);
 
       event.projectId = id;
       return event;
@@ -76,9 +76,9 @@ module.exports = {
      * @returns {Event[]}
      */
     async events({ id }, { limit, skip }) {
-      const service = new EventsFactory(id);
+      const factory = new EventsFactory(id);
 
-      return service.find({}, limit, skip);
+      return factory.find({}, limit, skip);
     },
 
     /**
@@ -86,13 +86,12 @@ module.exports = {
      *
      * @param {ResolverObj} _obj
      * @param {Number} limit - limit for events count
-     * @param context
      * @return {RecentEvent[]}
      */
-    async recentEvents({ id }, { limit }, context) {
-      const service = new EventsFactory(id);
+    async recentEvents({ id }, { limit }) {
+      const factory = new EventsFactory(id);
 
-      return service.findRecent(limit);
+      return factory.findRecent(limit);
     }
   }
 };

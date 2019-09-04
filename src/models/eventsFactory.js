@@ -143,6 +143,14 @@ class EventsFactory {
 
     const result = (await cursor.toArray()).shift();
 
+    /**
+     * aggregation can return empty array so that
+     * result can be undefined
+     *
+     * for that we check result existance
+     *
+     * extra field `projectId` needs to satisfy GraphQL query
+     */
     if (result && result.events) {
       result.events.forEach(event => {
         event.projectId = this.projectId;
@@ -170,7 +178,7 @@ class EventsFactory {
       .find({
         groupHash: eventOriginal.groupHash
       })
-      .sort([ ['_id', -1] ])
+      .sort({ _id: -1 })
       .limit(limit)
       .skip(skip);
 

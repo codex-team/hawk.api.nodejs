@@ -22,7 +22,7 @@
 /**
  * @typedef {Object} EventPayload
  * @property {string} title - event title
- * @property {Date} timestamp - event datetime
+ * @property {DateTime} timestamp - event datetime
  * @property {Number} level - event severity level
  * @property {EventBacktrace[]} [backtrace] - event stack array from the latest call to the earliest
  * @property {Object} [get] - GET params
