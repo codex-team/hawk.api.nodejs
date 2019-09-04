@@ -6,6 +6,7 @@ const mongodbDriver = require('mongodb');
 const ObjectID = mongodbDriver.ObjectID;
 const Model = require('./model');
 const objectHasOnlyProps = require('../utils/objectHasOnlyProps');
+const { propsToPaths } = require('../utils/object');
 
 /**
  * @typedef {Object} TokensPair
@@ -46,7 +47,8 @@ class User extends Model {
     this.email = userData.email;
     this.name = userData.name;
     this.image = userData.image;
-    this.githubId = userData.githubId;
+    this.github = userData.github;
+    this.google = userData.google;
   }
 
   /**
@@ -81,6 +83,32 @@ class User extends Model {
     user.generatedPassword = generatedPassword;
 
     return user;
+  }
+
+  /**
+   * Update user matching filter
+   * @param {object} filter - update filter
+   * @param {UserSchema} userData - user data
+   * @returns {Promise<mongodbDriver.updateWriteOpResultObject>}
+   */
+  static async updateOne(filter, userData) {
+    return this.collection.updateOne(filter, { $set: propsToPaths(userData) });
+  }
+
+  /**
+   * Update user by ID
+   * @param {string|ObjectID} userId - user ID
+   * @param {UserSchema} userData - user data
+   * @returns {Promise<boolean>} - document modified
+   */
+  static async updateOneById(userId, userData) {
+    if (!userId) {
+      throw new Error('userId must be provided');
+    }
+
+    const result = await User.updateOne({ _id: new ObjectID(userId) }, userData);
+
+    return result.modifiedCount;
   }
 
   /**

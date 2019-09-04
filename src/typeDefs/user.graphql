@@ -12,6 +12,28 @@ type Tokens {
   refreshToken: String!
 }
 
+type GitHubProvider {
+  id: String!
+
+  name: String!
+
+  image: String
+
+  email: String!
+
+  username: String!
+}
+
+type GoogleProvider {
+  id: String!
+
+  name: String!
+
+  image: String
+
+  email: String!
+}
+
 """
 Represent User type
 """
@@ -35,6 +57,10 @@ type User {
   User's image
   """
   image: String
+
+  github: GitHubProvider
+
+  google: GoogleProvider
 }
 
 extend type Query {
