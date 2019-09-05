@@ -181,8 +181,8 @@ const setupAuthRoutes = (router, {
 
     const user = await User.findById(req.user.id);
 
-    if (!user) {
-      return res.redirect(process.env.GARAGE_SETTINGS_URL);
+    if (!user || !user.email) {
+      return res.redirect(`${process.env.GARAGE_SETTINGS_URL}?error=${encodeURI("Verified email required")}`);
     }
 
     await User.unsetOneById(user.id, { [provider]: '' });

@@ -79,6 +79,12 @@ const handleAuthentication = (provider, profileMapper) => {
 
             const email = findVerifiedEmail(profile.emails);
 
+            const targetUser = await User.findOne({ [provider]: { id: profile.id } });
+
+            if (targetUser.id !== req.user.id){
+              return cb(new Error('Provider account is already linked'), null);
+            }
+
             if (!email) {
               return cb(new Error('Verified email is required'), null);
             }
