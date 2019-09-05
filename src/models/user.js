@@ -15,6 +15,24 @@ const { propsToPaths } = require('../utils/object');
  */
 
 /**
+ * @typedef {Object} GithubProvider
+ * @property {object} [github] - github authn data
+ * @property {number} [github.id] - github id
+ * @property {string} [github.login] - github login
+ * @property {string} [github.email] - github email
+ * @property {string} [github.name] - github name
+ */
+
+/**
+ * @typedef {Object} GoogleProvider
+ * @property {object} [google] - google authn data
+ * @property {number} [google.id] - google id
+ * @property {string} [google.login] - google login
+ * @property {string} [google.email] - google email
+ * @property {string} [google.name] - google name
+ */
+
+/**
  * @typedef {Object} UserSchema
  * @property {string} id - user's id
  * @property {string} email - user's email
@@ -22,14 +40,8 @@ const { propsToPaths } = require('../utils/object');
  * @property {string} [image] - user's image URL
  * @property {string} [name] - user's name
  * @property {string} [generatedPassword] - user's original password (this field appears only after registration)
- * @property {object} [github] - github authn data
- * @property {number} [github.id] - github id
- * @property {string} [github.login] - github login
- * @property {string} [github.email] - github email
- * @property {object} [google] - google authn data
- * @property {number} [google.id] - google id
- * @property {string} [google.login] - google login
- * @property {string} [google.email] - google email
+ * @property {GithubProvider} github - github data
+ * @property {GoogleProvider} google - google data
  */
 
 /**
@@ -93,6 +105,16 @@ class User extends Model {
    */
   static async updateOne(filter, userData) {
     return this.collection.updateOne(filter, { $set: propsToPaths(userData) });
+  }
+
+  /**
+   * Unset some fields in document
+   * @param {string|ObjectID} userId - user ID
+   * @param {UserSchema} userData - user data to unset in MongoDB {property: ''} format
+   * @returns {Promise<mongodbDriver.updateWriteOpResultObject>}
+   */
+  static async unsetOneById(userId, userData) {
+    return this.collection.updateOne({ _id: new ObjectID(userId) }, { $unset: propsToPaths(userData) });
   }
 
   /**

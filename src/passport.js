@@ -12,7 +12,7 @@ const User = require('./models/user');
  */
 
 /**
- * Find verified email address
+ * Find verified email address in PassportJS' strategy callback `profile.emails` argument
  * @param {PassportEmail[]} emails
  */
 const findVerifiedEmail = (emails) => {
@@ -22,6 +22,109 @@ const findVerifiedEmail = (emails) => {
     }
   }
   return null;
+};
+
+/**
+ * Handles user authentication. To be used as PassportJS' strategy callback function.
+ *
+ * @example
+ *passport.use(
+ *  new GitHubStrategy({
+ *       clientID: process.env.GITHUB_CLIENT_ID,
+ *       clientSecret: process.env.GITHUB_CLIENT_SECRET,
+ *       scope: [ 'user:email' ],
+ *       callbackURL:
+ *         (process.env.API_URL || 'http://127.0.0.1:4000') +
+ *         AUTH_ROUTES.GITHUB_CALLBACK,
+ *       passReqToCallback: true
+ *     },
+ *     handleAuthentication((profile, email) => ({
+ *       github: {
+ *         id: profile.id,
+ *         name: profile.displayName,
+ *         image: profile._json.avatar_url,
+ *         username: profile.username,
+ *         email
+ *       }
+ *     })
+ *   )
+ *  )
+ *);
+ *
+ *
+ * @param {Function<GithubProvider|GoogleProvider>} profileMapper - function that maps `profile` argument to database storage format.
+ * @param {passport.Profile} profileMapper.profile - PassportJS' strategy callback `profile` argument
+ * @param {string} profileMapper.email - verified email from `profile.emails`
+ * @returns {Function}
+ */
+const handleAuthentication = (profileMapper) => {
+  return async (req, accessToken, refreshToken, profile, cb) => {
+    try {
+      if (req.cookies && req.cookies.action) {
+        switch (req.cookies.action) {
+          /**
+           * Link account.
+           * - find verified email
+           * - update User
+           */
+          case ACTIONS.LINK: {
+            if (!req.user || !req.user.id) {
+              return cb(new Error('Valid user ID is not provided'), null);
+            }
+
+            /**
+             * Set action to LINK, so route can unset cookies and redirect to settings
+             */
+            req.action = ACTIONS.LINK;
+
+            const email = findVerifiedEmail(profile.emails);
+
+            if (!email) {
+              return cb(new Error('Verified email is required'), null);
+            }
+
+            await User.updateOneById(req.user.id, profileMapper(profile, email));
+
+            return cb(null, {});
+          }
+        }
+        /**
+         * No custom action => just login user
+         */
+      } else {
+        /**
+         * Set action to indicate that we login user
+         */
+        req.action = ACTIONS.LOGIN;
+
+        let user = await User.findOne({ github: { id: profile.id } });
+
+        if (user) {
+          return cb(null, user);
+        }
+
+        const email = findVerifiedEmail(profile.emails);
+
+        if (!email) {
+          return cb(new Error('Verified email is required'), null);
+        }
+
+        user = await User.create({
+          github: {
+            id: profile.id,
+            name: profile.displayName,
+            image: profile._json.avatar_url,
+            username: profile.username,
+            email
+          }
+        }, { generatePassword: false });
+
+        return cb(null, user);
+      }
+    } catch (err) {
+      return cb(err, null);
+    }
+  };
 };
 
 /**
@@ -39,70 +142,15 @@ const initializeStrategies = () => {
           AUTH_ROUTES.GITHUB_CALLBACK,
         passReqToCallback: true
       },
-      async (req, accessToken, refreshToken, profile, cb) => {
-        try {
-          if (req.cookies && req.cookies.action) {
-            switch (req.cookies.action) {
-              // Link account
-              case ACTIONS.LINK: {
-                if (!req.user || !req.user.id) {
-                  return cb(new Error('Valid user ID is not provided'), null);
-                }
-
-                // Set action to LINK, so route can unset cookies and redirect to settings
-                req.action = ACTIONS.LINK;
-
-                const email = findVerifiedEmail(profile.emails);
-
-                /**
-                 * Do not check email here because user already has some verified address
-                 */
-
-                await User.updateOneById(req.user.id, {
-                  github: {
-                    id: profile.id,
-                    name: profile.displayName,
-                    image: profile._json.avatar_url,
-                    username: profile.username,
-                    email
-                  }
-                });
-
-                return cb(null, {});
-              }
-            }
-            // No custom action => just login user
-          } else {
-            req.action = ACTIONS.LOGIN;
-
-            let user = await User.findOne({ github: { id: profile.id } });
-
-            if (user) {
-              return cb(null, user);
-            }
-
-            const email = findVerifiedEmail(profile.emails);
-
-            if (!email) {
-              return cb(new Error('Verified email is required'), null);
-            }
-
-            user = await User.create({
-              github: {
-                id: profile.id,
-                name: profile.displayName,
-                image: profile._json.avatar_url,
-                username: profile.username,
-                email
-              }
-            }, { generatePassword: false });
-
-            return cb(null, user);
-          }
-        } catch (err) {
-          return cb(err, null);
+      handleAuthentication((profile, email) => ({
+        github: {
+          id: profile.id,
+          name: profile.displayName,
+          image: profile._json.avatar_url,
+          username: profile.username,
+          email
         }
-      }
+      }))
     )
   );
 
@@ -117,69 +165,14 @@ const initializeStrategies = () => {
           AUTH_ROUTES.GOOGLE_CALLBACK,
         passReqToCallback: true
       },
-      async (req, accessToken, refreshToken, profile, cb) => {
-        console.log(req);
-        try {
-          if (req.cookies && req.cookies.action) {
-            switch (req.cookies.action) {
-              // Link account
-              case ACTIONS.LINK: {
-                if (!req.user || !req.user.id) {
-                  return cb(new Error('Valid user ID is not provided'), null);
-                }
-
-                // Set action to LINK, so route can unset cookies and redirect to settings
-                req.action = ACTIONS.LINK;
-
-                const email = findVerifiedEmail(profile.emails);
-
-                /**
-                 * Do not check email here because user already has some verified address
-                 */
-
-                await User.updateOneById(req.user.id, {
-                  google: {
-                    id: profile.id,
-                    name: profile.displayName,
-                    image: profile._json.picture,
-                    email
-                  }
-                });
-
-                return cb(null, {});
-              }
-            }
-            // No custom action => just login user
-          } else {
-            req.action = ACTIONS.LOGIN;
-
-            let user = await User.findOne({ google: { id: profile.id } });
-
-            if (user) {
-              return cb(null, user);
-            }
-
-            const email = findVerifiedEmail(profile.emails);
-
-            if (!email) {
-              return cb(new Error('Verified email is required'), null);
-            }
-
-            user = await User.create({
-              google: {
-                id: profile.id,
-                name: profile.displayName,
-                image: profile._json.picture,
-                email
-              }
-            }, { generatePassword: false });
-
-            return cb(null, user);
-          }
-        } catch (err) {
-          return cb(err, null);
+      handleAuthentication((profile, email) => ({
+        google: {
+          id: profile.id,
+          name: profile.displayName,
+          image: profile._json.picture,
+          email
         }
-      }
+      }))
     )
   );
 };

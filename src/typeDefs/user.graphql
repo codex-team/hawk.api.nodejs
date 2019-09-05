@@ -12,25 +12,49 @@ type Tokens {
   refreshToken: String!
 }
 
+"""
+GitHub auth provider data
+"""
 type GitHubProvider {
-  id: String!
-
+  """
+  GitHub display name
+  """
   name: String!
 
+  """
+  GitHub avatar URL
+  """
   image: String
 
+
+  """
+  GitHub user's email
+  """
   email: String!
 
+  """
+  GitHub username
+  """
   username: String!
 }
 
+"""
+Google auth provider data
+"""
 type GoogleProvider {
-  id: String!
-
+  """
+  Google display name
+  """
   name: String!
 
+  """
+  Google avatar URL
+  """
   image: String
 
+  """
+  Google user's email
+  """
   email: String!
 }
 

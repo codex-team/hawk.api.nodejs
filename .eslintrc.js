@@ -1,3 +1,6 @@
 module.exports = {
-  extends: ['codex']
+  extends: ['codex'],
+  rules: {
+    'multiline-comment-style': ["error", "starred-block"]
+  }
 };
