@@ -26,9 +26,9 @@ module.exports = {
      * @return {Event[]}
      */
     async events(_obj, { projectId, limit, skip }) {
-      const service = new EventsFactory(projectId);
+      const eventsFactory = new EventsFactory(projectId);
 
-      return service.find({}, limit, skip);
+      return eventsFactory.find({}, limit, skip);
     },
 
     /**
@@ -41,9 +41,9 @@ module.exports = {
      * @return {RecentEvent[]}
      */
     async recent(_obj, { projectId, limit = 50, skip = 0 }) {
-      const service = new EventsFactory(projectId);
+      const eventsFactory = new EventsFactory(projectId);
 
-      return service.findRecent(limit, skip);
+      return eventsFactory.findRecent(limit, skip);
     },
 
     /**
@@ -56,9 +56,9 @@ module.exports = {
      * @return {Event}
      */
     async event(_obj, { projectId, eventId }) {
-      const service = new EventsFactory(projectId);
+      const eventsFactory = new EventsFactory(projectId);
 
-      return service.findById(eventId);
+      return eventsFactory.findById(eventId);
     },
 
     /**
@@ -72,9 +72,9 @@ module.exports = {
      * @return {Event[]}
      */
     async repetitions(_obj, { projectId, eventId, limit, skip }) {
-      const service = new EventsFactory(projectId);
+      const eventsFactory = new EventsFactory(projectId);
 
-      return service.getRepetitions(eventId, limit, skip);
+      return eventsFactory.getRepetitions(eventId, limit, skip);
     }
   },
   Subscription: {
