@@ -185,7 +185,7 @@ const setupAuthRoutes = (router, {
       return res.redirect(process.env.GARAGE_SETTINGS_URL);
     }
 
-    await User.unsetOneById(user.id, { github: '' });
+    await User.unsetOneById(user.id, { [provider]: '' });
 
     res.redirect(process.env.GARAGE_SETTINGS_URL);
   });
