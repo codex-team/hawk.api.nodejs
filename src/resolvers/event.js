@@ -25,7 +25,7 @@ module.exports = {
      *
      * @return {EventRepetitionSchema[]}
      */
-    async repetitions(_obj, { projectId, eventId, limit, skip }) {
+    async repetitions({ _id: eventId, projectId }, { limit, skip }) {
       const factory = new EventsFactory(projectId);
 
       return factory.getEventRepetitions(eventId, limit, skip);

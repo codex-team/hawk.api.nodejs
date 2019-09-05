@@ -14,6 +14,22 @@ type SourceCodeLine {
 }
 
 """
+Source code line representation for repetition
+This type is defined because repetition diff might be empty
+"""
+type RepetitionSourceCodeLine {
+  """
+  Line number
+  """
+  line: Int
+
+  """
+  Line's content
+  """
+  content: String
+}
+
+"""
 Event backtrace representation
 """
 type EventBacktrace {
@@ -31,6 +47,27 @@ type EventBacktrace {
   Part of source code file near the called line
   """
   sourceCode: [SourceCodeLine!]
+}
+
+"""
+Event backtrace representation for repetition
+backtrace for repetition can be different for repetition
+"""
+type RepetitionBacktrace {
+  """
+  Source filepath
+  """
+  file: String
+
+  """
+  Called line
+  """
+  line: Int
+
+  """
+  Part of source code file near the called line
+  """
+  sourceCode: [RepetitionSourceCodeLine!]
 }
 
 """
@@ -120,7 +157,7 @@ type RepetitionPayload {
   """
   Event stack array from the latest call to the earliest
   """
-  backtrace: [EventBacktrace!]
+  backtrace: [RepetitionBacktrace!]
 
   """
   Additional data about GET request
@@ -151,6 +188,11 @@ type RepetitionPayload {
   Any additional data of Event
   """
   context: JSONObject
+
+  """
+  Custom data provided by project users
+  """
+  addons: JSONObject
 }
 
 """

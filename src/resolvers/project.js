@@ -63,6 +63,7 @@ module.exports = {
       const event = await factory.findById(eventId);
 
       event.projectId = id;
+
       return event;
     },
 
