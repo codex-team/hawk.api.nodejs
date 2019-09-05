@@ -18,15 +18,17 @@ module.exports = {
      * Returns repetitions list of the event
      *
      * @param {ResolverObj} _obj
+     * @param {String} eventId
      * @param {String} projectId
      * @param {Number} limit
      * @param {Number} skip
+     *
      * @return {EventRepetitionSchema[]}
      */
-    async repetitions({ _id, projectId }, { limit, skip }) {
+    async repetitions(_obj, { projectId, eventId, limit, skip }) {
       const factory = new EventsFactory(projectId);
 
-      return factory.getEventRepetitions(_id, limit, skip);
+      return factory.getEventRepetitions(eventId, limit, skip);
     }
   },
   Repetitions: {

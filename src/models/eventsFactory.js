@@ -116,13 +116,15 @@ class EventsFactory {
    * Returns events that grouped by day
    *
    * @param {Number} limit - events count limitations
+   * @param {Number} skip - certain number of documents to skip
    * @return {RecentEventSchema[]}
    */
-  async findRecent(limit = 10) {
+  async findRecent(limit = 10, skip = 0) {
     limit = this.validateLimit(limit);
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate([
       { $sort: { timestamp: -1 } },
+      { $skip: skip },
       { $limit: limit },
       {
         $group: {

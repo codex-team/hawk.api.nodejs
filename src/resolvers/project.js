@@ -86,6 +86,7 @@ module.exports = {
      *
      * @param {ResolverObj} _obj
      * @param {Number} limit - limit for events count
+     *
      * @return {RecentEvent[]}
      */
     async recentEvents({ id }, { limit }) {
