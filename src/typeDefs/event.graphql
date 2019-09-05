@@ -120,7 +120,7 @@ type RepetitionPayload {
   """
   Event stack array from the latest call to the earliest
   """
-  backtrace: [EventBacktrace]
+  backtrace: [EventBacktrace!]
 
   """
   Additional data about GET request
