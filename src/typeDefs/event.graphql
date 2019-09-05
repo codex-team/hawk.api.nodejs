@@ -5,7 +5,7 @@ type SourceCodeLine {
   """
   Line number
   """
-  line: Int
+  line: Int!
 
   """
   Line's content
