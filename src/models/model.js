@@ -1,5 +1,6 @@
 const mongodbDriver = require('mongodb');
 const ObjectID = mongodbDriver.ObjectID;
+const { propsToPaths } = require('../utils/object');
 
 /**
  * @typedef {Object} BaseModel
@@ -25,7 +26,7 @@ class Model {
    * @return {Promise<User>|null}
    */
   static async findOne(query) {
-    const searchResult = await this.collection.findOne(query);
+    const searchResult = await this.collection.findOne(propsToPaths(query));
 
     if (!searchResult) return null;
 

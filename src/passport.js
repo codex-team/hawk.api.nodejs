@@ -38,7 +38,7 @@ const findVerifiedEmail = (emails) => {
  *         AUTH_ROUTES.GITHUB_CALLBACK,
  *       passReqToCallback: true
  *     },
- *     handleAuthentication((profile, email) => ({
+ *     handleAuthentication('github', (profile, email) => ({
  *       github: {
  *         id: profile.id,
  *         name: profile.displayName,
@@ -51,13 +51,13 @@ const findVerifiedEmail = (emails) => {
  *  )
  *);
  *
- *
+ * @param {string} provider - PassportJS supported and *activated* provider, e.g. `github`
  * @param {Function<GithubProvider|GoogleProvider>} profileMapper - function that maps `profile` argument to database storage format.
  * @param {passport.Profile} profileMapper.profile - PassportJS' strategy callback `profile` argument
  * @param {string} profileMapper.email - verified email from `profile.emails`
  * @returns {Function}
  */
-const handleAuthentication = (profileMapper) => {
+const handleAuthentication = (provider, profileMapper) => {
   return async (req, accessToken, refreshToken, profile, cb) => {
     try {
       if (req.cookies && req.cookies.action) {
@@ -97,7 +97,7 @@ const handleAuthentication = (profileMapper) => {
          */
         req.action = ACTIONS.LOGIN;
 
-        let user = await User.findOne({ github: { id: profile.id } });
+        let user = await User.findOne({ [provider]: { id: profile.id } });
 
         if (user) {
           return cb(null, user);
@@ -109,15 +109,7 @@ const handleAuthentication = (profileMapper) => {
           return cb(new Error('Verified email is required'), null);
         }
 
-        user = await User.create({
-          github: {
-            id: profile.id,
-            name: profile.displayName,
-            image: profile._json.avatar_url,
-            username: profile.username,
-            email
-          }
-        }, { generatePassword: false });
+        user = await User.create(profileMapper(profile, email), { generatePassword: false });
 
         return cb(null, user);
       }
@@ -142,7 +134,7 @@ const initializeStrategies = () => {
           AUTH_ROUTES.GITHUB_CALLBACK,
         passReqToCallback: true
       },
-      handleAuthentication((profile, email) => ({
+      handleAuthentication('github', (profile, email) => ({
         github: {
           id: profile.id,
           name: profile.displayName,
@@ -165,7 +157,7 @@ const initializeStrategies = () => {
           AUTH_ROUTES.GOOGLE_CALLBACK,
         passReqToCallback: true
       },
-      handleAuthentication((profile, email) => ({
+      handleAuthentication('google', (profile, email) => ({
         google: {
           id: profile.id,
           name: profile.displayName,
