@@ -26,25 +26,24 @@ module.exports = {
      * @return {Event[]}
      */
     async events(_obj, { projectId, limit, skip }) {
-      const service = new EventsFactory(projectId);
-      const events = await service.find({}, limit, skip);
+      const eventsFactory = new EventsFactory(projectId);
 
-      return events;
+      return eventsFactory.find({}, limit, skip);
     },
 
     /**
      * Returns recent Events grouped by day
      *
      * @param {ResolverObj} _obj
-     * @param {String} projectId
-     * @param {Number} limit
-     *
+     * @param {String} projectId - id of the project
+     * @param {Number} limit - maximum number of results
+     * @param {Number} skip - certain number of documents to skip
      * @return {RecentEvent[]}
      */
-    async recent(_obj, { projectId, limit = 50 }) {
-      const service = new EventsFactory(projectId);
+    async recent(_obj, { projectId, limit = 50, skip = 0 }) {
+      const eventsFactory = new EventsFactory(projectId);
 
-      return service.findRecent(limit);
+      return eventsFactory.findRecent(limit, skip);
     },
 
     /**
@@ -57,27 +56,25 @@ module.exports = {
      * @return {Event}
      */
     async event(_obj, { projectId, eventId }) {
-      const service = new EventsFactory(projectId);
-      const event = await service.findById(eventId);
+      const eventsFactory = new EventsFactory(projectId);
 
-      return event;
+      return eventsFactory.findById(eventId);
     },
 
     /**
      * Returns repetitions list of the event
      *
      * @param {ResolverObj} _obj
-     * @param {String} projectId
      * @param {String} eventId
-     * @param {Number} limit
-     * @param {Number} skip
+     * @param {String} projectId - id of the project
+     * @param {Number} limit - maximum number of results
+     * @param {Number} skip - certain number of documents to skip
      * @return {Event[]}
      */
     async repetitions(_obj, { projectId, eventId, limit, skip }) {
-      const service = new EventsFactory(projectId);
-      const events = await service.getRepetitions(eventId, limit, skip);
+      const eventsFactory = new EventsFactory(projectId);
 
-      return events;
+      return eventsFactory.getRepetitions(eventId, limit, skip);
     }
   },
   Subscription: {
