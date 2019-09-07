@@ -40,11 +40,47 @@ type CardInfo {
   expDate: String
 }
 
+
+"""
+Transaction object
+"""
+type Transaction {
+  """
+  Transaction type
+  """
+  type: String!
+
+  """
+  Workspace for which transaction has been made
+  """
+  workspace: Workspace!
+
+  """
+  Transaction amount
+  """
+  amount: Int!
+
+  """
+  Transaction date
+  """
+  date: DateTime!
+
+  """
+  User by whom transaction has been made
+  """
+  user: User
+
+  """
+  PAN of card by which transaction has been made
+  """
+  cardPan: Int
+}
+
 extend type Query {
   """
-  Returns JSON data with payment link and initiate card attach procedure
+  Get attached cards
   """
-  attachCard(language: String): PaymentLink @requireAuth
+  getCardList: [CardInfo!] @requireAuth
 
   """
   Initialize recurrent payment
@@ -92,9 +128,14 @@ extend type Query {
   ): PaymentLink! @requireAuth
 
   """
-  Get attached cards
+  Returns JSON data with payment link and initiate card attach procedure
   """
-  getCardList: [CardInfo!] @requireAuth
+  attachCard(language: String): PaymentLink @requireAuth
+
+  """
+  Get workspace transactions
+  """
+  transactions("Workspaces IDs" ids: [ID] = []): [Transaction] @requireAuth
 }
 
 extend type Mutation {
