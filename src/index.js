@@ -1,6 +1,6 @@
 const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
 const mongo = require('./mongo');
 const rabbitmq = require('./rabbitmq');
 const jwt = require('jsonwebtoken');
@@ -45,7 +45,7 @@ class HawkAPI {
     this.app = express();
 
     this.app.use(express.json());
-    this.app.use(cookieParser());
+    // this.app.use(cookieParser());
     this.app.post('/billing', billing.notifyCallback);
     this.app.use(authRouter);
 

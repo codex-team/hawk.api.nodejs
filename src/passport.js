@@ -1,7 +1,7 @@
 const passport = require('passport');
 const { Strategy: GitHubStrategy } = require('passport-github');
 const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
-const { AUTH_ROUTES, ACTIONS } = require('./auth');
+const { AUTH_ROUTES, ACTIONS, COOKIE_KEYS } = require('./auth');
 const User = require('./models/user');
 
 /**
@@ -60,28 +60,35 @@ const findVerifiedEmail = (emails) => {
 const handleAuthentication = (provider, profileMapper) => {
   return async (req, accessToken, refreshToken, profile, cb) => {
     try {
-      if (req.cookies && req.cookies.action) {
-        switch (req.cookies.action) {
+      if (req.session[COOKIE_KEYS.ACTION]) {
+        switch (req.session[COOKIE_KEYS.ACTION]) {
           /**
            * Link account.
            * - find verified email
            * - update User
            */
           case ACTIONS.LINK: {
-            if (!req.user || !req.user.id) {
+            /**
+             * Check authorized user from session
+             */
+            if (!req.session.user || !req.session.user.id) {
               return cb(new Error('Valid user ID is not provided'), null);
             }
 
             /**
              * Set action to LINK, so route can unset cookies and redirect to settings
              */
-            req.action = ACTIONS.LINK;
+            req.session[COOKIE_KEYS.ACTION] = ACTIONS.LINK;
 
             const email = findVerifiedEmail(profile.emails);
 
             const targetUser = await User.findOne({ [provider]: { id: profile.id } });
 
-            if (targetUser.id !== req.user.id){
+            /**
+             * Check if user from social is already linked with some account,
+             * throw an error if it is
+             */
+            if (targetUser && targetUser.id !== req.session.user.id) {
               return cb(new Error('Provider account is already linked'), null);
             }
 
@@ -89,7 +96,7 @@ const handleAuthentication = (provider, profileMapper) => {
               return cb(new Error('Verified email is required'), null);
             }
 
-            await User.updateOneById(req.user.id, profileMapper(profile, email));
+            await User.updateOneById(req.session.user.id, profileMapper(profile, email));
 
             return cb(null, {});
           }
@@ -101,10 +108,13 @@ const handleAuthentication = (provider, profileMapper) => {
         /**
          * Set action to indicate that we login user
          */
-        req.action = ACTIONS.LOGIN;
+        req.session[COOKIE_KEYS.ACTION] = ACTIONS.LOGIN;
 
         let user = await User.findOne({ [provider]: { id: profile.id } });
 
+        /**
+         * If social account is linked, login the user
+         */
         if (user) {
           return cb(null, user);
         }
@@ -138,7 +148,9 @@ const initializeStrategies = () => {
         callbackURL:
           (process.env.API_URL || 'http://127.0.0.1:4000') +
           AUTH_ROUTES.GITHUB_CALLBACK,
-        passReqToCallback: true
+        passReqToCallback: true,
+        pkce: true,
+        state: true
       },
       handleAuthentication('github', (profile, email) => ({
         github: {
@@ -161,7 +173,9 @@ const initializeStrategies = () => {
         callbackURL:
           (process.env.API_URL || 'http://127.0.0.1:4000') +
           AUTH_ROUTES.GOOGLE_CALLBACK,
-        passReqToCallback: true
+        passReqToCallback: true,
+        pkce: true,
+        state: true
       },
       handleAuthentication('google', (profile, email) => ({
         google: {
