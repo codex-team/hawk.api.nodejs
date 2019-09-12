@@ -2,6 +2,7 @@ const { ValidationError } = require('apollo-server-express');
 const { ObjectID } = require('mongodb');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
+const UserInProject = require('../models/userInProject');
 const eventResolvers = require('./event');
 
 /**
@@ -70,11 +71,16 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {Number} limit - limit for events count
      * @param {Number} skip - certain number of documents to skip
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     *
      * @return {RecentEvent[]}
      */
-    async recentEvents({ id }, { limit, skip }) {
+    async recentEvents({ id: projectId }, { limit, skip }, { user }) {
+      const userInProject = new UserInProject(user.id, projectId);
+
+      await userInProject.updateLastVisit();
       // @makeAnIssue remove aliases to event resolvers in project resolvers
-      const result = await eventResolvers.Query.recent({}, { projectId: id, limit, skip });
+      const result = await eventResolvers.Query.recent({}, { projectId, limit, skip });
 
       return result.shift();
     }
