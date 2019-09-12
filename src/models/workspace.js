@@ -9,6 +9,7 @@ const objectHasOnlyProps = require('../utils/objectHasOnlyProps');
  * @property {string} id - workspace's id
  * @property {string} name - workspace's name
  * @property {int} balance - workspace's account balance in kopecs
+ * @property {Plan} balance - workspace's plan
  * @property {string} [description] - workspace's description
  * @property {string} [image] - workspace's image URL
  */
@@ -26,6 +27,7 @@ class Workspace extends Model {
     this.id = workspaceData.id;
     this.name = workspaceData.name;
     this.balance = workspaceData.balance;
+    this.plan = workspaceData.plan;
     this.image = workspaceData.image;
     this.description = workspaceData.description;
   }
