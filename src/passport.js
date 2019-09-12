@@ -1,7 +1,7 @@
 const passport = require('passport');
 const { Strategy: GitHubStrategy } = require('passport-github');
 const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
-const { AUTH_ROUTES, ACTIONS, COOKIE_KEYS } = require('./auth');
+const { AUTH_ROUTES, ACTIONS, SESSION_KEYS } = require('./auth');
 const User = require('./models/user');
 
 /**
@@ -59,9 +59,10 @@ const findVerifiedEmail = (emails) => {
  */
 const handleAuthentication = (provider, profileMapper) => {
   return async (req, accessToken, refreshToken, profile, cb) => {
+    console.log(req.session);
     try {
-      if (req.session[COOKIE_KEYS.ACTION]) {
-        switch (req.session[COOKIE_KEYS.ACTION]) {
+      if (req.session[SESSION_KEYS.ACTION]) {
+        switch (req.session[SESSION_KEYS.ACTION]) {
           /**
            * Link account.
            * - find verified email
@@ -71,14 +72,14 @@ const handleAuthentication = (provider, profileMapper) => {
             /**
              * Check authorized user from session
              */
-            if (!req.session.user || !req.session.user.id) {
+            if (!req.session[SESSION_KEYS.USERID]) {
               return cb(new Error('Valid user ID is not provided'), null);
             }
 
             /**
              * Set action to LINK, so route can unset cookies and redirect to settings
              */
-            req.session[COOKIE_KEYS.ACTION] = ACTIONS.LINK;
+            req.session[SESSION_KEYS.ACTION] = ACTIONS.LINK;
 
             const email = findVerifiedEmail(profile.emails);
 
@@ -88,7 +89,7 @@ const handleAuthentication = (provider, profileMapper) => {
              * Check if user from social is already linked with some account,
              * throw an error if it is
              */
-            if (targetUser && targetUser.id !== req.session.user.id) {
+            if (targetUser && targetUser.id !== req.session[SESSION_KEYS.USERID]) {
               return cb(new Error('Provider account is already linked'), null);
             }
 
@@ -96,7 +97,7 @@ const handleAuthentication = (provider, profileMapper) => {
               return cb(new Error('Verified email is required'), null);
             }
 
-            await User.updateOneById(req.session.user.id, profileMapper(profile, email));
+            await User.updateOneById(req.session[SESSION_KEYS.USERID], profileMapper(profile, email));
 
             return cb(null, {});
           }
@@ -108,7 +109,7 @@ const handleAuthentication = (provider, profileMapper) => {
         /**
          * Set action to indicate that we login user
          */
-        req.session[COOKIE_KEYS.ACTION] = ACTIONS.LOGIN;
+        req.session[SESSION_KEYS.ACTION] = ACTIONS.LOGIN;
 
         let user = await User.findOne({ [provider]: { id: profile.id } });
 

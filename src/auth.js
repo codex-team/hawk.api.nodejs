@@ -22,16 +22,18 @@ const AUTH_ROUTES = {
 };
 
 /**
- * Cookie keys
+ * Session keys.
+ * Used in routes to take values from session.
  */
-const COOKIE_KEYS = {
+const SESSION_KEYS = {
   TOKEN: 'token',
   ACTION: 'action',
   USERID: 'userid'
 };
 
 /**
- * Auth actions
+ * Auth actions.
+ * Used in routes to switch on different actions.
  */
 const ACTIONS = {
   LOGIN: 'login',
@@ -41,7 +43,7 @@ const ACTIONS = {
 
 /**
  *
- * Middleware that requires valid JWT token to be set in `Authrorization` header. Extracts user ID from token to request
+ * Middleware that requires valid JWT token to be set in `Authorization` header. Extracts user ID from token to request
  */
 const requireBearer = async (req, res, next) => {
   const authorizationHeader = req.headers.authorization;
@@ -63,10 +65,11 @@ const requireBearer = async (req, res, next) => {
 };
 
 /**
- * Middleware that requires session.user.id to be set
+ * Middleware that requires req.session.[SESSION_KEYS.USERID] to be set
  */
 const requireSessionUserID = async (req, res, next) => {
-  if (!req.session.user || !req.session.user.id) {
+  console.log(req.session);
+  if (!req.session[SESSION_KEYS.USERID]) {
     return next(new Error('user.id is not set'));
   }
   return next();
@@ -79,7 +82,7 @@ const requireSessionUserID = async (req, res, next) => {
  */
 const setAction = (action) => {
   return (req, res, next) => {
-    req.session[COOKIE_KEYS.ACTION] = action;
+    req.session[SESSION_KEYS.ACTION] = action;
     return next();
   };
 };
@@ -102,7 +105,7 @@ const setupAuthRoutes = (router, {
   routeUnlink
 }) => {
   /**
-   * Redirect to provider OAuth page
+   * Route to redirect to provider OAuth page
    */
   router.get(routeRedir, passport.authenticate(provider));
 
@@ -114,18 +117,18 @@ const setupAuthRoutes = (router, {
   }),
   async (req, res) => {
     /**
-     * req.session[COOKIE_KEYS.USERID] - authenticated user ID from session(cookie)
+     * req.session[SESSION_KEYS.USERID] - authenticated user ID from session(cookie)
      * req.user - authenticated User instance from `handleAuthentication`, got from social login
      */
 
     /**
      * Check if action is set
      */
-    if (!req.session[COOKIE_KEYS.ACTION]) {
+    if (!req.session[SESSION_KEYS.ACTION]) {
       return res.redirect(process.env.GARAGE_LOGIN_URL);
     }
 
-    switch (req.session[COOKIE_KEYS.ACTION]) {
+    switch (req.session[SESSION_KEYS.ACTION]) {
       /**
        * Link account to existing user
        */
@@ -178,7 +181,7 @@ const setupAuthRoutes = (router, {
    * - unlink account
    */
   authRouter.get(routeUnlink, requireSessionUserID, async (req, res) => {
-    const user = await User.findById(req.session.user.id);
+    const user = await User.findById(req.session[SESSION_KEYS.USERID]);
 
     if (!user || !user.email) {
       return res.redirect(`${process.env.GARAGE_SETTINGS_URL}?error=${encodeURI('Verified email required')}`);
@@ -193,28 +196,38 @@ const setupAuthRoutes = (router, {
 
 const authRouter = express.Router();
 
-authRouter.use(cors());
+/**
+ * Set CORS policy to allow sending credentials
+ */
+authRouter.use(cors({
+  credentials: true,
+  origin: process.env.NODE_ENV === 'production' ? process.env.GARAGE_ORIGIN : 'http://127.0.0.1:8080, http://localhost:8080'
+}));
 
 authRouter.use(session({
   secret: process.env.AUTH_SECRET,
   saveUninitialized: false,
+  resave: false,
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     maxAge: 5 * 60 * 1000, // 5m
-    path: AUTH_ROUTES.ROOT,
-    sameSite: 'strict' // prevent CSRF attacks
+    sameSite: 'lax'
   }
 }));
 
 if (process.env.NODE_ENV === 'production') {
+  /**
+   * In production backend will probably be behind proxy/load balancer.
+   * This option allows secure cookies to be transferred through http.
+   */
   authRouter.set('trust proxy', 1);
 }
 
 authRouter.use(passport.initialize());
 
 authRouter.get(AUTH_ROUTES.INIT, requireBearer, (req, res) => {
-  req.session[COOKIE_KEYS.USERID] = req.user.id;
+  req.session[SESSION_KEYS.USERID] = req.user.id;
   res.status(200).send('OK');
 });
 
@@ -234,4 +247,4 @@ setupAuthRoutes(authRouter, {
   routeUnlink: AUTH_ROUTES.GOOGLE_UNLINK
 });
 
-module.exports = { AUTH_ROUTES, authRouter, ACTIONS, COOKIE_KEYS };
+module.exports = { AUTH_ROUTES, authRouter, ACTIONS, SESSION_KEYS };
