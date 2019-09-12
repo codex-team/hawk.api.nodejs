@@ -44,6 +44,14 @@ class HawkAPI {
     };
     this.app = express();
 
+    if (process.env.NODE_ENV === 'production') {
+      /**
+       * In production backend will probably be behind proxy/load balancer.
+       * This option allows secure cookies to be transferred through http.
+       */
+      this.app.set('trust proxy', 1);
+    }
+
     this.app.use(express.json());
     // this.app.use(cookieParser());
     this.app.post('/billing', billing.notifyCallback);

@@ -227,14 +227,6 @@ authRouter.use(session({
   }
 }));
 
-if (process.env.NODE_ENV === 'production') {
-  /**
-   * In production backend will probably be behind proxy/load balancer.
-   * This option allows secure cookies to be transferred through http.
-   */
-  authRouter.set('trust proxy', 1);
-}
-
 authRouter.use(passport.initialize());
 
 authRouter.get(AUTH_ROUTES.INIT, requireBearer, (req, res) => {
