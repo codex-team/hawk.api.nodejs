@@ -59,7 +59,6 @@ const findVerifiedEmail = (emails) => {
  */
 const handleAuthentication = (provider, profileMapper) => {
   return async (req, accessToken, refreshToken, profile, cb) => {
-    console.log(req.session);
     try {
       if (req.session[SESSION_KEYS.ACTION]) {
         switch (req.session[SESSION_KEYS.ACTION]) {

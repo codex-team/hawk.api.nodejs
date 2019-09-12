@@ -68,7 +68,6 @@ const requireBearer = async (req, res, next) => {
  * Middleware that requires req.session.[SESSION_KEYS.USERID] to be set
  */
 const requireSessionUserID = async (req, res, next) => {
-  console.log(req.session);
   if (!req.session[SESSION_KEYS.USERID]) {
     return next(new Error('user.id is not set'));
   }
@@ -201,7 +200,19 @@ const authRouter = express.Router();
  */
 authRouter.use(cors({
   credentials: true,
-  origin: process.env.NODE_ENV === 'production' ? process.env.GARAGE_ORIGIN : 'http://127.0.0.1:8080, http://localhost:8080'
+  origin: process.env.NODE_ENV === 'production' ? process.env.GARAGE_ORIGIN : (origin, callback) => {
+    /**
+     * Allow request if directly hit by user, e.g. redirect
+     */
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (['http://127.0.0.1:8080', 'http://localhost:8080'].indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
 }));
 
 authRouter.use(session({
