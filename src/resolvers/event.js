@@ -75,6 +75,18 @@ module.exports = {
       const eventsFactory = new EventsFactory(projectId);
 
       return eventsFactory.getRepetitions(eventId, limit, skip);
+    },
+
+    /**
+     * @param _obj
+     * @param projectId
+     * @return {Promise<number>}
+     */
+    async unreadCount(_obj, { projectId }) {
+      const eventsFactory = new EventsFactory(projectId);
+
+      // @todo get last visit and pass to function
+      return eventsFactory.getUnreadCount();
     }
   },
   Subscription: {
@@ -88,15 +100,15 @@ module.exports = {
        */
       subscribe: (_obj, _args, context) => {
         const userId = context.user.id;
-        const eventsCollections = new Promise(async resolve => {
+        const eventsCollections = new Promise(resolve => {
           // @todo optimize query for getting all user's projects
 
           // Find all user's workspaces
-          const allWorkspaces = await (new Membership(userId)).getWorkspaces();
+          const allWorkspaces = (new Membership(userId)).getWorkspaces();
           const allProjects = [];
 
           // Find all user's projects
-          await asyncForEach(allWorkspaces, async workspace => {
+          asyncForEach(allWorkspaces, async workspace => {
             const allProjectsInWorkspace = await new ProjectToWorkspace(workspace.id).getProjects();
 
             allProjects.push(...allProjectsInWorkspace);

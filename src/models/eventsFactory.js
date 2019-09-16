@@ -141,6 +141,23 @@ class EventsFactory {
   }
 
   /**
+   * add comment
+   * @return {Promise<number>}
+   */
+  async getUnreadCount() {
+    // @todo use last visit instead
+    const now = new Date();
+    const query = {
+      'payload.timestamp': {
+        $lt: now.getTime() / 1000
+      }
+    };
+
+    return this.getCollection(this.TYPES.EVENTS)
+      .countDocuments(query);
+  }
+
+  /**
    * Returns Event's repetitions
    *
    * @param {string|ObjectID} eventId - Event's id

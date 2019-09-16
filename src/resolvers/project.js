@@ -66,6 +66,14 @@ module.exports = {
     },
 
     /**
+     * @param id
+     * @return {Promise<number>}
+     */
+    async unreadCount({ id }) {
+      return eventResolvers.Query.unreadCount({}, { projectId: id });
+    },
+
+    /**
      * Returns recent Events grouped by day
      *
      * @param {ResolverObj} _obj
