@@ -96,7 +96,8 @@ module.exports = {
     async recentEvents({ id: projectId }, { limit, skip }, { user }) {
       const userInProject = new UserInProject(user.id, projectId);
 
-      await userInProject.updateLastVisit();
+      userInProject.updateLastVisit();
+
       // @makeAnIssue remove aliases to event resolvers in project resolvers
       const result = await eventResolvers.Query.recent({}, { projectId, limit, skip });
 

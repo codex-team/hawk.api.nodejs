@@ -24,13 +24,11 @@ class UserInProject {
 
   /**
    * Set's new timestamp when project is visited by user
-   *
-   * @return {Promise<void>}
    */
-  async updateLastVisit() {
+  updateLastVisit() {
     const now = new Date();
 
-    await this.collection.updateOne({
+    this.collection.updateOne({
       userId: this.userId
     }, {
       $set: {
