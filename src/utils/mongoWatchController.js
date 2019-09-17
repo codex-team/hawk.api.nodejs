@@ -26,6 +26,7 @@ class MongoWatchController {
    * @return {AsyncIterator<EventSchema>}
    */
   getAsyncIteratorForCollectionChangesEvents(collectionsResolver) {
+    // eslint-disable-next-line no-async-promise-executor
     const emitterPromise = new Promise(async resolve => {
       const collection = await collectionsResolver;
 
