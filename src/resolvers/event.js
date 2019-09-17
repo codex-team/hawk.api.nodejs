@@ -1,8 +1,8 @@
 const MongoWatchController = require('../utils/mongoWatchController');
 const Membership = require('../models/membership');
 const { ProjectToWorkspace } = require('../models/project');
-const EventsFactory = require('../models/eventsFactory');
 const asyncForEach = require('../utils/asyncForEach');
+const EventsFactory = require('../models/eventsFactory');
 const mongo = require('../mongo');
 
 const watchController = new MongoWatchController();
@@ -75,18 +75,6 @@ module.exports = {
       const eventsFactory = new EventsFactory(projectId);
 
       return eventsFactory.getRepetitions(eventId, limit, skip);
-    },
-
-    /**
-     * @param _obj
-     * @param projectId
-     * @return {Promise<number>}
-     */
-    async unreadCount(_obj, { projectId }) {
-      const eventsFactory = new EventsFactory(projectId);
-
-      // @todo get last visit and pass to function
-      return eventsFactory.getUnreadCount();
     }
   },
   Subscription: {

@@ -1,5 +1,4 @@
 const mongo = require('../mongo');
-const Model = require('./model');
 
 /**
  * User in project model
@@ -37,6 +36,19 @@ class UserInProject {
     }, {
       upsert: true
     });
+  }
+
+  /**
+   * Returns timestamp of last visit
+   *
+   * @return {Promise<Number>}
+   */
+  async getLastVisit() {
+    const result = await this.collection.findOne({
+      userId: this.userId
+    });
+
+    return result.timestamp;
   }
 }
 

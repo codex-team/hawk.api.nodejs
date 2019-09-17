@@ -142,14 +142,12 @@ class EventsFactory {
 
   /**
    * add comment
-   * @return {Promise<number>}
+   * @return {Promise<Number>}
    */
-  async getUnreadCount() {
-    // @todo use last visit instead
-    const now = new Date();
+  async getUnreadCount(lastVisit) {
     const query = {
       'payload.timestamp': {
-        $lt: now.getTime() / 1000
+        $gt: lastVisit / 1000
       }
     };
 

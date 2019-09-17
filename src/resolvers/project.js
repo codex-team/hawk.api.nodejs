@@ -3,6 +3,7 @@ const { ObjectID } = require('mongodb');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
+const EventsFactory = require('../models/eventsFactory');
 const eventResolvers = require('./event');
 
 /**
@@ -66,11 +67,20 @@ module.exports = {
     },
 
     /**
-     * @param id
+     * Returns unread event's count
+     *
+     * @param {String} projectId
+     * @param {Object} data
+     * @param {User} user
+     *
      * @return {Promise<number>}
      */
-    async unreadCount({ id }) {
-      return eventResolvers.Query.unreadCount({}, { projectId: id });
+    async unreadCount({ id: projectId }, data, { user }) {
+      const eventsFactory = new EventsFactory(projectId);
+      const userInProject = new UserInProject(user.id, projectId);
+      const lastVisit = await userInProject.getLastVisit();
+
+      return eventsFactory.getUnreadCount(lastVisit);
     },
 
     /**
