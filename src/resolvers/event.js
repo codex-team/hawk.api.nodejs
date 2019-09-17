@@ -45,8 +45,10 @@ module.exports = {
        */
       subscribe: (_obj, _args, context) => {
         const userId = context.user.id;
-        const eventsCollections = new Promise((resolve) => {
-          /** @todo optimize query for getting all user's projects */
+        // eslint-disable-next-line no-async-promise-executor
+        const eventsCollections = new Promise(async resolve => {
+          // @todo optimize query for getting all user's projects
+
           // Find all user's workspaces
           const allWorkspaces = new Membership(userId).getWorkspaces();
           const allProjects = [];

@@ -73,12 +73,9 @@ class Event {
    * @returns Event
    */
   fillModel(schema) {
-    for (const prop in schema) {
-      if (!Object.hasOwnProperty.call(schema, prop)) {
-        continue;
-      }
+    Object.keys(schema).forEach(prop => {
       this[prop] = schema[prop];
-    }
+    });
   }
 }
 
