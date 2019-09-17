@@ -67,7 +67,7 @@ type Project {
   """
   Returns number of unread events
   """
-  unreadCount: Int @requireAuth
+  unreadCount: Int! @requireAuth
 }
 
 extend type Query {
