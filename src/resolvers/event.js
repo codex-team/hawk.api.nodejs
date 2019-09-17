@@ -1,8 +1,8 @@
 const MongoWatchController = require('../utils/mongoWatchController');
 const Membership = require('../models/membership');
 const { ProjectToWorkspace } = require('../models/project');
-const asyncForEach = require('../utils/asyncForEach');
 const EventsFactory = require('../models/eventsFactory');
+const asyncForEach = require('../utils/asyncForEach');
 const mongo = require('../mongo');
 
 const watchController = new MongoWatchController();

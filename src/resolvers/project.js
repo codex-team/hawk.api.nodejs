@@ -67,11 +67,11 @@ module.exports = {
     },
 
     /**
-     * Returns unread event's count
+     * Returns events count that wasn't seen on project
      *
-     * @param {String} projectId
-     * @param {Object} data
-     * @param {User} user
+     * @param {String} projectId - project identifier
+     * @param {Object} data - additional data. In this case it is empty
+     * @param {User} user - authorized user
      *
      * @return {Promise<number>}
      */

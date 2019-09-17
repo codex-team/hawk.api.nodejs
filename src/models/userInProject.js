@@ -2,11 +2,12 @@ const mongo = require('../mongo');
 
 /**
  * User in project model
+ * This class works with project's settings
  */
 class UserInProject {
   /**
-   * @param userId
-   * @param projectId
+   * @param {String} userId - user's identifier
+   * @param {String} projectId - project's identifier
    */
   constructor(userId, projectId) {
     this.userId = userId;
@@ -22,6 +23,8 @@ class UserInProject {
   }
 
   /**
+   * Set's new timestamp when project is visited by user
+   *
    * @return {Promise<void>}
    */
   async updateLastVisit() {
@@ -39,7 +42,7 @@ class UserInProject {
   }
 
   /**
-   * Returns timestamp of last visit
+   * Returns timestamp of last project visit
    *
    * @return {Promise<Number>}
    */

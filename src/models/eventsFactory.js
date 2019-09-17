@@ -141,7 +141,10 @@ class EventsFactory {
   }
 
   /**
-   * add comment
+   * Returns number of documents that occurred after the last visit time
+   *
+   * @param {Number} lastVisit - user's last visit time on project
+   *
    * @return {Promise<Number>}
    */
   async getUnreadCount(lastVisit) {
