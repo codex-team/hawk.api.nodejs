@@ -149,7 +149,7 @@ class EventsFactory {
      * aggregation can return empty array so that
      * result can be undefined
      *
-     * for that we check result existance
+     * for that we check result existence
      *
      * extra field `projectId` needs to satisfy GraphQL query
      */
@@ -160,6 +160,24 @@ class EventsFactory {
     }
 
     return result;
+  }
+
+  /**
+   * Returns number of documents that occurred after the last visit time
+   *
+   * @param {Number} lastVisit - user's last visit time on project
+   *
+   * @return {Promise<Number>}
+   */
+  async getUnreadCount(lastVisit) {
+    const query = {
+      'payload.timestamp': {
+        $gt: lastVisit / 1000
+      }
+    };
+
+    return this.getCollection(this.TYPES.EVENTS)
+      .countDocuments(query);
   }
 
   /**

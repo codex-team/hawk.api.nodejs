@@ -2,6 +2,7 @@ const { ValidationError } = require('apollo-server-express');
 const { ObjectID } = require('mongodb');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
+const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 
 /**
@@ -83,17 +84,39 @@ module.exports = {
     },
 
     /**
+     * Returns events count that wasn't seen on project
+     *
+     * @param {String} projectId - project identifier
+     * @param {Object} data - additional data. In this case it is empty
+     * @param {User} user - authorized user
+     *
+     * @return {Promise<number>}
+     */
+    async unreadCount({ id: projectId }, data, { user }) {
+      const eventsFactory = new EventsFactory(projectId);
+      const userInProject = new UserInProject(user.id, projectId);
+      const lastVisit = await userInProject.getLastVisit();
+
+      return eventsFactory.getUnreadCount(lastVisit);
+    },
+
+    /**
      * Returns recent Events grouped by day
      *
      * @param {ResolverObj} _obj
      * @param {Number} limit - limit for events count
+     * @param {Number} skip - certain number of documents to skip
+     * @param {Context.user} user - current authorized user {@see ../index.js}
      *
-     * @return {RecentEvent[]}
+     * @return {Promise<RecentEventSchema[]>}
      */
-    async recentEvents({ id }, { limit }) {
-      const factory = new EventsFactory(id);
+    async recentEvents({ id: projectId }, { limit, skip }, { user }) {
+      const factory = new EventsFactory(projectId);
+      const userInProject = new UserInProject(user.id, projectId);
 
-      return factory.findRecent(limit);
+      userInProject.updateLastVisit();
+
+      return factory.findRecent(limit, skip);
     }
   }
 };

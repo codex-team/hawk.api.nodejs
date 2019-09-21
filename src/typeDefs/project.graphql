@@ -68,6 +68,11 @@ type Project {
     "Certain number of documents to skip"
     skip: Int! = 0
   ): RecentEvents @requireAuth
+
+  """
+  Returns number of unread events
+  """
+  unreadCount: Int! @requireAuth
 }
 
 extend type Query {
