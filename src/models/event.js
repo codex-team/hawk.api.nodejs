@@ -20,29 +20,33 @@
  */
 
 /**
+ * @typedef {Object} EventPayload
+ * @property {string} title - event title
+ * @property {DateTime} timestamp - event datetime
+ * @property {Number} level - event severity level
+ * @property {EventBacktrace[]} [backtrace] - event stack array from the latest call to the earliest
+ * @property {Object} [get] - GET params
+ * @property {Object} [post] - POST params
+ * @property {Object} [headers] - HTTP headers
+ * @property {String} [release] - source code version identifier; version, modify timestamp or both of them combined
+ * @property {EventUser} [user] - current authenticated user
+ * @property {Object} [context] - any additional data
+ */
+
+/**
  * @typedef {Object} EventSchema
- * @property {String} id - event ID
+ * @property {String} _id - event ID
  * @property {String} catcherType - type of an event
  * @property {Number} count - event repetitions count
  * @property {String} groupHash - event's hash (catcherType + title + salt)
- * @property {Object} payload - event data
- * @property {string} payload.title - event title
- * @property {Date} payload.timestamp - event datetime
- * @property {Number} payload.level - event severity level
- * @property {EventBacktrace[]} [payload.backtrace] - event stack array from the latest call to the earliest
- * @property {Object} [payload.get] - GET params
- * @property {Object} [payload.post] - POST params
- * @property {Object} [payload.headers] - HTTP headers
- * @property {String} [payload.release] - source code version identifier; version, modify timestamp or both of them combined
- * @property {EventUser} [payload.user] - current authenticated user
- * @property {Object} [payload.context] - any additional data
+ * @property {EventPayload} payload - event's payload
  */
 
 /**
  * Event model
  * Represents events for given project
  *
- * @property {string|ObjectID} projectId - project ID
+ * @implements EventSchema
  */
 class Event {
   /**
