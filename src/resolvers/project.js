@@ -4,7 +4,6 @@ const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
-const eventResolvers = require('./event');
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -54,16 +53,34 @@ module.exports = {
   },
   Project: {
     /**
+     * Find project's event
+     *
+     * @param {String} id  - id of project (root resolver)
+     * @param {String} eventId - event's identifier
+     * @returns {Event}
+     */
+    async event({ id }, { id: eventId }) {
+      const factory = new EventsFactory(id);
+      const event = await factory.findById(eventId);
+
+      event.projectId = id;
+
+      return event;
+    },
+
+    /**
      * Find project events
      *
      * @param {String} id  - id of project (root resolver)
      * @param {number} limit - query limit
      * @param {number} skip - query skip
      * @param {Context.user} user - current authorized user {@see ../index.js}
-     * @returns {Promise<EventSchema[]>}
+     * @returns {Event[]}
      */
     async events({ id }, { limit, skip }) {
-      return eventResolvers.Query.events({}, { projectId: id, limit, skip });
+      const factory = new EventsFactory(id);
+
+      return factory.find({}, limit, skip);
     },
 
     /**
@@ -91,17 +108,15 @@ module.exports = {
      * @param {Number} skip - certain number of documents to skip
      * @param {Context.user} user - current authorized user {@see ../index.js}
      *
-     * @return {RecentEvent[]}
+     * @return {Promise<RecentEventSchema[]>}
      */
     async recentEvents({ id: projectId }, { limit, skip }, { user }) {
+      const factory = new EventsFactory(projectId);
       const userInProject = new UserInProject(user.id, projectId);
 
       userInProject.updateLastVisit();
 
-      // @makeAnIssue remove aliases to event resolvers in project resolvers
-      const result = await eventResolvers.Query.recent({}, { projectId, limit, skip });
-
-      return result.shift();
+      return factory.findRecent(limit, skip);
     }
   }
 };
