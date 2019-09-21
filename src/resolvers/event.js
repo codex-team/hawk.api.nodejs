@@ -50,11 +50,11 @@ module.exports = {
           // @todo optimize query for getting all user's projects
 
           // Find all user's workspaces
-          const allWorkspaces = new Membership(userId).getWorkspaces();
+          const allWorkspaces = await (new Membership(userId)).getWorkspaces();
           const allProjects = [];
 
           // Find all user's projects
-          asyncForEach(allWorkspaces, async workspace => {
+          await asyncForEach(allWorkspaces, async workspace => {
             const allProjectsInWorkspace = await new ProjectToWorkspace(workspace.id).getProjects();
 
             allProjects.push(...allProjectsInWorkspace);
