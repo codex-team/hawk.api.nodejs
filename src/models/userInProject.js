@@ -30,7 +30,7 @@ class UserInProject {
       userId: this.userId
     }, {
       $set: {
-        timestamp: Date.now()
+        timestamp: Date.now() / 1000
       }
     }, {
       upsert: true

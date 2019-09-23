@@ -172,7 +172,7 @@ class EventsFactory {
   async getUnreadCount(lastVisit) {
     const query = {
       'payload.timestamp': {
-        $gt: lastVisit / 1000
+        $gt: lastVisit
       }
     };
 
