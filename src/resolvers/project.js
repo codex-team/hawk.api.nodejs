@@ -59,7 +59,7 @@ module.exports = {
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @return {Promise<Number>}
      */
-    async setLastProjectVisit(_obj, { projectId }, { user }) {
+    async updateLastProjectVisit(_obj, { projectId }, { user }) {
       const userInProject = new UserInProject(user.id, projectId);
 
       return userInProject.updateLastVisit();

@@ -94,9 +94,9 @@ extend type Mutation {
   ): Project! @requireAuth
 
   """
-  Sets user's visit time on project
+  Updates user's visit time on project
   """
-  setLastProjectVisit(
+  updateLastProjectVisit(
     "project ID"
     projectId: ID!
   ): Float! @requireAuth
