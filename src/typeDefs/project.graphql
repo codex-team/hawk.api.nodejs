@@ -99,5 +99,5 @@ extend type Mutation {
   updateLastProjectVisit(
     "project ID"
     projectId: ID!
-  ): Float! @requireAuth
+  ): DateTime! @requireAuth
 }
