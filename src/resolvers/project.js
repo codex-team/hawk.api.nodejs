@@ -49,6 +49,20 @@ module.exports = {
       new ProjectToWorkspace(workspaceId).add({ projectId: project.id });
 
       return project;
+    },
+
+    /**
+     * Updates user visit time on project and returns it
+     *
+     * @param {ResolverObj} _obj
+     * @param {String} projectId - project ID
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @return {Promise<Number>}
+     */
+    async setLastProjectVisit(_obj, { projectId }, { user }) {
+      const userInProject = new UserInProject(user.id, projectId);
+
+      return userInProject.updateLastVisit();
     }
   },
   Project: {
@@ -106,15 +120,11 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {Number} limit - limit for events count
      * @param {Number} skip - certain number of documents to skip
-     * @param {Context.user} user - current authorized user {@see ../index.js}
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async recentEvents({ id: projectId }, { limit, skip }, { user }) {
+    async recentEvents({ id: projectId }, { limit, skip }) {
       const factory = new EventsFactory(projectId);
-      const userInProject = new UserInProject(user.id, projectId);
-
-      userInProject.updateLastVisit();
 
       return factory.findRecent(limit, skip);
     }

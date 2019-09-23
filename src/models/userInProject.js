@@ -24,17 +24,23 @@ class UserInProject {
 
   /**
    * Set's new timestamp when project is visited by user
+   *
+   * @return {Number}
    */
   updateLastVisit() {
+    const time = Date.now() / 1000;
+
     this.collection.updateOne({
       userId: this.userId
     }, {
       $set: {
-        timestamp: Date.now() / 1000
+        timestamp: time
       }
     }, {
       upsert: true
     });
+
+    return time;
   }
 
   /**
