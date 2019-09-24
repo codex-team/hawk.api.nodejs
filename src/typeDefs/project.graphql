@@ -92,4 +92,12 @@ extend type Mutation {
     "Project name"
     name: String!
   ): Project! @requireAuth
+
+  """
+  Updates user's visit time on project
+  """
+  updateLastProjectVisit(
+    "project ID"
+    projectId: ID!
+  ): DateTime! @requireAuth
 }
