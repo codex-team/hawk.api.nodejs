@@ -28,7 +28,7 @@ type EmailNotifySettings implements ProviderSettings {
 """
 Telegram notifications settings
 """
-type TelegramNotifySettings implements ProviderSettings{
+type TelegramNotifySettings implements ProviderSettings {
   """
   Notifications enabled?
   """
@@ -43,7 +43,7 @@ type TelegramNotifySettings implements ProviderSettings{
 """
 Slack notifications settings
 """
-type SlackNotifySettings implements ProviderSettings{
+type SlackNotifySettings implements ProviderSettings {
   """
   Notifications enabled?
   """
@@ -65,17 +65,15 @@ type NotifySettings {
   email: EmailNotifySettings
 
   """
-  Telegram notofications settings
+  Telegram notifications settings
   """
   tg: TelegramNotifySettings
-
 
   """
   Slack notifications settings
   """
   slack: SlackNotifySettings
 }
-
 
 """
 Project notify settings
@@ -84,7 +82,7 @@ type Notify {
   """
   Notify action type
   """
-  actionType: Int
+  actionType: Int!
 
   """
   Words for INCLUDING action type
@@ -106,7 +104,7 @@ input EmailInput {
   """
   Notifications enabled?
   """
-  enabled: Boolean
+  enabled: Boolean!
 
   """
   Email
@@ -121,7 +119,7 @@ input TelegramInput {
   """
   Notifications enabled?
   """
-  enabled: Boolean
+  enabled: Boolean!
 
   """
   Telegram CodeX Bot hook
@@ -136,7 +134,7 @@ input SlackInput {
   """
   Notifications enabled?
   """
-  enabled: Boolean
+  enabled: Boolean!
 
   """
   Slack webhook
@@ -154,10 +152,9 @@ input NotifySettingsInput {
   email: EmailInput
 
   """
-  Telegram notofications settings
+  Telegram notifications settings
   """
   tg: TelegramInput
-
 
   """
   Slack notifications settings
@@ -198,10 +195,20 @@ extend type Mutation {
   """
   Update project personal notification settings
   """
-  updatePersonalNotificationSettings("Project ID" projectId: ID!, "Notify" notify: NotifyInput!): Notify! @requireAuth
+  updatePersonalNotificationSettings(
+    "Project ID"
+    projectId: ID!
+    "Notify"
+    notify: NotifyInput!
+  ): Notify! @requireAuth
 
   """
   Update project common notification settings
   """
-  updateCommonNotificationSettings("Project ID" projectId: ID!, "Notify" notify: NotifyInput!): Notify! @requireAuth
+  updateCommonNotificationSettings(
+    "Project ID"
+    projectId: ID!
+    "Notify"
+    notify: NotifyInput!
+  ): Notify! @requireAuth
 }
