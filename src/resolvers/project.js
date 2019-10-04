@@ -2,9 +2,6 @@ const { ValidationError } = require('apollo-server-express');
 const { ObjectID } = require('mongodb');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
-const Team = require('../models/team');
-const NotifyFactory = require('../models/notifyFactory');
-const Notify = require('../models/notify');
 const eventResolvers = require('./event');
 
 /**
@@ -42,56 +39,14 @@ module.exports = {
         throw new ValidationError('No such workspace');
       }
 
-      /**
-       * Set default project notify settings
-       */
-      const projectNotify = Notify.defaultNotify;
-
-      projectNotify.settings.email.enabled = false;
-
       const project = await Project.create({
         name,
         workspaceId,
-        uidAdded: new ObjectID(user.id),
-        notify: projectNotify
+        uidAdded: new ObjectID(user.id)
       });
 
       // Create Project to Workspace relationship
       new ProjectToWorkspace(workspaceId).add({ projectId: project.id });
-
-      /*
-       * Set default notification settings for all users in workspace:
-       * Get all workspace users -> set default notify
-       */
-      const team = new Team(workspaceId);
-
-      const users = await team.getAllUsers();
-
-      /*
-       * Probably deadly race condition bug here if following code not applied
-       * if (!users.findIndex((el, idx) => el.id === user.id)){
-       *   users.push(await User.findOne({_id: user.id}));
-       * }
-       */
-
-      const notifyFactory = new NotifyFactory(project.id);
-
-      for (const projectUser of users) {
-        try {
-          const notify = Notify.defaultNotify;
-
-          notify.userId = new ObjectID(projectUser.id);
-          notify.settings.email.value = projectUser.email;
-
-          const result = await notifyFactory.update(notify);
-
-          if (!result) {
-            console.warn(`Couldn't set Notify for user ${projectUser.id}, projectId: ${project.id}`);
-          }
-        } catch (err) {
-          console.error(err);
-        }
-      }
 
       return project;
     }
@@ -120,7 +75,10 @@ module.exports = {
      */
     async recentEvents({ id }, { limit }) {
       // @makeAnIssue remove aliases to event resolvers in project resolvers
-      const result = await eventResolvers.Query.recent({}, { projectId: id, limit });
+      const result = await eventResolvers.Query.recent(
+        {},
+        { projectId: id, limit }
+      );
 
       return result.shift();
     }
