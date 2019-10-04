@@ -21,6 +21,7 @@
     "nodemon": "^1.19.1"
   },
   "dependencies": {
+    "amqp-connection-manager": "^3.0.0",
     "amqplib": "^0.5.5",
     "apollo-server-express": "^2.9.0",
     "argon2": "^0.22.0",

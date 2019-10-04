@@ -3,6 +3,8 @@ const UserCard = require('../models/userCard');
 const TinkoffAPI = require('tinkoff-api');
 const rabbitmq = require('../rabbitmq');
 const PaymentTransaction = require('../models/paymentTransaction');
+const Membership = require('../models/membership');
+const Transaction = require('../models/transaction');
 
 /**
  * @typedef {Object} PaymentQuery
@@ -35,33 +37,23 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {string} language
      * @param {Object} user - current user object
-     * @return {PaymentLink}
+     * @return {Promise<PaymentLink>}
      */
     async attachCard(_obj, { language }, { user }) {
-      const paymentQuery = {
+      const orderId = PaymentRequest.generateOrderId();
+      const result = await PaymentRequest.apiInitPayment(user.id, {
         recurrent: 'Y',
         language: language || 'en',
         data: {
           UserId: user.id
         },
-        amount: 100
-      };
-
-      const paymentRequest = await PaymentRequest.create(user.id, paymentQuery);
-
-      console.log('INIT =>', paymentRequest);
-
-      const result = await bankApi.initPayment(paymentRequest);
-
-      console.log(result);
-      if (!result.Success) {
-        throw Error(`Merchant API error: ${result.Message} ${result.Details}`);
-      }
-
+        amount: 100,
+        orderId: orderId
+      });
       const transaction = await PaymentTransaction.create({
         userId: user.id,
         amount: result.Amount,
-        orderId: paymentRequest.OrderId,
+        orderId: orderId,
         paymentId: result.PaymentId,
         status: result.Status,
         timestamp: parseInt((Date.now() / 1000).toFixed(0))
@@ -78,69 +70,119 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {PaymentQuery} paymentQuery
      * @param {Object} user - current user object
-     * @return {UserCard[]}
+     * @return {Promise<UserCard[]>}
      */
     async getCardList(_obj, { paymentQuery }, { user }) {
       return UserCard.findByUserId(user.id);
     },
+
     /**
-     * API Mutation method for payment
+     * API Query method for getting all transactions for passed workspaces
+     * @param _obj
+     * @param {string[]} ids - ids of workspaces for which transactions have been requested
+     * @param {User} user - current authorized user
+     * @returns {Promise<Transaction>}
+     */
+    async transactions(_obj, { ids }, { user }) {
+      // @todo check if user has permissions to get transactions
+
+      const membership = new Membership(user.id);
+
+      const workspaces = await membership.getWorkspaces();
+      const allowedIds = workspaces.map(w => w.id.toString());
+
+      if (ids.length === 0) {
+        ids = allowedIds;
+      } else {
+        ids = ids.filter(id => allowedIds.includes(id));
+      }
+
+      return Transaction.getWorkspacesTransactions(ids);
+    },
+
+    /**
+     * API Mutation method for payment with attached card
      * @param {ResolverObj} _obj
      * @param {PaymentQuery} paymentQuery
      * @param {Object} user - current user object
-     * @return {boolean}
+     * @return {Promise<boolean>}
      */
-    async pay(_obj, { paymentQuery }, { user }) {
-      const card = await UserCard.find(user.id, paymentQuery.cardId);
+    async payWithCard(_obj, { amount, language, cardId, workspaceId }, { user }) {
+      const orderId = PaymentRequest.generateOrderId();
+      const card = await UserCard.find(user.id, cardId);
 
       if (!card) {
-        throw Error(`Merchant API error. Cannot find card: ${paymentQuery.cardId} for user ${user.id}`);
+        throw Error(`Merchant API error. Cannot find card: ${cardId} for user ${user.id}`);
       }
-
       console.log(`Found card: ${card}`);
 
-      const paymentInitQuery = {
-        language: paymentQuery.language || 'en',
+      // Get paymentId from bank API
+      const result = await PaymentRequest.apiInitPayment(user.id, {
+        language: language || 'en',
         data: {
           UserId: user.id
         },
-        amount: paymentQuery.amount
-      };
-      const paymentRequest = await PaymentRequest.create(user.id, paymentInitQuery);
-      const result = await bankApi.initPayment(paymentRequest);
+        amount,
+        orderId
+      });
 
-      console.log(`Got result for charge init: ${JSON.stringify(result)}`);
-      if (!result.Success) {
-        throw Error(`Merchant API error: ${result.Message} ${result.Details}`);
-      }
-
-      const chargeRequest = {
+      // Charge payment with bank API
+      const chargeResult = await bankApi.charge({
         PaymentId: result.PaymentId,
         RebillId: card.rebillId
-      };
-      const chargeResult = await bankApi.charge(chargeRequest);
+      });
 
       console.log(`Got result for charge: ${JSON.stringify(chargeResult)}`);
-
       if (!process.env.BILLING_DEBUG) {
         if (!chargeResult.Success) {
           throw Error(`Merchant API error: ${chargeResult.Message}`);
         }
       }
-
       const transaction = await PaymentTransaction.create({
         userId: user.id,
-        workspaceId: paymentQuery.workspaceId,
-        amount: result.Amount,
-        orderId: paymentRequest.OrderId,
+        workspaceId,
+        amount,
+        orderId,
         paymentId: result.PaymentId,
-        paymentType: 'CHARGE',
+        status: 'CHARGE',
         timestamp: parseInt((Date.now() / 1000).toFixed(0))
       });
 
       await rabbitmq.publish('merchant', 'merchant/charged', JSON.stringify(transaction));
-
       return true;
+    },
+
+    /**
+     * API Mutation method for single payment
+     * @param {ResolverObj} _obj
+     * @param {PaymentQuery} paymentQuery
+     * @param {Object} user - current user object
+     * @return {Promise<boolean>}
+     */
+    async payOnce(_obj, { amount, language, workspaceId }, { user }) {
+      const orderId = PaymentRequest.generateOrderId();
+      const result = await PaymentRequest.apiInitPayment(user.id, {
+        language: language || 'en',
+        data: {
+          UserId: user.id
+        },
+        amount,
+        orderId: orderId
+      });
+
+      const transaction = await PaymentTransaction.create({
+        userId: user.id,
+        workspaceId,
+        amount,
+        orderId,
+        paymentId: result.PaymentId,
+        status: 'SINGLE',
+        timestamp: parseInt((Date.now() / 1000).toFixed(0))
+      });
+
+      await rabbitmq.publish('merchant', 'merchant/initialized', JSON.stringify(transaction));
+
+      return result;
     }
   },
   Mutation: {
@@ -149,7 +191,7 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {Number} cardId - card's identifier
      * @param {Object} user - current user object
-     * @return {boolean}
+     * @return {Promise<boolean>}
      */
     async removeCard(_obj, { cardId }, { user }) {
       return (await UserCard.remove({ cardId, userId: user.id })).deletedCount === 1;

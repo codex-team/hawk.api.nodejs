@@ -2,7 +2,8 @@ const { ValidationError } = require('apollo-server-express');
 const { ObjectID } = require('mongodb');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
-const eventResolvers = require('./event');
+const UserInProject = require('../models/userInProject');
+const EventsFactory = require('../models/eventsFactory');
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -49,9 +50,39 @@ module.exports = {
       new ProjectToWorkspace(workspaceId).add({ projectId: project.id });
 
       return project;
+    },
+
+    /**
+     * Updates user visit time on project and returns it
+     *
+     * @param {ResolverObj} _obj
+     * @param {String} projectId - project ID
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @return {Promise<Number>}
+     */
+    async updateLastProjectVisit(_obj, { projectId }, { user }) {
+      const userInProject = new UserInProject(user.id, projectId);
+
+      return userInProject.updateLastVisit();
     }
   },
   Project: {
+    /**
+     * Find project's event
+     *
+     * @param {String} id  - id of project (root resolver)
+     * @param {String} eventId - event's identifier
+     * @returns {Event}
+     */
+    async event({ id }, { id: eventId }) {
+      const factory = new EventsFactory(id);
+      const event = await factory.findById(eventId);
+
+      event.projectId = id;
+
+      return event;
+    },
+
     /**
      * Find project events
      *
@@ -59,10 +90,29 @@ module.exports = {
      * @param {number} limit - query limit
      * @param {number} skip - query skip
      * @param {Context.user} user - current authorized user {@see ../index.js}
-     * @returns {Promise<EventSchema[]>}
+     * @returns {Event[]}
      */
     async events({ id }, { limit, skip }) {
-      return eventResolvers.Query.events({}, { projectId: id, limit, skip });
+      const factory = new EventsFactory(id);
+
+      return factory.find({}, limit, skip);
+    },
+
+    /**
+     * Returns events count that wasn't seen on project
+     *
+     * @param {String} projectId - project identifier
+     * @param {Object} data - additional data. In this case it is empty
+     * @param {User} user - authorized user
+     *
+     * @return {Promise<number>}
+     */
+    async unreadCount({ id: projectId }, data, { user }) {
+      const eventsFactory = new EventsFactory(projectId);
+      const userInProject = new UserInProject(user.id, projectId);
+      const lastVisit = await userInProject.getLastVisit();
+
+      return eventsFactory.getUnreadCount(lastVisit);
     },
 
     /**
@@ -70,17 +120,14 @@ module.exports = {
      *
      * @param {ResolverObj} _obj
      * @param {Number} limit - limit for events count
+     * @param {Number} skip - certain number of documents to skip
      *
-     * @return {RecentEvent[]}
+     * @return {Promise<RecentEventSchema[]>}
      */
-    async recentEvents({ id }, { limit }) {
-      // @makeAnIssue remove aliases to event resolvers in project resolvers
-      const result = await eventResolvers.Query.recent(
-        {},
-        { projectId: id, limit }
-      );
+    async recentEvents({ id: projectId }, { limit, skip }) {
+      const factory = new EventsFactory(projectId);
 
-      return result.shift();
+      return factory.findRecent(limit, skip);
     }
   }
 };

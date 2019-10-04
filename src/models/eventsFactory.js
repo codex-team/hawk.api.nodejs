@@ -2,13 +2,19 @@ const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
-const _ = require('lodash');
 
 /**
  * @typedef {Object} RecentEventSchema
  * @property {Event} event - event model
  * @property {Number} count - recent error occurred count
  * @property {String} data - error occurred date (string)
+ */
+
+/**
+ * @typedef {Object} EventRepetitionSchema
+ * @property {String} _id — repetition's identifier
+ * @property {String} groupHash - event's hash. Generates according to the rule described in EventSchema
+ * @property {EventPayload} payload - repetition's payload
  */
 
 /**
@@ -75,8 +81,8 @@ class EventsFactory extends Factory {
 
     const result = await cursor.toArray();
 
-    return result.map(data => {
-      return new Event(data);
+    return result.map(eventSchema => {
+      return new Event(eventSchema);
     });
   }
 
@@ -112,13 +118,15 @@ class EventsFactory extends Factory {
    * Returns events that grouped by day
    *
    * @param {Number} limit - events count limitations
+   * @param {Number} skip - certain number of documents to skip
    * @return {RecentEventSchema[]}
    */
-  async findRecent(limit = 10) {
+  async findRecent(limit = 10, skip = 0) {
     limit = this.validateLimit(limit);
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate([
       { $sort: { timestamp: -1 } },
+      { $skip: skip },
       { $limit: limit },
       {
         $group: {
@@ -137,7 +145,41 @@ class EventsFactory extends Factory {
       }
     ]);
 
-    return cursor.toArray();
+    const result = (await cursor.toArray()).shift();
+
+    /**
+     * aggregation can return empty array so that
+     * result can be undefined
+     *
+     * for that we check result existence
+     *
+     * extra field `projectId` needs to satisfy GraphQL query
+     */
+    if (result && result.events) {
+      result.events.forEach(event => {
+        event.projectId = this.projectId;
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Returns number of documents that occurred after the last visit time
+   *
+   * @param {Number} lastVisit - user's last visit time on project
+   *
+   * @return {Promise<Number>}
+   */
+  async getUnreadCount(lastVisit) {
+    const query = {
+      'payload.timestamp': {
+        $gt: lastVisit
+      }
+    };
+
+    return this.getCollection(this.TYPES.EVENTS)
+      .countDocuments(query);
   }
 
   /**
@@ -147,9 +189,9 @@ class EventsFactory extends Factory {
    * @param {Number} limit - count limitations
    * @param {Number} skip - selection offset
    *
-   * @return {Event}
+   * @return {EventRepetitionSchema[]}
    */
-  async getRepetitions(eventId, limit = 10, skip = 0) {
+  async getEventRepetitions(eventId, limit = 10, skip = 0) {
     limit = this.validateLimit(limit);
     skip = this.validateSkip(skip);
 
@@ -158,19 +200,11 @@ class EventsFactory extends Factory {
       .find({
         groupHash: eventOriginal.groupHash
       })
-      .sort([ ['_id', -1] ])
+      .sort({ _id: -1 })
       .limit(limit)
       .skip(skip);
 
-    const result = await cursor.toArray();
-
-    return result.map(data => {
-      delete data._id;
-      delete data.groupHash;
-
-      eventOriginal.payload = _.merge({}, eventOriginal.payload, data);
-      return new Event(eventOriginal);
-    });
+    return cursor.toArray();
   }
 }
 

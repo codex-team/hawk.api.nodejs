@@ -653,6 +653,13 @@ ajv@^6.10.2, ajv@^6.5.5, ajv@^6.9.1:
     json-schema-traverse "^0.4.1"
     uri-js "^4.2.2"
 
+amqp-connection-manager@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/amqp-connection-manager/-/amqp-connection-manager-3.0.0.tgz#9e273c616122033ca802f962b4d0e48895a5ff9a"
+  integrity sha512-a5MsUDsG+CqMjwk/WNFSTE0H4pAaWJXw7L24QFa3MeaB+KA05PXoBsppYlIzaIqc1XLWZwjO9J42AFHNrDsVFQ==
+  dependencies:
+    promise-breaker "^5.0.0"
+
 amqplib@^0.5.5:
   version "0.5.5"
   resolved "https://registry.yarnpkg.com/amqplib/-/amqplib-0.5.5.tgz#698f0cb577e0591954a90572fcb3b8998a76fd40"
@@ -4905,6 +4912,11 @@ prompts@^2.0.1:
   dependencies:
     kleur "^3.0.3"
     sisteransi "^1.0.3"
+
+promise-breaker@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/promise-breaker/-/promise-breaker-5.0.0.tgz#58e8541f1619554057da95a211794d7834d30c1d"
+  integrity sha512-mgsWQuG4kJ1dtO6e/QlNDLFtMkMzzecsC69aI5hlLEjGHFNpHrvGhFi4LiK5jg2SMQj74/diH+wZliL9LpGsyA==
 
 property-expr@^1.5.0:
   version "1.5.1"

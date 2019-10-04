@@ -43,14 +43,36 @@ type Project {
   uidAdded: User!
 
   """
+  Project's Event
+  """
+  event(id: ID!): Event! @requireAuth
+
+  """
   Project events
   """
-  events(limit: Int! = 10, skip: Int! = 0): [Event!] @requireAuth
+  events(
+    "Maximum number of results"
+    limit: Int! = 50
+
+    "Certain number of documents to skip"
+    skip: Int! = 0
+  ): [Event!] @requireAuth
 
   """
   Returns recent events grouped by day
   """
-  recentEvents("limit" limit: Int): RecentEvents @requireAuth
+  recentEvents(
+    "Maximum number of results"
+    limit: Int! = 50
+
+    "Certain number of documents to skip"
+    skip: Int! = 0
+  ): RecentEvents @requireAuth
+
+  """
+  Returns number of unread events
+  """
+  unreadCount: Int! @requireAuth
 }
 
 extend type Query {
@@ -70,4 +92,12 @@ extend type Mutation {
     "Project name"
     name: String!
   ): Project! @requireAuth
+
+  """
+  Updates user's visit time on project
+  """
+  updateLastProjectVisit(
+    "project ID"
+    projectId: ID!
+  ): DateTime! @requireAuth
 }

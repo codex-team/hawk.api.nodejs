@@ -23,26 +23,6 @@ type PaymentLink {
   PaymentURL: String
 }
 
-"""
-Payment query structure
-"""
-input PaymentQuery {
-  """
-  Total payment amount in kopecs
-  """
-  amount: Int!
-
-  """
-  Workspace id for which the payment will be made
-  """
-  workspaceId: String!
-
-  """
-  Unique card identifier
-  """
-  cardId: Int!
-}
-
 type CardInfo {
   """
   Card number (Pan)
@@ -60,21 +40,102 @@ type CardInfo {
   expDate: String
 }
 
+
+"""
+Transaction object
+"""
+type Transaction {
+  """
+  Transaction type
+  """
+  type: String!
+
+  """
+  Workspace for which transaction has been made
+  """
+  workspace: Workspace!
+
+  """
+  Transaction amount
+  """
+  amount: Int!
+
+  """
+  Transaction date
+  """
+  date: DateTime!
+
+  """
+  User by whom transaction has been made
+  """
+  user: User
+
+  """
+  PAN of card by which transaction has been made
+  """
+  cardPan: Int
+}
+
 extend type Query {
+  """
+  Get attached cards
+  """
+  getCardList: [CardInfo!] @requireAuth
+
+  """
+  Initialize recurrent payment
+  """
+  payWithCard(
+    """
+    Total payment amount in kopecs
+    """
+    amount: Int!
+
+    """
+    Workspace id for which the payment will be made
+    """
+    workspaceId: String!
+
+    """
+    Unique card identifier for recurrent payment. Omit this to pay with unattached card
+    """
+    cardId: Int!
+
+    """
+    Payment form language
+    """
+    language: String
+  ): Boolean! @requireAuth
+
+  """
+  Initialize single payment
+  """
+  payOnce(
+    """
+    Total payment amount in kopecs
+    """
+    amount: Int!
+
+    """
+    Workspace id for which the payment will be made
+    """
+    workspaceId: String!
+
+    """
+    Payment form language
+    """
+    language: String
+  ): PaymentLink! @requireAuth
+
   """
   Returns JSON data with payment link and initiate card attach procedure
   """
   attachCard(language: String): PaymentLink @requireAuth
 
   """
-  Initialize recurrent payment
+  Get workspace transactions
   """
-  pay(paymentQuery: PaymentQuery!): Boolean! @requireAuth
-
-  """
-  Get attached cards
-  """
-  getCardList: [CardInfo!] @requireAuth
+  transactions("Workspaces IDs" ids: [ID] = []): [Transaction] @requireAuth
 }
 
 extend type Mutation {

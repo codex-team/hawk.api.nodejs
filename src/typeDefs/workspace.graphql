@@ -31,6 +31,36 @@ type Member {
 }
 
 """
+Workspace tariff plan
+"""
+type Plan {
+  """
+  Plan name
+  """
+  name: String
+
+  """
+  Subscription date
+  """
+  subscriptionDate: DateTime
+
+  """
+  Lsat charge date
+  """
+  lastChargeDate: DateTime
+
+  """
+  Monthly charge for plan
+  """
+  monthlyCharge: Int
+
+  """
+  Events limit for plan
+  """
+  eventsLimit: Int
+}
+
+"""
 Represent Workspace info
 """
 type Workspace {
@@ -63,6 +93,16 @@ type Workspace {
   Workspace pending users array
   """
   pendingUsers: [Member!]
+
+  """
+  Workspace balance
+  """
+  balance: Int
+
+  """
+  Workspace tariff plan
+  """
+  plan: Plan
 
   """
   Workspace projects array
