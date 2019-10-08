@@ -95,8 +95,6 @@ type Notify {
   settings: NotifySettings
 }
 
-#######################################
-
 """
 Input type for email
 """
@@ -177,18 +175,6 @@ input NotifyInput {
   Notify settings
   """
   settings: NotifySettingsInput
-}
-
-extend type Query {
-  """
-  Get project personal notification settings
-  """
-  personalNotificationSettings("Project ID" projectId: ID!): Notify @requireAuth
-
-  """
-  Get project common notifcation settings
-  """
-  commonNotificationSettings("Project ID" projectId: ID!): Notify @requireAuth
 }
 
 extend type Mutation {
