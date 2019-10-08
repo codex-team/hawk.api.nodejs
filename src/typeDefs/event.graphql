@@ -247,7 +247,7 @@ type Event {
   """
   Event's repetitions
   """
-  repetitions(limit: Int! = 10): [Repetitions!]
+  repetitions(limit: Int = 10): [Repetitions!]
 }
 
 """

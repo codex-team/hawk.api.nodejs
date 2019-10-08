@@ -45,17 +45,17 @@ type Project {
   """
   Project's Event
   """
-  event(id: ID!): Event! @requireAuth
+  event(id: ID!): Event @requireAuth
 
   """
   Project events
   """
   events(
     "Maximum number of results"
-    limit: Int! = 50
+    limit: Int = 50
 
     "Certain number of documents to skip"
-    skip: Int! = 0
+    skip: Int = 0
   ): [Event!] @requireAuth
 
   """
