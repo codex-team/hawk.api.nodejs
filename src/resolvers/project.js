@@ -1,11 +1,11 @@
 const { ValidationError } = require('apollo-server-express');
-const { ObjectID } = require('mongodb');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 const NotifyFactory = require('../models/notifyFactory');
 const Team = require('../models/team');
+const Notify = require('../models/notify');
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -45,7 +45,7 @@ module.exports = {
       const project = await Project.create({
         name,
         workspaceId,
-        uidAdded: new ObjectID(user.id)
+        uidAdded: user.id
       });
 
       // Create Project to Workspace relationship
@@ -136,6 +136,7 @@ module.exports = {
      * Get project personal notifications settings
      * @param {ResolverObj} _obj
      * @param {String} id - array of project ids to get
+     * @param {object} _args - query args (empty for this query)
      * @param user - current authorized user {@see ../index.js}
      * @returns {Promise<NotifySchema|null>}
      */
@@ -144,11 +145,11 @@ module.exports = {
 
       /**
        * Return null if project not exists
+       * @todo return error
        */
       if (!project) return null;
 
       const team = new Team(project.workspaceId);
-
       const teamInstance = await team.findByUserId(user.id);
 
       /**
@@ -158,17 +159,22 @@ module.exports = {
 
       const factory = new NotifyFactory(projectId);
 
-      return factory.findByUserId(user.id);
+      const personalSettings = await factory.findByUserId(user.id);
+
+      if (personalSettings) {
+        return personalSettings;
+      }
+      return Notify.defaultNotify;
     },
 
     /**
      * Get common notifications settings. Only for admins.
      * @param {ResolverObj} _obj
-     * @param {String} projectId - array of project ids to get
+     * @param {object} _args - query args (empty for this query)
      * @param user - current authorized user {@see ../index.js}
      * @returns {Promise<NotifySchema|null>}
      */
-    async commonNotificationSettings({ id: projectId }, _args, { user }) {
+    async commonNotificationsSettings({ id: projectId }, _args, { user }) {
       /**
        * First check if user is in workspace and is he admin.
        *

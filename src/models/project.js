@@ -13,7 +13,7 @@ const { sign } = require('jsonwebtoken');
  * @property {string} [image] - project image
  * @property {string|ObjectID} uidAdded - user who added the project
  * @property {string} workspaceId - workspace ID
- * @property {NotifySchema} notify - Project notification settings
+ * @property {NotifySchema} commonNotificationsSettings - Project notification settings
  */
 
 /**
@@ -48,7 +48,7 @@ class Project {
     this.image = projectData.image;
     this.uidAdded = projectData.uidAdded;
     this.workspaceId = projectData.workspaceId;
-    this.notify = projectData.notify;
+    this.commonNotificationsSettings = projectData.commonNotificationsSettings;
   }
 
   /**
@@ -69,6 +69,8 @@ class Project {
     /**
      * @todo Make transaction for creating project
      */
+    projectData.workspaceId = new ObjectID(projectData.workspaceId);
+    projectData.uidAdded = new ObjectID(projectData.uidAdded);
     const projectId = (await this.collection.insertOne(projectData)).insertedId;
 
     const token = await sign({ projectId }, process.env.JWT_SECRET_EVENTS);

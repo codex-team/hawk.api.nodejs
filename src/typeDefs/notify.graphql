@@ -1,4 +1,4 @@
-interface ProviderSettings {
+type ProviderSettings {
   """
   Notifications enabled?
   """
@@ -8,81 +8,41 @@ interface ProviderSettings {
   Provider value
   """
   value: String
+
+  """
+  Provider name
+  """
+  name: String!
 }
 
 """
-Email notifications settings
+What events to receive
 """
-type EmailNotifySettings implements ProviderSettings {
+enum ReceiveTypes {
   """
-  Notifications enabled?
+  Receive only new events
   """
-  enabled: Boolean!
+  ONLY_NEW,
 
   """
-  Email
+  Receive all events
   """
-  value: String
-}
-
-"""
-Telegram notifications settings
-"""
-type TelegramNotifySettings implements ProviderSettings {
-  """
-  Notifications enabled?
-  """
-  enabled: Boolean!
+  ALL,
 
   """
-  Telegram CodeX Bot hook
+  Receive events that includes words from list
   """
-  value: String
-}
-
-"""
-Slack notifications settings
-"""
-type SlackNotifySettings implements ProviderSettings {
-  """
-  Notifications enabled?
-  """
-  enabled: Boolean!
-
-  """
-  Slack webhook
-  """
-  value: String
-}
-
-"""
-Notify settings
-"""
-type NotifySettings {
-  """
-  Email notifications settings
-  """
-  email: EmailNotifySettings
-
-  """
-  Telegram notifications settings
-  """
-  tg: TelegramNotifySettings
-
-  """
-  Slack notifications settings
-  """
-  slack: SlackNotifySettings
+  INCLUDING,
 }
 
 """
 Project notify settings
 """
-type Notify {
+type NotifySettings {
   """
   Notify action type
   """
-  actionType: Int!
+  receiveType: ReceiveTypes!
 
   """
   Words for INCLUDING action type
@@ -92,72 +52,7 @@ type Notify {
   """
   Notify settings
   """
-  settings: NotifySettings
-}
-
-"""
-Input type for email
-"""
-input EmailInput {
-  """
-  Notifications enabled?
-  """
-  enabled: Boolean!
-
-  """
-  Email
-  """
-  value: String
-}
-
-"""
-Input type for Telegram
-"""
-input TelegramInput {
-  """
-  Notifications enabled?
-  """
-  enabled: Boolean!
-
-  """
-  Telegram CodeX Bot hook
-  """
-  value: String
-}
-
-"""
-Input type for Slack
-"""
-input SlackInput {
-  """
-  Notifications enabled?
-  """
-  enabled: Boolean!
-
-  """
-  Slack webhook
-  """
-  value: String
-}
-
-"""
-Input type for notify settings
-"""
-input NotifySettingsInput {
-  """
-  Email notifications settings
-  """
-  email: EmailInput
-
-  """
-  Telegram notifications settings
-  """
-  tg: TelegramInput
-
-  """
-  Slack notifications settings
-  """
-  slack: SlackInput
+  providers: [ProviderSettings!]
 }
 
 input NotifyInput {
@@ -174,7 +69,13 @@ input NotifyInput {
   """
   Notify settings
   """
-  settings: NotifySettingsInput
+  settings: [NotifyProviderSettings!]
+}
+
+input NotifyProviderSettings {
+  enabled: Boolean
+  value: String
+  name: String!
 }
 
 extend type Mutation {
@@ -186,7 +87,7 @@ extend type Mutation {
     projectId: ID!
     "Notify"
     notify: NotifyInput!
-  ): Notify! @requireAuth
+  ): NotifySettings! @requireAuth
 
   """
   Update project common notification settings
@@ -196,5 +97,5 @@ extend type Mutation {
     projectId: ID!
     "Notify"
     notify: NotifyInput!
-  ): Notify! @requireAuth
+  ): NotifySettings! @requireAuth
 }

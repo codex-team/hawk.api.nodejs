@@ -21,6 +21,27 @@
  */
 
 /**
+ * What events to receive
+ * @type {{ALL: string, ONLY_NEW: string, INCLUDING: string}}
+ */
+const ReceiveTypes = {
+  /**
+   * Receive only new events
+   */
+  ONLY_NEW: 'ONLY_NEW',
+
+  /**
+   * Receive all events
+   */
+  ALL: 'ALL',
+
+  /**
+   * Receive events that includes words from list
+   */
+  INCLUDING: 'INCLUDING'
+};
+
+/**
  * Notify model
  * Represents notify setting for given user and project
  */
@@ -56,26 +77,18 @@ class Notify {
 
   /**
    * Default notify settings.
-   * @returns {{actionType: number, settings: {tg: {value: string, enabled: boolean}, slack: {value: string, enabled: boolean}, email: {value: string, enabled: boolean}}, words: string}}
+   * @returns {{actionType: ReceiveTypes, settings: {tg: {value: string, enabled: boolean}, slack: {value: string, enabled: boolean}, email: {value: string, enabled: boolean}}, words: string}}
    */
   static get defaultNotify() {
     return {
-      actionType: 1,
-      words: '',
-      settings: {
-        email: {
+      receiveType: ReceiveTypes.ALL,
+      providers: [
+        {
+          name: 'email',
           value: '',
           enabled: true
-        },
-        tg: {
-          value: '',
-          enabled: false
-        },
-        slack: {
-          value: '',
-          enabled: false
         }
-      }
+      ]
     };
   }
 }
