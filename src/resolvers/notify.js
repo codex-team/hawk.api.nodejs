@@ -1,4 +1,5 @@
 const { ObjectID } = require('mongodb');
+const { ApolloError } = require('apollo-server-express');
 const Notify = require('../models/notify');
 const NotifyFactory = require('../models/notifyFactory');
 const { Project } = require('../models/project');
@@ -13,9 +14,9 @@ module.exports = {
      * Update project personal notifications settings
      * @param {ResolverObj} _obj
      * @param {String} projectId - Project ID
-     * @param {NotifySchema} settings - Notify settings
+     * @param {NotificationSettingsSchema} settings - Notify settings
      * @param {Context.user} user - current authorized user {@see ../index.js}
-     * @returns {Promise<NotifySchema|null>}
+     * @returns {Promise<NotificationSettingsSchema|null>}
      */
     async updatePersonalNotificationSettings(_obj, { projectId, notify }, { user }) {
       const project = await Project.findById(projectId);
@@ -35,7 +36,7 @@ module.exports = {
       if (!teamInstance || teamInstance.isPending) return null;
 
       const factory = new NotifyFactory(projectId);
-      const updatedNotify = new Notify({ userId: new ObjectID(user.id), ...notify });
+      const updatedNotify = new Notify(notify);
 
       const success = await factory.update(updatedNotify);
 
@@ -48,11 +49,11 @@ module.exports = {
      * Update project common notifications settings. Only for admins.
      * @param {ResolverObj} _obj
      * @param {String} projectId - Project ID
-     * @param {NotifySettings} settings - Notify settings
+     * @param {NotificationSettingsSchema} notifySettings - notification settings
      * @param {Context.user} user - current authorized user {@see ../index.js}
-     * @returns {Promise<NotifySchema|null>}
+     * @returns {Promise<NotificationSettingsSchema>}
      */
-    async updateCommonNotificationSettings(_obj, { projectId, notify }, { user }) {
+    async updateCommonNotificationSettings(_obj, { projectId, notifySettings }, { user }) {
       /**
        * First check if user is in workspace and is he admin.
        *
@@ -64,7 +65,9 @@ module.exports = {
       /**
        * Return null if project not exists
        */
-      if (!project) return null;
+      if (!project) {
+        throw new ApolloError('Project not exists');
+      }
 
       const team = new Team(project.workspaceId);
 
@@ -73,13 +76,15 @@ module.exports = {
       /**
        * Return null if user is not in workspace or is not admin
        */
-      if (!teamInstance || !teamInstance.isAdmin) return null;
+      if (!teamInstance || !teamInstance.isAdmin) {
+        throw new ApolloError('Only an administrator can change general settings');
+      }
 
-      const success = await Project.updateNotify(projectId, notify);
+      const success = await Project.updateNotify(projectId, notifySettings);
 
       if (!success) throw new Error('Failed to update project notify');
 
-      return (await Project.findById(projectId)).notify;
+      return (await Project.findById(projectId)).commonNotificationsSettings;
     }
   }
 };

@@ -1,4 +1,3 @@
-const { propsToPaths } = require('../utils/object');
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Notify = require('./notify');
@@ -21,7 +20,7 @@ class NotifyFactory extends Factory {
     }
     this.projectId = projectId;
 
-    this.collection = mongo.databases.hawk.collection('notifies:' + this.projectId);
+    this.collection = mongo.databases.hawk.collection('users-in-project:' + this.projectId);
   }
 
   /**
@@ -63,7 +62,7 @@ class NotifyFactory extends Factory {
   /**
    * Update Notify
    *
-   * @param {NotifySchema} notify - Notify to update
+   * @param {NotificationSettingsSchema} notify - Notify to update
    * @returns {Promise<Boolean>}
    */
   async update(notify) {
@@ -71,7 +70,11 @@ class NotifyFactory extends Factory {
       throw new Error('Can not update Notify, because userId is not provided');
     }
 
-    const updated = await this.collection.updateOne({ userId: new ObjectID(notify.userId) }, { $set: propsToPaths(notify) }, { upsert: true });
+    const updated = await this.collection.updateOne(
+      { userId: new ObjectID(notify.userId) },
+      { $set: { notify } },
+      { upsert: true }
+    );
 
     return updated.modifiedCount || updated.upsertedCount || updated.matchedCount;
   }
@@ -80,7 +83,7 @@ class NotifyFactory extends Factory {
    * Create Notify
    *
    * @param {ObjectID} userId - User ID
-   * @param {NotifySettings} settings - Notify settings
+   * @param {NotifyProvider} settings - Notify settings
    * @returns {Promise<Notify>}
    */
   async create(userId, settings = {}) {

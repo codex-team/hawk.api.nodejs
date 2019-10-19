@@ -2,27 +2,20 @@
  * @typedef {Object} ProviderSettings
  * @property {Boolean} enabled - is provider enabled
  * @property {String} value - provider hook/email/etc
+ * @property {ProviderTypes} provider - provider name
  */
 
 /**
- * @typedef {Object} NotifySettings
- * @property {ProviderSettings} email
- * @property {ProviderSettings} tg
- * @property {ProviderSettings} slack
- */
-
-/**
- * @typedef {Object} NotifySchema
+ * @typedef {Object} NotificationSettingsSchema
  * @property {ObjectID|string} id - notify ID
  * @property {ObjectID|string} [userId] - user ID
- * @property {number} actionType - action type. {ONLY_NEW: 1, ALL: 2, INCLUDING: 3}
+ * @property {ReceiveTypes} receiveType
  * @property {string} words - filter words when action type is INCLUDING
- * @property {NotifySettings} settings - notify settings
+ * @property {ProviderSettings[]} providers - notify settings
  */
 
 /**
- * What events to receive
- * @type {{ALL: string, ONLY_NEW: string, INCLUDING: string}}
+ * @enum {string} What events to receive
  */
 const ReceiveTypes = {
   /**
@@ -57,7 +50,7 @@ const ProviderTypes = {
 class Notify {
   /**
    * Creates Notify instance
-   * @param {NotifySchema} schema - event's schema
+   * @param {NotificationSettingsSchema} schema - event's schema
    */
   constructor(schema = {}) {
     if (schema) {
@@ -74,7 +67,7 @@ class Notify {
 
   /**
    * Fills current instance with schema properties
-   * @param {NotifySchema} schema
+   * @param {NotificationSettingsSchema} schema
    *
    * @returns {Notify[]}
    */

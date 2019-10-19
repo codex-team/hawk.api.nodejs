@@ -1,5 +1,4 @@
 const mongo = require('../mongo');
-const { propsToPaths } = require('../utils/object');
 const { ObjectID } = require('mongodb');
 const { sign } = require('jsonwebtoken');
 
@@ -13,7 +12,7 @@ const { sign } = require('jsonwebtoken');
  * @property {string} [image] - project image
  * @property {string|ObjectID} uidAdded - user who added the project
  * @property {string} workspaceId - workspace ID
- * @property {NotifySchema} commonNotificationsSettings - Project notification settings
+ * @property {NotificationSettingsSchema} commonNotificationsSettings - Project notification settings
  */
 
 /**
@@ -128,17 +127,18 @@ class Project {
   /**
    * Update project common notify settings.
    * @param {string} projectId - project ID
-   * @param {NotifySchema} notify - Updated notify, w/o userId
+   * @param {NotificationSettingsSchema} notifySettings - Updated notify, w/o userId
    * @returns {Promise<boolean>} - updated or not
    */
-  static async updateNotify(projectId, notify) {
+  static async updateNotify(projectId, notifySettings) {
     if (!projectId) {
       throw new Error('projectId is required');
     }
 
-    const fields = propsToPaths({ notify });
-
-    const updated = await this.collection.updateOne({ _id: new ObjectID(projectId) }, { $set: fields }, { upsert: true });
+    const updated = await this.collection.updateOne(
+      { _id: new ObjectID(projectId) },
+      { $set: { commonNotificationsSettings: notifySettings } }
+    );
 
     return updated.modifiedCount || updated.upsertedCount || updated.matchedCount;
   }

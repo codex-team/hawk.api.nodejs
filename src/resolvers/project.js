@@ -135,21 +135,12 @@ module.exports = {
 
     /**
      * Get project personal notifications settings
-     * @param {ResolverObj} _obj
-     * @param {String} id - array of project ids to get
+     * @param {ProjectSchema} project
      * @param {object} _args - query args (empty for this query)
      * @param user - current authorized user {@see ../index.js}
-     * @returns {Promise<NotifySchema|null>}
+     * @returns {Promise<NotificationSettingsSchema|null>}
      */
-    async personalNotificationsSettings({ id: projectId }, _args, { user }) {
-      const project = await Project.findById(projectId);
-
-      /**
-       * Return null if project not exists
-       * @todo return error
-       */
-      if (!project) return null;
-
+    async personalNotificationsSettings(project, _args, { user }) {
       const team = new Team(project.workspaceId);
       const teamInstance = await team.findByUserId(user.id);
 
@@ -158,7 +149,7 @@ module.exports = {
        */
       if (!teamInstance || teamInstance.isPending) return null;
 
-      const factory = new NotifyFactory(projectId);
+      const factory = new NotifyFactory(project.id);
 
       const personalSettings = await factory.findByUserId(user.id);
 
@@ -173,25 +164,12 @@ module.exports = {
 
     /**
      * Get common notifications settings. Only for admins.
-     * @param {ResolverObj} _obj
+     * @param {ProjectSchema} project
      * @param {object} _args - query args (empty for this query)
      * @param user - current authorized user {@see ../index.js}
-     * @returns {Promise<NotifySchema|null>}
+     * @returns {Promise<NotificationSettingsSchema>}
      */
-    async commonNotificationsSettings({ id: projectId }, _args, { user }) {
-      /**
-       * First check if user is in workspace and is he admin.
-       *
-       * get project -> project.workspaceId -> get team:<workspaceId>
-       */
-
-      const project = await Project.findById(projectId);
-
-      /**
-       * Return null if project not exists
-       */
-      if (!project) return null;
-
+    async commonNotificationsSettings(project, _args, { user }) {
       const team = new Team(project.workspaceId);
 
       const teamInstance = await team.findByUserId(user.id);

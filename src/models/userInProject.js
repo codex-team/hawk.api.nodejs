@@ -1,4 +1,5 @@
 const mongo = require('../mongo');
+const { ObjectID } = require('mongodb');
 
 /**
  * User in project model
@@ -31,7 +32,7 @@ class UserInProject {
     const time = Date.now() / 1000;
 
     this.collection.updateOne({
-      userId: this.userId
+      userId: new ObjectID(this.userId)
     }, {
       $set: {
         timestamp: time
