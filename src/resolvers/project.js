@@ -6,6 +6,7 @@ const EventsFactory = require('../models/eventsFactory');
 const NotifyFactory = require('../models/notifyFactory');
 const Team = require('../models/team');
 const Notify = require('../models/notify');
+const User = require('../models/user');
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -164,7 +165,10 @@ module.exports = {
       if (personalSettings) {
         return personalSettings;
       }
-      return Notify.defaultNotify;
+
+      const fullUserInfo = await User.findById(user.id);
+
+      return Notify.getDefaultNotify(fullUserInfo.email);
     },
 
     /**

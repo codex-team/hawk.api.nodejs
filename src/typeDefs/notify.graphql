@@ -1,3 +1,15 @@
+"""
+Supported provider types
+"""
+enum ProviderTypes {
+  EMAIL
+  TELEGRAM
+  SLACK
+}
+
+"""
+Settings for notifications provider
+"""
 type ProviderSettings {
   """
   Notifications enabled?
@@ -12,7 +24,7 @@ type ProviderSettings {
   """
   Provider name
   """
-  name: String!
+  provider: ProviderTypes!
 }
 
 """
@@ -59,7 +71,7 @@ input NotifyInput {
   """
   Notify action type
   """
-  actionType: Int
+  receiveType: ReceiveTypes
 
   """
   Words for INCLUDING action type
@@ -69,13 +81,13 @@ input NotifyInput {
   """
   Notify settings
   """
-  settings: [NotifyProviderSettings!]
+  settings: [NotifyProviderSettings!]!
 }
 
 input NotifyProviderSettings {
   enabled: Boolean
   value: String
-  name: String!
+  provider: ProviderTypes!
 }
 
 extend type Mutation {

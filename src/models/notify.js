@@ -42,6 +42,15 @@ const ReceiveTypes = {
 };
 
 /**
+ * Supported provider types
+ */
+const ProviderTypes = {
+  EMAIL: 'EMAIL',
+  TELEGRAM: 'EMAIL',
+  SLACK: 'SLACK'
+};
+
+/**
  * Notify model
  * Represents notify setting for given user and project
  */
@@ -77,18 +86,24 @@ class Notify {
 
   /**
    * Default notify settings.
-   * @returns {{actionType: ReceiveTypes, settings: {tg: {value: string, enabled: boolean}, slack: {value: string, enabled: boolean}, email: {value: string, enabled: boolean}}, words: string}}
    */
-  static get defaultNotify() {
+  static getDefaultNotify(userEmail) {
+    if (userEmail) {
+      return {
+        receiveType: ReceiveTypes.ALL,
+        providers: [
+          {
+            provider: ProviderTypes.EMAIL,
+            value: userEmail,
+            enabled: true
+          }
+        ]
+      };
+    }
+
     return {
       receiveType: ReceiveTypes.ALL,
-      providers: [
-        {
-          name: 'email',
-          value: '',
-          enabled: true
-        }
-      ]
+      providers: []
     };
   }
 }
