@@ -84,9 +84,23 @@ input NotifyInput {
   providers: [NotifyProviderSettings!]!
 }
 
+"""
+Settings for notifications provider
+"""
 input NotifyProviderSettings {
+  """
+  Is provider enabled
+  """
   enabled: Boolean!
+
+  """
+  Value for provider to send notifications (email or slack webhook)
+  """
   value: String!
+
+  """
+  Provider type
+  """
   provider: ProviderTypes!
 }
 
