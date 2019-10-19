@@ -85,7 +85,8 @@ class Notify {
   }
 
   /**
-   * Default notify settings.
+   * Default notify settings
+   * @param {string} [userEmail]
    */
   static getDefaultNotify(userEmail) {
     if (userEmail) {

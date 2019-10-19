@@ -201,7 +201,10 @@ module.exports = {
        */
       if (!teamInstance || teamInstance.isPending || !teamInstance.isAdmin) return null;
 
-      return project.notify;
+      if (project.notify) {
+        return project.notify;
+      }
+      return Notify.getDefaultNotify();
     }
   }
 };
