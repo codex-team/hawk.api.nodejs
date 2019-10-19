@@ -3,7 +3,6 @@ const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
-const NotifyFactory = require('../models/notifyFactory');
 const Team = require('../models/team');
 const Notify = require('../models/notify');
 const User = require('../models/user');
@@ -149,9 +148,9 @@ module.exports = {
        */
       if (!teamInstance || teamInstance.isPending) return null;
 
-      const factory = new NotifyFactory(project.id);
+      const factory = new UserInProject(user.id, project.id);
 
-      const personalSettings = await factory.findByUserId(user.id);
+      const personalSettings = await factory.getPersonalNotificationsSettings();
 
       if (personalSettings) {
         return personalSettings;
@@ -179,8 +178,8 @@ module.exports = {
        */
       if (!teamInstance || teamInstance.isPending || !teamInstance.isAdmin) return null;
 
-      if (project.notify) {
-        return project.notify;
+      if (project.commonNotificationsSettings) {
+        return project.commonNotificationsSettings;
       }
       return Notify.getDefaultNotify();
     }

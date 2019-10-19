@@ -1,9 +1,7 @@
-const { ObjectID } = require('mongodb');
 const { ApolloError } = require('apollo-server-express');
-const Notify = require('../models/notify');
-const NotifyFactory = require('../models/notifyFactory');
 const { Project } = require('../models/project');
 const Team = require('../models/team');
+const UserInProject = require('../models/userInProject');
 
 /**
  * See all types and fields here {@see ../typeDefs/notify.graphql}
@@ -18,7 +16,7 @@ module.exports = {
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @returns {Promise<NotificationSettingsSchema|null>}
      */
-    async updatePersonalNotificationSettings(_obj, { projectId, notify }, { user }) {
+    async updatePersonalNotificationSettings(_obj, { projectId, notifySettings }, { user }) {
       const project = await Project.findById(projectId);
 
       /**
@@ -33,16 +31,17 @@ module.exports = {
       /**
        * Return null if user is not in workspace or is not admin
        */
-      if (!teamInstance || teamInstance.isPending) return null;
+      if (!teamInstance || teamInstance.isPending) {
+        throw new ApolloError('User does not have access to this project');
+      }
 
-      const factory = new NotifyFactory(projectId);
-      const updatedNotify = new Notify(notify);
+      const factory = new UserInProject(user.id, projectId);
 
-      const success = await factory.update(updatedNotify);
+      const success = await factory.updatePersonalNotificationsSettings(notifySettings);
 
       if (!success) throw new Error('Failed to update user notify');
 
-      return factory.findByUserId(user.id);
+      return factory.getPersonalNotificationsSettings(user.id);
     },
 
     /**

@@ -51,10 +51,38 @@ class UserInProject {
    */
   async getLastVisit() {
     const result = await this.collection.findOne({
-      userId: this.userId
+      userId: new ObjectID(this.userId)
     });
 
-    return result.timestamp;
+    return result && result.timestamp;
+  }
+
+  /**
+   * Returns personal notifications settings for user
+   * @returns {Promise<NotificationSettingsSchema>}
+   */
+  async getPersonalNotificationsSettings() {
+    const result = await this.collection.findOne({
+      userId: new ObjectID(this.userId)
+    });
+
+    return result && result.notificationSettings;
+  }
+
+  /**
+   * Update Notify
+   *
+   * @param {NotificationSettingsSchema} notificationSettings - settings to update
+   * @returns {Promise<Boolean>}
+   */
+  async updatePersonalNotificationsSettings(notificationSettings) {
+    const updated = await this.collection.updateOne(
+      { userId: new ObjectID(this.userId) },
+      { $set: { notificationSettings } },
+      { upsert: true }
+    );
+
+    return updated.modifiedCount || updated.upsertedCount || updated.matchedCount;
   }
 }
 
