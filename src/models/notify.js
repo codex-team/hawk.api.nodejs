@@ -79,7 +79,8 @@ class Notify {
 
   /**
    * Default notify settings
-   * @param {string} [userEmail]
+   * @param {string} [userEmail] - for personal notifications settings default email is user's email
+   *                               for common notifications settings value is not provided by default
    */
   static getDefaultNotify(userEmail) {
     if (userEmail) {
