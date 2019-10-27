@@ -146,10 +146,11 @@ module.exports = {
       /**
        * Return null if user is not in workspace or is not admin
        */
-      if (!teamInstance || teamInstance.isPending) return null;
+      if (!teamInstance || teamInstance.isPending) {
+        return null;
+      }
 
       const factory = new UserInProject(user.id, project.id);
-
       const personalSettings = await factory.getPersonalNotificationsSettings();
 
       if (personalSettings) {
@@ -170,17 +171,19 @@ module.exports = {
      */
     async commonNotificationsSettings(project, _args, { user }) {
       const team = new Team(project.workspaceId);
-
       const teamInstance = await team.findByUserId(user.id);
 
       /**
        * Return null if user is not in workspace or is not admin
        */
-      if (!teamInstance || teamInstance.isPending || !teamInstance.isAdmin) return null;
+      if (!teamInstance || teamInstance.isPending || !teamInstance.isAdmin) {
+        return null;
+      }
 
       if (project.commonNotificationsSettings) {
         return project.commonNotificationsSettings;
       }
+
       return Notify.getDefaultNotify();
     }
   }

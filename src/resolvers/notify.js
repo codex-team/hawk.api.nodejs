@@ -22,10 +22,11 @@ module.exports = {
       /**
        * Return null if project not exists
        */
-      if (!project) return null;
+      if (!project) {
+        return null;
+      }
 
       const team = new Team(project.workspaceId);
-
       const teamInstance = await team.findByUserId(user.id);
 
       /**
@@ -36,10 +37,11 @@ module.exports = {
       }
 
       const factory = new UserInProject(user.id, projectId);
-
       const success = await factory.updatePersonalNotificationsSettings(notifySettings);
 
-      if (!success) throw new Error('Failed to update user notify');
+      if (!success) {
+        throw new Error('Failed to update user notify');
+      }
 
       return factory.getPersonalNotificationsSettings(user.id);
     },
@@ -69,7 +71,6 @@ module.exports = {
       }
 
       const team = new Team(project.workspaceId);
-
       const teamInstance = await team.findByUserId(user.id);
 
       /**
@@ -81,7 +82,9 @@ module.exports = {
 
       const success = await Project.updateNotify(projectId, notifySettings);
 
-      if (!success) throw new Error('Failed to update project notify');
+      if (!success) {
+        throw new Error('Failed to update project notify');
+      }
 
       return (await Project.findById(projectId)).commonNotificationsSettings;
     }

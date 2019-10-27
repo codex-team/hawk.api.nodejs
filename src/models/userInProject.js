@@ -70,7 +70,7 @@ class UserInProject {
   }
 
   /**
-   * Update Notify
+   * Update Notify Settings
    *
    * @param {NotificationSettingsSchema} notificationSettings - settings to update
    * @returns {Promise<Boolean>}
