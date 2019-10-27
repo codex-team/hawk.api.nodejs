@@ -67,3 +67,12 @@ During the first run, execute the following command to enable replica set config
 ```
 docker-compose -f docker-compose.dev.yml exec mongodb bash -c "mongo < /scripts/mongo-init.js"
 ```
+
+## Migrations
+
+To run migrations for MongoDB run following command:
+```shell
+docker-compose exec api yarn migrate-mongo up
+```
+
+This command will apply all pending migrations. See `migrate-mongo` [docs](https://www.npmjs.com/package/migrate-mongo#migrate-up)
