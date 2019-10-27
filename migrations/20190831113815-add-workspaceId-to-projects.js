@@ -1,3 +1,6 @@
+/**
+ * @file Migration to add `workspaceId` field to each document in `projects` collection
+ */
 const { ObjectID } = require('mongodb');
 
 module.exports = {
@@ -19,11 +22,8 @@ module.exports = {
       }
     }
 
-    console.log(workspaceToproject);
-
     const bulkOperations = Object.keys(workspaceToproject).reduce((acc, workspaceId) => {
       workspaceToproject[workspaceId].forEach((projectId) => {
-        console.log(acc);
         acc.push({
           updateOne: {
             filter: {
@@ -39,8 +39,6 @@ module.exports = {
       });
       return acc;
     }, []);
-
-    console.log(JSON.stringify(bulkOperations, null, 2));
 
     return projectsCollection.bulkWrite(bulkOperations);
   },

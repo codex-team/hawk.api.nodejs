@@ -1,23 +1,34 @@
-// In this file you can configure migrate-mongo
+/**
+ * @file Configuration for migrate-mongo (https://www.npmjs.com/package/migrate-mongo)
+ */
+
+require('./src/env');
 
 const config = {
   mongodb: {
-    url: 'mongodb://localhost:27017',
-
+    url: process.env.MONGO_HAWK_DB_URL,
     databaseName: 'hawk',
-
     options: {
-      useNewUrlParser: true, // removes a deprecation warning when connecting
-      useUnifiedTopology: true // removes a deprecating warning when connecting
+      /**
+       * Removes a deprecation warning when connecting
+       */
+      useNewUrlParser: true,
+      /**
+       * Removes a deprecation warning when connecting
+       */
+      useUnifiedTopology: true
     }
   },
 
-  // The migrations dir, can be an relative or absolute path. Only edit this when really necessary.
+  /**
+   * The migrations dir, can be an relative or absolute path. Only edit this when really necessary
+   */
   migrationsDir: 'migrations',
 
-  // The mongodb collection where the applied changes are stored. Only edit this when really necessary.
+  /**
+   * The mongodb collection where the applied changes are stored. Only edit this when really necessary
+   */
   changelogCollectionName: 'changelog'
 };
 
-// Return the config as a promise
 module.exports = config;
