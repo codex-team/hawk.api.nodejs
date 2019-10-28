@@ -151,7 +151,7 @@ class User extends Model {
    */
   static async updateProfile(userId, user) {
     if (!await objectHasOnlyProps(user, { name: true, email: true, image: true })) {
-      throw new Error('User object has invalid properties\'');
+      throw new Error('User object has invalid properties');
     }
 
     try {

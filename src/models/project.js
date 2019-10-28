@@ -11,12 +11,8 @@ const { sign } = require('jsonwebtoken');
  * @property {string} [domain] - project domain
  * @property {string} [image] - project image
  * @property {string|ObjectID} uidAdded - user who added the project
- */
-
-/**
- * @typedef {Object} NotifyProvider
- * @property {boolean} enabled - is notifications enabled
- * @property {string} value - hook or email
+ * @property {string} workspaceId - workspace ID
+ * @property {NotificationSettingsSchema} commonNotificationsSettings - Project notification settings
  */
 
 /**
@@ -24,10 +20,6 @@ const { sign } = require('jsonwebtoken');
  * @property {string|ObjectID} id - ProjectWorkspace ID
  * @property {string|ObjectID} projectId - project ID
  * @property {string} [projectUri] - project unique URI
- * @property {Object} [notifies] - notification settings
- * @property {NotifyProvider} [notifies.email]
- * @property {NotifyProvider} [notifies.tg]
- * @property {NotifyProvider} [notifies.slack]
  */
 
 /**
@@ -54,6 +46,8 @@ class Project {
     this.uri = projectData.uri;
     this.image = projectData.image;
     this.uidAdded = projectData.uidAdded;
+    this.workspaceId = projectData.workspaceId;
+    this.commonNotificationsSettings = projectData.commonNotificationsSettings;
   }
 
   /**
@@ -74,6 +68,8 @@ class Project {
     /**
      * @todo Make transaction for creating project
      */
+    projectData.workspaceId = new ObjectID(projectData.workspaceId);
+    projectData.uidAdded = new ObjectID(projectData.uidAdded);
     const projectId = (await this.collection.insertOne(projectData)).insertedId;
 
     const token = await sign({ projectId }, process.env.JWT_SECRET_EVENTS);
@@ -126,6 +122,25 @@ class Project {
       id: project._id,
       ...project
     });
+  }
+
+  /**
+   * Update project common notify settings.
+   * @param {string} projectId - project ID
+   * @param {NotificationSettingsSchema} notifySettings - Updated notify, w/o userId
+   * @returns {Promise<boolean>} - updated or not
+   */
+  static async updateNotify(projectId, notifySettings) {
+    if (!projectId) {
+      throw new Error('projectId is required');
+    }
+
+    const updated = await this.collection.updateOne(
+      { _id: new ObjectID(projectId) },
+      { $set: { commonNotificationsSettings: notifySettings } }
+    );
+
+    return updated.modifiedCount || updated.upsertedCount || updated.matchedCount;
   }
 }
 

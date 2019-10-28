@@ -1,10 +1,12 @@
 const mongo = require('../mongo');
 const { ObjectID } = require('mongodb');
+
 /**
  * @typedef {Object} TeamDocumentSchema
  * @property {string} id - document's id
  * @property {ObjectID} userId - team member id
  * @property {boolean} isPending - shows if member is pending
+ * @property {boolean} isAdmin - shows if member is workspace admin
  */
 
 /**
@@ -26,6 +28,15 @@ class Team {
    */
   get collection() {
     return mongo.databases.hawk.collection('team:' + this.workspaceId);
+  }
+
+  /**
+   * Find team instance by user ID
+   * @param userId
+   * @returns {Promise<TeamDocumentSchema>}
+   */
+  async findByUserId(userId) {
+    return this.collection.findOne({ userId: new ObjectID(userId) });
   }
 
   /**

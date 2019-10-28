@@ -1,4 +1,5 @@
 const mongo = require('../mongo');
+const { ObjectID } = require('mongodb');
 
 /**
  * User in project model
@@ -31,7 +32,7 @@ class UserInProject {
     const time = Date.now() / 1000;
 
     this.collection.updateOne({
-      userId: this.userId
+      userId: new ObjectID(this.userId)
     }, {
       $set: {
         timestamp: time
@@ -50,10 +51,38 @@ class UserInProject {
    */
   async getLastVisit() {
     const result = await this.collection.findOne({
-      userId: this.userId
+      userId: new ObjectID(this.userId)
     });
 
-    return result.timestamp;
+    return result && result.timestamp;
+  }
+
+  /**
+   * Returns personal notifications settings for user
+   * @returns {Promise<NotificationSettingsSchema>}
+   */
+  async getPersonalNotificationsSettings() {
+    const result = await this.collection.findOne({
+      userId: new ObjectID(this.userId)
+    });
+
+    return result && result.notificationSettings;
+  }
+
+  /**
+   * Update Notify Settings
+   *
+   * @param {NotificationSettingsSchema} notificationSettings - settings to update
+   * @returns {Promise<Boolean>}
+   */
+  async updatePersonalNotificationsSettings(notificationSettings) {
+    const updated = await this.collection.updateOne(
+      { userId: new ObjectID(this.userId) },
+      { $set: { notificationSettings } },
+      { upsert: true }
+    );
+
+    return updated.modifiedCount || updated.upsertedCount || updated.matchedCount;
   }
 }
 

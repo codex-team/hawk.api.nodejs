@@ -1,9 +1,11 @@
 const { ValidationError } = require('apollo-server-express');
-const { ObjectID } = require('mongodb');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
+const Team = require('../models/team');
+const Notify = require('../models/notify');
+const User = require('../models/user');
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -42,7 +44,8 @@ module.exports = {
 
       const project = await Project.create({
         name,
-        uidAdded: new ObjectID(user.id)
+        workspaceId,
+        uidAdded: user.id
       });
 
       // Create Project to Workspace relationship
@@ -127,6 +130,61 @@ module.exports = {
       const factory = new EventsFactory(projectId);
 
       return factory.findRecent(limit, skip);
+    },
+
+    /**
+     * Get project personal notifications settings
+     * @param {ProjectSchema} project
+     * @param {object} _args - query args (empty for this query)
+     * @param user - current authorized user {@see ../index.js}
+     * @returns {Promise<NotificationSettingsSchema|null>}
+     */
+    async personalNotificationsSettings(project, _args, { user }) {
+      const team = new Team(project.workspaceId);
+      const teamInstance = await team.findByUserId(user.id);
+
+      /**
+       * Return null if user is not in workspace or is not admin
+       */
+      if (!teamInstance || teamInstance.isPending) {
+        return null;
+      }
+
+      const factory = new UserInProject(user.id, project.id);
+      const personalSettings = await factory.getPersonalNotificationsSettings();
+
+      if (personalSettings) {
+        return personalSettings;
+      }
+
+      const fullUserInfo = await User.findById(user.id);
+
+      return Notify.getDefaultNotify(fullUserInfo.email);
+    },
+
+    /**
+     * Get common notifications settings. Only for admins.
+     * @param {ProjectSchema} project
+     * @param {object} _args - query args (empty for this query)
+     * @param user - current authorized user {@see ../index.js}
+     * @returns {Promise<NotificationSettingsSchema>}
+     */
+    async commonNotificationsSettings(project, _args, { user }) {
+      const team = new Team(project.workspaceId);
+      const teamInstance = await team.findByUserId(user.id);
+
+      /**
+       * Return null if user is not in workspace or is not admin
+       */
+      if (!teamInstance || teamInstance.isPending || !teamInstance.isAdmin) {
+        return null;
+      }
+
+      if (project.commonNotificationsSettings) {
+        return project.commonNotificationsSettings;
+      }
+
+      return Notify.getDefaultNotify();
     }
   }
 };

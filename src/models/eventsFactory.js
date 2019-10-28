@@ -1,3 +1,4 @@
+const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
@@ -21,7 +22,7 @@ const { ObjectID } = require('mongodb');
  *
  * Creational Class for Event's Model
  */
-class EventsFactory {
+class EventsFactory extends Factory {
   /**
    * @return {{EVENTS: string, DAILY_EVENTS: string, REPETITIONS: string}}
    * @constructor
@@ -39,6 +40,7 @@ class EventsFactory {
    * @param {string|ObjectID} projectId - project ID
    */
   constructor(projectId) {
+    super();
     if (!projectId) {
       throw new Error('Can not construct Event model, because projectId is not provided');
     }
@@ -203,36 +205,6 @@ class EventsFactory {
       .skip(skip);
 
     return cursor.toArray();
-  }
-
-  /**
-   * Validates limit value
-   * @param limit
-   * @return {Number}
-   */
-  validateLimit(limit) {
-    limit = Math.max(0, limit);
-
-    if (limit > 100) {
-      throw Error('Invalid limit value');
-    }
-
-    return limit;
-  }
-
-  /**
-   * Validate skip value
-   * @param skip
-   * @return {Number}
-   */
-  validateSkip(skip) {
-    skip = Math.max(0, skip);
-
-    if (skip > 100) {
-      throw Error('Invalid skip value');
-    }
-
-    return skip;
   }
 }
 

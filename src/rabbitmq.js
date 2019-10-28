@@ -23,6 +23,7 @@ async function setupConnections() {
     });
     connection.on('disconnect', () => console.log('💥 AMQP disconnected. Trying to reconnect...'));
   }
+
   return null;
 }
 
