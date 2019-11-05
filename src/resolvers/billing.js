@@ -28,12 +28,59 @@ const Transaction = require('../models/transaction');
 const bankApi = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
 
 /**
- * See all types and fields here {@link ../typeDefs/merchant.graphql}
+ * See all types and fields here {@link ../typeDefs/billing.graphql}
  */
 module.exports = {
   Query: {
     /**
-     * API Query method for getting payment link
+     * API Query method for getting all attached cards
+     * @param {ResolverObj} _obj
+     * @param {PaymentQuery} paymentQuery
+     * @param {Object} user - current user object
+     * @return {Promise<UserCard[]>}
+     */
+    async cardList(_obj, { paymentQuery }, { user }) {
+      return UserCard.findByUserId(user.id);
+    },
+
+    /**
+     * API Query method for getting all transactions for passed workspaces
+     * @param _obj
+     * @param {string[]} ids - ids of workspaces for which transactions have been requested
+     * @param {User} user - current authorized user
+     * @returns {Promise<Transaction>}
+     */
+    async transactions(_obj, { ids }, { user }) {
+      // @todo check if user has permissions to get transactions
+
+      const membership = new Membership(user.id);
+
+      const workspaces = await membership.getWorkspaces();
+      const allowedIds = workspaces.map(w => w.id.toString());
+
+      if (ids.length === 0) {
+        ids = allowedIds;
+      } else {
+        ids = ids.filter(id => allowedIds.includes(id));
+      }
+
+      return Transaction.getWorkspacesTransactions(ids);
+    }
+  },
+  Mutation: {
+    /**
+     * API Mutation method for card detach
+     * @param {ResolverObj} _obj
+     * @param {Number} cardId - card's identifier
+     * @param {Object} user - current user object
+     * @return {Promise<boolean>}
+     */
+    async removeCard(_obj, { cardId }, { user }) {
+      return (await UserCard.remove({ cardId, userId: user.id })).deletedCount === 1;
+    },
+
+    /**
+     * Mutation for getting payment link
      * @param {ResolverObj} _obj
      * @param {string} language
      * @param {Object} user - current user object
@@ -65,43 +112,9 @@ module.exports = {
       }));
       return result;
     },
-    /**
-     * API Query method for getting all attached cards
-     * @param {ResolverObj} _obj
-     * @param {PaymentQuery} paymentQuery
-     * @param {Object} user - current user object
-     * @return {Promise<UserCard[]>}
-     */
-    async getCardList(_obj, { paymentQuery }, { user }) {
-      return UserCard.findByUserId(user.id);
-    },
 
     /**
-     * API Query method for getting all transactions for passed workspaces
-     * @param _obj
-     * @param {string[]} ids - ids of workspaces for which transactions have been requested
-     * @param {User} user - current authorized user
-     * @returns {Promise<Transaction>}
-     */
-    async transactions(_obj, { ids }, { user }) {
-      // @todo check if user has permissions to get transactions
-
-      const membership = new Membership(user.id);
-
-      const workspaces = await membership.getWorkspaces();
-      const allowedIds = workspaces.map(w => w.id.toString());
-
-      if (ids.length === 0) {
-        ids = allowedIds;
-      } else {
-        ids = ids.filter(id => allowedIds.includes(id));
-      }
-
-      return Transaction.getWorkspacesTransactions(ids);
-    },
-
-    /**
-     * API Mutation method for payment with attached card
+     * Mutation for payment with attached card
      * @param {ResolverObj} _obj
      * @param {PaymentQuery} paymentQuery
      * @param {Object} user - current user object
@@ -153,7 +166,7 @@ module.exports = {
     },
 
     /**
-     * API Mutation method for single payment
+     * Mutation for single payment
      * @param {ResolverObj} _obj
      * @param {PaymentQuery} paymentQuery
      * @param {Object} user - current user object
@@ -183,18 +196,6 @@ module.exports = {
       await rabbitmq.publish('merchant', 'merchant/initialized', JSON.stringify(transaction));
 
       return result;
-    }
-  },
-  Mutation: {
-    /**
-     * API Mutation method for card detach
-     * @param {ResolverObj} _obj
-     * @param {Number} cardId - card's identifier
-     * @param {Object} user - current user object
-     * @return {Promise<boolean>}
-     */
-    async removeCard(_obj, { cardId }, { user }) {
-      return (await UserCard.remove({ cardId, userId: user.id })).deletedCount === 1;
     }
   }
 };

@@ -27,19 +27,18 @@ type CardInfo {
   """
   Card number (Pan)
   """
-  pan: String
+  pan: String!
 
   """
   Card ID
   """
-  cardId: String
+  cardId: String!
 
   """
   Card expiration date
   """
-  expDate: String
+  expDate: String!
 }
-
 
 """
 Transaction object
@@ -68,19 +67,31 @@ type Transaction {
   """
   User by whom transaction has been made
   """
-  user: User
+  user: User!
 
   """
   PAN of card by which transaction has been made
   """
-  cardPan: Int
+  cardPan: Int!
 }
 
 extend type Query {
   """
   Get attached cards
   """
-  getCardList: [CardInfo!] @requireAuth
+  cardList: [CardInfo!]! @requireAuth
+
+  """
+  Get workspace transactions
+  """
+  transactions("Workspaces IDs" ids: [ID!] = []): [Transaction!]! @requireAuth
+}
+
+extend type Mutation {
+  """
+  Remove card
+  """
+  removeCard(cardNumber: String!): Boolean! @requireAuth
 
   """
   Initialize recurrent payment
@@ -130,17 +141,5 @@ extend type Query {
   """
   Returns JSON data with payment link and initiate card attach procedure
   """
-  attachCard(language: String): PaymentLink @requireAuth
-
-  """
-  Get workspace transactions
-  """
-  transactions("Workspaces IDs" ids: [ID] = []): [Transaction] @requireAuth
-}
-
-extend type Mutation {
-  """
-  Remove card
-  """
-  removeCard(cardNumber: String!): Boolean! @requireAuth
+  attachCard(language: String): PaymentLink! @requireAuth
 }
