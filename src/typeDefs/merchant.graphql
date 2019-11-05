@@ -5,22 +5,22 @@ type PaymentLink {
   """
   Total payment amount in kopecs
   """
-  Amount: Int
+  amount: Int! @renameField(name: "Amount")
 
   """
   Payment status
   """
-  Status: String
+  status: String! @renameField(name: "Status")
 
   """
   If the payment is successfull
   """
-  Success: Boolean
+  success: Boolean! @renameField(name: "Success")
 
   """
   URL to the payment page
   """
-  PaymentURL: String
+  paymentURL: String! @renameField(name: "PaymentURL")
 }
 
 type CardInfo {
