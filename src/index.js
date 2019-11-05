@@ -56,7 +56,7 @@ class HawkAPI {
       introspection: PLAYGROUND_ENABLE,
       schemaDirectives: {
         requireAuth: require('./directives/requireAuthDirective'),
-        renameField: require('./directives/renameField')
+        renameFrom: require('./directives/renameFrom')
       },
       subscriptions: {
         path: '/subscriptions',

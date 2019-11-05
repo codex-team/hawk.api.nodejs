@@ -6,7 +6,7 @@ const { defaultFieldResolver } = require('graphql');
 /**
  * Directive for renaming type fields
  */
-module.exports = class RenameFieldDirective extends SchemaDirectiveVisitor {
+module.exports = class RenameFromDirective extends SchemaDirectiveVisitor {
   /**
    * Method to be called on field visit
    * @param field {GraphQLField<any, any>} - GraphQL field definition

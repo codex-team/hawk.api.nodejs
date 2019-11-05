@@ -6,7 +6,7 @@ directive @requireAuth on FIELD_DEFINITION
 """
 Directive for field renaming
 """
-directive @renameField(
+directive @renameFrom(
   "Parent`s field name"
   name: String!
 ) on FIELD_DEFINITION
