@@ -1,45 +1,52 @@
 """
+Languages supported by the Tinkoff
+"""
+enum SupportedBillingLanguages {
+  EN
+  RU
+}
+
+"""
 Payment link structure
 """
-type PaymentLink {
+type BillingSession {
   """
   Total payment amount in kopecs
   """
-  Amount: Int
+  amount: Int! @renameFrom(name: "Amount")
 
   """
   Payment status
   """
-  Status: String
+  status: String! @renameFrom(name: "Status")
 
   """
   If the payment is successfull
   """
-  Success: Boolean
+  success: Boolean! @renameFrom(name: "Success")
 
   """
   URL to the payment page
   """
-  PaymentURL: String
+  paymentURL: String! @renameFrom(name: "PaymentURL")
 }
 
 type CardInfo {
   """
   Card number (Pan)
   """
-  pan: String
+  pan: String!
 
   """
   Card ID
   """
-  cardId: String
+  cardId: String!
 
   """
   Card expiration date
   """
-  expDate: String
+  expDate: String!
 }
-
 
 """
 Transaction object
@@ -66,21 +73,53 @@ type Transaction {
   date: DateTime!
 
   """
-  User by whom transaction has been made
+  User by whom transaction has been made (income transactions only)
   """
   user: User
 
   """
   PAN of card by which transaction has been made
   """
-  cardPan: Int
+  cardPan: Int!
+}
+
+"""
+Input for single payment
+"""
+input PayOnceInput {
+  """
+  Total payment amount in kopecs
+  """
+  amount: Int!
+
+  """
+  Workspace id for which the payment will be made
+  """
+  workspaceId: ID!
+
+  """
+  Payment form language
+  """
+  language: SupportedBillingLanguages = RU
 }
 
 extend type Query {
   """
   Get attached cards
   """
-  getCardList: [CardInfo!] @requireAuth
+  cardList: [CardInfo!]! @requireAuth
+
+  """
+  Get workspace transactions
+  """
+  transactions("Workspaces IDs" ids: [ID!] = []): [Transaction!]! @requireAuth
+}
+
+extend type Mutation {
+  """
+  Remove card
+  """
+  removeCard(cardNumber: String!): Boolean! @requireAuth
 
   """
   Initialize recurrent payment
@@ -111,36 +150,11 @@ extend type Query {
   Initialize single payment
   """
   payOnce(
-    """
-    Total payment amount in kopecs
-    """
-    amount: Int!
-
-    """
-    Workspace id for which the payment will be made
-    """
-    workspaceId: String!
-
-    """
-    Payment form language
-    """
-    language: String
-  ): PaymentLink! @requireAuth
+   input: PayOnceInput!
+  ): BillingSession! @requireAuth
 
   """
   Returns JSON data with payment link and initiate card attach procedure
   """
-  attachCard(language: String): PaymentLink @requireAuth
-
-  """
-  Get workspace transactions
-  """
-  transactions("Workspaces IDs" ids: [ID] = []): [Transaction] @requireAuth
-}
-
-extend type Mutation {
-  """
-  Remove card
-  """
-  removeCard(cardNumber: String!): Boolean! @requireAuth
+  attachCard(language: String): BillingSession! @requireAuth
 }

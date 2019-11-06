@@ -3,7 +3,6 @@ const express = require('express');
 const mongo = require('./mongo');
 const rabbitmq = require('./rabbitmq');
 const jwt = require('jsonwebtoken');
-const requireAuthDirective = require('./directives/requireAuthDirective');
 const http = require('http');
 const billing = require('./billing/index');
 const { initializeStrategies } = require('./passport');
@@ -56,7 +55,8 @@ class HawkAPI {
       playground: PLAYGROUND_ENABLE,
       introspection: PLAYGROUND_ENABLE,
       schemaDirectives: {
-        requireAuth: requireAuthDirective
+        requireAuth: require('./directives/requireAuthDirective'),
+        renameFrom: require('./directives/renameFrom')
       },
       subscriptions: {
         path: '/subscriptions',

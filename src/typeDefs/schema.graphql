@@ -4,6 +4,14 @@ Access to the field only to authorized users
 directive @requireAuth on FIELD_DEFINITION
 
 """
+Directive for field renaming
+"""
+directive @renameFrom(
+  "Parent`s field name"
+  name: String!
+) on FIELD_DEFINITION
+
+"""
 Queries available on the Hawk API
 """
 type Query {

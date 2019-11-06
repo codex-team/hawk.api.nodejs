@@ -5,7 +5,7 @@ const user = require('./user');
 const workspace = require('./workspace');
 const project = require('./project');
 const event = require('./event');
-const merchant = require('./merchant');
+const billing = require('./billing');
 const notify = require('./notify');
 
 /**
@@ -43,4 +43,4 @@ const indexResolver = {
   JSONObject: GraphQLJSONObject
 };
 
-module.exports = merge(indexResolver, user, workspace, project, event, merchant, notify);
+module.exports = merge(indexResolver, user, workspace, project, event, billing, notify);
