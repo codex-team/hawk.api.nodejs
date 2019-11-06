@@ -172,7 +172,8 @@ module.exports = {
      * @param {Object} user - current user object
      * @return {Promise<boolean>}
      */
-    async payOnce(_obj, { amount, language, workspaceId }, { user }) {
+    async payOnce(_obj, { input }, { user }) {
+      const { amount, language, workspaceId } = input;
       const orderId = PaymentRequest.generateOrderId();
       const result = await PaymentRequest.apiInitPayment(user.id, {
         language: language || 'en',
