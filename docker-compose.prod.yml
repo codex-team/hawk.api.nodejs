@@ -4,8 +4,6 @@ services:
     build:
       dockerfile: "docker/Dockerfile.prod"
       context: .
-    env_file:
-      - .env
     ports:
       - ${PORT}:${PORT}
     depends_on:

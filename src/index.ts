@@ -25,28 +25,35 @@ const PLAYGROUND_ENABLE = process.env.PLAYGROUND_ENABLE === 'true';
 
 /**
  * Hawk API server
- *
- * @property {Express} app - Express app.
- * @property {ApolloServer} server - GraphQL Apollo server.
- * @property {object} config - config object.
- * @property {number} config.port - serving port.
- * @property {string} config.mongoURL - MongoDB URL.
  */
 class HawkAPI {
   /**
-   * Creates an instance of HawkAPI.
-   * Requires PORT and MONGO_URL env vars to be set.
+   * Server configuration
    */
-
   private config = {
     port: +(process.env.PORT || 4000),
     mongoURL: process.env.MONGO_URL || 'mongodb://localhost:27017/hawk'
   };
 
+  /**
+   * Express application
+   */
   private app = express();
+
+  /**
+   * Apollo GraphQL server
+   */
   private server: ApolloServer;
+
+  /**
+   * NodeJS http server
+   */
   private httpServer: http.Server;
 
+  /**
+   * Creates an instance of HawkAPI.
+   * Requires PORT and MONGO_URL env vars to be set.
+   */
   constructor() {
     this.app.use(express.json());
     this.app.post('/billing', billing.notifyCallback);
