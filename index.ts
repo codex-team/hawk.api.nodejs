@@ -1,5 +1,5 @@
-require('./src/env');
-const { HawkAPI } = require('./src');
+import './src/env';
+import HawkAPI from './src';
 
 const start = async () => {
   const app = new HawkAPI();
