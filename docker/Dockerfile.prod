@@ -15,7 +15,7 @@ FROM node:10-alpine
 
 WORKDIR /usr/src/app
 
-COPY --from=builder /usr/src/app/build ./build
+COPY --from=builder /usr/src/app/build ./
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 
-CMD ["node", "build/index.js"]
+CMD ["node", "index.js"]

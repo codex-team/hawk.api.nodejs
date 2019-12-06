@@ -1,6 +1,6 @@
 version: "3.2"
 services:
-  hawk:
+  api-prod:
     build:
       dockerfile: "docker/Dockerfile.prod"
       context: .
@@ -8,6 +8,8 @@ services:
       - ${PORT}:${PORT}
     depends_on:
       - mongodb
+    volumes:
+    - ./.env:/usr/src/app/.env
 
   mongodb:
     image: mongo

@@ -10,7 +10,7 @@ import {authRouter} from './auth';
 import resolvers from './resolvers';
 import typeDefs from './typeDefs';
 import {ExpressContext} from 'apollo-server-express/dist/ApolloServer';
-import {ResolverContextBase, UserInContext, UserJWTData} from './types/graphql';
+import {ResolverContextBase, UserJWTData} from './types/graphql';
 
 /**
  * Option to enable playground
@@ -48,7 +48,7 @@ class HawkAPI {
   /**
    * NodeJS http server
    */
-  private httpServer: http.Server;
+  private readonly httpServer: http.Server;
 
   /**
    * Creates an instance of HawkAPI.
