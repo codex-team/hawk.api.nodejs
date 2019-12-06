@@ -1,5 +1,5 @@
 import {ApolloServer} from 'apollo-server-express';
-import express, {Request} from 'express';
+import express from 'express';
 import mongo from './mongo';
 import rabbitmq from './rabbitmq';
 import jwt from 'jsonwebtoken';
