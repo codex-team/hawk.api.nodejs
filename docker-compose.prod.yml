@@ -10,6 +10,7 @@ services:
       - mongodb
     volumes:
     - ./.env:/usr/src/app/.env
+    - /usr/src/app/node_modules
 
   mongodb:
     image: mongo
