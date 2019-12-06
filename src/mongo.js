@@ -10,6 +10,7 @@ const databases = {
 
 const connectionConfig = {
   useNewUrlParser: true,
+  useUnifiedTopology: true,
   reconnectTries: process.env.MONGO_RECONNECT_TRIES || 60,
   reconnectInterval: process.env.MONGO_RECONNECT_INTERVAL || 1000,
   autoReconnect: true
