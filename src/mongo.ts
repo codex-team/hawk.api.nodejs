@@ -7,15 +7,28 @@ const eventsDBUrl = process.env.MONGO_EVENTS_DB_URL || 'mongodb://localhost:2701
  * Connections to Hawk databases
  */
 interface Databases {
+  /**
+   * Hawk database for users, workspaces, project, etc
+   */
   hawk: Db | null;
+
+  /**
+   * Events database
+   */
   events: Db | null;
 }
 
+/**
+ * Exported database connections
+ */
 export const databases: Databases = {
   hawk: null,
   events: null
 };
 
+/**
+ * Common params for all connections
+ */
 const connectionConfig: MongoClientOptions = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
