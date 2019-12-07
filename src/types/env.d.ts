@@ -3,7 +3,7 @@
  */
 declare namespace NodeJS {
   /**
-   * available process.env values
+   * Available process.env values
    */
   export interface ProcessEnv {
     /**

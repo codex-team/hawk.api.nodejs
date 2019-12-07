@@ -3,6 +3,9 @@ import {Db, MongoClient, MongoClientOptions} from 'mongodb';
 const hawkDBUrl = process.env.MONGO_HAWK_DB_URL || 'mongodb://localhost:27017/hawk';
 const eventsDBUrl = process.env.MONGO_EVENTS_DB_URL || 'mongodb://localhost:27017/events';
 
+/**
+ * Connections to Hawk databases
+ */
 interface Databases {
   hawk: Db | null;
   events: Db | null;
