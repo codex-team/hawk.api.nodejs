@@ -1,3 +1,6 @@
+import {gql} from 'apollo-server-express'
+
+export default gql`
 """
 Source code line representation
 """
@@ -296,3 +299,4 @@ type RecentEvents {
   """
   dailyInfo: [DailyEventInfo]
 }
+`;

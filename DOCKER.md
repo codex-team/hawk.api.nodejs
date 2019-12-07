@@ -63,11 +63,6 @@ If you want to remove dangling volume run:
 docker volume ls | grep mongodata | awk '{print $2}' | xargs docker volume rm
 ```
 
-During the first run, execute the following command to enable replica set configuration for transactions
-```
-docker-compose -f docker-compose.dev.yml exec mongodb bash -c "mongo < /scripts/mongo-init.js"
-```
-
 ## Migrations
 
 To run migrations for MongoDB run following command:

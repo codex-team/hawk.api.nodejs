@@ -1,22 +1,21 @@
-# build node-gyp modules in different stage
 FROM node:10-alpine as builder
 
+WORKDIR /usr/src/app
 RUN apk add --no-cache git gcc g++ python make musl-dev
 
 COPY package.json yarn.lock ./
 
 RUN yarn install --prod
 
-FROM node:10-alpine
+COPY . .
 
-ENV NODE_ENV=production
+RUN yarn build
+
+FROM node:10-alpine
 
 WORKDIR /usr/src/app
 
-COPY --from=builder node_modules node_modules
+COPY --from=builder /usr/src/app/build ./
+COPY --from=builder /usr/src/app/node_modules ./node_modules
 
-COPY . .
-
-USER node
-
-CMD ["node", "app.js"]
+CMD ["node", "index.js"]

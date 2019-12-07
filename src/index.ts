@@ -1,14 +1,16 @@
-const { ApolloServer } = require('apollo-server-express');
-const express = require('express');
-const mongo = require('./mongo');
-const rabbitmq = require('./rabbitmq');
-const jwt = require('jsonwebtoken');
-const http = require('http');
-const billing = require('./billing/index');
-const { initializeStrategies } = require('./passport');
-const { authRouter } = require('./auth');
-const resolvers = require('./resolvers');
-const typeDefs = require('./typeDefs');
+import {ApolloServer} from 'apollo-server-express';
+import express from 'express';
+import mongo from './mongo';
+import rabbitmq from './rabbitmq';
+import jwt from 'jsonwebtoken';
+import http from 'http';
+import billing from './billing/index';
+import {initializeStrategies} from './passport';
+import {authRouter} from './auth';
+import resolvers from './resolvers';
+import typeDefs from './typeDefs';
+import {ExpressContext} from 'apollo-server-express/dist/ApolloServer';
+import {ResolverContextBase, UserJWTData} from './types/graphql';
 
 /**
  * Option to enable playground
@@ -23,25 +25,36 @@ const PLAYGROUND_ENABLE = process.env.PLAYGROUND_ENABLE === 'true';
 
 /**
  * Hawk API server
- *
- * @property {Express} app - Express app.
- * @property {ApolloServer} server - GraphQL Apollo server.
- * @property {object} config - config object.
- * @property {number} config.port - serving port.
- * @property {string} config.mongoURL - MongoDB URL.
  */
 class HawkAPI {
+  /**
+   * Server configuration
+   */
+  private config = {
+    port: +(process.env.PORT || 4000),
+    mongoURL: process.env.MONGO_URL || 'mongodb://localhost:27017/hawk'
+  };
+
+  /**
+   * Express application
+   */
+  private app = express();
+
+  /**
+   * Apollo GraphQL server
+   */
+  private server: ApolloServer;
+
+  /**
+   * NodeJS http server
+   */
+  private readonly httpServer: http.Server;
+
   /**
    * Creates an instance of HawkAPI.
    * Requires PORT and MONGO_URL env vars to be set.
    */
   constructor() {
-    this.config = {
-      port: +process.env.PORT || 4000,
-      mongoURL: process.env.MONGO_URL || 'mongodb://localhost:27017/hawk'
-    };
-    this.app = express();
-
     this.app.use(express.json());
     this.app.post('/billing', billing.notifyCallback);
     this.app.use(authRouter);
@@ -50,7 +63,7 @@ class HawkAPI {
 
     this.server = new ApolloServer({
       typeDefs,
-      debug: false,
+      debug: true,
       resolvers,
       playground: PLAYGROUND_ENABLE,
       introspection: PLAYGROUND_ENABLE,
@@ -69,7 +82,7 @@ class HawkAPI {
       }
     });
 
-    this.server.applyMiddleware({ app: this.app });
+    this.server.applyMiddleware({app: this.app});
     /**
      * In apollo-server-express integration it is necessary to use existing HTTP server to use GraphQL subscriptions
      * {@see https://www.apollographql.com/docs/apollo-server/features/subscriptions/#subscriptions-with-additional-middleware}
@@ -84,8 +97,10 @@ class HawkAPI {
    * @param {Object} connection - websocket connection (for subscriptions)
    * @return {Promise<Context>} - context
    */
-  static async createContext({ req, connection }) {
-    const user = {};
+  static async createContext({req, connection}: ExpressContext): Promise<ResolverContextBase> {
+    let userId: string | undefined;
+    let isAccessTokenExpired = false;
+
     /*
      * @todo deny access by refresh tokens
      * @todo block used refresh token
@@ -103,47 +118,48 @@ class HawkAPI {
       const accessToken = authorizationHeader.slice(7);
 
       try {
-        const data = await jwt.verify(accessToken, process.env.JWT_SECRET);
+        const data = await jwt.verify(accessToken, process.env.JWT_SECRET || 'secret') as UserJWTData;
 
-        user.id = data.userId;
+        userId = data.userId;
       } catch (err) {
         if (err instanceof jwt.TokenExpiredError) {
-          user.accessTokenExpired = true;
+          isAccessTokenExpired = true;
         }
       }
     }
 
-    return { user };
+    return {
+      user: {
+        id: userId,
+        accessTokenExpired: isAccessTokenExpired
+      }
+    }
   }
 
   /**
    * Fires when coming new Websocket connection
    * Returns authorization headers for building request context
-   * @param {Object} connectionParams
-   * @return {Promise<{headers: {authorization: string}}>} - context for subscription request
+   * @param connectionParams
+   * @return - context for subscription request
    */
-  static async onWebSocketConnection(connectionParams) {
+  static async onWebSocketConnection(connectionParams: any) {
     return {
       headers: {
         authorization:
-          connectionParams.authorization || connectionParams.Authorization
+          connectionParams['authorization'] || connectionParams['Authorization']
       }
     };
   }
 
   /**
    * Start API server
-   *
-   * @returns {Promise<void>}
    */
-  async start() {
+  async start(): Promise<void> {
     await mongo.setupConnections();
     await rabbitmq.setupConnections();
 
-    return new Promise((resolve, reject) => {
-      this.httpServer.listen({ port: this.config.port }, e => {
-        if (e) return reject(e);
-
+    return new Promise((resolve) => {
+      this.httpServer.listen({port: this.config.port}, () => {
         console.log(
           `🚀 Server ready at http://localhost:${this.config.port}${
             this.server.graphqlPath
@@ -160,6 +176,4 @@ class HawkAPI {
   }
 }
 
-module.exports = {
-  HawkAPI
-};
+export default HawkAPI;
