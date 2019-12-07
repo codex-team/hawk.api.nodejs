@@ -1,6 +1,6 @@
 version: "3.2"
 services:
-  api-prod:
+  api:
     build:
       dockerfile: "docker/Dockerfile.prod"
       context: .

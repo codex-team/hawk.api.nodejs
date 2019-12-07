@@ -12,5 +12,5 @@ FROM node:10-alpine
 WORKDIR /usr/src/app
 
 COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY . .
+
 CMD ["yarn", "dev"]
