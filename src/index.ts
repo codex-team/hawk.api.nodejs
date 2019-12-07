@@ -1,7 +1,7 @@
 import {ApolloServer} from 'apollo-server-express';
 import express from 'express';
-import mongo from './mongo';
-import rabbitmq from './rabbitmq';
+import * as mongo from './mongo';
+import * as rabbitmq from './rabbitmq';
 import jwt from 'jsonwebtoken';
 import http from 'http';
 import billing from './billing/index';
@@ -27,13 +27,7 @@ const PLAYGROUND_ENABLE = process.env.PLAYGROUND_ENABLE === 'true';
  * Hawk API server
  */
 class HawkAPI {
-  /**
-   * Server configuration
-   */
-  private config = {
-    port: +(process.env.PORT || 4000),
-    mongoURL: process.env.MONGO_URL || 'mongodb://localhost:27017/hawk'
-  };
+  private serverPort = +(process.env.PORT || 4000);
 
   /**
    * Express application
@@ -93,9 +87,8 @@ class HawkAPI {
 
   /**
    * Creates request context
-   * @param {Request} req - Express request
-   * @param {Object} connection - websocket connection (for subscriptions)
-   * @return {Promise<Context>} - context
+   * @param req - Express request
+   * @param connection - websocket connection (for subscriptions)
    */
   static async createContext({req, connection}: ExpressContext): Promise<ResolverContextBase> {
     let userId: string | undefined;
@@ -159,14 +152,14 @@ class HawkAPI {
     await rabbitmq.setupConnections();
 
     return new Promise((resolve) => {
-      this.httpServer.listen({port: this.config.port}, () => {
+      this.httpServer.listen({port: this.serverPort}, () => {
         console.log(
-          `🚀 Server ready at http://localhost:${this.config.port}${
+          `🚀 Server ready at http://localhost:${this.serverPort}${
             this.server.graphqlPath
           }`
         );
         console.log(
-          `🚀 Subscriptions ready at ws://localhost:${this.config.port}${
+          `🚀 Subscriptions ready at ws://localhost:${this.serverPort}${
             this.server.subscriptionsPath
           }`
         );

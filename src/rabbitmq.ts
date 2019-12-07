@@ -1,30 +1,28 @@
-const amqplib = require('amqp-connection-manager');
-const debug = require('debug');
+import amqplib, {AmqpConnectionManager, ChannelWrapper} from 'amqp-connection-manager';
+import debug from 'debug';
+
 const rabbitMQURL = process.env.AMQP_URL;
-let channel = null;
-let connection = null;
+let channel: ChannelWrapper;
+let connection: AmqpConnectionManager;
 
 /**
  * Setups connection to the RabbitMQ
- * @return {Promise<void>}
  */
-async function setupConnections() {
+export async function setupConnections(): Promise<void> {
   if (rabbitMQURL) {
-    connection = amqplib.connect(rabbitMQURL);
+    connection = amqplib.connect([rabbitMQURL]);
     connection.on('connect', () => {
       if (!channel) {
         const channelWrapper = connection.createChannel({
-          setup: ch => {
+          setup: () => {
             channel = channelWrapper;
-            console.log(`🔗 AMQP channel connected: ${rabbitMQURL}`);
+            console.log(`🔗AMQP channel connected: ${rabbitMQURL}`);
           }
         });
       }
     });
-    connection.on('disconnect', () => console.log('💥 AMQP disconnected. Trying to reconnect...'));
+    connection.on('disconnect', () => console.log('💥AMQP disconnected. Trying to reconnect...'));
   }
-
-  return null;
 }
 
 /**
@@ -32,9 +30,8 @@ async function setupConnections() {
  * @param exchange
  * @param route
  * @param message
- * @return {Promise<*>}
  */
-async function publish(exchange, route, message) {
+export async function publish(exchange: string, route: string, message: string) {
   try {
     await channel.publish(exchange, route, Buffer.from(message));
     debug(`Message sent: ${message}`);
@@ -42,8 +39,3 @@ async function publish(exchange, route, message) {
     console.log('Message was rejected:', err.stack);
   }
 }
-
-module.exports = {
-  setupConnections,
-  publish
-};
