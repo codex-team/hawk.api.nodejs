@@ -21,7 +21,10 @@
     "nodemon": "^2.0.1"
   },
   "dependencies": {
+    "@types/amqp-connection-manager": "^2.0.4",
+    "@types/debug": "^4.1.5",
     "@types/jsonwebtoken": "^8.3.5",
+    "@types/mongodb": "^3.3.12",
     "@types/node": "^12.12.14",
     "@types/node-fetch": "^2.5.4",
     "amqp-connection-manager": "^3.0.0",
