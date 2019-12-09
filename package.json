@@ -9,9 +9,11 @@
     "lint": "eslint . --ext .js --fix",
     "dev:up": "docker-compose -f docker-compose.dev.yml up -d",
     "dev:down": "docker-compose -f docker-compose.dev.yml down",
-    "build": "tsc"
+    "build": "tsc && yarn copy-email-templates",
+    "copy-email-templates": "copyfiles src/email/templates/*/*.txt build"
   },
   "devDependencies": {
+    "copyfiles": "^2.1.1",
     "eslint": "^6.7.2",
     "eslint-config-codex": "github:codex-team/eslint-config",
     "eslint-plugin-import": "^2.18.2",
