@@ -5,7 +5,7 @@ const Workspace = require('../models/workspace');
 const Team = require('../models/team');
 const Membership = require('../models/membership');
 const User = require('../models/user');
-const Plan = require('../models/plan');
+// const Plan = require('../models/plan');
 const { ProjectToWorkspace } = require('../models/project');
 const Validator = require('../utils/validator');
 const emailProvider = require('../email');
@@ -50,20 +50,25 @@ module.exports = {
       // @todo make workspace creation via transactions
 
       try {
-        const defaultPlan = await Plan.getDefaultPlan();
-
-        const plan = {
-          subscriptionDate: Date.now() / 1000,
-          lastChargeDate: Date.now() / 1000,
-          name: defaultPlan.name
-        };
-
+        /**
+         * @since 2019-12-11 - Remove default Plan saving to fix workspace creation with empty DB
+         * @todo check for defaultPlan existence before access defaultPlan.name
+         *       or create default plane on app initialization
+         */
+        /*
+         * const defaultPlan = await Plan.getDefaultPlan();
+         * const plan = {
+         *   subscriptionDate: Date.now() / 1000,
+         *   lastChargeDate: Date.now() / 1000,
+         *   name: defaultPlan.name
+         * };
+         */
         const workspace = await Workspace.create({
           name,
           balance: 0,
           description,
-          image,
-          plan
+          image
+          // plan
         });
 
         const team = new Team(workspace.id);
@@ -77,6 +82,7 @@ module.exports = {
 
         return workspace;
       } catch (err) {
+        console.log('\nლ(´ڡ`ლ) Error [resolvers:workspace:createWorkspace]: \n\n', err, '\n\n');
         throw new ApolloError('Something went wrong');
       }
     },
