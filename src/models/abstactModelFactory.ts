@@ -5,7 +5,14 @@ import BaseModel from './abstractModel'
  * Model Factory class
  */
 export default class Factory<DBScheme> {
+  /**
+   * Collection to work with
+   */
   private collection: Collection;
+
+  /**
+   * Model constructor to create instances
+   */
   private readonly model: typeof BaseModel;
 
   constructor(dbConnection: Db, collectionName: string, model: typeof BaseModel) {
