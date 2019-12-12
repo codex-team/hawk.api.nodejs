@@ -35,7 +35,7 @@ type RepetitionSourceCodeLine {
 """
 Event backtrace representation
 """
-type EventBacktrace {
+type EventBacktraceFrame {
   """
   Source filepath
   """
@@ -47,9 +47,24 @@ type EventBacktrace {
   line: Int
 
   """
+  Called column
+  """
+  column: Int
+
+  """
   Part of source code file near the called line
   """
   sourceCode: [SourceCodeLine!]
+    
+  """
+  Function name extracted from current stack frame
+  """
+  function: String
+
+  """
+  Function arguments extracted from current stack frame
+  """
+  arguments: [String]
 }
 
 """
@@ -105,7 +120,7 @@ type EventPayload {
   """
   Event stack array from the latest call to the earliest
   """
-  backtrace: [EventBacktrace]
+  backtrace: [EventBacktraceFrame]
 
   """
   Additional data about GET request
