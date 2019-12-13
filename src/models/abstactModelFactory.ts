@@ -15,6 +15,12 @@ export default class Factory<DBScheme> {
    */
   private readonly model: typeof BaseModel;
 
+  /**
+   * Creates factory instance
+   * @param dbConnection - connection to DataBase
+   * @param collectionName - database collection name
+   * @param model - model constructor
+   */
   constructor(dbConnection: Db, collectionName: string, model: typeof BaseModel) {
     this.collection = dbConnection.collection(collectionName);
     this.model = model;
@@ -27,7 +33,9 @@ export default class Factory<DBScheme> {
   async findOne(query: object): Promise<BaseModel<DBScheme> | null> {
     const searchResult = await this.collection.findOne(query);
 
-    if (!searchResult) return null;
+    if (!searchResult) {
+      return null;
+    }
 
     return new this.model(searchResult);
   }
@@ -40,6 +48,10 @@ export default class Factory<DBScheme> {
     const searchResult = await this.collection.findOne({
       _id: new ObjectID(id)
     });
+
+    if (!searchResult) {
+      return null;
+    }
 
     return new this.model(searchResult);
   }
