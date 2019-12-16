@@ -216,7 +216,7 @@ type RepetitionPayload {
 """
 Event's repetitions. Make Event unique by repetition's payload
 """
-type Repetitions {
+type Repetition {
   """
   Standalone repetition ID
   """
@@ -265,7 +265,7 @@ type Event {
   """
   Event's repetitions
   """
-  repetitions(limit: Int = 10): [Repetitions!]
+  repetitions(limit: Int = 10): [Repetition!]
 }
 
 """
@@ -286,6 +286,11 @@ type DailyEventInfo {
   Event occurrence date
   """
   date: String!
+    
+  """
+  Event's last repetition ID
+  """
+  lastRepetitionId: ID
 
   """
   Last event occurrence timestamp

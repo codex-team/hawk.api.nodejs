@@ -31,7 +31,7 @@ module.exports = {
       return factory.getEventRepetitions(eventId, limit, skip);
     }
   },
-  Repetitions: {
+  Repetition: {
     id: parent => parent._id // rename MongoDB _id to id
   },
   Subscription: {

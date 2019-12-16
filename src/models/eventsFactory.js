@@ -99,23 +99,6 @@ class EventsFactory extends Factory {
         _id: new ObjectID(id)
       });
 
-    const limit = 1;
-    const cursor = this.getCollection(this.TYPES.REPETITIONS)
-      .find({
-        groupHash: searchResult.groupHash
-      })
-      .sort({ _id: -1 })
-      .limit(limit);
-
-    const cursorArray = await cursor.toArray();
-
-    if (cursorArray.length === 0) {
-      return new Event(searchResult);
-    }
-
-    const lastEventRepetition = cursorArray.pop();
-
-    searchResult.payload = _.deepMerge({}, searchResult.payload, lastEventRepetition.payload);
     return new Event(searchResult);
   }
 
@@ -221,6 +204,20 @@ class EventsFactory extends Factory {
       .sort({ _id: -1 })
       .limit(limit)
       .skip(skip);
+
+    return cursor.toArray();
+  }
+
+  /**
+   * @param eventId
+   * @param repetitionId
+   * @return {Promise<any[] | Array | Promise<Default[]> | Promise<any[]> | Promise | void | Node | *>}
+   */
+  async getEventRepetition(eventId, repetitionId) {
+    const cursor = this.getCollection(this.TYPES.REPETITIONS)
+      .find({
+        _id: repetitionId
+      });
 
     return cursor.toArray();
   }
