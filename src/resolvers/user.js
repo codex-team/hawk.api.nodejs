@@ -1,5 +1,5 @@
 const { AuthenticationError, ApolloError, UserInputError } = require('apollo-server-express');
-const User = require('../models/user');
+const User = require('../models/user').default;
 const jwt = require('jsonwebtoken');
 const { errorCodes } = require('../errors');
 const emailProvider = require('../email');

@@ -9,6 +9,7 @@ export default class Model<DBScheme> {
    * @param modelData - data to fill model
    */
   constructor(modelData: DBScheme) {
+    Object.assign(this, modelData);
   };
 
 

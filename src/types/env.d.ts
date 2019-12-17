@@ -20,5 +20,10 @@ declare namespace NodeJS {
      * Registry url
      */
     AMQP_URL: string;
+
+    /**
+     * Secret string for encoding/decoding user's tokens
+     */
+    JWT_SECRET: string;
   }
 }
