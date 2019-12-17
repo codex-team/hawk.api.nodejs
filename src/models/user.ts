@@ -8,7 +8,8 @@ import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 
 
 /**
- * Tokens pair for User authentication
+ * Tokens pair for User authentication.
+ * Authorization by access token and refreshing pair by refresh token (after access token was expired).
  */
 export interface TokensPair {
   /**
@@ -58,7 +59,8 @@ export interface UserDBScheme {
   githubId?: string;
 
   /**
-   * User's original password (this field appears only after registration)
+   * User's original password (this field appears only after registration).
+   * Using to send password to user after registration
    */
   generatedPassword?: string;
 }
@@ -67,13 +69,41 @@ export interface UserDBScheme {
  * User model
  */
 export default class UserModel extends BaseModel<UserDBScheme> implements UserDBScheme {
-    _id!: string | ObjectID;
-    email?: string;
-    password?: string;
-    image?: string;
-    name?: string;
-    githubId?: string;
-    generatedPassword?: string;
+  /**
+   * User's id
+   */
+  _id!: string | ObjectID;
+
+  /**
+   * User's email
+   */
+  email?: string;
+
+  /**
+   * User's password
+   */
+  password?: string;
+
+  /**
+   * User's image url
+   */
+  image?: string;
+
+  /**
+   * User's name
+   */
+  name?: string;
+
+  /**
+   * User's GitHub profile id
+   */
+  githubId?: string;
+
+  /**
+   * User's original password (this field appears only after registration).
+   * Using to send password to user after registration
+   */
+  generatedPassword?: string;
 
   /**
    * Creates User instance
@@ -118,7 +148,7 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * @param name - GitHub profile name
    * @param image - GitHub profile avatar url
    */
-  static async createByGithub({id, name, image}: {id: string, name: string, image: string}) {
+  static async createByGithub({id, name, image}: { id: string, name: string, image: string }) {
     if (!id || !name || !image) {
       throw new Error('Required parameters are not provided');
     }
@@ -139,7 +169,10 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   static generatePassword(): Promise<string> {
     return new Promise((resolve, reject) => {
       crypto.randomBytes(8, (err, buff) => {
-        if (err) return reject(err);
+        if (err) {
+          return reject(err);
+        }
+
         resolve(buff.toString('hex'));
       });
     });
@@ -198,10 +231,12 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * Finds user by his email
    * @param email - user's email
    */
-  static async findByEmail(email:string): Promise<UserModel | null> {
+  static async findByEmail(email: string): Promise<UserModel | null> {
     const searchResult = await this.collection.findOne({email});
 
-    if (!searchResult) return null;
+    if (!searchResult) {
+      return null;
+    }
 
     return new UserModel(searchResult);
   }
@@ -240,10 +275,16 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
     return argon2.verify(this.password, password);
   }
 
+  /**
+   * Returns User by its id
+   * @param id - user id
+   */
   static async findById(id: string): Promise<UserModel | null> {
     const searchResult = await this.collection.findOne({_id: new ObjectID(id)});
 
-    if (!searchResult) return null;
+    if (!searchResult){
+      return null;
+    }
 
     return new UserModel(searchResult);
   }
