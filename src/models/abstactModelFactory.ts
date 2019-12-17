@@ -1,10 +1,10 @@
-import {Collection, Db, ObjectID} from "mongodb";
-import BaseModel from './abstractModel'
+import { Collection, Db, ObjectID } from 'mongodb';
+import BaseModel from './abstractModel';
 
 /**
  * Model Factory class
  */
-export default class Factory<DBScheme> {
+export default abstract class Factory<DBScheme> {
   /**
    * Collection to work with
    */
@@ -30,13 +30,14 @@ export default class Factory<DBScheme> {
    * Find record by query
    * @param query - query object
    */
-  async findOne(query: object): Promise<BaseModel<DBScheme> | null> {
+  protected async findOne(query: object): Promise<BaseModel<DBScheme> | null> {
     const searchResult = await this.collection.findOne(query);
 
     if (!searchResult) {
       return null;
     }
 
+    // eslint-disable-next-line
     return new this.model(searchResult);
   }
 
@@ -44,15 +45,16 @@ export default class Factory<DBScheme> {
    * Finds record by its id
    * @param id - entity id
    */
-  async findById(id: string): Promise<BaseModel<DBScheme> | null> {
+  protected async findById(id: string): Promise<BaseModel<DBScheme> | null> {
     const searchResult = await this.collection.findOne({
-      _id: new ObjectID(id)
+      _id: new ObjectID(id),
     });
 
     if (!searchResult) {
       return null;
     }
 
+    // eslint-disable-next-line
     return new this.model(searchResult);
   }
 }

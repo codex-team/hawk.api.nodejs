@@ -1,25 +1,25 @@
-import {Collection} from 'mongodb';
+import { Collection } from 'mongodb';
 
 /**
  * Base model
  */
-export default class Model<DBScheme> {
+export default abstract class Model<DBScheme> {
   /**
    * Creates model instance
    * @param modelData - data to fill model
    */
-  constructor(modelData: DBScheme) {
+  protected constructor(modelData: DBScheme) {
     Object.assign(this, modelData);
   };
 
-
   /**
    * Model's collection
+   * @todo make abstract when Microsoft implements abstract static getters
+   * @see https://github.com/microsoft/TypeScript/issues/34516
    */
-  static get collection(): Collection {
+  protected static get collection(): Collection {
     throw new Error('Collection getter is not implemented');
   }
-
 
   /**
    * Update entity data
@@ -27,7 +27,7 @@ export default class Model<DBScheme> {
    * @param data - update data
    * @return number of documents modified
    */
-  public static async update(query: object, data: object): Promise<number> {
+  protected static async update(query: object, data: object): Promise<number> {
     return (await this.collection.updateOne(query, { $set: data })).modifiedCount;
   }
 }
