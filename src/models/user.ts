@@ -2,10 +2,9 @@ import argon2 from 'argon2';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import * as mongo from '../mongo';
-import {Collection, ObjectID} from 'mongodb';
+import { Collection, ObjectID } from 'mongodb';
 import BaseModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
-
 
 /**
  * Tokens pair for User authentication.
@@ -22,7 +21,6 @@ export interface TokensPair {
    */
   refreshToken: string;
 }
-
 
 /**
  * Interface representing how user is stored in DB
@@ -72,51 +70,43 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   /**
    * User's id
    */
-  _id!: string | ObjectID;
+  public _id!: string | ObjectID;
 
   /**
    * User's email
    */
-  email?: string;
+  public email?: string;
 
   /**
    * User's password
    */
-  password?: string;
+  public password?: string;
 
   /**
    * User's image url
    */
-  image?: string;
+  public image?: string;
 
   /**
    * User's name
    */
-  name?: string;
+  public name?: string;
 
   /**
    * User's GitHub profile id
    */
-  githubId?: string;
+  public githubId?: string;
 
   /**
    * User's original password (this field appears only after registration).
    * Using to send password to user after registration
    */
-  generatedPassword?: string;
-
-  /**
-   * Creates User instance
-   * @param userData - user's data
-   */
-  constructor(userData: UserDBScheme) {
-    super(userData);
-  }
+  public generatedPassword?: string;
 
   /**
    * Model's collection
    */
-  static get collection(): Collection<UserDBScheme> {
+  protected static get collection(): Collection<UserDBScheme> {
     return mongo.databases.hawk!.collection('users');
   }
 
@@ -124,17 +114,20 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * Creates new user in DB and returns its details
    * @param email - user email
    */
-  static async create(email: string): Promise<UserModel> {
+  public static async create(email: string): Promise<UserModel> {
     // @todo normal password generation
     const generatedPassword = await this.generatePassword();
     const hashedPassword = await this.hashPassword(generatedPassword);
 
-    const userData = {email, password: hashedPassword};
+    const userData = {
+      email,
+      password: hashedPassword,
+    };
     const userId = (await this.collection.insertOne(userData)).insertedId;
 
     const user = new UserModel({
       _id: userId,
-      ...userData
+      ...userData,
     });
 
     user.generatedPassword = generatedPassword;
@@ -148,25 +141,29 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * @param name - GitHub profile name
    * @param image - GitHub profile avatar url
    */
-  static async createByGithub({id, name, image}: { id: string, name: string, image: string }) {
+  public static async createByGithub({ id, name, image }: { id: string; name: string; image: string }): Promise<UserModel> {
     if (!id || !name || !image) {
       throw new Error('Required parameters are not provided');
     }
 
-    const userData = {githubId: id, name, image};
+    const userData = {
+      githubId: id,
+      name,
+      image,
+    };
 
     const userId = (await this.collection.insertOne(userData)).insertedId;
 
     return new UserModel({
       _id: userId,
-      ...userData
+      ...userData,
     });
   }
 
   /**
    * Generate 16bytes password
    */
-  static generatePassword(): Promise<string> {
+  public static generatePassword(): Promise<string> {
     return new Promise((resolve, reject) => {
       crypto.randomBytes(8, (err, buff) => {
         if (err) {
@@ -179,26 +176,18 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   }
 
   /**
-   * Hash password
-   * @param password - password to hash
-   */
-  static async hashPassword(password: string): Promise<string> {
-    return argon2.hash(password);
-  }
-
-  /**
    * Change user's password
    * Hashes new password and updates the document
    *
    * @param userId - user ID
    * @param newPassword - new user password
    */
-  static async changePassword(userId: string, newPassword: string): Promise<void> {
+  public static async changePassword(userId: string, newPassword: string): Promise<void> {
     const hashedPassword = await this.hashPassword(newPassword);
 
     const status = await this.update(
-      {_id: new ObjectID(userId)},
-      {password: hashedPassword}
+      { _id: new ObjectID(userId) },
+      { password: hashedPassword }
     );
 
     if (status !== 1) {
@@ -212,14 +201,18 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * @param userId - user ID
    * @param  user – user object
    */
-  static async updateProfile(userId: string, user: UserDBScheme): Promise<void> {
-    if (!await objectHasOnlyProps(user, {name: true, email: true, image: true})) {
+  public static async updateProfile(userId: string, user: UserDBScheme): Promise<void> {
+    if (!await objectHasOnlyProps(user, {
+      name: true,
+      email: true,
+      image: true,
+    })) {
       throw new Error('User object has invalid properties');
     }
 
     try {
       await this.update(
-        {_id: new ObjectID(userId)},
+        { _id: new ObjectID(userId) },
         user
       );
     } catch (e) {
@@ -228,11 +221,11 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   }
 
   /**
-   * Finds user by his email
-   * @param email - user's email
+   * Returns User by its id
+   * @param id - user id
    */
-  static async findByEmail(email: string): Promise<UserModel | null> {
-    const searchResult = await this.collection.findOne({email});
+  public static async findById(id: string): Promise<UserModel | null> {
+    const searchResult = await this.collection.findOne({ _id: new ObjectID(id) });
 
     if (!searchResult) {
       return null;
@@ -242,51 +235,61 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   }
 
   /**
-   * Generates JWT
+   * Finds user by his email
+   * @param email - user's email
    */
-  async generateTokensPair(): Promise<TokensPair> {
-    const accessToken = await jwt.sign(
-      {
-        userId: this._id
-      },
-      process.env.JWT_SECRET,
-      {expiresIn: '15m'}
-    );
+  public static async findByEmail(email: string): Promise<UserModel | null> {
+    const searchResult = await this.collection.findOne({ email });
 
-    const refreshToken = await jwt.sign(
-      {
-        userId: this._id
-      },
-      process.env.JWT_SECRET,
-      {expiresIn: '30d'}
-    );
-
-    return {accessToken, refreshToken};
-  }
-
-  /**
-   * Compare unhashed password with user's password
-   * @param password - password to check
-   */
-  async comparePassword(password: string): Promise<boolean> {
-    if (!this.password) {
-      return false;
-    }
-    return argon2.verify(this.password, password);
-  }
-
-  /**
-   * Returns User by its id
-   * @param id - user id
-   */
-  static async findById(id: string): Promise<UserModel | null> {
-    const searchResult = await this.collection.findOne({_id: new ObjectID(id)});
-
-    if (!searchResult){
+    if (!searchResult) {
       return null;
     }
 
     return new UserModel(searchResult);
   }
 
+  /**
+   * Hash password
+   * @param password - password to hash
+   */
+  private static async hashPassword(password: string): Promise<string> {
+    return argon2.hash(password);
+  }
+
+  /**
+   * Generates JWT
+   */
+  public async generateTokensPair(): Promise<TokensPair> {
+    const accessToken = await jwt.sign(
+      {
+        userId: this._id,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = await jwt.sign(
+      {
+        userId: this._id,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  /**
+   * Compare unhashed password with user's password
+   * @param password - password to check
+   */
+  public async comparePassword(password: string): Promise<boolean> {
+    if (!this.password) {
+      return false;
+    }
+    return argon2.verify(this.password, password);
+  }
 }
