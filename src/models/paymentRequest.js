@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const User = require('../models/user');
+const User = require('../models/user').default;
 const TinkoffAPI = require('tinkoff-api');
 
 const EmailCompany = process.env.BILLING_COMPANY_EMAIL;

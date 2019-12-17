@@ -5,7 +5,7 @@ const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 const Team = require('../models/team');
 const Notify = require('../models/notify');
-const User = require('../models/user');
+const User = require('../models/user').default;
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
