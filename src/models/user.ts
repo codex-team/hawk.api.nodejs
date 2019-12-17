@@ -2,15 +2,14 @@ import argon2 from 'argon2';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import * as mongo from '../mongo';
-import mongodbDriver, {Collection} from 'mongodb';
+import {Collection, ObjectID} from 'mongodb';
 import BaseModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
-import ObjectID = mongodbDriver.ObjectID;
 
 
-interface TokensPair {
+export interface TokensPair {
   /**
-   * user's access token
+   * User's access token
    */
   accessToken: string;
 
@@ -20,11 +19,11 @@ interface TokensPair {
   refreshToken: string;
 }
 
-interface UserDBScheme {
+export interface UserDBScheme {
   /**
    * User's id
    */
-  _id: string;
+  _id: string | ObjectID;
 
   /**
    * User's email
@@ -60,8 +59,8 @@ interface UserDBScheme {
 /**
  * User model
  */
-class UserModel extends BaseModel<UserDBScheme> implements UserDBScheme {
-    _id!: string;
+export default class UserModel extends BaseModel<UserDBScheme> implements UserDBScheme {
+    _id!: string | ObjectID;
     email?: string | undefined;
     password?: string | undefined;
     image?: string | undefined;
@@ -234,6 +233,15 @@ class UserModel extends BaseModel<UserDBScheme> implements UserDBScheme {
     }
     return argon2.verify(this.password, password);
   }
+
+  static async findById(id: string): Promise<UserModel | null> {
+    const searchResult = await this.collection.findOne({_id: new ObjectID(id)});
+
+    if (!searchResult) return null;
+
+    return new UserModel(searchResult);
+  }
+
 }
 
 module.exports = UserModel;
