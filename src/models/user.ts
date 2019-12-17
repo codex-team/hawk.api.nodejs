@@ -7,6 +7,9 @@ import BaseModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 
 
+/**
+ * Tokens pair for User authentication
+ */
 export interface TokensPair {
   /**
    * User's access token
@@ -19,6 +22,10 @@ export interface TokensPair {
   refreshToken: string;
 }
 
+
+/**
+ * Interface representing how user is stored in DB
+ */
 export interface UserDBScheme {
   /**
    * User's id
@@ -61,12 +68,12 @@ export interface UserDBScheme {
  */
 export default class UserModel extends BaseModel<UserDBScheme> implements UserDBScheme {
     _id!: string | ObjectID;
-    email?: string | undefined;
-    password?: string | undefined;
-    image?: string | undefined;
-    name?: string | undefined;
-    githubId?: string | undefined;
-    generatedPassword?: string | undefined;
+    email?: string;
+    password?: string;
+    image?: string;
+    name?: string;
+    githubId?: string;
+    generatedPassword?: string;
 
   /**
    * Creates User instance
@@ -84,9 +91,8 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   }
 
   /**
-   * Creates new user in DB
-   * @param {String} email - user email
-   * @returns {Promise<UserModel>} - user details
+   * Creates new user in DB and returns its details
+   * @param email - user email
    */
   static async create(email: string): Promise<UserModel> {
     // @todo normal password generation
@@ -243,5 +249,3 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   }
 
 }
-
-module.exports = UserModel;
