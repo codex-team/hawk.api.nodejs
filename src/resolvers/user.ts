@@ -30,7 +30,7 @@ export default {
   Mutation: {
     /**
      * Register user with provided email
-     * @param _obj
+     * @param _obj - parent object (undefined for this resolver)
      * @param email - user email
      * @param factories - factories for working with models
      */
@@ -61,7 +61,7 @@ export default {
 
     /**
      * Login user with provided email and password
-     * @param _obj
+     * @param _obj - parent object (undefined for this resolver)
      * @param email - user email
      * @param password - user password
      * @param factories - factories for working with models
@@ -82,7 +82,7 @@ export default {
 
     /**
      * Update user's tokens pair
-     * @param  _obj
+     * @param _obj - parent object (undefined for this resolver)
      * @param refreshToken - refresh token for getting new token pair
      * @param factories - factories for working with models
      */
@@ -111,7 +111,7 @@ export default {
 
     /**
      * Reset user password
-     * @param _obj
+     * @param _obj - parent object (undefined for this resolver)
      * @param email - user email
      * @param factories - factories for working with models
      */
@@ -150,11 +150,10 @@ export default {
 
     /**
      * Update profile user data
-     *
-     * @param _obj
-     * @param name
-     * @param email
-     * @param user
+     * @param _obj - parent object (undefined for this resolver)
+     * @param name - user's name to change
+     * @param email - user's email to change
+     * @param user - current authenticated user
      * @param factories - factories for working with models
      */
     async updateProfile(
@@ -187,11 +186,10 @@ export default {
 
     /**
      * Change user password
-     *
-     * @param _obj
-     * @param oldPassword
-     * @param newPassword
-     * @param user
+     * @param _obj - parent object (undefined for this resolver)
+     * @param oldPassword - old password
+     * @param newPassword - password to change
+     * @param user - current authenticated user
      * @param factories - factories for working with models
      */
     async changePassword(
