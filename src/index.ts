@@ -99,7 +99,7 @@ class HawkAPI {
   /**
    * Fires when coming new Websocket connection
    * Returns authorization headers for building request context
-   * @param connectionParams
+   * @param connectionParams - websocket connection params (actually, headers only)
    * @return - context for subscription request
    */
   private static onWebSocketConnection(connectionParams: Record<string, string>): { headers: { authorization: string } } {

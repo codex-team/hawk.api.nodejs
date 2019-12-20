@@ -5,7 +5,7 @@ export type ModelConstructor<DBScheme, Model extends BaseModel<DBScheme>> = new 
 /**
  * Base model
  */
-export default class BaseModel<DBScheme> {
+export default abstract class BaseModel<DBScheme> {
   /**
    * Creates model instance
    * @param modelData - data to fill model

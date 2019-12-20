@@ -4,7 +4,7 @@ import BaseModel, { ModelConstructor } from './abstractModel';
 /**
  * Model Factory class
  */
-export default class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
+export default abstract class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
   /**
    * Collection to work with
    */
@@ -21,7 +21,7 @@ export default class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
    * @param collectionName - database collection name
    * @param model - model constructor
    */
-  constructor(dbConnection: Db, collectionName: string, model: ModelConstructor<DBScheme, Model>) {
+  protected constructor(dbConnection: Db, collectionName: string, model: ModelConstructor<DBScheme, Model>) {
     this.collection = dbConnection.collection(collectionName);
     this.Model = model;
   }
