@@ -7,6 +7,9 @@ import BaseModel, { ModelConstructor } from './abstractModel';
 export default abstract class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
   /**
    * Collection to work with
+   * We can't use generic type for collection because of bug in TS
+   * @see {@link https://github.com/DefinitelyTyped/DefinitelyTyped/issues/39358#issuecomment-546559564}
+   * So we should override collection type in child classes
    */
   protected collection: Collection;
 
