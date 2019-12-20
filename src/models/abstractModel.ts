@@ -1,9 +1,11 @@
 import {Collection} from 'mongodb';
 
+export type ModelConstructor<DBScheme, Model extends BaseModel<DBScheme>> = new (modelData: DBScheme) => Model;
+
 /**
  * Base model
  */
-export default class Model<DBScheme> {
+export default class BaseModel<DBScheme> {
   /**
    * Creates model instance
    * @param modelData - data to fill model

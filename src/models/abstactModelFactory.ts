@@ -1,19 +1,19 @@
 import {Collection, Db, ObjectID} from "mongodb";
-import BaseModel from './abstractModel'
+import BaseModel, {ModelConstructor} from './abstractModel'
 
 /**
  * Model Factory class
  */
-export default class Factory<DBScheme> {
+export default class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
   /**
    * Collection to work with
    */
-  private collection: Collection;
+  public collection: Collection;
 
   /**
    * Model constructor to create instances
    */
-  private readonly model: typeof BaseModel;
+  private readonly model: ModelConstructor<DBScheme, Model>;
 
   /**
    * Creates factory instance
@@ -21,7 +21,7 @@ export default class Factory<DBScheme> {
    * @param collectionName - database collection name
    * @param model - model constructor
    */
-  constructor(dbConnection: Db, collectionName: string, model: typeof BaseModel) {
+  constructor(dbConnection: Db, collectionName: string, model: ModelConstructor<DBScheme, Model>) {
     this.collection = dbConnection.collection(collectionName);
     this.model = model;
   }
@@ -30,7 +30,7 @@ export default class Factory<DBScheme> {
    * Find record by query
    * @param query - query object
    */
-  async findOne(query: object): Promise<BaseModel<DBScheme> | null> {
+  async findOne(query: object): Promise<Model | null> {
     const searchResult = await this.collection.findOne(query);
 
     if (!searchResult) {
@@ -44,7 +44,7 @@ export default class Factory<DBScheme> {
    * Finds record by its id
    * @param id - entity id
    */
-  async findById(id: string): Promise<BaseModel<DBScheme> | null> {
+  async findById(id: string): Promise<Model | null> {
     const searchResult = await this.collection.findOne({
       _id: new ObjectID(id)
     });

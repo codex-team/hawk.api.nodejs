@@ -1,11 +1,15 @@
 /**
  * Resolver's Context argument
  */
+import UsersFactory from "../models/usersFactory";
+
 export interface ResolverContextBase {
   /**
    * User who makes query
    */
-  user?: UserInContext
+  user?: UserInContext;
+
+  factories: ContextFactories;
 }
 
 /**
@@ -31,4 +35,14 @@ export interface UserJWTData {
    * User id
    */
   userId: string;
+}
+
+/**
+ * Factories for working with models
+ */
+export interface ContextFactories {
+  /**
+   * Users factory for working with users
+   */
+  usersFactory: UsersFactory;
 }

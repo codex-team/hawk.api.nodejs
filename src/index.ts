@@ -10,7 +10,8 @@ import {authRouter} from './auth';
 import resolvers from './resolvers';
 import typeDefs from './typeDefs';
 import {ExpressContext} from 'apollo-server-express/dist/ApolloServer';
-import {ResolverContextBase, UserJWTData} from './types/graphql';
+import {ContextFactories, ResolverContextBase, UserJWTData} from './types/graphql';
+import UsersFactory from "./models/usersFactory";
 
 /**
  * Option to enable playground
@@ -27,12 +28,17 @@ const PLAYGROUND_ENABLE = process.env.PLAYGROUND_ENABLE === 'true';
  * Hawk API server
  */
 class HawkAPI {
+  /**
+   * Port to listen for requests
+   */
   private serverPort = +(process.env.PORT || 4000);
 
   /**
    * Express application
    */
   private app = express();
+
+  private factories?: ContextFactories;
 
   /**
    * Apollo GraphQL server
@@ -69,7 +75,7 @@ class HawkAPI {
         path: '/subscriptions',
         onConnect: HawkAPI.onWebSocketConnection
       },
-      context: HawkAPI.createContext,
+      context: this.createContext,
       formatError: error => {
         console.error(error.originalError);
         return error;
@@ -90,7 +96,7 @@ class HawkAPI {
    * @param req - Express request
    * @param connection - websocket connection (for subscriptions)
    */
-  static async createContext({req, connection}: ExpressContext): Promise<ResolverContextBase> {
+  async createContext({req, connection}: ExpressContext): Promise<ResolverContextBase> {
     let userId: string | undefined;
     let isAccessTokenExpired = false;
 
@@ -122,6 +128,7 @@ class HawkAPI {
     }
 
     return {
+      factories: this.factories!,
       user: {
         id: userId,
         accessTokenExpired: isAccessTokenExpired
@@ -150,6 +157,7 @@ class HawkAPI {
   async start(): Promise<void> {
     await mongo.setupConnections();
     await rabbitmq.setupConnections();
+    this.setupFactories();
 
     return new Promise((resolve) => {
       this.httpServer.listen({port: this.serverPort}, () => {
@@ -166,6 +174,14 @@ class HawkAPI {
         resolve();
       });
     });
+  }
+
+  private setupFactories(): void {
+    const usersFactory = new UsersFactory(mongo.databases.hawk!, 'users');
+
+    this.factories = {
+      usersFactory
+    }
   }
 }
 
