@@ -79,7 +79,7 @@ class HawkAPI {
         path: '/subscriptions',
         onConnect: HawkAPI.onWebSocketConnection,
       },
-      context: this.createContext,
+      context: (req: ExpressContext): Promise<ResolverContextBase> => this.createContext(req),
       formatError: (error): GraphQLError => {
         console.error(error.originalError);
         return error;
