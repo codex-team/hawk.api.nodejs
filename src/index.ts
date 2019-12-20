@@ -77,7 +77,8 @@ class HawkAPI {
       },
       subscriptions: {
         path: '/subscriptions',
-        onConnect: HawkAPI.onWebSocketConnection,
+        onConnect: (connectionParams): { headers: { authorization: string } } =>
+          HawkAPI.onWebSocketConnection(connectionParams as Record<string, string>),
       },
       context: (req: ExpressContext): Promise<ResolverContextBase> => this.createContext(req),
       formatError: (error): GraphQLError => {
@@ -101,10 +102,7 @@ class HawkAPI {
    * @param connectionParams
    * @return - context for subscription request
    */
-  private static onWebSocketConnection(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    connectionParams: any
-  ): {headers: http.IncomingHttpHeaders} {
+  private static onWebSocketConnection(connectionParams: Record<string, string>): { headers: { authorization: string } } {
     return {
       headers: {
         authorization:
