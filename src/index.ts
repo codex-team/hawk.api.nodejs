@@ -39,7 +39,10 @@ class HawkAPI {
    */
   private app = express();
 
-  private factories?: ContextFactories;
+  /**
+   * Factories to work with models
+   */
+  private factories!: ContextFactories;
 
   /**
    * Apollo GraphQL server
@@ -93,6 +96,49 @@ class HawkAPI {
   }
 
   /**
+   * Fires when coming new Websocket connection
+   * Returns authorization headers for building request context
+   * @param connectionParams
+   * @return - context for subscription request
+   */
+  private static onWebSocketConnection(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    connectionParams: any
+  ): {headers: http.IncomingHttpHeaders} {
+    return {
+      headers: {
+        authorization:
+          connectionParams['authorization'] || connectionParams['Authorization'],
+      },
+    };
+  }
+
+  /**
+   * Start API server
+   */
+  public async start(): Promise<void> {
+    await mongo.setupConnections();
+    await rabbitmq.setupConnections();
+    this.setupFactories();
+
+    return new Promise((resolve) => {
+      this.httpServer.listen({ port: this.serverPort }, () => {
+        console.log(
+          `🚀 Server ready at http://localhost:${this.serverPort}${
+            this.server.graphqlPath
+          }`
+        );
+        console.log(
+          `🚀 Subscriptions ready at ws://localhost:${this.serverPort}${
+            this.server.subscriptionsPath
+          }`
+        );
+        resolve();
+      });
+    });
+  }
+
+  /**
    * Creates request context
    * @param req - Express request
    * @param connection - websocket connection (for subscriptions)
@@ -129,7 +175,7 @@ class HawkAPI {
     }
 
     return {
-      factories: this.factories!,
+      factories: this.factories,
       user: {
         id: userId,
         accessTokenExpired: isAccessTokenExpired,
@@ -138,49 +184,10 @@ class HawkAPI {
   }
 
   /**
-   * Fires when coming new Websocket connection
-   * Returns authorization headers for building request context
-   * @param connectionParams
-   * @return - context for subscription request
-   */
-  private static async onWebSocketConnection(connectionParams: any) {
-    return {
-      headers: {
-        authorization:
-          connectionParams['authorization'] || connectionParams['Authorization'],
-      },
-    };
-  }
-
-  /**
-   * Start API server
-   */
-  public async start(): Promise<void> {
-    await mongo.setupConnections();
-    await rabbitmq.setupConnections();
-    this.setupFactories();
-
-    return new Promise((resolve) => {
-      this.httpServer.listen({ port: this.serverPort }, () => {
-        console.log(
-          `🚀 Server ready at http://localhost:${this.serverPort}${
-            this.server.graphqlPath
-          }`
-        );
-        console.log(
-          `🚀 Subscriptions ready at ws://localhost:${this.serverPort}${
-            this.server.subscriptionsPath
-          }`
-        );
-        resolve();
-      });
-    });
-  }
-
-  /**
    * Creates factories to work with models
    */
   private setupFactories(): void {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const usersFactory = new UsersFactory(mongo.databases.hawk!, 'users');
 
     this.factories = {

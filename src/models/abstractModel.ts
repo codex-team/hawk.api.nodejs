@@ -17,7 +17,7 @@ export default class BaseModel<DBScheme> {
   /**
    * Model's collection
    */
-  static get collection(): Collection {
+  protected static get collection(): Collection {
     throw new Error('Collection getter is not implemented');
   }
 

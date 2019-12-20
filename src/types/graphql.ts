@@ -1,14 +1,17 @@
+import UsersFactory from '../models/usersFactory';
+
 /**
  * Resolver's Context argument
  */
-import UsersFactory from '../models/usersFactory';
-
 export interface ResolverContextBase {
   /**
    * User who makes query
    */
   user: UserInContext;
 
+  /**
+   * Factories for working with models
+   */
   factories: ContextFactories;
 }
 
@@ -45,4 +48,14 @@ export interface ContextFactories {
    * Users factory for working with users
    */
   usersFactory: UsersFactory;
+}
+
+/**
+ * Resolver Context with authenticated user
+ */
+export interface ResolverContextWithUser extends ResolverContextBase {
+  /**
+   * User who makes query
+   */
+  user: Required<UserInContext>;
 }

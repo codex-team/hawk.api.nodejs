@@ -70,60 +70,66 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   /**
    * User's id
    */
-  _id!: string | ObjectID;
+  public _id!: string | ObjectID;
 
   /**
    * User's email
    */
-  email?: string;
+  public email?: string;
 
   /**
    * User's password
    */
-  password?: string;
+  public password?: string;
 
   /**
    * User's image url
    */
-  image?: string;
+  public image?: string;
 
   /**
    * User's name
    */
-  name?: string;
+  public name?: string;
 
   /**
    * User's GitHub profile id
    */
-  githubId?: string;
+  public githubId?: string;
 
   /**
    * User's original password (this field appears only after registration).
    * Using to send password to user after registration
    */
-  generatedPassword?: string;
-
-  /**
-   * Creates User instance
-   * @param userData - user's data
-   */
-  constructor(userData: UserDBScheme) {
-    super(userData);
-  }
+  public generatedPassword?: string;
 
   /**
    * Model's collection
    */
-  static get collection(): Collection<UserDBScheme> {
+  protected static get collection(): Collection<UserDBScheme> {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return mongo.databases.hawk!.collection('users');
+  }
+
+  /**
+   * Returns User by its id
+   * @param id - user id
+   */
+  public static async findById(id: string): Promise<UserModel | null> {
+    const searchResult = await this.collection.findOne({ _id: new ObjectID(id) });
+
+    if (!searchResult) {
+      return null;
+    }
+
+    return new UserModel(searchResult);
   }
 
   /**
    * Creates new user in DB and returns its details
    * @param email - user email
    */
-  static async create(email: string): Promise<UserModel> {
-    // @todo normal password generation
+  public static async create(email: string): Promise<UserModel> {
     const generatedPassword = await this.generatePassword();
     const hashedPassword = await this.hashPassword(generatedPassword);
 
@@ -149,7 +155,9 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * @param name - GitHub profile name
    * @param image - GitHub profile avatar url
    */
-  static async createByGithub({ id, name, image }: { id: string; name: string; image: string }) {
+  public static async createByGithub(
+    { id, name, image }: { id: string; name: string; image: string }
+  ): Promise<UserModel> {
     if (!id || !name || !image) {
       throw new Error('Required parameters are not provided');
     }
@@ -171,7 +179,7 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   /**
    * Generate 16bytes password
    */
-  static generatePassword(): Promise<string> {
+  public static generatePassword(): Promise<string> {
     return new Promise((resolve, reject) => {
       crypto.randomBytes(8, (err, buff) => {
         if (err) {
@@ -187,7 +195,7 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * Hash password
    * @param password - password to hash
    */
-  static async hashPassword(password: string): Promise<string> {
+  public static async hashPassword(password: string): Promise<string> {
     return argon2.hash(password);
   }
 
@@ -198,7 +206,7 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * @param userId - user ID
    * @param newPassword - new user password
    */
-  static async changePassword(userId: string | ObjectID, newPassword: string): Promise<void> {
+  public static async changePassword(userId: string | ObjectID, newPassword: string): Promise<void> {
     const hashedPassword = await this.hashPassword(newPassword);
 
     const status = await this.update(
@@ -217,7 +225,7 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * @param userId - user ID
    * @param  user – user object
    */
-  static async updateProfile(userId: string, user: Partial<UserDBScheme>): Promise<void> {
+  public static async updateProfile(userId: string, user: Partial<UserDBScheme>): Promise<void> {
     if (!await objectHasOnlyProps(user, {
       name: true,
       email: true,
@@ -240,7 +248,7 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * Finds user by his email
    * @param email - user's email
    */
-  static async findByEmail(email: string): Promise<UserModel | null> {
+  public static async findByEmail(email: string): Promise<UserModel | null> {
     const searchResult = await this.collection.findOne({ email });
 
     if (!searchResult) {
@@ -253,7 +261,7 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   /**
    * Generates JWT
    */
-  async generateTokensPair(): Promise<TokensPair> {
+  public async generateTokensPair(): Promise<TokensPair> {
     const accessToken = await jwt.sign(
       {
         userId: this._id,
@@ -280,24 +288,10 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * Compare unhashed password with user's password
    * @param password - password to check
    */
-  async comparePassword(password: string): Promise<boolean> {
+  public async comparePassword(password: string): Promise<boolean> {
     if (!this.password) {
       return false;
     }
     return argon2.verify(this.password, password);
-  }
-
-  /**
-   * Returns User by its id
-   * @param id - user id
-   */
-  static async findById(id: string): Promise<UserModel | null> {
-    const searchResult = await this.collection.findOne({ _id: new ObjectID(id) });
-
-    if (!searchResult) {
-      return null;
-    }
-
-    return new UserModel(searchResult);
   }
 }

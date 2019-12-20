@@ -1,5 +1,5 @@
-import { ResolverContextBase, UserJWTData } from '../types/graphql';
-import UserModel from '../models/user';
+import { ResolverContextBase, ResolverContextWithUser, UserJWTData } from '../types/graphql';
+import UserModel, { TokensPair } from '../models/user';
 import { AuthenticationError, ApolloError, UserInputError } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
 import { errorCodes } from '../errors';
@@ -19,10 +19,11 @@ export default {
      * @param user - current authenticated user
      * @param factories - factories for working with models
      */
-    async me(_obj: undefined, _args: {}, { user, factories }: ResolverContextBase) {
-      if (!user.id) {
-        throw new ApolloError('kek');
-      }
+    async me(
+      _obj: undefined,
+      _args: {},
+      { user, factories }: ResolverContextWithUser
+    ): Promise<UserModel | null> {
       return factories.usersFactory.findById(user.id);
     },
   },
@@ -33,7 +34,11 @@ export default {
      * @param email - user email
      * @param factories - factories for working with models
      */
-    async signUp(_obj: undefined, { email }: {email: string}, { factories }: ResolverContextBase) {
+    async signUp(
+      _obj: undefined,
+      { email }: {email: string},
+      { factories }: ResolverContextBase
+    ): Promise<boolean> {
       let user;
 
       try {
@@ -56,12 +61,16 @@ export default {
 
     /**
      * Login user with provided email and password
-     * @param {ResolverObj} _obj
-     * @param {String} email - user email
-     * @param {String} password - user password
-     * @param factories
+     * @param _obj
+     * @param email - user email
+     * @param password - user password
+     * @param factories - factories for working with models
      */
-    async login(_obj: undefined, { email, password }: {email: string; password: string}, { factories }: ResolverContextBase) {
+    async login(
+      _obj: undefined,
+      { email, password }: {email: string; password: string},
+      { factories }: ResolverContextBase
+    ): Promise<TokensPair> {
       const user = await factories.usersFactory.findByEmail(email);
 
       if (!user || !(await user.comparePassword(password))) {
@@ -75,9 +84,13 @@ export default {
      * Update user's tokens pair
      * @param  _obj
      * @param refreshToken - refresh token for getting new token pair
-     * @return {Promise<TokensPair>}
+     * @param factories - factories for working with models
      */
-    async refreshTokens(_obj: undefined, { refreshToken }: {refreshToken: string}, { factories }: ResolverContextBase) {
+    async refreshTokens(
+      _obj: undefined,
+      { refreshToken }: {refreshToken: string},
+      { factories }: ResolverContextBase
+    ): Promise<TokensPair> {
       let userId;
 
       try {
@@ -98,12 +111,15 @@ export default {
 
     /**
      * Reset user password
-     *
-     * @param {ResolverObj} _obj
-     * @param {string} email - user email
-     * @returns {Promise<Boolean>}
+     * @param _obj
+     * @param email - user email
+     * @param factories - factories for working with models
      */
-    async resetPassword(_obj: undefined, { email }: {email: string}, { factories }: ResolverContextBase) {
+    async resetPassword(
+      _obj: undefined,
+      { email }: {email: string},
+      { factories }: ResolverContextBase
+    ): Promise<boolean> {
       /**
        * @todo Better password reset via one-time link
        */
@@ -135,14 +151,17 @@ export default {
     /**
      * Update profile user data
      *
-     * @param {ResolverObj} _obj
-     * @param {string} name
-     * @param {string} email
-     * @param {User} user
-     * @param factories
-     * @return {Promise<Boolean>}
+     * @param _obj
+     * @param name
+     * @param email
+     * @param user
+     * @param factories - factories for working with models
      */
-    async updateProfile(_obj: undefined, { name, email }: {name: string; email: string}, { user, factories }: ResolverContextBase) {
+    async updateProfile(
+      _obj: undefined,
+      { name, email }: {name: string; email: string},
+      { user, factories }: ResolverContextWithUser
+    ): Promise<boolean> {
       if (email && !Validator.validateEmail(email)) {
         throw new UserInputError('Wrong email format');
       }
@@ -155,7 +174,7 @@ export default {
       }
 
       try {
-        await UserModel.updateProfile(user.id!, {
+        await UserModel.updateProfile(user.id, {
           name,
           email,
         });
@@ -169,16 +188,18 @@ export default {
     /**
      * Change user password
      *
-     * @param {ResolverObj} _obj
-     *
-     * @param {string} oldPassword
-     * @param {string} newPassword
-     * @param {User} user
-     * @param factories
-     * @return {Promise<Boolean>}
+     * @param _obj
+     * @param oldPassword
+     * @param newPassword
+     * @param user
+     * @param factories - factories for working with models
      */
-    async changePassword(_obj: undefined, { oldPassword, newPassword }: { oldPassword: string; newPassword: string }, { user, factories }: ResolverContextBase) {
-      const foundUser = await factories.usersFactory.findById(user.id!);
+    async changePassword(
+      _obj: undefined,
+      { oldPassword, newPassword }: { oldPassword: string; newPassword: string },
+      { user, factories }: ResolverContextWithUser
+    ): Promise<boolean> {
+      const foundUser = await factories.usersFactory.findById(user.id);
 
       if (!foundUser) {
         throw new ApolloError('kekek');
@@ -189,7 +210,7 @@ export default {
       }
 
       try {
-        await UserModel.changePassword(user.id!, newPassword);
+        await UserModel.changePassword(user.id, newPassword);
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }

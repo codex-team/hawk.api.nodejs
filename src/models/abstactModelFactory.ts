@@ -13,7 +13,7 @@ export default class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
   /**
    * Model constructor to create instances
    */
-  private readonly model: ModelConstructor<DBScheme, Model>;
+  private readonly Model: ModelConstructor<DBScheme, Model>;
 
   /**
    * Creates factory instance
@@ -23,28 +23,28 @@ export default class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
    */
   constructor(dbConnection: Db, collectionName: string, model: ModelConstructor<DBScheme, Model>) {
     this.collection = dbConnection.collection(collectionName);
-    this.model = model;
+    this.Model = model;
   }
 
   /**
    * Find record by query
    * @param query - query object
    */
-  async findOne(query: object): Promise<Model | null> {
+  public async findOne(query: object): Promise<Model | null> {
     const searchResult = await this.collection.findOne(query);
 
     if (!searchResult) {
       return null;
     }
 
-    return new this.model(searchResult);
+    return new this.Model(searchResult);
   }
 
   /**
    * Finds record by its id
    * @param id - entity id
    */
-  async findById(id: string): Promise<Model | null> {
+  public async findById(id: string): Promise<Model | null> {
     const searchResult = await this.collection.findOne({
       _id: new ObjectID(id),
     });
@@ -53,6 +53,6 @@ export default class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
       return null;
     }
 
-    return new this.model(searchResult);
+    return new this.Model(searchResult);
   }
 }
