@@ -24,6 +24,8 @@
     ]
   },
   "devDependencies": {
+    "@types/mime-types": "^2.1.0",
+    "@types/uuid": "^3.4.6",
     "eslint": "^6.7.2",
     "eslint-config-codex": "git+https://github.com/codex-team/eslint-config.git#ts",
     "eslint-plugin-import": "^2.19.1",
@@ -50,9 +52,11 @@
     "graphql-iso-date": "^3.6.1",
     "graphql-list-fields": "^2.0.2",
     "graphql-type-json": "^0.3.0",
+    "graphql-upload": "^9.0.0",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.15",
     "migrate-mongo": "^7.0.1",
+    "mime-types": "^2.1.25",
     "mongodb": "^3.4.0",
     "mustache": "^3.0.1",
     "nodemailer": "^6.4.2",

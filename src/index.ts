@@ -52,6 +52,7 @@ class HawkAPI {
   constructor() {
     this.app.use(express.json());
     this.app.post('/billing', billing.notifyCallback);
+    this.app.use('/uploads', express.static('uploads'));
     this.app.use(authRouter);
 
     initializeStrategies();
@@ -136,7 +137,7 @@ class HawkAPI {
    * @param connectionParams
    * @return - context for subscription request
    */
-  private static async onWebSocketConnection(connectionParams: object): Promise<{headers: { authorization: string }}> {
+  private static async onWebSocketConnection(connectionParams: any): Promise<{headers: { authorization: string }}> {
     return {
       headers: {
         authorization:

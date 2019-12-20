@@ -1,3 +1,5 @@
+import { save } from '../utils/files';
+
 const { AuthenticationError, ApolloError, UserInputError } = require('apollo-server-express');
 const User = require('../models/user').default;
 const jwt = require('jsonwebtoken');
@@ -20,7 +22,7 @@ module.exports = {
      */
     async me(_obj, _args, { user }) {
       return User.findById(user.id);
-    }
+    },
   },
   Mutation: {
     /**
@@ -36,7 +38,7 @@ module.exports = {
         user = await User.create(email);
         emailProvider.send(email, emailTemplatesNames.SUCCESSFUL_SIGN_UP, {
           email,
-          password: user.generatedPassword
+          password: user.generatedPassword,
         });
       } catch (e) {
         if (e.code.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
@@ -86,7 +88,9 @@ module.exports = {
 
       const user = await User.findById(userId);
 
-      if (!user) throw new ApolloError('There is no users with that id');
+      if (!user) {
+        throw new ApolloError('There is no users with that id');
+      }
       return user.generateTokensPair();
     },
 
@@ -117,7 +121,7 @@ module.exports = {
          */
         emailProvider.send(email, emailTemplatesNames.PASSWORD_RESET, {
           email,
-          password: newPassword
+          password: newPassword,
         });
       } catch (err) {
         throw new ApolloError('Something went wrong');
@@ -132,23 +136,41 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {string} name
      * @param {string} email
+     * @param {object} image
      * @param {User} user
      * @return {Promise<Boolean>}
      */
-    async updateProfile(_obj, { name, email }, { user }) {
+    async updateProfile(_obj, { name, email, image }, { user }) {
       if (email && !validateEmail(email)) {
         throw new UserInputError('Wrong email format');
+      }
+
+      if (image) {
+        image = await image;
+        image = save(image.createReadStream(), image.mimetype);
       }
 
       const userWithEmail = (await User.findByEmail(email));
 
       // TODO: replace with email verification
-      if (userWithEmail && userWithEmail.id.toString() !== user.id) {
+      if (userWithEmail && userWithEmail._id.toString() !== user.id) {
         throw new UserInputError('This email is taken');
       }
 
       try {
-        await User.updateProfile(user.id, { name, email });
+        /**
+         * @type UserDBScheme
+         */
+        const options = {
+          name,
+          email,
+        };
+
+        if (image) {
+          options.image = image;
+        }
+
+        await User.updateProfile(user.id, options);
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
@@ -180,6 +202,6 @@ module.exports = {
       }
 
       return true;
-    }
-  }
+    },
+  },
 };

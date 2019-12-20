@@ -1,3 +1,5 @@
+import { save } from '../utils/files';
+
 const { ValidationError } = require('apollo-server-express');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
@@ -20,7 +22,7 @@ module.exports = {
      */
     async project(_obj, { id }) {
       return Project.findById(id);
-    }
+    },
   },
   Mutation: {
     /**
@@ -32,21 +34,32 @@ module.exports = {
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @return {Project[]}
      */
-    async createProject(_obj, { workspaceId, name }, { user }) {
+    async createProject(_obj, { workspaceId, name, image }, { user }) {
       // Check workspace ID
       const workspace = await new Membership(user.id).getWorkspaces([
-        workspaceId
+        workspaceId,
       ]);
 
       if (!workspace) {
         throw new ValidationError('No such workspace');
       }
 
-      const project = await Project.create({
+      if (image) {
+        image = await image;
+        image = save(image.createReadStream(), image.mimetype);
+      }
+
+      const options = {
         name,
         workspaceId,
-        uidAdded: user.id
-      });
+        uidAdded: user.id,
+      };
+
+      if (image) {
+        options.image = image;
+      }
+
+      const project = await Project.create(options);
 
       // Create Project to Workspace relationship
       new ProjectToWorkspace(workspaceId).add({ projectId: project.id });
@@ -66,7 +79,7 @@ module.exports = {
       const userInProject = new UserInProject(user.id, projectId);
 
       return userInProject.updateLastVisit();
-    }
+    },
   },
   Project: {
     /**
@@ -185,6 +198,6 @@ module.exports = {
       }
 
       return Notify.getDefaultNotify();
-    }
-  }
+    },
+  },
 };
