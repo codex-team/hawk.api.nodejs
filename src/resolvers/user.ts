@@ -1,10 +1,10 @@
-import {ResolverContextBase, UserJWTData} from "../types/graphql";
-import UserModel from "../models/user";
+import { ResolverContextBase, UserJWTData } from '../types/graphql';
+import UserModel from '../models/user';
 import { AuthenticationError, ApolloError, UserInputError } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
 import { errorCodes } from '../errors';
-import emailProvider from'../email';
-import {names as emailTemplatesNames} from '../email/templates';
+import emailProvider from '../email';
+import { names as emailTemplatesNames } from '../email/templates';
 import Validator from '../utils/validator';
 
 /**
@@ -20,11 +20,11 @@ export default {
      * @param factories - factories for working with models
      */
     async me(_obj: undefined, _args: {}, { user, factories }: ResolverContextBase) {
-      if (!user.id){
-        throw new ApolloError('kek')
+      if (!user.id) {
+        throw new ApolloError('kek');
       }
       return factories.usersFactory.findById(user.id);
-    }
+    },
   },
   Mutation: {
     /**
@@ -33,14 +33,14 @@ export default {
      * @param email - user email
      * @param factories - factories for working with models
      */
-    async signUp(_obj: undefined, { email }: {email: string}, {factories}: ResolverContextBase) {
+    async signUp(_obj: undefined, { email }: {email: string}, { factories }: ResolverContextBase) {
       let user;
 
       try {
         user = await factories.usersFactory.create(email);
         emailProvider.send(email, emailTemplatesNames.SUCCESSFUL_SIGN_UP, {
           email,
-          password: user.generatedPassword
+          password: user.generatedPassword,
         });
       } catch (e) {
         if (e.code.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
@@ -61,7 +61,7 @@ export default {
      * @param {String} password - user password
      * @param factories
      */
-    async login(_obj: undefined, { email, password }: {email: string, password: string}, {factories}: ResolverContextBase) {
+    async login(_obj: undefined, { email, password }: {email: string; password: string}, { factories }: ResolverContextBase) {
       const user = await factories.usersFactory.findByEmail(email);
 
       if (!user || !(await user.comparePassword(password))) {
@@ -77,7 +77,7 @@ export default {
      * @param refreshToken - refresh token for getting new token pair
      * @return {Promise<TokensPair>}
      */
-    async refreshTokens(_obj: undefined, { refreshToken }: {refreshToken: string}, {factories}: ResolverContextBase) {
+    async refreshTokens(_obj: undefined, { refreshToken }: {refreshToken: string}, { factories }: ResolverContextBase) {
       let userId;
 
       try {
@@ -90,7 +90,9 @@ export default {
 
       const user = await factories.usersFactory.findById(userId);
 
-      if (!user) throw new ApolloError('There is no users with that id');
+      if (!user) {
+        throw new ApolloError('There is no users with that id');
+      }
       return user.generateTokensPair();
     },
 
@@ -101,7 +103,7 @@ export default {
      * @param {string} email - user email
      * @returns {Promise<Boolean>}
      */
-    async resetPassword(_obj: undefined, { email }: {email: string}, {factories}: ResolverContextBase) {
+    async resetPassword(_obj: undefined, { email }: {email: string}, { factories }: ResolverContextBase) {
       /**
        * @todo Better password reset via one-time link
        */
@@ -121,7 +123,7 @@ export default {
          */
         emailProvider.send(email, emailTemplatesNames.PASSWORD_RESET, {
           email,
-          password: newPassword
+          password: newPassword,
         });
       } catch (err) {
         throw new ApolloError('Something went wrong');
@@ -140,7 +142,7 @@ export default {
      * @param factories
      * @return {Promise<Boolean>}
      */
-    async updateProfile(_obj: undefined, { name, email }: {name: string, email: string}, { user, factories }: ResolverContextBase) {
+    async updateProfile(_obj: undefined, { name, email }: {name: string; email: string}, { user, factories }: ResolverContextBase) {
       if (email && !Validator.validateEmail(email)) {
         throw new UserInputError('Wrong email format');
       }
@@ -153,7 +155,10 @@ export default {
       }
 
       try {
-        await UserModel.updateProfile(user.id!, { name, email });
+        await UserModel.updateProfile(user.id!, {
+          name,
+          email,
+        });
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
@@ -172,11 +177,11 @@ export default {
      * @param factories
      * @return {Promise<Boolean>}
      */
-    async changePassword(_obj: undefined, { oldPassword, newPassword }: { oldPassword: string, newPassword:string }, { user , factories}: ResolverContextBase) {
+    async changePassword(_obj: undefined, { oldPassword, newPassword }: { oldPassword: string; newPassword: string }, { user, factories }: ResolverContextBase) {
       const foundUser = await factories.usersFactory.findById(user.id!);
 
       if (!foundUser) {
-        throw new ApolloError('kekek')
+        throw new ApolloError('kekek');
       }
 
       if (!user || !(await foundUser.comparePassword(oldPassword))) {
@@ -190,6 +195,6 @@ export default {
       }
 
       return true;
-    }
-  }
+    },
+  },
 };

@@ -1,17 +1,18 @@
-import {ApolloServer} from 'apollo-server-express';
+import { ApolloServer } from 'apollo-server-express';
 import express from 'express';
 import * as mongo from './mongo';
 import * as rabbitmq from './rabbitmq';
 import jwt from 'jsonwebtoken';
 import http from 'http';
 import billing from './billing/index';
-import {initializeStrategies} from './passport';
-import {authRouter} from './auth';
+import { initializeStrategies } from './passport';
+import { authRouter } from './auth';
 import resolvers from './resolvers';
 import typeDefs from './typeDefs';
-import {ExpressContext} from 'apollo-server-express/dist/ApolloServer';
-import {ContextFactories, ResolverContextBase, UserJWTData} from './types/graphql';
-import UsersFactory from "./models/usersFactory";
+import { ExpressContext } from 'apollo-server-express/dist/ApolloServer';
+import { ContextFactories, ResolverContextBase, UserJWTData } from './types/graphql';
+import UsersFactory from './models/usersFactory';
+import { GraphQLError } from 'graphql';
 
 /**
  * Option to enable playground
@@ -69,20 +70,20 @@ class HawkAPI {
       introspection: PLAYGROUND_ENABLE,
       schemaDirectives: {
         requireAuth: require('./directives/requireAuthDirective'),
-        renameFrom: require('./directives/renameFrom')
+        renameFrom: require('./directives/renameFrom'),
       },
       subscriptions: {
         path: '/subscriptions',
-        onConnect: HawkAPI.onWebSocketConnection
+        onConnect: HawkAPI.onWebSocketConnection,
       },
       context: this.createContext,
-      formatError: error => {
+      formatError: (error): GraphQLError => {
         console.error(error.originalError);
         return error;
-      }
+      },
     });
 
-    this.server.applyMiddleware({app: this.app});
+    this.server.applyMiddleware({ app: this.app });
     /**
      * In apollo-server-express integration it is necessary to use existing HTTP server to use GraphQL subscriptions
      * {@see https://www.apollographql.com/docs/apollo-server/features/subscriptions/#subscriptions-with-additional-middleware}
@@ -96,7 +97,7 @@ class HawkAPI {
    * @param req - Express request
    * @param connection - websocket connection (for subscriptions)
    */
-  async createContext({req, connection}: ExpressContext): Promise<ResolverContextBase> {
+  private async createContext({ req, connection }: ExpressContext): Promise<ResolverContextBase> {
     let userId: string | undefined;
     let isAccessTokenExpired = false;
 
@@ -131,9 +132,9 @@ class HawkAPI {
       factories: this.factories!,
       user: {
         id: userId,
-        accessTokenExpired: isAccessTokenExpired
-      }
-    }
+        accessTokenExpired: isAccessTokenExpired,
+      },
+    };
   }
 
   /**
@@ -142,25 +143,25 @@ class HawkAPI {
    * @param connectionParams
    * @return - context for subscription request
    */
-  static async onWebSocketConnection(connectionParams: any) {
+  private static async onWebSocketConnection(connectionParams: any) {
     return {
       headers: {
         authorization:
-          connectionParams['authorization'] || connectionParams['Authorization']
-      }
+          connectionParams['authorization'] || connectionParams['Authorization'],
+      },
     };
   }
 
   /**
    * Start API server
    */
-  async start(): Promise<void> {
+  public async start(): Promise<void> {
     await mongo.setupConnections();
     await rabbitmq.setupConnections();
     this.setupFactories();
 
     return new Promise((resolve) => {
-      this.httpServer.listen({port: this.serverPort}, () => {
+      this.httpServer.listen({ port: this.serverPort }, () => {
         console.log(
           `🚀 Server ready at http://localhost:${this.serverPort}${
             this.server.graphqlPath
@@ -176,12 +177,15 @@ class HawkAPI {
     });
   }
 
+  /**
+   * Creates factories to work with models
+   */
   private setupFactories(): void {
     const usersFactory = new UsersFactory(mongo.databases.hawk!, 'users');
 
     this.factories = {
-      usersFactory
-    }
+      usersFactory,
+    };
   }
 }
 

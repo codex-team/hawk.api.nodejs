@@ -1,7 +1,7 @@
 /**
  * Resolver's Context argument
  */
-import UsersFactory from "../models/usersFactory";
+import UsersFactory from '../models/usersFactory';
 
 export interface ResolverContextBase {
   /**

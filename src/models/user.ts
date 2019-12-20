@@ -2,10 +2,9 @@ import argon2 from 'argon2';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import * as mongo from '../mongo';
-import {Collection, ObjectID} from 'mongodb';
+import { Collection, ObjectID } from 'mongodb';
 import BaseModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
-
 
 /**
  * Tokens pair for User authentication.
@@ -22,7 +21,6 @@ export interface TokensPair {
    */
   refreshToken: string;
 }
-
 
 /**
  * Interface representing how user is stored in DB
@@ -129,12 +127,15 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
     const generatedPassword = await this.generatePassword();
     const hashedPassword = await this.hashPassword(generatedPassword);
 
-    const userData = {email, password: hashedPassword};
+    const userData = {
+      email,
+      password: hashedPassword,
+    };
     const userId = (await this.collection.insertOne(userData)).insertedId;
 
     const user = new UserModel({
       _id: userId,
-      ...userData
+      ...userData,
     });
 
     user.generatedPassword = generatedPassword;
@@ -148,18 +149,22 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * @param name - GitHub profile name
    * @param image - GitHub profile avatar url
    */
-  static async createByGithub({id, name, image}: { id: string, name: string, image: string }) {
+  static async createByGithub({ id, name, image }: { id: string; name: string; image: string }) {
     if (!id || !name || !image) {
       throw new Error('Required parameters are not provided');
     }
 
-    const userData = {githubId: id, name, image};
+    const userData = {
+      githubId: id,
+      name,
+      image,
+    };
 
     const userId = (await this.collection.insertOne(userData)).insertedId;
 
     return new UserModel({
       _id: userId,
-      ...userData
+      ...userData,
     });
   }
 
@@ -197,8 +202,8 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
     const hashedPassword = await this.hashPassword(newPassword);
 
     const status = await this.update(
-      {_id: new ObjectID(userId)},
-      {password: hashedPassword}
+      { _id: new ObjectID(userId) },
+      { password: hashedPassword }
     );
 
     if (status !== 1) {
@@ -213,13 +218,17 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * @param  user – user object
    */
   static async updateProfile(userId: string, user: Partial<UserDBScheme>): Promise<void> {
-    if (!await objectHasOnlyProps(user, {name: true, email: true, image: true})) {
+    if (!await objectHasOnlyProps(user, {
+      name: true,
+      email: true,
+      image: true,
+    })) {
       throw new Error('User object has invalid properties');
     }
 
     try {
       await this.update(
-        {_id: new ObjectID(userId)},
+        { _id: new ObjectID(userId) },
         user
       );
     } catch (e) {
@@ -232,7 +241,7 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * @param email - user's email
    */
   static async findByEmail(email: string): Promise<UserModel | null> {
-    const searchResult = await this.collection.findOne({email});
+    const searchResult = await this.collection.findOne({ email });
 
     if (!searchResult) {
       return null;
@@ -247,21 +256,24 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   async generateTokensPair(): Promise<TokensPair> {
     const accessToken = await jwt.sign(
       {
-        userId: this._id
+        userId: this._id,
       },
       process.env.JWT_SECRET,
-      {expiresIn: '15m'}
+      { expiresIn: '15m' }
     );
 
     const refreshToken = await jwt.sign(
       {
-        userId: this._id
+        userId: this._id,
       },
       process.env.JWT_SECRET,
-      {expiresIn: '30d'}
+      { expiresIn: '30d' }
     );
 
-    return {accessToken, refreshToken};
+    return {
+      accessToken,
+      refreshToken,
+    };
   }
 
   /**
@@ -280,13 +292,12 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * @param id - user id
    */
   static async findById(id: string): Promise<UserModel | null> {
-    const searchResult = await this.collection.findOne({_id: new ObjectID(id)});
+    const searchResult = await this.collection.findOne({ _id: new ObjectID(id) });
 
-    if (!searchResult){
+    if (!searchResult) {
       return null;
     }
 
     return new UserModel(searchResult);
   }
-
 }

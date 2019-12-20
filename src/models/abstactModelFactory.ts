@@ -1,5 +1,5 @@
-import {Collection, Db, ObjectID} from "mongodb";
-import BaseModel, {ModelConstructor} from './abstractModel'
+import { Collection, Db, ObjectID } from 'mongodb';
+import BaseModel, { ModelConstructor } from './abstractModel';
 
 /**
  * Model Factory class
@@ -46,7 +46,7 @@ export default class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
    */
   async findById(id: string): Promise<Model | null> {
     const searchResult = await this.collection.findOne({
-      _id: new ObjectID(id)
+      _id: new ObjectID(id),
     });
 
     if (!searchResult) {

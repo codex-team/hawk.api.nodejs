@@ -1,4 +1,4 @@
-import {Collection} from 'mongodb';
+import { Collection } from 'mongodb';
 
 export type ModelConstructor<DBScheme, Model extends BaseModel<DBScheme>> = new (modelData: DBScheme) => Model;
 
@@ -14,14 +14,12 @@ export default class BaseModel<DBScheme> {
     Object.assign(this, modelData);
   };
 
-
   /**
    * Model's collection
    */
   static get collection(): Collection {
     throw new Error('Collection getter is not implemented');
   }
-
 
   /**
    * Update entity data
