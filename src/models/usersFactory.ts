@@ -9,7 +9,7 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
   /**
    * DataBase collection to work with
    */
-  public collection!: Collection<UserDBScheme>;
+  protected collection!: Collection<UserDBScheme>;
 
   /**
    * Creates user factory instance
