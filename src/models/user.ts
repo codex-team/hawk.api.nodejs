@@ -193,7 +193,7 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * @param userId - user ID
    * @param newPassword - new user password
    */
-  static async changePassword(userId: string, newPassword: string): Promise<void> {
+  static async changePassword(userId: string | ObjectID, newPassword: string): Promise<void> {
     const hashedPassword = await this.hashPassword(newPassword);
 
     const status = await this.update(
@@ -212,7 +212,7 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    * @param userId - user ID
    * @param  user – user object
    */
-  static async updateProfile(userId: string, user: UserDBScheme): Promise<void> {
+  static async updateProfile(userId: string, user: Partial<UserDBScheme>): Promise<void> {
     if (!await objectHasOnlyProps(user, {name: true, email: true, image: true})) {
       throw new Error('User object has invalid properties');
     }

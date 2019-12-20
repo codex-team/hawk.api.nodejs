@@ -1,39 +1,43 @@
-const { AuthenticationError, ApolloError, UserInputError } = require('apollo-server-express');
-const User = require('../models/user').default;
-const jwt = require('jsonwebtoken');
-const { errorCodes } = require('../errors');
-const emailProvider = require('../email');
-const { names: emailTemplatesNames } = require('../email/templates');
-const { validateEmail } = require('../utils/validator');
+import {ResolverContextBase, UserJWTData} from "../types/graphql";
+import UserModel from "../models/user";
+import { AuthenticationError, ApolloError, UserInputError } from 'apollo-server-express';
+import jwt from 'jsonwebtoken';
+import { errorCodes } from '../errors';
+import emailProvider from'../email';
+import {names as emailTemplatesNames} from '../email/templates';
+import Validator from '../utils/validator';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
  */
-module.exports = {
+export default {
   Query: {
     /**
      * Returns authenticated user data
-     * @param {ResolverObj} _obj
-     * @param {ResolverArgs} _args
-     * @param {Context}
-     * @return {Promise<User>}
+     * @param _obj - parent object (undefined for this resolver)
+     * @param _args - query args (empty)
+     * @param user - current authenticated user
+     * @param factories - factories for working with models
      */
-    async me(_obj, _args, { user }) {
-      return User.findById(user.id);
+    async me(_obj: undefined, _args: {}, { user, factories }: ResolverContextBase) {
+      if (!user.id){
+        throw new ApolloError('kek')
+      }
+      return factories.usersFactory.findById(user.id);
     }
   },
   Mutation: {
     /**
      * Register user with provided email
-     * @param {ResolverObj} _obj
-     * @param {String} email - user email
-     * @return {Promise<boolean>}
+     * @param _obj
+     * @param email - user email
+     * @param factories - factories for working with models
      */
-    async signUp(_obj, { email }) {
+    async signUp(_obj: undefined, { email }: {email: string}, {factories}: ResolverContextBase) {
       let user;
 
       try {
-        user = await User.create(email);
+        user = await factories.usersFactory.create(email);
         emailProvider.send(email, emailTemplatesNames.SUCCESSFUL_SIGN_UP, {
           email,
           password: user.generatedPassword
@@ -55,10 +59,10 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {String} email - user email
      * @param {String} password - user password
-     * @return {Promise<TokensPair>}
+     * @param factories
      */
-    async login(_obj, { email, password }) {
-      const user = await User.findByEmail(email);
+    async login(_obj: undefined, { email, password }: {email: string, password: string}, {factories}: ResolverContextBase) {
+      const user = await factories.usersFactory.findByEmail(email);
 
       if (!user || !(await user.comparePassword(password))) {
         throw new AuthenticationError('Wrong email or password');
@@ -69,22 +73,22 @@ module.exports = {
 
     /**
      * Update user's tokens pair
-     * @param {ResolverObj} _obj
-     * @param {String} refreshToken - refresh token for getting new token pair
+     * @param  _obj
+     * @param refreshToken - refresh token for getting new token pair
      * @return {Promise<TokensPair>}
      */
-    async refreshTokens(_obj, { refreshToken }) {
+    async refreshTokens(_obj: undefined, { refreshToken }: {refreshToken: string}, {factories}: ResolverContextBase) {
       let userId;
 
       try {
-        const data = await jwt.verify(refreshToken, process.env.JWT_SECRET);
+        const data = await jwt.verify(refreshToken, process.env.JWT_SECRET) as UserJWTData;
 
         userId = data.userId;
       } catch (err) {
         throw new AuthenticationError('Invalid refresh token');
       }
 
-      const user = await User.findById(userId);
+      const user = await factories.usersFactory.findById(userId);
 
       if (!user) throw new ApolloError('There is no users with that id');
       return user.generateTokensPair();
@@ -97,20 +101,20 @@ module.exports = {
      * @param {string} email - user email
      * @returns {Promise<Boolean>}
      */
-    async resetPassword(_obj, { email }) {
+    async resetPassword(_obj: undefined, { email }: {email: string}, {factories}: ResolverContextBase) {
       /**
        * @todo Better password reset via one-time link
        */
-      const user = await User.findByEmail(email);
+      const user = await factories.usersFactory.findByEmail(email);
 
       if (!user) {
         return true;
       }
 
       try {
-        const newPassword = await User.generatePassword();
+        const newPassword = await UserModel.generatePassword();
 
-        await User.changePassword(user.id, newPassword);
+        await UserModel.changePassword(user._id, newPassword);
 
         /**
          * @todo Make email queue
@@ -133,22 +137,23 @@ module.exports = {
      * @param {string} name
      * @param {string} email
      * @param {User} user
+     * @param factories
      * @return {Promise<Boolean>}
      */
-    async updateProfile(_obj, { name, email }, { user }) {
-      if (email && !validateEmail(email)) {
+    async updateProfile(_obj: undefined, { name, email }: {name: string, email: string}, { user, factories }: ResolverContextBase) {
+      if (email && !Validator.validateEmail(email)) {
         throw new UserInputError('Wrong email format');
       }
 
-      const userWithEmail = (await User.findByEmail(email));
+      const userWithEmail = await factories.usersFactory.findByEmail(email);
 
       // TODO: replace with email verification
-      if (userWithEmail && userWithEmail.id.toString() !== user.id) {
+      if (userWithEmail && userWithEmail._id.toString() !== user.id) {
         throw new UserInputError('This email is taken');
       }
 
       try {
-        await User.updateProfile(user.id, { name, email });
+        await UserModel.updateProfile(user.id!, { name, email });
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
@@ -164,17 +169,22 @@ module.exports = {
      * @param {string} oldPassword
      * @param {string} newPassword
      * @param {User} user
+     * @param factories
      * @return {Promise<Boolean>}
      */
-    async changePassword(_obj, { oldPassword, newPassword }, { user }) {
-      user = await User.findById(user.id);
+    async changePassword(_obj: undefined, { oldPassword, newPassword }: { oldPassword: string, newPassword:string }, { user , factories}: ResolverContextBase) {
+      const foundUser = await factories.usersFactory.findById(user.id!);
 
-      if (!user || !(await user.comparePassword(oldPassword))) {
+      if (!foundUser) {
+        throw new ApolloError('kekek')
+      }
+
+      if (!user || !(await foundUser.comparePassword(oldPassword))) {
         throw new AuthenticationError('Wrong old password. Try again.');
       }
 
       try {
-        await User.changePassword(user.id, newPassword);
+        await UserModel.changePassword(user.id!, newPassword);
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }

@@ -7,7 +7,7 @@ export interface ResolverContextBase {
   /**
    * User who makes query
    */
-  user?: UserInContext;
+  user: UserInContext;
 
   factories: ContextFactories;
 }

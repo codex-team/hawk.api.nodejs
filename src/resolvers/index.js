@@ -1,7 +1,7 @@
 const { merge } = require('lodash');
 const { GraphQLDateTime } = require('graphql-iso-date');
 const { GraphQLJSON, GraphQLJSONObject } = require('graphql-type-json');
-const user = require('./user');
+const user = require('./user').default;
 const workspace = require('./workspace');
 const project = require('./project');
 const event = require('./event');
