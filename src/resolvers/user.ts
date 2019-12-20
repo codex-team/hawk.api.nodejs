@@ -200,7 +200,7 @@ export default {
       const foundUser = await factories.usersFactory.findById(user.id);
 
       if (!foundUser) {
-        throw new ApolloError('kekek');
+        throw new ApolloError('There is no user with such id');
       }
 
       if (!user || !(await foundUser.comparePassword(oldPassword))) {

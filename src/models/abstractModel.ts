@@ -1,5 +1,8 @@
 import { Collection } from 'mongodb';
 
+/**
+ * Model constructor type
+ */
 export type ModelConstructor<DBScheme, Model extends BaseModel<DBScheme>> = new (modelData: DBScheme) => Model;
 
 /**

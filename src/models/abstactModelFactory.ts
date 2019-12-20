@@ -8,7 +8,7 @@ export default abstract class Factory<DBScheme, Model extends BaseModel<DBScheme
   /**
    * Collection to work with
    */
-  public collection: Collection;
+  protected collection: Collection;
 
   /**
    * Model constructor to create instances
