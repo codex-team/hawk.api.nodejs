@@ -1,19 +1,22 @@
 import { Collection, Db, ObjectID } from 'mongodb';
-import BaseModel from './abstractModel';
+import BaseModel, { ModelConstructor } from './abstractModel';
 
 /**
  * Model Factory class
  */
-export default abstract class Factory<DBScheme> {
+export default abstract class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
   /**
    * Collection to work with
+   * We can't use generic type for collection because of bug in TS
+   * @see {@link https://github.com/DefinitelyTyped/DefinitelyTyped/issues/39358#issuecomment-546559564}
+   * So we should override collection type in child classes
    */
-  private collection: Collection;
+  protected collection: Collection;
 
   /**
    * Model constructor to create instances
    */
-  private readonly model: typeof BaseModel;
+  private readonly Model: ModelConstructor<DBScheme, Model>;
 
   /**
    * Creates factory instance
@@ -21,31 +24,30 @@ export default abstract class Factory<DBScheme> {
    * @param collectionName - database collection name
    * @param model - model constructor
    */
-  constructor(dbConnection: Db, collectionName: string, model: typeof BaseModel) {
+  protected constructor(dbConnection: Db, collectionName: string, model: ModelConstructor<DBScheme, Model>) {
     this.collection = dbConnection.collection(collectionName);
-    this.model = model;
+    this.Model = model;
   }
 
   /**
    * Find record by query
    * @param query - query object
    */
-  protected async findOne(query: object): Promise<BaseModel<DBScheme> | null> {
+  public async findOne(query: object): Promise<Model | null> {
     const searchResult = await this.collection.findOne(query);
 
     if (!searchResult) {
       return null;
     }
 
-    // eslint-disable-next-line
-    return new this.model(searchResult);
+    return new this.Model(searchResult);
   }
 
   /**
    * Finds record by its id
    * @param id - entity id
    */
-  protected async findById(id: string): Promise<BaseModel<DBScheme> | null> {
+  public async findById(id: string): Promise<Model | null> {
     const searchResult = await this.collection.findOne({
       _id: new ObjectID(id),
     });
@@ -54,7 +56,6 @@ export default abstract class Factory<DBScheme> {
       return null;
     }
 
-    // eslint-disable-next-line
-    return new this.model(searchResult);
+    return new this.Model(searchResult);
   }
 }
