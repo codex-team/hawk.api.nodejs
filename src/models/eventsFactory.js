@@ -184,7 +184,7 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Returns Event's repetitions
+   * Returns Event repetitions
    *
    * @param {string|ObjectID} eventId - Event's id
    * @param {Number} limit - count limitations
@@ -209,17 +209,18 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * @param eventId
-   * @param repetitionId
-   * @return {Promise<any[] | Array | Promise<Default[]> | Promise<any[]> | Promise | void | Node | *>}
+   * Returns Event concrete repetition
+   *
+   * @param {String} repetitionId
+   * @return {EventRepetitionSchema}
    */
-  async getEventRepetition(eventId, repetitionId) {
-    const cursor = this.getCollection(this.TYPES.REPETITIONS)
-      .find({
-        _id: repetitionId
+  async getEventRepetition(repetitionId) {
+    const repetition = await this.getCollection(this.TYPES.REPETITIONS)
+      .findOne({
+        _id: ObjectID(repetitionId)
       });
 
-    return cursor.toArray();
+    return repetition;
   }
 }
 

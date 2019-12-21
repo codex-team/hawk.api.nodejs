@@ -74,10 +74,10 @@ module.exports = {
      *
      * @param {String} id  - id of project (root resolver)
      * @param {String} eventId - event's identifier
-     * @param {String} repetitionId - repetition's id
+     *
      * @returns {Event}
      */
-    async event({ id }, { id: eventId, repetitionId }) {
+    async event({ id }, { id: eventId }) {
       const factory = new EventsFactory(id);
       const event = await factory.findById(eventId);
 

@@ -15,6 +15,19 @@ module.exports = {
     id: parent => parent._id, // rename MongoDB _id to id
 
     /**
+     * Returns event concrete repetition
+     *
+     * @param {String} projectId
+     * @param {String} repetitionId
+     * @return {Promise<EventRepetitionSchema>}
+     */
+    async repetition({ projectId }, { id: repetitionId }) {
+      const factory = new EventsFactory(projectId);
+
+      return factory.getEventRepetition(repetitionId);
+    },
+
+    /**
      * Returns repetitions list of the event
      *
      * @param {ResolverObj} _obj

@@ -261,9 +261,14 @@ type Event {
   Event payload
   """
   payload: EventPayload!
+    
+  """
+  Event concrete repetition
+  """
+  repetition(id: ID): Repetition
 
   """
-  Event's repetitions
+  Event repetitions
   """
   repetitions(limit: Int = 10): [Repetition!]
 }
