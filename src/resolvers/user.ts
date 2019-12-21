@@ -1,12 +1,12 @@
 import { ResolverContextBase, ResolverContextWithUser, UserJWTData } from '../types/graphql';
-import UserModel, {TokensPair, UserDBScheme} from '../models/user';
+import UserModel, { TokensPair, UserDBScheme } from '../models/user';
 import { AuthenticationError, ApolloError, UserInputError } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
 import { errorCodes } from '../errors';
 import emailProvider from '../email';
 import { names as emailTemplatesNames } from '../email/templates';
 import Validator from '../utils/validator';
-import {save} from "../utils/files";
+import { save } from '../utils/files';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -159,7 +159,7 @@ export default {
      */
     async updateProfile(
       _obj: undefined,
-      { name, email, image }: {name: string; email: string, image: any},
+      { name, email, image }: {name: string; email: string; image: any},
       { user, factories }: ResolverContextWithUser
     ): Promise<boolean> {
       if (email && !Validator.validateEmail(email)) {

@@ -41,9 +41,7 @@ export const save = (file: Readable, mimetype: string): string => {
     while ((chunk = file.read()) !== null) {
       writeStream.write(chunk);
     }
-
-    writeStream.end();
   });
 
-  return path.join(process.env.API_URL!, 'uploads', name);
+  return process.env.API_URL! + path.join('/uploads', name);
 };
