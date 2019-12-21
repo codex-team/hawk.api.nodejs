@@ -53,11 +53,6 @@ type Project {
       Event ID
       """
       id: ID!
-
-      """
-      Event's concrete repetition ID
-      """
-      repetitionId: ID
   ): Event @requireAuth
 
   """

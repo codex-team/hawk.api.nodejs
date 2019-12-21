@@ -15,7 +15,7 @@ module.exports = {
     id: parent => parent._id, // rename MongoDB _id to id
 
     /**
-     * Returns event concrete repetition
+     * Returns Event with concrete repetition
      *
      * @param {String} projectId
      * @param {String} repetitionId

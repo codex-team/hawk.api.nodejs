@@ -2,7 +2,6 @@ const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
-const _ = require('../utils/utils');
 
 /**
  * @typedef {Object} RecentEventSchema
@@ -212,15 +211,13 @@ class EventsFactory extends Factory {
    * Returns Event concrete repetition
    *
    * @param {String} repetitionId
-   * @return {EventRepetitionSchema}
+   * @return {EventRepetitionSchema|null}
    */
   async getEventRepetition(repetitionId) {
-    const repetition = await this.getCollection(this.TYPES.REPETITIONS)
+    return this.getCollection(this.TYPES.REPETITIONS)
       .findOne({
         _id: ObjectID(repetitionId)
       });
-
-    return repetition;
   }
 }
 
