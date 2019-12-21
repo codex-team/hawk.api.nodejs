@@ -48,12 +48,7 @@ type Project {
   """
   Project's Event
   """
-  event(
-      """
-      Event ID
-      """
-      id: ID!
-  ): Event @requireAuth
+  event(id: ID!): Event @requireAuth
 
   """
   Project events
