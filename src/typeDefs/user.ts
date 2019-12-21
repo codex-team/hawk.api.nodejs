@@ -1,4 +1,4 @@
-import {gql} from 'apollo-server-express';
+import { gql } from 'apollo-server-express';
 
 export default gql`
   """
@@ -22,7 +22,7 @@ export default gql`
     """
     User's id
     """
-    id: ID!
+    id: ID! @renameFrom(name: "_id")
 
     """
     User's email

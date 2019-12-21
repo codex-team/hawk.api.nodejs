@@ -1,16 +1,18 @@
-import {ApolloServer} from 'apollo-server-express';
+import { ApolloServer } from 'apollo-server-express';
 import express from 'express';
 import * as mongo from './mongo';
 import * as rabbitmq from './rabbitmq';
 import jwt from 'jsonwebtoken';
 import http from 'http';
 import billing from './billing/index';
-import {initializeStrategies} from './passport';
-import {authRouter} from './auth';
+import { initializeStrategies } from './passport';
+import { authRouter } from './auth';
 import resolvers from './resolvers';
 import typeDefs from './typeDefs';
-import {ExpressContext} from 'apollo-server-express/dist/ApolloServer';
-import {ResolverContextBase, UserJWTData} from './types/graphql';
+import { ExpressContext } from 'apollo-server-express/dist/ApolloServer';
+import { ContextFactories, ResolverContextBase, UserJWTData } from './types/graphql';
+import UsersFactory from './models/usersFactory';
+import { GraphQLError } from 'graphql';
 
 /**
  * Option to enable playground
@@ -27,12 +29,20 @@ const PLAYGROUND_ENABLE = process.env.PLAYGROUND_ENABLE === 'true';
  * Hawk API server
  */
 class HawkAPI {
+  /**
+   * Port to listen for requests
+   */
   private serverPort = +(process.env.PORT || 4000);
 
   /**
    * Express application
    */
   private app = express();
+
+  /**
+   * Factories to work with models
+   */
+  private factories!: ContextFactories;
 
   /**
    * Apollo GraphQL server
@@ -63,20 +73,21 @@ class HawkAPI {
       introspection: PLAYGROUND_ENABLE,
       schemaDirectives: {
         requireAuth: require('./directives/requireAuthDirective'),
-        renameFrom: require('./directives/renameFrom')
+        renameFrom: require('./directives/renameFrom'),
       },
       subscriptions: {
         path: '/subscriptions',
-        onConnect: HawkAPI.onWebSocketConnection
+        onConnect: (connectionParams): { headers: { authorization: string } } =>
+          HawkAPI.onWebSocketConnection(connectionParams as Record<string, string>),
       },
-      context: HawkAPI.createContext,
-      formatError: error => {
+      context: (req: ExpressContext): Promise<ResolverContextBase> => this.createContext(req),
+      formatError: (error): GraphQLError => {
         console.error(error.originalError);
         return error;
-      }
+      },
     });
 
-    this.server.applyMiddleware({app: this.app});
+    this.server.applyMiddleware({ app: this.app });
     /**
      * In apollo-server-express integration it is necessary to use existing HTTP server to use GraphQL subscriptions
      * {@see https://www.apollographql.com/docs/apollo-server/features/subscriptions/#subscriptions-with-additional-middleware}
@@ -86,11 +97,51 @@ class HawkAPI {
   }
 
   /**
+   * Fires when coming new Websocket connection
+   * Returns authorization headers for building request context
+   * @param connectionParams - websocket connection params (actually, headers only)
+   * @return - context for subscription request
+   */
+  private static onWebSocketConnection(connectionParams: Record<string, string>): { headers: { authorization: string } } {
+    return {
+      headers: {
+        authorization:
+          connectionParams['authorization'] || connectionParams['Authorization'],
+      },
+    };
+  }
+
+  /**
+   * Start API server
+   */
+  public async start(): Promise<void> {
+    await mongo.setupConnections();
+    await rabbitmq.setupConnections();
+    this.setupFactories();
+
+    return new Promise((resolve) => {
+      this.httpServer.listen({ port: this.serverPort }, () => {
+        console.log(
+          `🚀 Server ready at http://localhost:${this.serverPort}${
+            this.server.graphqlPath
+          }`
+        );
+        console.log(
+          `🚀 Subscriptions ready at ws://localhost:${this.serverPort}${
+            this.server.subscriptionsPath
+          }`
+        );
+        resolve();
+      });
+    });
+  }
+
+  /**
    * Creates request context
    * @param req - Express request
    * @param connection - websocket connection (for subscriptions)
    */
-  static async createContext({req, connection}: ExpressContext): Promise<ResolverContextBase> {
+  private async createContext({ req, connection }: ExpressContext): Promise<ResolverContextBase> {
     let userId: string | undefined;
     let isAccessTokenExpired = false;
 
@@ -122,50 +173,24 @@ class HawkAPI {
     }
 
     return {
+      factories: this.factories,
       user: {
         id: userId,
-        accessTokenExpired: isAccessTokenExpired
-      }
-    }
-  }
-
-  /**
-   * Fires when coming new Websocket connection
-   * Returns authorization headers for building request context
-   * @param connectionParams
-   * @return - context for subscription request
-   */
-  static async onWebSocketConnection(connectionParams: any) {
-    return {
-      headers: {
-        authorization:
-          connectionParams['authorization'] || connectionParams['Authorization']
-      }
+        accessTokenExpired: isAccessTokenExpired,
+      },
     };
   }
 
   /**
-   * Start API server
+   * Creates factories to work with models
    */
-  async start(): Promise<void> {
-    await mongo.setupConnections();
-    await rabbitmq.setupConnections();
+  private setupFactories(): void {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const usersFactory = new UsersFactory(mongo.databases.hawk!, 'users');
 
-    return new Promise((resolve) => {
-      this.httpServer.listen({port: this.serverPort}, () => {
-        console.log(
-          `🚀 Server ready at http://localhost:${this.serverPort}${
-            this.server.graphqlPath
-          }`
-        );
-        console.log(
-          `🚀 Subscriptions ready at ws://localhost:${this.serverPort}${
-            this.server.subscriptionsPath
-          }`
-        );
-        resolve();
-      });
-    });
+    this.factories = {
+      usersFactory,
+    };
   }
 }
 

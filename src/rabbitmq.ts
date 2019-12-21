@@ -1,4 +1,4 @@
-import amqplib, {AmqpConnectionManager, ChannelWrapper} from 'amqp-connection-manager';
+import amqplib, { AmqpConnectionManager, ChannelWrapper } from 'amqp-connection-manager';
 import debug from 'debug';
 
 const rabbitMQURL = process.env.AMQP_URL;
@@ -10,14 +10,14 @@ let connection: AmqpConnectionManager;
  */
 export async function setupConnections(): Promise<void> {
   if (rabbitMQURL) {
-    connection = amqplib.connect([rabbitMQURL]);
+    connection = amqplib.connect([ rabbitMQURL ]);
     connection.on('connect', () => {
       if (!channel) {
         const channelWrapper = connection.createChannel({
           setup: () => {
             channel = channelWrapper;
             console.log(`🔗AMQP channel connected: ${rabbitMQURL}`);
-          }
+          },
         });
       }
     });
@@ -31,7 +31,7 @@ export async function setupConnections(): Promise<void> {
  * @param route
  * @param message
  */
-export async function publish(exchange: string, route: string, message: string) {
+export async function publish(exchange: string, route: string, message: string): Promise<void> {
   try {
     await channel.publish(exchange, route, Buffer.from(message));
     debug(`Message sent: ${message}`);
