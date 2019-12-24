@@ -272,6 +272,7 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
 
     const refreshToken = await jwt.sign(
       {
+        isRefresh: true,
         userId: this._id,
       },
       process.env.JWT_SECRET,

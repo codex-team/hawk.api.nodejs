@@ -33,13 +33,27 @@ export interface UserInContext {
 /**
  * Data in user's access token
  */
-export interface UserJWTData {
+export interface AccessTokenData {
   /**
    * User id
    */
   userId: string;
 }
 
+/**
+ * Data in user's refresh token
+ */
+export interface RefreshTokenData {
+  /**
+   * User id
+   */
+  userId: string;
+  /**
+   * True if it's refresh token
+   * Uses for checking type of token
+   */
+  isRefresh: boolean;
+}
 /**
  * Factories for working with models
  */

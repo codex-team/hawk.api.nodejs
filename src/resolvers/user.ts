@@ -1,4 +1,4 @@
-import { ResolverContextBase, ResolverContextWithUser, UserJWTData } from '../types/graphql';
+import { ResolverContextBase, ResolverContextWithUser, RefreshTokenData } from '../types/graphql';
 import UserModel, { TokensPair } from '../models/user';
 import { AuthenticationError, ApolloError, UserInputError } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
@@ -92,15 +92,19 @@ export default {
       { factories }: ResolverContextBase
     ): Promise<TokensPair> {
       let userId;
+      let isRefresh;
 
       try {
-        const data = await jwt.verify(refreshToken, process.env.JWT_SECRET) as UserJWTData;
+        const data = await jwt.verify(refreshToken, process.env.JWT_SECRET) as RefreshTokenData;
 
         userId = data.userId;
+        isRefresh = data.isRefresh;
       } catch (err) {
         throw new AuthenticationError('Invalid refresh token');
       }
-
+      if (!isRefresh) {
+        throw new AuthenticationError('You can pass only refresh token');
+      }
       const user = await factories.usersFactory.findById(userId);
 
       if (!user) {

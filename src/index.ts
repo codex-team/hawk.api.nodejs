@@ -10,7 +10,7 @@ import { authRouter } from './auth';
 import resolvers from './resolvers';
 import typeDefs from './typeDefs';
 import { ExpressContext } from 'apollo-server-express/dist/ApolloServer';
-import { ContextFactories, ResolverContextBase, UserJWTData } from './types/graphql';
+import { ContextFactories, ResolverContextBase, AccessTokenData } from './types/graphql';
 import UsersFactory from './models/usersFactory';
 import { GraphQLError } from 'graphql';
 
@@ -162,7 +162,7 @@ class HawkAPI {
       const accessToken = authorizationHeader.slice(7);
 
       try {
-        const data = await jwt.verify(accessToken, process.env.JWT_SECRET || 'secret') as UserJWTData;
+        const data = await jwt.verify(accessToken, process.env.JWT_SECRET || 'secret') as AccessTokenData;
 
         userId = data.userId;
       } catch (err) {
