@@ -33,6 +33,7 @@
  * @property {String} [release] - source code version identifier; version, modify timestamp or both of them combined
  * @property {EventUser} [user] - current authenticated user
  * @property {Object} [context] - any additional data
+ * @property {Object} [addons] - custom data provided by project users
  */
 
 /**
