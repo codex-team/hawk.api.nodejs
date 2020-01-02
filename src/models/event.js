@@ -62,13 +62,6 @@ class Event {
   }
 
   /**
-   * @return {string|ObjectID}
-   */
-  get id() {
-    return this._id;
-  }
-
-  /**
    * Fills current instance with schema properties
    * @param {EventSchema} schema
    *
