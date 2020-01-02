@@ -12,8 +12,6 @@ const watchController = new MongoWatchController();
  */
 module.exports = {
   Event: {
-    id: parent => parent._id, // rename MongoDB _id to id
-
     /**
      * Returns repetitions list of the event
      *
@@ -29,10 +27,7 @@ module.exports = {
       const factory = new EventsFactory(projectId);
 
       return factory.getEventRepetitions(eventId, limit, skip);
-    }
-  },
-  Repetitions: {
-    id: parent => parent._id // rename MongoDB _id to id
+    },
   },
   Subscription: {
     eventOccurred: {
@@ -76,7 +71,7 @@ module.exports = {
        */
       resolve: (payload) => {
         return payload.fullDocument;
-      }
-    }
-  }
+      },
+    },
+  },
 };
