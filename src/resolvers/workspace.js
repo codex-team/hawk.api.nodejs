@@ -92,7 +92,7 @@ module.exports = {
      */
     async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user, factories }) {
       const userModel = await factories.usersFactory.findById(user.id);
-      const [ workspace ] = userModel.getWorkspaces([ workspaceId ]);
+      const [ workspace ] = await userModel.getWorkspaces([ workspaceId ]);
 
       if (!workspace) {
         throw new ApolloError('There is no workspace with that id');
