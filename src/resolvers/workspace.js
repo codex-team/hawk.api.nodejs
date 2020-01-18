@@ -106,13 +106,13 @@ module.exports = {
       if (!invitedUser) {
         await new Team(workspaceId).addUnregisteredMember(userEmail);
       } else {
-        const [ isUserInThatWorkspace ] = await new Membership(invitedUser.id).getWorkspaces([ workspaceId ]);
+        const [ isUserInThatWorkspace ] = await new Membership(invitedUser._id).getWorkspaces([ workspaceId ]);
 
         if (isUserInThatWorkspace) throw new ApolloError('User already invited to this workspace');
 
         // @todo make via transactions
-        await new Membership(invitedUser.id).addWorkspace(workspaceId, true);
-        await new Team(workspaceId).addMember(invitedUser.id, true);
+        await new Membership(invitedUser._id).addWorkspace(workspaceId, true);
+        await new Team(workspaceId).addMember(invitedUser._id, true);
       }
 
       const linkHash = crypto
@@ -159,11 +159,11 @@ module.exports = {
         const team = new Team(workspaceId);
         const members = await team.getAllUsers();
 
-        if (members.find(m => m.id.toString() === currentUser.id.toString())) {
+        if (members.find(m => m._id.toString() === currentUser._id.toString())) {
           throw new ApolloError('You are already member of this workspace');
         }
 
-        await team.addMember(currentUser.id);
+        await team.addMember(currentUser._id);
 
         membershipExists = false;
       }
