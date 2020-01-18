@@ -141,7 +141,7 @@ module.exports = {
      * @return {Promise<boolean>} - true if operation is successful
      */
     async confirmInvitation(_obj, { inviteHash, workspaceId }, { user, factories }) {
-      const currentUser = await User.findById(user.id);
+      const currentUser = await factories.usersFactory.findById(user.id);
 
       let membershipExists;
 
@@ -171,7 +171,7 @@ module.exports = {
         membershipExists = false;
       }
 
-      const userModel = await factories.usersFactory.findById(user._id);
+      const userModel = await factories.usersFactory.findById(user.id);
 
       if (membershipExists) {
         await userModel.confirmMembership(workspaceId);

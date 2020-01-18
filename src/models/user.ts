@@ -22,9 +22,23 @@ export interface TokensPair {
   refreshToken: string;
 }
 
+/**
+ * Membership collection DB implementation
+ */
 export interface MembershipDBScheme {
+  /**
+   * Document id
+   */
   _id: ObjectID;
+
+  /**
+   * User's workspace id
+   */
   workspaceId: ObjectID | string;
+
+  /**
+   * Shows if member is pending
+   */
   isPending?: boolean;
 }
 
@@ -114,12 +128,15 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
    */
   protected collection: Collection<UserDBScheme>;
 
+  /**
+   * Collection of user's workspaces
+   */
   private membershipCollection: Collection<MembershipDBScheme>;
 
   /**
    * Model constructor
-   * @param dbConnection
-   * @param modelData
+   * @param dbConnection - database connection to interact with
+   * @param modelData - user data
    */
   constructor(dbConnection: Db, modelData: UserDBScheme) {
     super(dbConnection, modelData);
@@ -173,7 +190,6 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
 
   /**
    * Update user profile data
-   *
    * @param userId - user ID
    * @param  user – user object
    */
@@ -235,11 +251,10 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
 
   /**
    * Adds new workspace to the user's membership list
-   * @param {String} workspaceId - user's id to add
-   * @param {String} isPending - if true, mark user's membership as pending
-   * @returns {Promise<TeamDocumentSchema>} - created document
+   * @param workspaceId - user's id to add
+   * @param isPending - if true, mark user's membership as pending
    */
-  public async addWorkspace(workspaceId: string, isPending = false) {
+  public async addWorkspace(workspaceId: string, isPending = false): Promise<object> {
     const doc: OptionalId<MembershipDBScheme> = {
       workspaceId: new ObjectID(workspaceId),
     };
@@ -258,11 +273,9 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
 
   /**
    * Remove workspace from membership collection
-   *
-   * @param {string} workspaceId - id of workspace to remove
-   * @returns {Promise<{workspaceId: string}>}
+   * @param workspaceId - id of workspace to remove
    */
-  public async removeWorkspace(workspaceId: string): Promise<any> {
+  public async removeWorkspace(workspaceId: string): Promise<{workspaceId: string}> {
     await this.membershipCollection.deleteOne({
       workspaceId: new ObjectID(workspaceId),
     });
@@ -274,9 +287,7 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
 
   /**
    * Confirm membership of workspace by id
-   *
-   * @param {string} workspaceId - workspace id to confirm
-   * @returns {Promise<void>}
+   * @param workspaceId - workspace id to confirm
    */
   public async confirmMembership(workspaceId: string): Promise<void> {
     await this.membershipCollection.updateOne(
@@ -290,10 +301,9 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   /**
    * Get user's workspaces by ids
    * Returns all user's workspaces if ids = []
-   * @param {string[]} [ids = []] - workspaces ids
-   * @return {Promise<Workspace[]>}
+   * @param ids - workspaces ids
    */
-  public async getWorkspaces(ids: (string| ObjectID)[] = []) {
+  public async getWorkspaces(ids: (string| ObjectID)[] = []): Promise<object> {
     ids = ids.map(id => new ObjectID(id));
 
     const pipeline = [

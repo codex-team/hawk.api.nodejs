@@ -5,6 +5,9 @@ import BaseModel, { ModelConstructor } from './abstractModel';
  * Model Factory class
  */
 export default abstract class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
+  /**
+   * Database connection to interact with
+   */
   protected dbConnection: Db;
 
   /**
