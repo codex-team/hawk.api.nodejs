@@ -20,7 +20,7 @@ module.exports = {
      */
     async project(_obj, { id }) {
       return Project.findById(id);
-    }
+    },
   },
   Mutation: {
     /**
@@ -35,7 +35,7 @@ module.exports = {
     async createProject(_obj, { workspaceId, name }, { user }) {
       // Check workspace ID
       const workspace = await new Membership(user.id).getWorkspaces([
-        workspaceId
+        workspaceId,
       ]);
 
       if (!workspace) {
@@ -45,7 +45,7 @@ module.exports = {
       const project = await Project.create({
         name,
         workspaceId,
-        uidAdded: user.id
+        uidAdded: user.id,
       });
 
       // Create Project to Workspace relationship
@@ -66,7 +66,7 @@ module.exports = {
       const userInProject = new UserInProject(user.id, projectId);
 
       return userInProject.updateLastVisit();
-    }
+    },
   },
   Project: {
     /**
@@ -186,6 +186,6 @@ module.exports = {
       }
 
       return Notify.getDefaultNotify();
-    }
-  }
+    },
+  },
 };
