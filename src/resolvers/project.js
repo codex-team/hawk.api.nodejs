@@ -1,4 +1,4 @@
-const { ValidationError } = require('apollo-server-express');
+const { ValidationError, ApolloError } = require('apollo-server-express');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
@@ -34,14 +34,20 @@ module.exports = {
      */
     async createProject(_obj, { workspaceId, name }, { user, factories }) {
       // Check workspace ID
-      const workspace = await (await factories.usersFactory.findById(user.id)).getWorkspaces([
+      const userModel = await factories.usersFactory.findById(user.id);
+      const workspace = await userModel.getWorkspaces([
         workspaceId,
       ]);
 
       if (!workspace) {
         throw new ValidationError('No such workspace');
       }
+      const team = new Team(workspaceId);
+      const teamInstance = await team.findByUserId(user.id);
 
+      if (!teamInstance.isAdmin) {
+        throw new ApolloError('Only admins can create projects');
+      }
       const project = await Project.create({
         name,
         workspaceId,
