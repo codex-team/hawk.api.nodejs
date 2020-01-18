@@ -3,7 +3,6 @@ const crypto = require('crypto');
 
 const Workspace = require('../models/workspace');
 const Team = require('../models/team');
-const User = require('../models/user').default;
 // const Plan = require('../models/plan');
 const { ProjectToWorkspace } = require('../models/project');
 const Validator = require('../utils/validator');
