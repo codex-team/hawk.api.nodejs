@@ -74,6 +74,6 @@ export default concatenateTypeDefs(
     notify,
     project,
     user,
-    workspace,
+    workspace
   ]
 );

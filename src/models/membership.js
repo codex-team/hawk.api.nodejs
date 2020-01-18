@@ -32,15 +32,16 @@ class Membership {
   /**
    * Adds new workspace to the user's membership list
    * @param {String} workspaceId - user's id to add
+   * @param {String} isPending - if true, mark user's membership as pending
    * @returns {Promise<TeamDocumentSchema>} - created document
    */
-  async addWorkspace(workspaceId, pending = false) {
+  async addWorkspace(workspaceId, isPending = false) {
     const doc = {
       workspaceId: new ObjectID(workspaceId)
     };
 
-    if (pending) {
-      doc.pending = pending;
+    if (isPending) {
+      doc.isPending = isPending;
     }
 
     const documentId = (await this.collection.insertOne(doc)).insertedId;
