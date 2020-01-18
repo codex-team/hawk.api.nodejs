@@ -42,10 +42,7 @@ module.exports = {
       const factory = new EventsFactory(projectId);
 
       return factory.getEventRepetitions(eventId, limit, skip);
-    }
-  },
-  Repetition: {
-    id: parent => parent._id // rename MongoDB _id to id
+    },
   },
   Subscription: {
     eventOccurred: {
@@ -89,7 +86,7 @@ module.exports = {
        */
       resolve: (payload) => {
         return payload.fullDocument;
-      }
-    }
-  }
+      },
+    },
+  },
 };
