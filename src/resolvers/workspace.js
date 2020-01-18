@@ -3,7 +3,6 @@ const crypto = require('crypto');
 
 const Workspace = require('../models/workspace');
 const Team = require('../models/team');
-const Membership = require('../models/membership');
 const User = require('../models/user').default;
 // const Plan = require('../models/plan');
 const { ProjectToWorkspace } = require('../models/project');
@@ -21,17 +20,12 @@ module.exports = {
      * Returns all user's workspaces if ids = []
      * @param {ResolverObj} _obj
      * @param {String[]} ids - workspace ids
-     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @return {Workspace[]}
      */
-    async workspaces(_obj, { ids }, { user }) {
-      try {
-        const membership = new Membership(user.id);
-
-        return membership.getWorkspaces(ids);
-      } catch (err) {
-        throw new ApolloError('Something went wrong');
-      }
+    async workspaces(_obj, { ids }, { user, factories }) {
+      return (await factories.usersFactory.findById(user.id)).getWorkspaces(ids);
     },
   },
   Mutation: {
@@ -41,10 +35,12 @@ module.exports = {
      * @param {String} name - workspace name
      * @param {String} description - workspace description
      * @param {String} image - workspace image
-     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
      * @return {String} created workspace id
      */
-    async createWorkspace(_obj, { name, description, image }, { user }) {
+    async createWorkspace(_obj, { name, description, image }, { user, factories }) {
       const ownerId = user.id;
 
       // @todo make workspace creation via transactions
@@ -76,9 +72,7 @@ module.exports = {
         await team.addMember(ownerId);
         await team.grantAdmin(ownerId);
 
-        const membership = new Membership(ownerId);
-
-        await membership.addWorkspace(workspace.id);
+        await (await factories.usersFactory.findById(ownerId)).addWorkspace(workspace.id);
 
         return workspace;
       } catch (err) {
@@ -92,30 +86,32 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {String} userEmail - email of the user to invite
      * @param {Workspace.id} workspaceId - id of the workspace to which the user is invited
-     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @return {Promise<boolean>} - true if operation is successful
      */
-    async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user }) {
-      const [ workspace ] = await new Membership(user.id).getWorkspaces([ workspaceId ]);
+    async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user, factories }) {
+      const userModel = await factories.usersFactory.findById(user.id);
+      const [ workspace ] = userModel.getWorkspaces([ workspaceId ]);
 
       if (!workspace) {
         throw new ApolloError('There is no workspace with that id');
       }
 
       // @todo invite users to workspace, even if they are not registered
-      const invitedUser = await User.findByEmail(userEmail);
+      const invitedUser = await factories.usersFactory.findByEmail(userEmail);
 
       if (!invitedUser) {
         await new Team(workspaceId).addUnregisteredMember(userEmail);
       } else {
-        const [ isUserInThatWorkspace ] = await new Membership(invitedUser._id).getWorkspaces([ workspaceId ]);
+        const [ isUserInThatWorkspace ] = await invitedUser.getWorkspaces([ workspaceId ]);
 
         if (isUserInThatWorkspace) {
           throw new ApolloError('User already invited to this workspace');
         }
 
         // @todo make via transactions
-        await new Membership(invitedUser._id).addWorkspace(workspaceId, true);
+        await invitedUser.addWorkspace(workspaceId, true);
         await new Team(workspaceId).addMember(invitedUser._id, true);
       }
 
@@ -140,10 +136,11 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {String} inviteHash - hash passed to the invite link
      * @param {Workspace.id} workspaceId - id of the workspace to which the user is invited
-     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @return {Promise<boolean>} - true if operation is successful
      */
-    async confirmInvitation(_obj, { inviteHash, workspaceId }, { user }) {
+    async confirmInvitation(_obj, { inviteHash, workspaceId }, { user, factories }) {
       const currentUser = await User.findById(user.id);
 
       let membershipExists;
@@ -174,10 +171,12 @@ module.exports = {
         membershipExists = false;
       }
 
+      const userModel = await factories.usersFactory.findById(user._id);
+
       if (membershipExists) {
-        await new Membership(user.id).confirmMembership(workspaceId);
+        await userModel.confirmMembership(workspaceId);
       } else {
-        await new Membership(user.id).addWorkspace(workspaceId);
+        await userModel.addWorkspace(workspaceId);
       }
 
       return true;
@@ -190,10 +189,12 @@ module.exports = {
      * @param {string} workspaceId - id of the updated workspace
      * @param {string} name - workspace name
      * @param {string} description - workspace description
-     * @param {Context.user} user - current authorized user
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
      * @returns {Promise<Boolean>}
      */
-    async updateWorkspace(_obj, { id, name, description }, { user }) {
+    async updateWorkspace(_obj, { id, name, description }, { user, factories }) {
       // @makeAnIssue Create directives for arguments validation
       if (!Validator.string(name)) {
         throw new UserInputError('Invalid name length');
@@ -202,7 +203,9 @@ module.exports = {
         throw new UserInputError('Invalid description length');
       }
 
-      const [ workspace ] = await new Membership(user.id).getWorkspaces([ id ]);
+      const userModel = await factories.usersFactory.findById(user.id);
+
+      const [ workspace ] = await userModel.getWorkspaces([ id ]);
 
       if (!workspace) {
         throw new ApolloError('There is no workspace with that id');
@@ -255,11 +258,12 @@ module.exports = {
      * @param {Workspace.id} workspaceId - id of the workspace where the user should be removed
      * @param {User.id} userId - id of user to remove
      * @param {User.email} userEmail - email of user to remove
-     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @return {Promise<boolean>} - true if operation is successful
      * @returns {Promise<boolean>}
      */
-    async removeMemberFromWorkspace(_obj, { workspaceId, userId, userEmail }, { user }) {
+    async removeMemberFromWorkspace(_obj, { workspaceId, userId, userEmail }, { user, factories }) {
       const team = new Team(workspaceId);
 
       const users = await team.getAllUsers();
@@ -274,11 +278,11 @@ module.exports = {
         throw new ApolloError('Not enough permissions');
       }
 
-      if (userId) {
-        const membership = new Membership(userId);
+      const userModel = await factories.usersFactory.findById(userId);
 
+      if (userId) {
         await team.removeMember(userId);
-        await membership.removeWorkspace(workspaceId);
+        await userModel.removeWorkspace(workspaceId);
       } else {
         await team.removeMemberByEmail(userEmail);
       }

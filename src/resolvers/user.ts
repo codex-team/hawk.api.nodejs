@@ -17,7 +17,7 @@ export default {
      * @param _obj - parent object (undefined for this resolver)
      * @param _args - query args (empty)
      * @param user - current authenticated user
-     * @param factories - factories for working with models
+     *c
      */
     async me(
       _obj: undefined,

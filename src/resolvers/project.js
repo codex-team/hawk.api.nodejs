@@ -1,5 +1,4 @@
 const { ValidationError } = require('apollo-server-express');
-const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
@@ -20,7 +19,7 @@ module.exports = {
      */
     async project(_obj, { id }) {
       return Project.findById(id);
-    }
+    },
   },
   Mutation: {
     /**
@@ -29,13 +28,14 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {string} workspaceId - workspace ID
      * @param {string} name - project name
-     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @return {Project[]}
      */
-    async createProject(_obj, { workspaceId, name }, { user }) {
+    async createProject(_obj, { workspaceId, name }, { user, factories }) {
       // Check workspace ID
-      const workspace = await new Membership(user.id).getWorkspaces([
-        workspaceId
+      const workspace = await (await factories.usersFactory.findById(user.id)).getWorkspaces([
+        workspaceId,
       ]);
 
       if (!workspace) {
@@ -45,7 +45,7 @@ module.exports = {
       const project = await Project.create({
         name,
         workspaceId,
-        uidAdded: user.id
+        uidAdded: user.id,
       });
 
       // Create Project to Workspace relationship
@@ -66,7 +66,7 @@ module.exports = {
       const userInProject = new UserInProject(user.id, projectId);
 
       return userInProject.updateLastVisit();
-    }
+    },
   },
   Project: {
     /**
@@ -185,6 +185,6 @@ module.exports = {
       }
 
       return Notify.getDefaultNotify();
-    }
-  }
+    },
+  },
 };
