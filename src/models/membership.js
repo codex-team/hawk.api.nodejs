@@ -37,7 +37,7 @@ class Membership {
    */
   async addWorkspace(workspaceId, isPending = false) {
     const doc = {
-      workspaceId: new ObjectID(workspaceId)
+      workspaceId: new ObjectID(workspaceId),
     };
 
     if (isPending) {
@@ -48,7 +48,7 @@ class Membership {
 
     return {
       id: documentId,
-      workspaceId
+      workspaceId,
     };
   }
 
@@ -60,11 +60,11 @@ class Membership {
    */
   async removeWorkspace(workspaceId) {
     await this.collection.removeOne({
-      workspaceId: new ObjectID(workspaceId)
+      workspaceId: new ObjectID(workspaceId),
     });
 
     return {
-      workspaceId
+      workspaceId,
     };
   }
 
@@ -77,7 +77,7 @@ class Membership {
   async confirmMembership(workspaceId) {
     await this.collection.updateOne(
       {
-        workspaceId: new ObjectID(workspaceId)
+        workspaceId: new ObjectID(workspaceId),
       },
       { $unset: { isPending: 1 } }
     );
@@ -98,44 +98,44 @@ class Membership {
           from: 'workspaces',
           localField: 'workspaceId',
           foreignField: '_id',
-          as: 'workspace'
-        }
+          as: 'workspace',
+        },
       },
       {
         $match: {
-          isPending: { $exists: false }
-        }
+          isPending: { $exists: false },
+        },
       },
       {
-        $unwind: '$workspace'
+        $unwind: '$workspace',
       },
       {
         $replaceRoot: {
-          newRoot: '$workspace'
-        }
+          newRoot: '$workspace',
+        },
       },
       {
         $lookup: {
           from: 'plans',
           localField: 'plan.name',
           foreignField: 'name',
-          as: 'planInfo'
-        }
+          as: 'planInfo',
+        },
       },
       {
         $unwind: {
           path: '$planInfo',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $addFields: {
           id: '$_id',
           'plan.monthlyCharge': '$planInfo.monthlyCharge',
           'plan.eventsLimit': '$planInfo.eventsLimit',
-          planInfo: '$$REMOVE'
-        }
-      }
+          planInfo: '$$REMOVE',
+        },
+      },
     ];
 
     if (ids.length) {
@@ -143,11 +143,11 @@ class Membership {
         {
           $match: {
             workspaceId: {
-              $in: ids
-            }
-          }
+              $in: ids,
+            },
+          },
         },
-        ...pipeline
+        ...pipeline,
       ]).toArray();
     }
     return this.collection.aggregate(pipeline).toArray();

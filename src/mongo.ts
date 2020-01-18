@@ -49,3 +49,6 @@ export async function setupConnections(): Promise<void> {
   databases.hawk = hawkDB;
   databases.events = eventsDB;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type OptionalId<TSchema> = Omit<TSchema, '_id'> & { _id?: any };

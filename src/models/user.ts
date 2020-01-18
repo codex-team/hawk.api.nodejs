@@ -1,8 +1,8 @@
 import argon2 from 'argon2';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import * as mongo from '../mongo';
-import { Collection, ObjectID } from 'mongodb';
+import { OptionalId } from '../mongo';
+import { Collection, ObjectID, Db } from 'mongodb';
 import BaseModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 
@@ -20,6 +20,12 @@ export interface TokensPair {
    * User's refresh token for getting new tokens pair
    */
   refreshToken: string;
+}
+
+export interface MembershipDBScheme {
+  _id: ObjectID;
+  workspaceId: ObjectID | string;
+  isPending?: boolean;
 }
 
 /**
@@ -106,74 +112,20 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   /**
    * Model's collection
    */
-  protected static get collection(): Collection<UserDBScheme> {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return mongo.databases.hawk!.collection('users');
-  }
+  protected collection: Collection<UserDBScheme>;
+
+  private membershipCollection: Collection<MembershipDBScheme>;
 
   /**
-   * Returns User by its id
-   * @param id - user id
+   * Model constructor
+   * @param dbConnection
+   * @param modelData
    */
-  public static async findById(id: string): Promise<UserModel | null> {
-    const searchResult = await this.collection.findOne({ _id: new ObjectID(id) });
+  constructor(dbConnection: Db, modelData: UserDBScheme) {
+    super(dbConnection, modelData);
 
-    if (!searchResult) {
-      return null;
-    }
-
-    return new UserModel(searchResult);
-  }
-
-  /**
-   * Creates new user in DB and returns its details
-   * @param email - user email
-   */
-  public static async create(email: string): Promise<UserModel> {
-    const generatedPassword = await this.generatePassword();
-    const hashedPassword = await this.hashPassword(generatedPassword);
-
-    const userData = {
-      email,
-      password: hashedPassword,
-    };
-    const userId = (await this.collection.insertOne(userData)).insertedId;
-
-    const user = new UserModel({
-      _id: userId,
-      ...userData,
-    });
-
-    user.generatedPassword = generatedPassword;
-
-    return user;
-  }
-
-  /**
-   * Creates new user id DB by GitHub provider
-   * @param id - GitHub profile id
-   * @param name - GitHub profile name
-   * @param image - GitHub profile avatar url
-   */
-  public static async createByGithub(
-    { id, name, image }: { id: string; name: string; image: string }
-  ): Promise<UserModel> {
-    if (!id || !name || !image) {
-      throw new Error('Required parameters are not provided');
-    }
-
-    const userData = {
-      githubId: id,
-      name,
-      image,
-    };
-
-    const userId = (await this.collection.insertOne(userData)).insertedId;
-
-    return new UserModel({
-      _id: userId,
-      ...userData,
-    });
+    this.membershipCollection = dbConnection.collection('membership:' + this._id);
+    this.collection = dbConnection.collection<UserDBScheme>('users');
   }
 
   /**
@@ -245,20 +197,6 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
   }
 
   /**
-   * Finds user by his email
-   * @param email - user's email
-   */
-  public static async findByEmail(email: string): Promise<UserModel | null> {
-    const searchResult = await this.collection.findOne({ email });
-
-    if (!searchResult) {
-      return null;
-    }
-
-    return new UserModel(searchResult);
-  }
-
-  /**
    * Generates JWT
    */
   public async generateTokensPair(): Promise<TokensPair> {
@@ -293,5 +231,129 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
       return false;
     }
     return argon2.verify(this.password, password);
+  }
+
+  /**
+   * Adds new workspace to the user's membership list
+   * @param {String} workspaceId - user's id to add
+   * @param {String} isPending - if true, mark user's membership as pending
+   * @returns {Promise<TeamDocumentSchema>} - created document
+   */
+  public async addWorkspace(workspaceId: string, isPending = false) {
+    const doc: OptionalId<MembershipDBScheme> = {
+      workspaceId: new ObjectID(workspaceId),
+    };
+
+    if (isPending) {
+      doc.isPending = isPending;
+    }
+
+    const documentId = (await this.membershipCollection.insertOne(doc)).insertedId;
+
+    return {
+      id: documentId,
+      workspaceId,
+    };
+  }
+
+  /**
+   * Remove workspace from membership collection
+   *
+   * @param {string} workspaceId - id of workspace to remove
+   * @returns {Promise<{workspaceId: string}>}
+   */
+  public async removeWorkspace(workspaceId: string): Promise<any> {
+    await this.membershipCollection.deleteOne({
+      workspaceId: new ObjectID(workspaceId),
+    });
+
+    return {
+      workspaceId,
+    };
+  }
+
+  /**
+   * Confirm membership of workspace by id
+   *
+   * @param {string} workspaceId - workspace id to confirm
+   * @returns {Promise<void>}
+   */
+  public async confirmMembership(workspaceId: string): Promise<void> {
+    await this.membershipCollection.updateOne(
+      {
+        workspaceId: new ObjectID(workspaceId),
+      },
+      { $unset: { isPending: '' } }
+    );
+  }
+
+  /**
+   * Get user's workspaces by ids
+   * Returns all user's workspaces if ids = []
+   * @param {string[]} [ids = []] - workspaces ids
+   * @return {Promise<Workspace[]>}
+   */
+  public async getWorkspaces(ids: (string| ObjectID)[] = []) {
+    ids = ids.map(id => new ObjectID(id));
+
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'workspaces',
+          localField: 'workspaceId',
+          foreignField: '_id',
+          as: 'workspace',
+        },
+      },
+      {
+        $match: {
+          isPending: { $exists: false },
+        },
+      },
+      {
+        $unwind: '$workspace',
+      },
+      {
+        $replaceRoot: {
+          newRoot: '$workspace',
+        },
+      },
+      {
+        $lookup: {
+          from: 'plans',
+          localField: 'plan.name',
+          foreignField: 'name',
+          as: 'planInfo',
+        },
+      },
+      {
+        $unwind: {
+          path: '$planInfo',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          id: '$_id',
+          'plan.monthlyCharge': '$planInfo.monthlyCharge',
+          'plan.eventsLimit': '$planInfo.eventsLimit',
+          planInfo: '$$REMOVE',
+        },
+      },
+    ];
+
+    if (ids.length) {
+      return this.membershipCollection.aggregate([
+        {
+          $match: {
+            workspaceId: {
+              $in: ids,
+            },
+          },
+        },
+        ...pipeline,
+      ]).toArray();
+    }
+    return this.membershipCollection.aggregate(pipeline).toArray();
   }
 }

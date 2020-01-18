@@ -1,20 +1,27 @@
-import { Collection } from 'mongodb';
+import { Collection, Db } from 'mongodb';
 
 /**
  * Model constructor type
  */
-export type ModelConstructor<DBScheme, Model extends BaseModel<DBScheme>> = new (modelData: DBScheme) => Model;
+export type ModelConstructor<DBScheme, Model extends BaseModel<DBScheme>> = new (dbConnection: Db, modelData: DBScheme) => Model;
 
 /**
  * Base model
  */
 export default abstract class BaseModel<DBScheme> {
   /**
+   * Database connection to interact with DB
+   */
+  private dbConnection: Db;
+
+  /**
    * Creates model instance
+   * @param dbConnection - database connection to interact with DB
    * @param modelData - data to fill model
    */
-  constructor(modelData: DBScheme) {
+  protected constructor(dbConnection: Db, modelData: DBScheme) {
     Object.assign(this, modelData);
+    this.dbConnection = dbConnection;
   };
 
   /**

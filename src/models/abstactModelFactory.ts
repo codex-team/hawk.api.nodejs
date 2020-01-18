@@ -5,13 +5,7 @@ import BaseModel, { ModelConstructor } from './abstractModel';
  * Model Factory class
  */
 export default abstract class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
-  /**
-   * Collection to work with
-   * We can't use generic type for collection because of bug in TS
-   * @see {@link https://github.com/DefinitelyTyped/DefinitelyTyped/issues/39358#issuecomment-546559564}
-   * So we should override collection type in child classes
-   */
-  protected collection: Collection;
+  protected dbConnection: Db;
 
   /**
    * Model constructor to create instances
@@ -19,14 +13,21 @@ export default abstract class Factory<DBScheme, Model extends BaseModel<DBScheme
   private readonly Model: ModelConstructor<DBScheme, Model>;
 
   /**
+   * Collection to work with
+   * We can't use generic type for collection because of bug in TS
+   * @see {@link https://github.com/DefinitelyTyped/DefinitelyTyped/issues/39358#issuecomment-546559564}
+   * So we should override collection type in child classes
+   */
+  protected abstract collection: Collection;
+
+  /**
    * Creates factory instance
    * @param dbConnection - connection to DataBase
-   * @param collectionName - database collection name
    * @param model - model constructor
    */
-  protected constructor(dbConnection: Db, collectionName: string, model: ModelConstructor<DBScheme, Model>) {
-    this.collection = dbConnection.collection(collectionName);
+  protected constructor(dbConnection: Db, model: ModelConstructor<DBScheme, Model>) {
     this.Model = model;
+    this.dbConnection = dbConnection;
   }
 
   /**
@@ -40,7 +41,7 @@ export default abstract class Factory<DBScheme, Model extends BaseModel<DBScheme
       return null;
     }
 
-    return new this.Model(searchResult);
+    return new this.Model(this.dbConnection, searchResult);
   }
 
   /**
@@ -56,6 +57,6 @@ export default abstract class Factory<DBScheme, Model extends BaseModel<DBScheme
       return null;
     }
 
-    return new this.Model(searchResult);
+    return new this.Model(this.dbConnection, searchResult);
   }
 }

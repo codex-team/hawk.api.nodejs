@@ -32,7 +32,7 @@ module.exports = {
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
-    }
+    },
   },
   Mutation: {
     /**
@@ -67,7 +67,7 @@ module.exports = {
           name,
           balance: 0,
           description,
-          image
+          image,
           // plan
         });
 
@@ -98,7 +98,9 @@ module.exports = {
     async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user }) {
       const [ workspace ] = await new Membership(user.id).getWorkspaces([ workspaceId ]);
 
-      if (!workspace) throw new ApolloError('There is no workspace with that id');
+      if (!workspace) {
+        throw new ApolloError('There is no workspace with that id');
+      }
 
       // @todo invite users to workspace, even if they are not registered
       const invitedUser = await User.findByEmail(userEmail);
@@ -108,7 +110,9 @@ module.exports = {
       } else {
         const [ isUserInThatWorkspace ] = await new Membership(invitedUser._id).getWorkspaces([ workspaceId ]);
 
-        if (isUserInThatWorkspace) throw new ApolloError('User already invited to this workspace');
+        if (isUserInThatWorkspace) {
+          throw new ApolloError('User already invited to this workspace');
+        }
 
         // @todo make via transactions
         await new Membership(invitedUser._id).addWorkspace(workspaceId, true);
@@ -124,7 +128,7 @@ module.exports = {
 
       emailProvider.send(userEmail, emailTemplatesNames.WORKSPACE_INVITE, {
         name: workspace.name,
-        inviteLink
+        inviteLink,
       });
 
       return true;
@@ -150,7 +154,9 @@ module.exports = {
           .update(`${workspaceId}:${currentUser.email}:${process.env.HASH_SALT}`)
           .digest('hex');
 
-        if (hash !== inviteHash) throw new ApolloError('The link is broken');
+        if (hash !== inviteHash) {
+          throw new ApolloError('The link is broken');
+        }
 
         membershipExists = await new Team(workspaceId).confirmMembership(currentUser);
       } else {
@@ -189,8 +195,12 @@ module.exports = {
      */
     async updateWorkspace(_obj, { id, name, description }, { user }) {
       // @makeAnIssue Create directives for arguments validation
-      if (!Validator.string(name)) throw new UserInputError('Invalid name length');
-      if (!Validator.string(description, 0)) throw new UserInputError('Invalid description length');
+      if (!Validator.string(name)) {
+        throw new UserInputError('Invalid name length');
+      }
+      if (!Validator.string(description, 0)) {
+        throw new UserInputError('Invalid description length');
+      }
 
       const [ workspace ] = await new Membership(user.id).getWorkspaces([ id ]);
 
@@ -199,7 +209,10 @@ module.exports = {
       }
 
       try {
-        await Workspace.updateWorkspace(workspace.id, { name, description });
+        await Workspace.updateWorkspace(workspace.id, {
+          name,
+          description,
+        });
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
@@ -271,7 +284,7 @@ module.exports = {
       }
 
       return true;
-    }
+    },
   },
   Workspace: {
     /**
@@ -306,6 +319,6 @@ module.exports = {
       const projectToWorkspace = new ProjectToWorkspace(rootResolverResult.id);
 
       return projectToWorkspace.getProjects(ids);
-    }
-  }
+    },
+  },
 };
