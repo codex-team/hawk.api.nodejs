@@ -183,7 +183,7 @@ type Repetition {
   """
   Standalone repetition ID
   """
-  id: ID!
+  id: ID! @renameFrom(name: "_id")
 
   """
   Event's hash
