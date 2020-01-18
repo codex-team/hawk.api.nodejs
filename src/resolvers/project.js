@@ -1,4 +1,4 @@
-const { ValidationError } = require('apollo-server-express');
+const { ValidationError, ApolloError } = require('apollo-server-express');
 const Membership = require('../models/membership');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
@@ -20,7 +20,7 @@ module.exports = {
      */
     async project(_obj, { id }) {
       return Project.findById(id);
-    }
+    },
   },
   Mutation: {
     /**
@@ -35,17 +35,22 @@ module.exports = {
     async createProject(_obj, { workspaceId, name }, { user }) {
       // Check workspace ID
       const workspace = await new Membership(user.id).getWorkspaces([
-        workspaceId
+        workspaceId,
       ]);
 
       if (!workspace) {
         throw new ValidationError('No such workspace');
       }
+      const team = new Team(workspaceId);
+      const teamInstance = await team.findByUserId(user.id);
 
+      if (!teamInstance.isAdmin) {
+        throw new ApolloError('Only admins can create projects');
+      }
       const project = await Project.create({
         name,
         workspaceId,
-        uidAdded: user.id
+        uidAdded: user.id,
       });
 
       // Create Project to Workspace relationship
@@ -66,7 +71,7 @@ module.exports = {
       const userInProject = new UserInProject(user.id, projectId);
 
       return userInProject.updateLastVisit();
-    }
+    },
   },
   Project: {
     /**
@@ -185,6 +190,6 @@ module.exports = {
       }
 
       return Notify.getDefaultNotify();
-    }
-  }
+    },
+  },
 };
