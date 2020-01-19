@@ -1,5 +1,7 @@
 const { AuthenticationError, ApolloError, UserInputError } = require('apollo-server-express');
 const User = require('../models/user');
+const Team = require('../models/team');
+const Membership = require('../models/membership');
 const jwt = require('jsonwebtoken');
 const { errorCodes } = require('../errors');
 const emailProvider = require('../email');
@@ -178,6 +180,31 @@ module.exports = {
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
+
+      return true;
+    },
+
+    /**
+     * Leave workspace
+     *
+     * @param {ResolverObj} _obj
+     * @param {Workspace.id} workspaceId - id of the workspace where the user should be removed
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @return {Promise<boolean>} - true if operation is successful
+     * @returns {Promise<boolean>}
+     */
+    async leaveWorkspace(_obj, { workspaceId }, { user }) {
+      const team = new Team(workspaceId);
+      const users = await team.getAllUsers();
+      const member = users.find(el => el._id.toString() === user.id);
+
+      if (!member) {
+        throw new ApolloError('You are not in the workspace');
+      }
+
+      const membership = new Membership(user.id);
+      await team.removeMember(user.id);
+      await membership.removeWorkspace(workspaceId);
 
       return true;
     }
