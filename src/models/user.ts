@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { OptionalId } from '../mongo';
 import { Collection, ObjectID } from 'mongodb';
-import BaseModel from './abstractModel';
+import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 
 /**
@@ -86,7 +86,7 @@ export interface UserDBScheme {
 /**
  * User model
  */
-export default class UserModel extends BaseModel<UserDBScheme> implements UserDBScheme {
+export default class UserModel extends AbstractModel<UserDBScheme> implements UserDBScheme {
   /**
    * User's id
    */

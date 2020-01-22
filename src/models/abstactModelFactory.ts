@@ -1,10 +1,10 @@
 import { Collection, Db, ObjectID } from 'mongodb';
-import BaseModel, { ModelConstructor } from './abstractModel';
+import AbstractModel, { ModelConstructor } from './abstractModel';
 
 /**
  * Model Factory class
  */
-export default abstract class Factory<DBScheme, Model extends BaseModel<DBScheme>> {
+export default abstract class AbstractModelFactory<DBScheme, Model extends AbstractModel<DBScheme>> {
   /**
    * Database connection to interact with
    */
