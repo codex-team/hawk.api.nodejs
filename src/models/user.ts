@@ -2,7 +2,7 @@ import argon2 from 'argon2';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { OptionalId } from '../mongo';
-import { Collection, ObjectID, Db } from 'mongodb';
+import { Collection, ObjectID } from 'mongodb';
 import BaseModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 
