@@ -10,7 +10,7 @@ export default gql`
     """
     User's email
     """
-    email: String!
+    email: String
 
     """
     User's name
