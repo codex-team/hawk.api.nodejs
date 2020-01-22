@@ -135,14 +135,13 @@ export default class UserModel extends BaseModel<UserDBScheme> implements UserDB
 
   /**
    * Model constructor
-   * @param dbConnection - database connection to interact with
    * @param modelData - user data
    */
-  constructor(dbConnection: Db, modelData: UserDBScheme) {
-    super(dbConnection, modelData);
+  constructor(modelData: UserDBScheme) {
+    super(modelData);
 
-    this.membershipCollection = dbConnection.collection('membership:' + this._id);
-    this.collection = dbConnection.collection<UserDBScheme>('users');
+    this.membershipCollection = this.dbConnection.collection('membership:' + this._id);
+    this.collection = this.dbConnection.collection<UserDBScheme>('users');
   }
 
   /**

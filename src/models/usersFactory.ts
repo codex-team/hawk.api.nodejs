@@ -31,7 +31,7 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
       return null;
     }
 
-    return new UserModel(this.dbConnection, searchResult);
+    return new UserModel(searchResult);
   }
 
   /**
@@ -48,7 +48,7 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
     };
     const userId = (await this.collection.insertOne(userData)).insertedId;
 
-    const user = new UserModel(this.dbConnection, {
+    const user = new UserModel({
       _id: userId,
       ...userData,
     });
@@ -79,7 +79,7 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
 
     const userId = (await this.collection.insertOne(userData)).insertedId;
 
-    return new UserModel(this.dbConnection, {
+    return new UserModel({
       _id: userId,
       ...userData,
     });

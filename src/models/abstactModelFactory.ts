@@ -44,7 +44,7 @@ export default abstract class Factory<DBScheme, Model extends BaseModel<DBScheme
       return null;
     }
 
-    return new this.Model(this.dbConnection, searchResult);
+    return new this.Model(searchResult);
   }
 
   /**
@@ -60,6 +60,6 @@ export default abstract class Factory<DBScheme, Model extends BaseModel<DBScheme
       return null;
     }
 
-    return new this.Model(this.dbConnection, searchResult);
+    return new this.Model(searchResult);
   }
 }

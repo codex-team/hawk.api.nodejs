@@ -1,9 +1,10 @@
 import { Collection, Db } from 'mongodb';
+import { databases } from '../mongo';
 
 /**
  * Model constructor type
  */
-export type ModelConstructor<DBScheme, Model extends BaseModel<DBScheme>> = new (dbConnection: Db, modelData: DBScheme) => Model;
+export type ModelConstructor<DBScheme, Model extends BaseModel<DBScheme>> = new (modelData: DBScheme) => Model;
 
 /**
  * Base model
@@ -12,16 +13,15 @@ export default abstract class BaseModel<DBScheme> {
   /**
    * Database connection to interact with DB
    */
-  private dbConnection: Db;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  protected readonly dbConnection: Db = databases.hawk!;
 
   /**
    * Creates model instance
-   * @param dbConnection - database connection to interact with DB
    * @param modelData - data to fill model
    */
-  protected constructor(dbConnection: Db, modelData: DBScheme) {
+  protected constructor(modelData: DBScheme) {
     Object.assign(this, modelData);
-    this.dbConnection = dbConnection;
   };
 
   /**
