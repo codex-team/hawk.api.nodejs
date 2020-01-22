@@ -187,7 +187,7 @@ class HawkAPI {
    */
   private setupFactories(): void {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const usersFactory = new UsersFactory(mongo.databases.hawk!, 'users');
+    const usersFactory = new UsersFactory(mongo.databases.hawk!);
 
     this.factories = {
       usersFactory,

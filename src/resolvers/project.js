@@ -1,7 +1,6 @@
 import { save } from '../utils/files';
 
-const { ValidationError } = require('apollo-server-express');
-const Membership = require('../models/membership');
+const { ValidationError, ApolloError } = require('apollo-server-express');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
@@ -33,17 +32,22 @@ module.exports = {
      * @param {string} name - project name
      * @param {Promise<FileUpload>} image - project logo
      * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @return {Project[]}
      */
-    async createProject(_obj, { workspaceId, name, image: upload }, { user }) {
+    async createProject(_obj, { workspaceId, name, image: upload }, { user, factories }) {
       // Check workspace ID
-      const workspace = await new Membership(user.id).getWorkspaces([
+      const userModel = await factories.usersFactory.findById(user.id);
+      const workspace = await userModel.getWorkspaces([
         workspaceId,
       ]);
 
       if (!workspace) {
         throw new ValidationError('No such workspace');
       }
+      const team = new Team(workspaceId);
+      const teamInstance = await team.findByUserId(user.id);
 
       let image;
 
@@ -61,6 +65,10 @@ module.exports = {
 
       if (image) {
         options.image = image;
+      }
+
+      if (!teamInstance.isAdmin) {
+        throw new ApolloError('Only admins can create projects');
       }
 
       const project = await Project.create(options);

@@ -7,7 +7,7 @@ import emailProvider from '../email';
 import { names as emailTemplatesNames } from '../email/templates';
 import Validator from '../utils/validator';
 import { save } from '../utils/files';
-import {FileUpload} from "graphql-upload";
+import { FileUpload } from 'graphql-upload';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -180,7 +180,7 @@ export default {
       if (upload) {
         const imageMeta = await upload;
 
-        image = save(imageMeta!.createReadStream(), imageMeta!.mimetype);
+        image = save(imageMeta.createReadStream(), imageMeta.mimetype);
       }
 
       try {
