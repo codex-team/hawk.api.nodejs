@@ -55,7 +55,7 @@ type EventBacktraceFrame {
   Part of source code file near the called line
   """
   sourceCode: [SourceCodeLine!]
-    
+
   """
   Function name extracted from current stack frame
   """
@@ -220,7 +220,7 @@ type Repetitions {
   """
   Standalone repetition ID
   """
-  id: ID!
+  id: ID! @renameFrom(name: "_id")
 
   """
   Event's hash
@@ -240,7 +240,7 @@ type Event {
   """
   Event id
   """
-  id: ID!
+  id: ID! @renameFrom(name: "_id")
 
   """
   Catcher type

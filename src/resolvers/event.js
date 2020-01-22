@@ -1,5 +1,4 @@
 const MongoWatchController = require('../utils/mongoWatchController');
-const Membership = require('../models/membership');
 const { ProjectToWorkspace } = require('../models/project');
 const asyncForEach = require('../utils/asyncForEach');
 const mongo = require('../mongo');
@@ -12,8 +11,6 @@ const watchController = new MongoWatchController();
  */
 module.exports = {
   Event: {
-    id: parent => parent._id, // rename MongoDB _id to id
-
     /**
      * Returns repetitions list of the event
      *
@@ -29,10 +26,7 @@ module.exports = {
       const factory = new EventsFactory(projectId);
 
       return factory.getEventRepetitions(eventId, limit, skip);
-    }
-  },
-  Repetitions: {
-    id: parent => parent._id // rename MongoDB _id to id
+    },
   },
   Subscription: {
     eventOccurred: {
@@ -40,17 +34,19 @@ module.exports = {
        * Subscribes user to events from his projects
        * @param {ResolverObj} _obj
        * @param {Object} _args - request variables (not used)
-       * @param {Context} context
+       * @param {UserInContext} user - current authorized user {@see ../index.js}
+       * @param {ContextFactories} factories - factories for working with models
        * @return {AsyncIterator<EventSchema>}
        */
-      subscribe: (_obj, _args, context) => {
-        const userId = context.user.id;
+      subscribe: async (_obj, _args, { user, factories }) => {
+        const userId = user.id;
+        const userModel = await factories.usersFactory.findById(userId);
         // eslint-disable-next-line no-async-promise-executor
         const eventsCollections = new Promise(async resolve => {
           // @todo optimize query for getting all user's projects
 
           // Find all user's workspaces
-          const allWorkspaces = await (new Membership(userId)).getWorkspaces();
+          const allWorkspaces = await userModel.getWorkspaces();
           const allProjects = [];
 
           // Find all user's projects
@@ -76,7 +72,7 @@ module.exports = {
        */
       resolve: (payload) => {
         return payload.fullDocument;
-      }
-    }
-  }
+      },
+    },
+  },
 };

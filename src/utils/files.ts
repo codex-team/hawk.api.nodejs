@@ -43,5 +43,5 @@ export const save = (file: Readable, mimetype: string): string => {
     }
   });
 
-  return process.env.API_URL! + path.join('/uploads', name);
+  return process.env.API_URL + path.join('/uploads', name);
 };

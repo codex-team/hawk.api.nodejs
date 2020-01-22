@@ -42,16 +42,16 @@ class Team {
   /**
    * Adds new member to the workspace team
    * @param {String} memberId - user's id to add
-   * @param {boolean} pending - if true, mark member as pending
+   * @param {boolean} isPending - if true, mark member as pending
    * @returns {Promise<TeamDocumentSchema>} - added document
    */
-  async addMember(memberId, pending = false) {
+  async addMember(memberId, isPending = false) {
     const doc = {
       userId: new ObjectID(memberId)
     };
 
-    if (pending) {
-      doc.pending = pending;
+    if (isPending) {
+      doc.isPending = isPending;
     }
 
     const documentId = (await this.collection.insertOne(doc)).insertedId;
@@ -150,7 +150,7 @@ class Team {
   async confirmMembership(member) {
     const { matchedCount, modifiedCount } = await this.collection.updateOne(
       {
-        userId: new ObjectID(member.id)
+        userId: new ObjectID(member._id)
       },
       { $unset: { isPending: 1 } }
     );
@@ -164,7 +164,7 @@ class Team {
         {
           userEmail: member.email
         },
-        { $set: { userId: new ObjectID(member.id) }, $unset: { userEmail: 1, isPending: 1 } }
+        { $set: { userId: new ObjectID(member._id) }, $unset: { userEmail: 1, isPending: 1 } }
       );
 
       return false;

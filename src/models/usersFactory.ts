@@ -9,15 +9,15 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
   /**
    * DataBase collection to work with
    */
-  protected collection!: Collection<UserDBScheme>;
+  protected collection: Collection<UserDBScheme>;
 
   /**
    * Creates user factory instance
    * @param dbConnection - connection to DataBase
-   * @param collectionName - database collection name
    */
-  constructor(dbConnection: Db, collectionName: string) {
-    super(dbConnection, collectionName, UserModel);
+  constructor(dbConnection: Db) {
+    super(dbConnection, UserModel);
+    this.collection = dbConnection.collection('users');
   }
 
   /**
@@ -56,5 +56,32 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
     user.generatedPassword = generatedPassword;
 
     return user;
+  }
+
+  /**
+   * Creates new user id DB by GitHub provider
+   * @param id - GitHub profile id
+   * @param name - GitHub profile name
+   * @param image - GitHub profile avatar url
+   */
+  public async createByGithub(
+    { id, name, image }: { id: string; name: string; image: string }
+  ): Promise<UserModel> {
+    if (!id || !name || !image) {
+      throw new Error('Required parameters are not provided');
+    }
+
+    const userData = {
+      githubId: id,
+      name,
+      image,
+    };
+
+    const userId = (await this.collection.insertOne(userData)).insertedId;
+
+    return new UserModel({
+      _id: userId,
+      ...userData,
+    });
   }
 }

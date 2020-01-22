@@ -7,6 +7,7 @@ import emailProvider from '../email';
 import { names as emailTemplatesNames } from '../email/templates';
 import Validator from '../utils/validator';
 import { save } from '../utils/files';
+import { FileUpload } from 'graphql-upload';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -155,11 +156,12 @@ export default {
      * @param name - user's name to change
      * @param email - user's email to change
      * @param user - current authenticated user
+     * @param {Promise<FileUpload>}image - user avatar
      * @param factories - factories for working with models
      */
     async updateProfile(
       _obj: undefined,
-      { name, email, image }: {name: string; email: string; image: any},
+      { name, email, image: upload }: {name: string; email: string; image: Promise<FileUpload>},
       { user, factories }: ResolverContextWithUser
     ): Promise<boolean> {
       if (email && !Validator.validateEmail(email)) {
@@ -173,9 +175,12 @@ export default {
         throw new UserInputError('This email is taken');
       }
 
-      if (image) {
-        image = await image;
-        image = save(image.createReadStream(), image.mimetype);
+      let image = '';
+
+      if (upload) {
+        const imageMeta = await upload;
+
+        image = save(imageMeta.createReadStream(), imageMeta.mimetype);
       }
 
       try {
