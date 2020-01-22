@@ -31,10 +31,11 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {string} workspaceId - workspace ID
      * @param {string} name - project name
+     * @param {Promise<FileUpload>} image - project logo
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @return {Project[]}
      */
-    async createProject(_obj, { workspaceId, name, image }, { user }) {
+    async createProject(_obj, { workspaceId, name, image: upload }, { user }) {
       // Check workspace ID
       const workspace = await new Membership(user.id).getWorkspaces([
         workspaceId,
@@ -44,9 +45,12 @@ module.exports = {
         throw new ValidationError('No such workspace');
       }
 
-      if (image) {
-        image = await image;
-        image = save(image.createReadStream(), image.mimetype);
+      let image;
+
+      if (upload) {
+        const imageMeta = await upload;
+
+        image = save(imageMeta.createReadStream(), imageMeta.mimetype);
       }
 
       const options = {
