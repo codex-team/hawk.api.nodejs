@@ -1,19 +1,26 @@
-import { Collection } from 'mongodb';
+import { Collection, Db } from 'mongodb';
+import { databases } from '../mongo';
 
 /**
  * Model constructor type
  */
-export type ModelConstructor<DBScheme, Model extends BaseModel<DBScheme>> = new (modelData: DBScheme) => Model;
+export type ModelConstructor<DBScheme, Model extends AbstractModel<DBScheme>> = new (modelData: DBScheme) => Model;
 
 /**
  * Base model
  */
-export default abstract class BaseModel<DBScheme> {
+export default abstract class AbstractModel<DBScheme> {
+  /**
+   * Database connection to interact with DB
+   */
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  protected readonly dbConnection: Db = databases.hawk!;
+
   /**
    * Creates model instance
    * @param modelData - data to fill model
    */
-  constructor(modelData: DBScheme) {
+  protected constructor(modelData: DBScheme) {
     Object.assign(this, modelData);
   };
 
