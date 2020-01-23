@@ -49,7 +49,7 @@ export interface UserDBScheme {
   /**
    * User's id
    */
-  _id?: string | ObjectID;
+  _id: string | ObjectID;
 
   /**
    * User's email

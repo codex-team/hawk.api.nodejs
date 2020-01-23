@@ -47,7 +47,7 @@ class Team {
    */
   async addMember(memberId, isPending = false) {
     const doc = {
-      userId: new ObjectID(memberId)
+      userId: new ObjectID(memberId),
     };
 
     if (isPending) {
@@ -58,7 +58,7 @@ class Team {
 
     return {
       id: documentId,
-      userId: memberId
+      userId: memberId,
     };
   }
 
@@ -70,11 +70,11 @@ class Team {
    */
   async removeMember(memberId) {
     await this.collection.removeOne({
-      userId: new ObjectID(memberId)
+      userId: new ObjectID(memberId),
     });
 
     return {
-      userId: memberId
+      userId: memberId,
     };
   }
 
@@ -86,11 +86,11 @@ class Team {
    */
   async removeMemberByEmail(memberEmail) {
     await this.collection.removeOne({
-      userEmail: memberEmail
+      userEmail: memberEmail,
     });
 
     return {
-      userEmail: memberEmail
+      userEmail: memberEmail,
     };
   }
 
@@ -104,16 +104,16 @@ class Team {
   async grantAdmin(memberId, state = true) {
     const documentId = (await this.collection.updateOne(
       {
-        userId: new ObjectID(memberId)
+        userId: new ObjectID(memberId),
       },
       {
-        $set: { isAdmin: state }
+        $set: { isAdmin: state },
       }
     ));
 
     return {
       id: documentId,
-      userId: memberId
+      userId: memberId,
     };
   }
 
@@ -132,12 +132,12 @@ class Team {
 
     const documentId = (await this.collection.insertOne({
       userEmail: memberEmail,
-      isPending: true
+      isPending: true,
     })).insertedId;
 
     return {
       id: documentId,
-      userEmail: memberEmail
+      userEmail: memberEmail,
     };
   }
 
@@ -150,7 +150,7 @@ class Team {
   async confirmMembership(member) {
     const { matchedCount, modifiedCount } = await this.collection.updateOne(
       {
-        userId: new ObjectID(member._id)
+        userId: new ObjectID(member._id),
       },
       { $unset: { isPending: 1 } }
     );
@@ -162,9 +162,15 @@ class Team {
     if (!matchedCount) {
       await this.collection.updateOne(
         {
-          userEmail: member.email
+          userEmail: member.email,
         },
-        { $set: { userId: new ObjectID(member._id) }, $unset: { userEmail: 1, isPending: 1 } }
+        {
+          $set: { userId: new ObjectID(member._id) },
+          $unset: {
+            userEmail: 1,
+            isPending: 1,
+          },
+        }
       );
 
       return false;
@@ -181,31 +187,31 @@ class Team {
     return this.collection.aggregate([
       {
         $match: {
-          isPending: { $exists: false }
-        }
+          isPending: { $exists: false },
+        },
       },
       {
         $lookup: {
           from: 'users',
           localField: 'userId',
           foreignField: '_id',
-          as: 'users'
-        }
+          as: 'users',
+        },
       },
       {
-        $unwind: '$users'
+        $unwind: '$users',
       },
       {
         $replaceRoot: {
-          newRoot: { $mergeObjects: ['$users', { isAdmin: '$isAdmin' } ] }
-        }
+          newRoot: { $mergeObjects: ['$users', { isAdmin: '$isAdmin' } ] },
+        },
       },
       {
         $addFields: {
           id: '$_id',
-          isPending: false
-        }
-      }
+          isPending: false,
+        },
+      },
     ]).toArray();
   }
 
@@ -218,30 +224,33 @@ class Team {
     return this.collection.aggregate([
       {
         $match: {
-          isPending: true
-        }
+          isPending: true,
+        },
       },
       {
         $lookup: {
           from: 'users',
           localField: 'userId',
           foreignField: '_id',
-          as: 'users'
-        }
+          as: 'users',
+        },
       },
       {
         $unwind: {
           path: '$users',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $replaceRoot: {
           newRoot: {
-            $mergeObjects: ['$users', { isPending: '$isPending', email: '$userEmail' } ]
-          }
-        }
-      }
+            $mergeObjects: ['$users', {
+              isPending: '$isPending',
+              email: '$userEmail',
+            } ],
+          },
+        },
+      },
     ]).toArray();
   }
 }

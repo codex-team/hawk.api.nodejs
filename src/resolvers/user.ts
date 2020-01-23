@@ -156,7 +156,7 @@ export default {
      * @param name - user's name to change
      * @param email - user's email to change
      * @param user - current authenticated user
-     * @param {Promise<FileUpload>}image - user avatar
+     * @param {Promise<FileUpload>} image - user avatar
      * @param factories - factories for working with models
      */
     async updateProfile(
@@ -184,7 +184,7 @@ export default {
       }
 
       try {
-        const options: UserDBScheme = {
+        const options: {[key: string]: string} = {
           name,
           email,
         };

@@ -31,7 +31,6 @@ module.exports = {
      * @param {string} workspaceId - workspace ID
      * @param {string} name - project name
      * @param {Promise<FileUpload>} image - project logo
-     * @param {Context.user} user - current authorized user {@see ../index.js}
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      * @return {Project[]}

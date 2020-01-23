@@ -203,7 +203,6 @@ module.exports = {
      * @param {string} name - workspace name
      * @param {string} description - workspace description
      * @param {Promise<FileUpload>} - workspace logo
-     * @param {Context.user} user - current authorized user
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      *

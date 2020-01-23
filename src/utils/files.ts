@@ -7,7 +7,7 @@ import { Readable } from 'stream';
 /**
  * Creates upload dir in project root
  */
-export const createUploadsDir = (): void => {
+export function createUploadsDir(): void {
   const uploadDirPath = process.env.UPLOAD_DIR || 'uploads';
 
   if (fs.existsSync(uploadDirPath)) {
@@ -25,7 +25,7 @@ export const createUploadsDir = (): void => {
  *
  * @return {string} - url to saved file
  */
-export const save = (file: Readable, mimetype: string): string => {
+export function save(file: Readable, mimetype: string): string {
   createUploadsDir();
 
   const extension = mime.extension(mimetype);
