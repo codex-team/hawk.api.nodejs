@@ -39,7 +39,7 @@ type EventBacktraceFrame {
   Part of source code file near the called line
   """
   sourceCode: [SourceCodeLine!]
-    
+
   """
   Function name extracted from current stack frame
   """
@@ -203,7 +203,7 @@ type Event {
   """
   Event id
   """
-  id: ID!
+  id: ID! @renameFrom(name: "_id")
 
   """
   Catcher type

@@ -33,6 +33,7 @@
  * @property {String} [release] - source code version identifier; version, modify timestamp or both of them combined
  * @property {EventUser} [user] - current authenticated user
  * @property {Object} [context] - any additional data
+ * @property {Object} [addons] - catcher-specific fields
  */
 
 /**
@@ -59,13 +60,6 @@ class Event {
     if (schema) {
       this.fillModel(schema);
     }
-  }
-
-  /**
-   * @return {string|ObjectID}
-   */
-  get id() {
-    return this._id;
   }
 
   /**

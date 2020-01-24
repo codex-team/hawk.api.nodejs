@@ -1,5 +1,4 @@
-const { ValidationError } = require('apollo-server-express');
-const Membership = require('../models/membership');
+const { ValidationError, ApolloError } = require('apollo-server-express');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
@@ -29,19 +28,26 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {string} workspaceId - workspace ID
      * @param {string} name - project name
-     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @return {Project[]}
      */
-    async createProject(_obj, { workspaceId, name }, { user }) {
+    async createProject(_obj, { workspaceId, name }, { user, factories }) {
       // Check workspace ID
-      const workspace = await new Membership(user.id).getWorkspaces([
+      const userModel = await factories.usersFactory.findById(user.id);
+      const workspace = await userModel.getWorkspaces([
         workspaceId,
       ]);
 
       if (!workspace) {
         throw new ValidationError('No such workspace');
       }
+      const team = new Team(workspaceId);
+      const teamInstance = await team.findByUserId(user.id);
 
+      if (!teamInstance.isAdmin) {
+        throw new ApolloError('Only admins can create projects');
+      }
       const project = await Project.create({
         name,
         workspaceId,
