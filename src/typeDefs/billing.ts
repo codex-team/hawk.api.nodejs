@@ -1,3 +1,6 @@
+import { gql } from 'apollo-server-express';
+
+export default gql`
 """
 Languages supported by the Tinkoff
 """
@@ -158,3 +161,4 @@ extend type Mutation {
   """
   attachCard(language: String): BillingSession! @requireAuth
 }
+`;

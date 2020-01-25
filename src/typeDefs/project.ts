@@ -1,3 +1,6 @@
+import { gql } from 'apollo-server-express';
+
+export default gql`
 """
 Project representation
 """
@@ -111,3 +114,4 @@ extend type Mutation {
     projectId: ID!
   ): DateTime! @requireAuth
 }
+`;

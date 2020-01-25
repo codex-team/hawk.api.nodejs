@@ -1,3 +1,6 @@
+import { gql } from 'apollo-server-express';
+
+export default gql`
 """
 Supported provider types
 """
@@ -125,3 +128,4 @@ extend type Mutation {
     notifySettings: NotifyInput!
   ): NotifySettings! @requireAuth
 }
+`;

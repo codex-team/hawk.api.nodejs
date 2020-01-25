@@ -5,10 +5,12 @@
  */
 
 /**
- * @typedef {Object} EventBacktrace
+ * @typedef {Object} EventBacktraceFrame
  * @property {string} file - source filepath
  * @property {Number} line - called line
+ * @property {Number} column - called column
  * @property {BacktraceSourceCode[]} [sourceCode] - part of source code file near the called line
+ * Pro
  */
 
 /**
@@ -24,13 +26,14 @@
  * @property {string} title - event title
  * @property {DateTime} timestamp - event datetime
  * @property {Number} level - event severity level
- * @property {EventBacktrace[]} [backtrace] - event stack array from the latest call to the earliest
+ * @property {EventBacktraceFrame[]} [backtrace] - event stack array from the latest call to the earliest
  * @property {Object} [get] - GET params
  * @property {Object} [post] - POST params
  * @property {Object} [headers] - HTTP headers
  * @property {String} [release] - source code version identifier; version, modify timestamp or both of them combined
  * @property {EventUser} [user] - current authenticated user
  * @property {Object} [context] - any additional data
+ * @property {Object} [addons] - catcher-specific fields
  */
 
 /**
@@ -57,13 +60,6 @@ class Event {
     if (schema) {
       this.fillModel(schema);
     }
-  }
-
-  /**
-   * @return {string|ObjectID}
-   */
-  get id() {
-    return this._id;
   }
 
   /**

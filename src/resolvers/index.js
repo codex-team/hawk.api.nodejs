@@ -1,11 +1,10 @@
 const { merge } = require('lodash');
 const { GraphQLDateTime } = require('graphql-iso-date');
 const { GraphQLJSON, GraphQLJSONObject } = require('graphql-type-json');
-const user = require('./user');
+const user = require('./user').default;
 const workspace = require('./workspace');
 const project = require('./project');
 const event = require('./event');
-const billing = require('./billing');
 const notify = require('./notify');
 
 /**
@@ -33,14 +32,14 @@ const indexResolver = {
      * Healthcheck endpoint
      * @return {string}
      */
-    health: () => 'ok'
+    health: () => 'ok',
   },
   // DateTime scalar resolver
   DateTime: GraphQLDateTime,
   // JSON values resolver
   JSON: GraphQLJSON,
   // JSON object resolver
-  JSONObject: GraphQLJSONObject
+  JSONObject: GraphQLJSONObject,
 };
 
-module.exports = merge(indexResolver, user, workspace, project, event, billing, notify);
+module.exports = merge(indexResolver, user, workspace, project, event, notify);

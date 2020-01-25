@@ -1,15 +1,16 @@
 version: "3.2"
 services:
-  hawk:
+  api:
     build:
       dockerfile: "docker/Dockerfile.prod"
       context: .
-    env_file:
-      - .env
     ports:
       - ${PORT}:${PORT}
     depends_on:
       - mongodb
+    volumes:
+    - ./.env:/usr/src/app/.env
+    - /usr/src/app/node_modules
 
   mongodb:
     image: mongo
