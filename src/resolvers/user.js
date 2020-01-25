@@ -1,7 +1,6 @@
 const { AuthenticationError, ApolloError, UserInputError } = require('apollo-server-express');
 const User = require('../models/user');
 const Team = require('../models/team');
-const Membership = require('../models/membership');
 const jwt = require('jsonwebtoken');
 const { errorCodes } = require('../errors');
 const emailProvider = require('../email');
@@ -194,19 +193,18 @@ module.exports = {
      * @returns {Promise<boolean>}
      */
     async leaveWorkspace(_obj, { workspaceId }, { user }) {
-      const team = new Team(workspaceId);
-      const users = await team.getAllUsers();
-      const member = users.find(el => el._id.toString() === user.id);
+      const member = await new Team(workspaceId).getMember(user.id);
 
       if (!member) {
         throw new ApolloError('You are not in the workspace');
       }
 
-      const membership = new Membership(user.id);
-      await team.removeMember(user.id);
-      await membership.removeWorkspace(workspaceId);
-
-      return true;
+      try {
+        await User.leaveWorkspace(user.id, workspaceId);
+        return true;
+      } catch (e) {
+        return false;
+      }
     }
   }
 };

@@ -8,6 +8,11 @@ const databases = {
   events: null
 };
 
+const clients = {
+  hawk: null,
+  events: null
+};
+
 const connectionConfig = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -21,16 +26,20 @@ const connectionConfig = {
  * @return {Promise<void>}
  */
 async function setupConnections() {
-  const [hawkDB, eventsDB] = (await Promise.all([
+  const [hawkClient, eventsClient] = (await Promise.all([
     mongo.connect(hawkDBUrl, connectionConfig),
     mongo.connect(eventsDBUrl, connectionConfig)
   ])).map(client => client.db());
 
-  databases.hawk = hawkDB;
-  databases.events = eventsDB;
+  clients.hawk = hawkClient;
+  clients.events = eventsClient;
+
+  databases.hawk = hawkClient.db();
+  databases.events = eventsClient.db();
 }
 
 module.exports = {
   setupConnections,
-  databases
+  databases,
+  clients
 };

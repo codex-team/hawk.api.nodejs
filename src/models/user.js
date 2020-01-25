@@ -5,6 +5,8 @@ const mongo = require('../mongo');
 const mongodbDriver = require('mongodb');
 const ObjectID = mongodbDriver.ObjectID;
 const Model = require('./model');
+const Team = require('./team');
+const Membership = require('./membership');
 const objectHasOnlyProps = require('../utils/objectHasOnlyProps');
 
 /**
@@ -211,6 +213,29 @@ class User extends Model {
    */
   async comparePassword(password) {
     return argon2.verify(this.password, password);
+  }
+
+  /**
+   * Leave workspace
+   * @param {String} userId - id of the user who wants to leave the workspace
+   * @param {String} workspaceId - id of the workspace
+   * @return {Promise<void>}
+   */
+  static async leaveWorkspace(userId, workspaceId) {
+    const session = mongo.clients.hawk.startSession();
+    session.startTransaction();
+
+    try {
+      const options = {session: session};
+      await new Team(workspaceId).removeMember(userId, options);
+      await new Membership(userId).removeWorkspace(workspaceId, options);
+      await session.commitTransaction();
+      session.endSession();
+    } catch (e) {
+      await session.abortTransaction();
+      session.endSession();
+      throw e;
+    }
   }
 }
 

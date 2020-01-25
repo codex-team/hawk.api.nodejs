@@ -66,12 +66,14 @@ class Team {
    * Remove member from workspace
    *
    * @param {string} memberId - id of member to remove
+   * @param {object} options - Optional settings
    * @returns {Promise<{userId: string}>}
    */
-  async removeMember(memberId) {
-    await this.collection.removeOne({
-      userId: new ObjectID(memberId)
-    });
+  async removeMember(memberId, options={}) {
+    await this.collection.removeOne(
+      {userId: new ObjectID(memberId)},
+      options
+    );
 
     return {
       userId: memberId
@@ -207,6 +209,16 @@ class Team {
         }
       }
     ]).toArray();
+  }
+
+  /**
+   * Get member of workspace
+   * @param userId
+   * @returns {User}
+   */
+  async getMember(userId) {
+    const users = this.getAllUsers();
+    return users.find(u => u._id.toString() === userId);
   }
 
   /**

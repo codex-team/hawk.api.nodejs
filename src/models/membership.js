@@ -55,12 +55,14 @@ class Membership {
    * Remove workspace from membership collection
    *
    * @param {string} workspaceId - id of workspace to remove
+   * @param {object} options - Optional settings
    * @returns {Promise<{workspaceId: string}>}
    */
-  async removeWorkspace(workspaceId) {
-    await this.collection.removeOne({
-      workspaceId: new ObjectID(workspaceId)
-    });
+  async removeWorkspace(workspaceId, options={}) {
+    await this.collection.removeOne(
+      {workspaceId: new ObjectID(workspaceId)},
+      options
+    );
 
     return {
       workspaceId

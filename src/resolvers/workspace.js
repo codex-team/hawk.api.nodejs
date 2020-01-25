@@ -213,6 +213,7 @@ module.exports = {
      */
     async grantAdmin(_obj, { workspaceId, userId, state }, { user }) {
       const team = new Team(workspaceId);
+      // TODO: use team.getMember func
       const users = await team.getAllUsers();
       const member = users.find(el => el._id.toString() === user.id);
 
@@ -242,7 +243,7 @@ module.exports = {
      */
     async removeMemberFromWorkspace(_obj, { workspaceId, userId, userEmail }, { user }) {
       const team = new Team(workspaceId);
-
+      // TODO: use team.getMember func
       const users = await team.getAllUsers();
 
       const member = users.find(el => el._id.toString() === user.id);
