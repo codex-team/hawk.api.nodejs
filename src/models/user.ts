@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { OptionalId } from '../mongo';
 import { Collection, ObjectID } from 'mongodb';
+import Team from '../models/team';
 import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 
@@ -364,5 +365,15 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       ]).toArray();
     }
     return this.membershipCollection.aggregate(pipeline).toArray();
+  }
+
+  /**
+   * Leave workspace
+   * @param workspaceId - id of the workspace
+   */
+  public async leaveWorkspace(workspaceId: string) {
+    // todo: use transaction
+    await new Team(workspaceId).removeMember(this._id);
+    await this.removeWorkspace(workspaceId);
   }
 }

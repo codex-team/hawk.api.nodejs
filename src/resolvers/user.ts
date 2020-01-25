@@ -1,5 +1,6 @@
 import { ResolverContextBase, ResolverContextWithUser, UserJWTData } from '../types/graphql';
 import UserModel, { TokensPair } from '../models/user';
+import Team from '../models/team';
 import { AuthenticationError, ApolloError, UserInputError } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
 import { errorCodes } from '../errors';
@@ -215,5 +216,38 @@ export default {
 
       return true;
     },
+
+    /**
+     * Leave workspace
+     *
+     * @param _obj - parent object (undefined for this resolver)
+     * @param workspaceId - id of the workspace where the user should be removed
+     * @param newPassword - password to change
+     * @param user - current authenticated user
+     * @param factories - factories for working with models
+     * @return {Promise<boolean>} - true if operation is successful
+     */
+    async leaveWorkspace(
+      _obj: undefined,
+      { workspaceId }: { workspaceId: string },
+      { user, factories }: ResolverContextWithUser
+    ): Promise<boolean> {
+      const member = await new Team(workspaceId).getMember(user.id);
+      if (!member) {
+        throw new ApolloError('You are not in the workspace');
+      }
+
+      const foundUser = await factories.usersFactory.findById(user.id);
+      if (!foundUser) {
+        throw new ApolloError('There is no user with such id');
+      }
+
+      try {
+        await foundUser.leaveWorkspace(workspaceId);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
   },
 };

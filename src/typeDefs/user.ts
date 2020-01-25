@@ -102,5 +102,16 @@ export default gql`
       """
       newPassword: String!
     ): Boolean! @requireAuth
+      
+    """
+    Leave workspace
+    Returns true if operation is successful
+    """
+    leaveWorkspace(
+        """
+        Workspace ID
+        """
+        workspaceId: ID!
+    ): Boolean! @requireAuth
   }
 `;
