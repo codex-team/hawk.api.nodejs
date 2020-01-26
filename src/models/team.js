@@ -66,14 +66,12 @@ class Team {
    * Remove member from workspace
    *
    * @param {string} memberId - id of member to remove
-   * @param {object} options - Optional settings
    * @returns {Promise<{userId: string}>}
    */
-  async removeMember(memberId, options={}) {
-    await this.collection.removeOne(
-      {userId: new ObjectID(memberId)},
-      options
-    );
+  async removeMember(memberId) {
+    await this.collection.removeOne({
+      userId: new ObjectID(memberId)
+    });
 
     return {
       userId: memberId

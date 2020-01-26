@@ -234,7 +234,7 @@ module.exports = {
      */
     async grantAdmin(_obj, { workspaceId, userId, state }, { user }) {
       const team = new Team(workspaceId);
-      const member = await new Team(workspaceId).getMember(user.id);
+      const member = await team.getMember(user.id);
 
       if (!member) {
         throw new ApolloError('You are not in the workspace');
@@ -263,7 +263,7 @@ module.exports = {
      */
     async removeMemberFromWorkspace(_obj, { workspaceId, userId, userEmail }, { user, factories }) {
       const team = new Team(workspaceId);
-      const member = await new Team(workspaceId).getMember(user.id);
+      const member = await team.getMember(user.id);
 
       if (!member) {
         throw new ApolloError('You are not in the workspace');

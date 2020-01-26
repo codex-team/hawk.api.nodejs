@@ -225,7 +225,7 @@ export default {
      * @param newPassword - password to change
      * @param user - current authenticated user
      * @param factories - factories for working with models
-     * @return {Promise<boolean>} - true if operation is successful
+     * @return true if operation is successful
      */
     async leaveWorkspace(
       _obj: undefined,
