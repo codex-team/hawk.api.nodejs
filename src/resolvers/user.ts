@@ -225,7 +225,6 @@ export default {
      * @param newPassword - password to change
      * @param user - current authenticated user
      * @param factories - factories for working with models
-     * @return true if operation is successful
      */
     async leaveWorkspace(
       _obj: undefined,
@@ -243,7 +242,7 @@ export default {
       }
 
       try {
-        await foundUser.leaveWorkspace(workspaceId);
+        // await foundUser.leaveWorkspace(workspaceId);
         return true;
       } catch (e) {
         return false;

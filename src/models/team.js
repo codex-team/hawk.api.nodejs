@@ -211,7 +211,7 @@ class Team {
 
   /**
    * Get member of workspace
-   * @param userId
+   * @param {string} userId - id of member
    * @returns {User}
    */
   async getMember(userId) {
