@@ -371,7 +371,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * Leave workspace
    * @param workspaceId - id of the workspace
    */
-  public async leaveWorkspace(workspaceId: string) {
+  public async leaveWorkspace(workspaceId: string): Promise<void> {
     // todo: use transaction
     await new Team(workspaceId).removeMember(this._id.toString());
     await this.removeWorkspace(workspaceId);

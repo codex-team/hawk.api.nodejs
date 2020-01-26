@@ -212,7 +212,7 @@ class Team {
   /**
    * Get member of workspace
    * @param {string} userId - id of member
-   * @returns {User}
+   * @returns {Promise<User>}
    */
   async getMember(userId) {
     const users = this.getAllUsers();

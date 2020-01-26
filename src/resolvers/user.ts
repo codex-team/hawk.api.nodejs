@@ -242,7 +242,7 @@ export default {
       }
 
       try {
-        // await foundUser.leaveWorkspace(workspaceId);
+        await foundUser.leaveWorkspace(workspaceId);
         return true;
       } catch (e) {
         return false;
