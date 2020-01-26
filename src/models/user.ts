@@ -370,6 +370,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   /**
    * Leave workspace
    * @param workspaceId - id of the workspace
+   * @returns {Promise<void>}
    */
   public async leaveWorkspace(workspaceId: string): Promise<void> {
     // todo: use transaction
