@@ -31,7 +31,7 @@ class EventsFactory extends Factory {
     return {
       EVENTS: 'events',
       REPETITIONS: 'repetitions',
-      DAILY_EVENTS: 'dailyEvents'
+      DAILY_EVENTS: 'dailyEvents',
     };
   }
 
@@ -95,7 +95,7 @@ class EventsFactory extends Factory {
   async findById(id) {
     const searchResult = await this.getCollection(this.TYPES.EVENTS)
       .findOne({
-        _id: new ObjectID(id)
+        _id: new ObjectID(id),
       });
 
     return new Event(searchResult);
@@ -132,17 +132,17 @@ class EventsFactory extends Factory {
         $group: {
           _id: null,
           groupHash: { $addToSet: '$groupHash' },
-          dailyInfo: { $push: '$$ROOT' }
-        }
+          dailyInfo: { $push: '$$ROOT' },
+        },
       },
       {
         $lookup: {
           from: 'events:' + this.projectId,
           localField: 'groupHash',
           foreignField: 'groupHash',
-          as: 'events'
-        }
-      }
+          as: 'events',
+        },
+      },
     ]);
 
     const result = (await cursor.toArray()).shift();
@@ -170,12 +170,14 @@ class EventsFactory extends Factory {
    * @param {Number} lastVisit - user's last visit time on project
    *
    * @return {Promise<Number>}
+   *
+   * @todo move to Project model
    */
   async getUnreadCount(lastVisit) {
     const query = {
       'payload.timestamp': {
-        $gt: lastVisit
-      }
+        $gt: lastVisit,
+      },
     };
 
     return this.getCollection(this.TYPES.EVENTS)
@@ -183,13 +185,15 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Returns Event's repetitions
+   * Returns Event repetitions
    *
    * @param {string|ObjectID} eventId - Event's id
    * @param {Number} limit - count limitations
    * @param {Number} skip - selection offset
    *
    * @return {EventRepetitionSchema[]}
+   *
+   * @todo move to Repetitions(?) model
    */
   async getEventRepetitions(eventId, limit = 10, skip = 0) {
     limit = this.validateLimit(limit);
@@ -198,13 +202,28 @@ class EventsFactory extends Factory {
     const eventOriginal = await this.findById(eventId);
     const cursor = this.getCollection(this.TYPES.REPETITIONS)
       .find({
-        groupHash: eventOriginal.groupHash
+        groupHash: eventOriginal.groupHash,
       })
       .sort({ _id: -1 })
       .limit(limit)
       .skip(skip);
 
     return cursor.toArray();
+  }
+
+  /**
+   * Returns Event concrete repetition
+   *
+   * @param {String} repetitionId
+   * @return {EventRepetitionSchema|null}
+   *
+   * @todo move to Repetitions(?) model
+   */
+  async getEventRepetition(repetitionId) {
+    return this.getCollection(this.TYPES.REPETITIONS)
+      .findOne({
+        _id: ObjectID(repetitionId),
+      });
   }
 }
 

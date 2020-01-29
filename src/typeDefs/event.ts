@@ -17,22 +17,6 @@ type SourceCodeLine {
 }
 
 """
-Source code line representation for repetition
-This type is defined because repetition diff might be empty
-"""
-type RepetitionSourceCodeLine {
-  """
-  Line number
-  """
-  line: Int
-
-  """
-  Line's content
-  """
-  content: String
-}
-
-"""
 Event backtrace representation
 """
 type EventBacktraceFrame {
@@ -65,27 +49,6 @@ type EventBacktraceFrame {
   Function arguments extracted from current stack frame
   """
   arguments: [String]
-}
-
-"""
-Event backtrace representation for repetition
-backtrace for repetition can be different for repetition
-"""
-type RepetitionBacktrace {
-  """
-  Source filepath
-  """
-  file: String
-
-  """
-  Called line
-  """
-  line: Int
-
-  """
-  Part of source code file near the called line
-  """
-  sourceCode: [RepetitionSourceCodeLine!]
 }
 
 """
@@ -175,7 +138,7 @@ type RepetitionPayload {
   """
   Event stack array from the latest call to the earliest
   """
-  backtrace: [RepetitionBacktrace!]
+  backtrace: [EventBacktraceFrame!]
 
   """
   Additional data about GET request
@@ -216,7 +179,7 @@ type RepetitionPayload {
 """
 Event's repetitions. Make Event unique by repetition's payload
 """
-type Repetitions {
+type Repetition {
   """
   Standalone repetition ID
   """
@@ -261,11 +224,16 @@ type Event {
   Event payload
   """
   payload: EventPayload!
+    
+  """
+  Event concrete repetition
+  """
+  repetition(id: ID): Repetition
 
   """
-  Event's repetitions
+  Event repetitions
   """
-  repetitions(limit: Int = 10): [Repetitions!]
+  repetitions(limit: Int = 10): [Repetition!]
 }
 
 """
@@ -286,6 +254,11 @@ type DailyEventInfo {
   Event occurrence date
   """
   date: String!
+    
+  """
+  Event's last repetition ID
+  """
+  lastRepetitionId: ID
 
   """
   Last event occurrence timestamp
