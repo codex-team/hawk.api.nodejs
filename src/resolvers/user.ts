@@ -232,11 +232,6 @@ export default {
       { workspaceId }: { workspaceId: string },
       { user, factories }: ResolverContextWithUser
     ): Promise<boolean> {
-      const member = await new Team(workspaceId).getMember(user.id);
-      if (!member) {
-        throw new ApolloError('You are not in the workspace');
-      }
-
       const foundUser = await factories.usersFactory.findById(user.id);
       if (!foundUser) {
         throw new ApolloError('There is no user with such id');
@@ -246,6 +241,8 @@ export default {
         await foundUser.leaveWorkspace(workspaceId);
         return true;
       } catch (e) {
+        if (e instanceof ApolloError)
+          throw e;
         return false;
       }
     }

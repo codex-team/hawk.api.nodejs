@@ -6,6 +6,7 @@ import { Collection, ObjectID } from 'mongodb';
 import Team from '../models/team';
 import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
+import {ApolloError} from "apollo-server-errors";
 
 /**
  * Tokens pair for User authentication.
@@ -374,7 +375,23 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    */
   public async leaveWorkspace(workspaceId: string): Promise<void> {
     // todo: use transaction
-    await new Team(workspaceId).removeMember(this._id.toString());
+    const team = new Team(workspaceId);
+
+    const member = await team.getMember(this._id.toString());
+    if (!member) {
+       throw new ApolloError('You are not in the workspace');
+    }
+
+    const members = await team.getAllUsers();
+    if (member.isAdmin){
+      if (members.filter(m=>m.isAdmin).length == 1)
+        throw new ApolloError('You cannot leave the workspace because you are the last admin');
+      if (members.filter(m=>!m.isAdmin).length != 0)
+        throw new ApolloError('You cannot leave the workspace because there are participants in it');
+    }
+
+    await team.removeMember(this._id.toString());
     await this.removeWorkspace(workspaceId);
+    // todo: remove workspace if members.length == 1
   }
 }
