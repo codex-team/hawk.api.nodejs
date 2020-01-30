@@ -1,6 +1,5 @@
 import { ResolverContextBase, ResolverContextWithUser, UserJWTData } from '../types/graphql';
 import UserModel, { TokensPair } from '../models/user';
-import Team from '../models/team';
 import { AuthenticationError, ApolloError, UserInputError } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
 import { errorCodes } from '../errors';
