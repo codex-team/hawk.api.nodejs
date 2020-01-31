@@ -98,6 +98,7 @@ module.exports = {
      *
      * @param {String} id  - id of project (root resolver)
      * @param {String} eventId - event's identifier
+     *
      * @returns {Event}
      */
     async event({ id }, { id: eventId }) {
