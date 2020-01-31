@@ -174,8 +174,8 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * @param userId - user ID
    * @param newPassword - new user password
    */
-  public static async changePassword(userId: string | ObjectID, newPassword: string): Promise<void> {
-    const hashedPassword = await this.hashPassword(newPassword);
+  public async changePassword(userId: string | ObjectID, newPassword: string): Promise<void> {
+    const hashedPassword = await UserModel.hashPassword(newPassword);
 
     const status = await this.update(
       { _id: new ObjectID(userId) },
@@ -192,7 +192,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * @param userId - user ID
    * @param  user – user object
    */
-  public static async updateProfile(userId: string, user: Partial<UserDBScheme>): Promise<void> {
+  public async updateProfile(user: Partial<UserDBScheme>): Promise<void> {
     if (!await objectHasOnlyProps(user, {
       name: true,
       email: true,
@@ -203,7 +203,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
 
     try {
       await this.update(
-        { _id: new ObjectID(userId) },
+        { _id: new ObjectID(this._id) },
         user
       );
     } catch (e) {

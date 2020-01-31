@@ -1,5 +1,5 @@
 import { ResolverContextBase, ResolverContextWithUser, UserJWTData } from '../types/graphql';
-import UserModel, { TokensPair, UserDBScheme } from '../models/user';
+import UserModel, { TokensPair } from '../models/user';
 import { AuthenticationError, ApolloError, UserInputError } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
 import { errorCodes } from '../errors';
@@ -134,7 +134,7 @@ export default {
       try {
         const newPassword = await UserModel.generatePassword();
 
-        await UserModel.changePassword(user._id, newPassword);
+        await user.changePassword(user._id, newPassword);
 
         /**
          * @todo Make email queue
@@ -169,6 +169,7 @@ export default {
       }
 
       const userWithEmail = await factories.usersFactory.findByEmail(email);
+      const currentUser = await factories.usersFactory.findById(user.id);
 
       // TODO: replace with email verification
       if (userWithEmail && userWithEmail._id.toString() !== user.id) {
@@ -193,7 +194,7 @@ export default {
           options.image = image;
         }
 
-        await UserModel.updateProfile(user.id, options);
+        await currentUser!.updateProfile(options);
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
@@ -225,7 +226,7 @@ export default {
       }
 
       try {
-        await UserModel.changePassword(user.id, newPassword);
+        await foundUser.changePassword(user.id, newPassword);
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
