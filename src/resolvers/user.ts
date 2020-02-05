@@ -134,7 +134,7 @@ export default {
       try {
         const newPassword = await UserModel.generatePassword();
 
-        await user.changePassword(user._id, newPassword);
+        await user.changePassword(newPassword);
 
         /**
          * @todo Make email queue
@@ -226,7 +226,7 @@ export default {
       }
 
       try {
-        await foundUser.changePassword(user.id, newPassword);
+        await foundUser.changePassword(newPassword);
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }

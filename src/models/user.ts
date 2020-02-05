@@ -174,11 +174,11 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * @param userId - user ID
    * @param newPassword - new user password
    */
-  public async changePassword(userId: string | ObjectID, newPassword: string): Promise<void> {
+  public async changePassword(newPassword: string): Promise<void> {
     const hashedPassword = await UserModel.hashPassword(newPassword);
 
     const status = await this.update(
-      { _id: new ObjectID(userId) },
+      { _id: new ObjectID(this._id) },
       { password: hashedPassword }
     );
 

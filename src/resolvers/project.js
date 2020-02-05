@@ -45,8 +45,13 @@ module.exports = {
       if (!workspace) {
         throw new ValidationError('No such workspace');
       }
+
       const team = new Team(workspaceId);
       const teamInstance = await team.findByUserId(user.id);
+
+      if (!teamInstance.isAdmin) {
+        throw new ApolloError('Only admins can create projects');
+      }
 
       let image;
 
@@ -64,10 +69,6 @@ module.exports = {
 
       if (image) {
         options.image = image;
-      }
-
-      if (!teamInstance.isAdmin) {
-        throw new ApolloError('Only admins can create projects');
       }
 
       const project = await Project.create(options);
