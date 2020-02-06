@@ -40,6 +40,14 @@ class Team {
   }
 
   /**
+   * Remove workspace
+   * @returns {Promise<void>}
+   */
+  async remove() {
+    await mongo.databases.hawk.dropCollection('team:' + this.workspaceId);
+  }
+
+  /**
    * Adds new member to the workspace team
    * @param {String} memberId - user's id to add
    * @param {boolean} isPending - if true, mark member as pending

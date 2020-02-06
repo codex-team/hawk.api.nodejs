@@ -392,6 +392,9 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
 
     await team.removeMember(this._id.toString());
     await this.removeWorkspace(workspaceId);
-    // todo: remove workspace if members.length == 1
+
+    if (members.length == 1){
+      await team.remove();
+    }
   }
 }
