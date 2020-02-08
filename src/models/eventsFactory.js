@@ -37,7 +37,7 @@ class EventsFactory extends Factory {
 
   /**
    * Creates Event instance
-   * @param {string|ObjectID} projectId - project ID
+   * @param {string} projectId - project ID
    */
   constructor(projectId) {
     super();
@@ -224,6 +224,16 @@ class EventsFactory extends Factory {
       .findOne({
         _id: ObjectID(repetitionId),
       });
+  }
+
+  /**
+   * @param {string} eventId
+   * @return {EventRepetitionSchema|null}
+   */
+  async getEventLastRepetition(eventId) {
+    const repetitions = await this.getEventRepetitions(eventId, 1);
+
+    return repetitions.shift();
   }
 }
 

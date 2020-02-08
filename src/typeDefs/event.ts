@@ -8,7 +8,7 @@ type SourceCodeLine {
   """
   Line number
   """
-  line: Int!
+  line: Int
 
   """
   Line's content
@@ -38,7 +38,7 @@ type EventBacktraceFrame {
   """
   Part of source code file near the called line
   """
-  sourceCode: [SourceCodeLine!]
+  sourceCode: [SourceCodeLine]
 
   """
   Function name extracted from current stack frame

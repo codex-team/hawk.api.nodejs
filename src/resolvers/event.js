@@ -14,12 +14,18 @@ module.exports = {
     /**
      * Returns Event with concrete repetition
      *
-     * @param {String} projectId
-     * @param {String|null} repetitionId
+     * @param {string} eventId
+     * @param {string} projectId
+     * @param {string} groupHash
+     * @param {string|null} repetitionId
      * @return {Promise<EventRepetitionSchema>}
      */
-    async repetition({ projectId }, { id: repetitionId }) {
+    async repetition({ id: eventId, projectId, groupHash }, { id: repetitionId }) {
       const factory = new EventsFactory(projectId);
+
+      if (!repetitionId) {
+        return factory.getEventLastRepetition(eventId);
+      }
 
       return factory.getEventRepetition(repetitionId);
     },
