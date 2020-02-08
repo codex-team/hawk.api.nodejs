@@ -232,7 +232,7 @@ type Event {
 
   """
   Array of ID of users who visited event
-  """"
+  """
   visitedBy: [ID!]
 
   """
