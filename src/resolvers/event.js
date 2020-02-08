@@ -15,7 +15,7 @@ module.exports = {
      * Returns Event with concrete repetition
      *
      * @param {String} projectId
-     * @param {String} repetitionId
+     * @param {String|null} repetitionId
      * @return {Promise<EventRepetitionSchema>}
      */
     async repetition({ projectId }, { id: repetitionId }) {

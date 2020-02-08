@@ -1,6 +1,6 @@
 import argon2 from 'argon2';
 import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
+import jwt, { Secret } from 'jsonwebtoken';
 import { OptionalId } from '../mongo';
 import { Collection, ObjectID } from 'mongodb';
 import AbstractModel from './abstractModel';
@@ -219,7 +219,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       {
         userId: this._id,
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET as Secret,
       { expiresIn: '15m' }
     );
 
@@ -227,7 +227,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       {
         userId: this._id,
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET as Secret,
       { expiresIn: '30d' }
     );
 
