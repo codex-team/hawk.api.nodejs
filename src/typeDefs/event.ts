@@ -224,11 +224,16 @@ type Event {
   Event payload
   """
   payload: EventPayload!
-    
+
   """
   Event concrete repetition
   """
   repetition(id: ID): Repetition
+
+  """
+  Array of ID of users who visited event
+  """"
+  visitedBy: [ID!]
 
   """
   Event repetitions
@@ -254,7 +259,7 @@ type DailyEventInfo {
   Event occurrence date
   """
   date: String!
-    
+
   """
   Event's last repetition ID
   """
@@ -286,5 +291,15 @@ type RecentEvents {
   Information about occurred events per day
   """
   dailyInfo: [DailyEventInfo]
+}
+
+extend type Mutation {
+  """
+  Mutation marks event as visited for current user
+  """
+  visitEvent(
+    project: ID!,
+    id: ID!
+  ): Boolean! @requireAuth
 }
 `;
