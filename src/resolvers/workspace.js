@@ -41,7 +41,7 @@ module.exports = {
      *
      * @return {String} created workspace id
      */
-    async createWorkspace(_obj, { name, description, image }, { user, factories }) {
+    async createWorkspace(_obj, { name, description, image: upload }, { user, factories }) {
       const ownerId = user.id;
 
       // @todo make workspace creation via transactions
@@ -61,9 +61,12 @@ module.exports = {
          * };
          */
 
-        if (image) {
-          image = await image;
-          image = save(image.createReadStream(), image.mimetype);
+        let image;
+
+        if (upload) {
+          const imageMeta = await upload;
+
+          image = save(imageMeta.createReadStream(), imageMeta.mimetype);
         }
 
         const options = {
