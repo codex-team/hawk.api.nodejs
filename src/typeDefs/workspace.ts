@@ -133,7 +133,7 @@ export default gql`
       description: String
 
       "New workspace image"
-      image: String
+      image: Upload
     ): Workspace! @requireAuth
 
     """
@@ -160,6 +160,9 @@ export default gql`
 
       "Workspace description"
       description: String
+        
+      "Workspace image"
+      image: Upload
     ): Boolean! @requireAuth
 
     """

@@ -17,6 +17,11 @@ export default abstract class AbstractModel<DBScheme> {
   protected readonly dbConnection: Db = databases.hawk!;
 
   /**
+   * Model's collection
+   */
+  protected abstract collection: Collection;
+
+  /**
    * Creates model instance
    * @param modelData - data to fill model
    */
@@ -25,19 +30,12 @@ export default abstract class AbstractModel<DBScheme> {
   };
 
   /**
-   * Model's collection
-   */
-  protected static get collection(): Collection {
-    throw new Error('Collection getter is not implemented');
-  }
-
-  /**
    * Update entity data
    * @param query - query to match
    * @param data - update data
    * @return number of documents modified
    */
-  public static async update(query: object, data: object): Promise<number> {
+  public async update(query: object, data: object): Promise<number> {
     return (await this.collection.updateOne(query, { $set: data })).modifiedCount;
   }
 }
