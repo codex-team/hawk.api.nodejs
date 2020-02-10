@@ -88,4 +88,22 @@ module.exports = {
       },
     },
   },
+  Mutation: {
+    /**
+     * Mark event as visited for current user
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} project - project id
+     * @param {string} id - event id
+     * @param {UserInContext} user
+     * @return {Promise<boolean>}
+     */
+    async visitEvent(_obj, { project, id }, { user }) {
+      const factory = new EventsFactory(project);
+
+      const { result } = await factory.visitEvent(id, user.id);
+
+      return !!result.ok;
+    },
+  },
 };
