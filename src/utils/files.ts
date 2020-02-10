@@ -4,12 +4,12 @@ import uuid from 'uuid';
 import mime from 'mime-types';
 import { Readable } from 'stream';
 
+const uploadDirPath = process.env.UPLOAD_DIR || 'uploads';
+
 /**
  * Creates upload dir in project root
  */
 export function createUploadsDir(): void {
-  const uploadDirPath = process.env.UPLOAD_DIR || 'uploads';
-
   if (fs.existsSync(uploadDirPath)) {
     return;
   }
@@ -31,7 +31,7 @@ export function save(file: Readable, mimetype: string): string {
   const extension = mime.extension(mimetype);
   const name = uuid() + '.' + extension;
 
-  const uploadPath = path.join(process.env.UPLOAD_DIR!, name);
+  const uploadPath = path.join(uploadDirPath, name);
 
   const writeStream = fs.createWriteStream(uploadPath);
 

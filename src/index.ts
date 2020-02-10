@@ -61,7 +61,7 @@ class HawkAPI {
   constructor() {
     this.app.use(express.json());
     this.app.post('/billing', billing.notifyCallback);
-    this.app.use('/uploads', express.static('./uploads'));
+    this.app.use('/uploads', express.static(`./${process.env.UPLOADS_DIR || 'uploads'}`));
     this.app.use(authRouter);
 
     initializeStrategies();
