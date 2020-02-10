@@ -225,6 +225,22 @@ class EventsFactory extends Factory {
         _id: ObjectID(repetitionId),
       });
   }
+
+  /**
+   * Mark event as visited for passed user
+   *
+   * @param {string|ObjectId} eventId
+   * @param {string|ObjectId} userId
+   *
+   * @return {Promise<void>}
+   */
+  async visitEvent(eventId, userId) {
+    return this.getCollection(this.TYPES.EVENTS)
+      .updateOne(
+        { _id: new ObjectID(eventId) },
+        { $addToSet: { visitedBy: new ObjectID(userId) } }
+      );
+  }
 }
 
 module.exports = EventsFactory;
