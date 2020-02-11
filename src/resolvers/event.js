@@ -16,11 +16,10 @@ module.exports = {
      *
      * @param {string} eventId
      * @param {string} projectId
-     * @param {string} groupHash
      * @param {string|null} repetitionId
      * @return {Promise<EventRepetitionSchema>}
      */
-    async repetition({ id: eventId, projectId, groupHash }, { id: repetitionId }) {
+    async repetition({ id: eventId, projectId }, { id: repetitionId }) {
       const factory = new EventsFactory(projectId);
 
       if (!repetitionId) {
@@ -92,6 +91,24 @@ module.exports = {
       resolve: (payload) => {
         return payload.fullDocument;
       },
+    },
+  },
+  Mutation: {
+    /**
+     * Mark event as visited for current user
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} project - project id
+     * @param {string} id - event id
+     * @param {UserInContext} user
+     * @return {Promise<boolean>}
+     */
+    async visitEvent(_obj, { project, id }, { user }) {
+      const factory = new EventsFactory(project);
+
+      const { result } = await factory.visitEvent(id, user.id);
+
+      return !!result.ok;
     },
   },
 };

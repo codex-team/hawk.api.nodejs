@@ -6,6 +6,8 @@ import { errorCodes } from '../errors';
 import emailProvider from '../email';
 import { names as emailTemplatesNames } from '../email/templates';
 import Validator from '../utils/validator';
+import { save } from '../utils/files';
+import { FileUpload } from 'graphql-upload';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -132,7 +134,7 @@ export default {
       try {
         const newPassword = await UserModel.generatePassword();
 
-        await UserModel.changePassword(user._id, newPassword);
+        await user.changePassword(newPassword);
 
         /**
          * @todo Make email queue
@@ -154,11 +156,12 @@ export default {
      * @param name - user's name to change
      * @param email - user's email to change
      * @param user - current authenticated user
+     * @param {Promise<FileUpload>} image - user avatar
      * @param factories - factories for working with models
      */
     async updateProfile(
       _obj: undefined,
-      { name, email }: {name: string; email: string},
+      { name, email, image: upload }: {name: string; email: string; image: Promise<FileUpload>},
       { user, factories }: ResolverContextWithUser
     ): Promise<boolean> {
       if (email && !Validator.validateEmail(email)) {
@@ -166,17 +169,32 @@ export default {
       }
 
       const userWithEmail = await factories.usersFactory.findByEmail(email);
+      const currentUser = await factories.usersFactory.findById(user.id);
 
       // TODO: replace with email verification
       if (userWithEmail && userWithEmail._id.toString() !== user.id) {
         throw new UserInputError('This email is taken');
       }
 
+      let image = '';
+
+      if (upload) {
+        const imageMeta = await upload;
+
+        image = save(imageMeta.createReadStream(), imageMeta.mimetype);
+      }
+
       try {
-        await UserModel.updateProfile(user.id, {
+        const options: {[key: string]: string} = {
           name,
           email,
-        });
+        };
+
+        if (image) {
+          options.image = image;
+        }
+
+        await currentUser!.updateProfile(options);
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
@@ -208,7 +226,7 @@ export default {
       }
 
       try {
-        await UserModel.changePassword(user.id, newPassword);
+        await foundUser.changePassword(newPassword);
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }

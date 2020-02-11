@@ -104,6 +104,9 @@ extend type Mutation {
     workspaceId: ID!
     "Project name"
     name: String!
+      
+    "Project image"
+    image: Upload
   ): Project! @requireAuth
 
   """

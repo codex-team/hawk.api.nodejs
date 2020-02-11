@@ -1,3 +1,5 @@
+import { save } from '../utils/files';
+
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const crypto = require('crypto');
 
@@ -39,7 +41,7 @@ module.exports = {
      *
      * @return {String} created workspace id
      */
-    async createWorkspace(_obj, { name, description, image }, { user, factories }) {
+    async createWorkspace(_obj, { name, description, image: upload }, { user, factories }) {
       const ownerId = user.id;
 
       // @todo make workspace creation via transactions
@@ -58,13 +60,28 @@ module.exports = {
          *   name: defaultPlan.name
          * };
          */
-        const workspace = await Workspace.create({
+
+        let image;
+
+        if (upload) {
+          const imageMeta = await upload;
+
+          image = save(imageMeta.createReadStream(), imageMeta.mimetype);
+        }
+
+        const options = {
           name,
           balance: 0,
           description,
           image,
           // plan
-        });
+        };
+
+        if (image) {
+          options.image = image;
+        }
+
+        const workspace = await Workspace.create(options);
 
         const team = new Team(workspace.id);
 
@@ -188,16 +205,18 @@ module.exports = {
      * @param {string} workspaceId - id of the updated workspace
      * @param {string} name - workspace name
      * @param {string} description - workspace description
+     * @param {Promise<FileUpload>} - workspace logo
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      *
      * @returns {Promise<Boolean>}
      */
-    async updateWorkspace(_obj, { id, name, description }, { user, factories }) {
+    async updateWorkspace(_obj, { id, name, description, image: upload }, { user, factories }) {
       // @makeAnIssue Create directives for arguments validation
       if (!Validator.string(name)) {
         throw new UserInputError('Invalid name length');
       }
+
       if (!Validator.string(description, 0)) {
         throw new UserInputError('Invalid description length');
       }
@@ -210,11 +229,25 @@ module.exports = {
         throw new ApolloError('There is no workspace with that id');
       }
 
+      let image;
+
+      if (upload) {
+        const imageMeta = await upload;
+
+        image = save(imageMeta.createReadStream(), imageMeta.mimetype);
+      }
+
       try {
-        await Workspace.updateWorkspace(workspace.id, {
+        const options = {
           name,
           description,
-        });
+        };
+
+        if (image) {
+          options.image = image;
+        }
+
+        await Workspace.updateWorkspace(workspace.id, options);
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
