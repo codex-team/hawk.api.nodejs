@@ -231,14 +231,14 @@ type Event {
   repetition(id: ID): Repetition
 
   """
-  Array of ID of users who visited event
-  """
-  visitedBy: [ID!]
-
-  """
   Event repetitions
   """
   repetitions(limit: Int = 10): [Repetition!]
+
+  """
+  Array of ID of users who visited event
+  """
+  visitedBy: [ID!]
 }
 
 """
