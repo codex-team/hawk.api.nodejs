@@ -86,6 +86,9 @@ export default gql`
 
       "User email"
       email: String!
+        
+      "User image file"
+      image: Upload
     ): Boolean! @requireAuth
 
     """
