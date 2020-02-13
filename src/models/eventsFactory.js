@@ -199,7 +199,16 @@ class EventsFactory extends Factory {
     limit = this.validateLimit(limit);
     skip = this.validateSkip(skip);
 
+    /**
+     * Get original event
+     * @type {EventSchema}
+     */
     const eventOriginal = await this.findById(eventId);
+
+    /**
+     * Collect repetitions
+     * @type {EventRepetitionSchema[]}
+     */
     const repetitions = await this.getCollection(this.TYPES.REPETITIONS)
       .find({
         groupHash: eventOriginal.groupHash,
@@ -212,11 +221,21 @@ class EventsFactory extends Factory {
     const isLastPortion = repetitions.length < limit && skip === 0;
 
     /**
-     * Add original event to the end of repetitions list
-     * on at last portion
+     * For last portion:
+     * add original event to the end of repetitions list
      */
     if (isLastPortion) {
-      repetitions.push(eventOriginal);
+      /**
+       * Get only 'repetitions' fields from event to fit Repetition scheme
+       * @type {EventRepetitionSchema}
+       */
+      const firstRepetition = {
+        _id: eventOriginal._id,
+        payload: eventOriginal.payload,
+        groupHash: eventOriginal.groupHash,
+      };
+
+      repetitions.push(firstRepetition);
     }
 
     return repetitions;
