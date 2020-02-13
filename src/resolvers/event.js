@@ -14,8 +14,8 @@ module.exports = {
     /**
      * Returns Event with concrete repetition
      *
-     * @param {string} eventId - id of Event of where repetition requested
-     * @param {string} projectId - projectId of Event of where repetition requested
+     * @param {string} eventId - id of Event of which repetition requested
+     * @param {string} projectId - projectId of Event of which repetition requested
      * @param {string|null} [repetitionId] - if not specified, last repetition will returned
      * @return {Promise<EventRepetitionSchema>}
      */
