@@ -200,15 +200,26 @@ class EventsFactory extends Factory {
     skip = this.validateSkip(skip);
 
     const eventOriginal = await this.findById(eventId);
-    const cursor = this.getCollection(this.TYPES.REPETITIONS)
+    const repetitions = await this.getCollection(this.TYPES.REPETITIONS)
       .find({
         groupHash: eventOriginal.groupHash,
       })
       .sort({ _id: -1 })
       .limit(limit)
-      .skip(skip);
+      .skip(skip)
+      .toArray();
 
-    return cursor.toArray();
+    const isLastPortion = repetitions.length < limit && skip === 0;
+
+    /**
+     * Add original event to the end of repetitions list
+     * on at last portion
+     */
+    if (isLastPortion) {
+      repetitions.push(eventOriginal);
+    }
+
+    return repetitions;
   }
 
   /**
