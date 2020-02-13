@@ -12,7 +12,7 @@ const initializeStrategies = () => {
     new JwtStrategy(
       {
         secretOrKey: process.env.JWT_SECRET,
-        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken()
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       },
       (payload, done) => {
         return done(null, payload.userId);
@@ -27,7 +27,7 @@ const initializeStrategies = () => {
         clientSecret: process.env.GITHUB_CLIENT_SECRET,
         callbackURL:
           (process.env.API_URL || 'http://127.0.0.1:4000') +
-          AUTH_ROUTES.GITHUB_CALLBACK
+          AUTH_ROUTES.GITHUB_CALLBACK,
       },
       async (accessToken, refreshToken, profile, cb) => {
         try {
@@ -40,7 +40,7 @@ const initializeStrategies = () => {
           user = await User.createByGithub({
             id: profile.id,
             name: profile.displayName,
-            image: profile.photos[0].value
+            image: profile.photos[0].value,
           });
 
           return cb(null, user);

@@ -27,11 +27,13 @@ class Model {
   static async findOne(query) {
     const searchResult = await this.collection.findOne(query);
 
-    if (!searchResult) return null;
+    if (!searchResult) {
+      return null;
+    }
 
     return new this({
       id: searchResult._id,
-      ...searchResult
+      ...searchResult,
     });
   }
 
@@ -42,12 +44,12 @@ class Model {
    */
   static async findById(id) {
     const searchResult = await this.collection.findOne({
-      _id: new ObjectID(id)
+      _id: new ObjectID(id),
     });
 
     return new this({
       id: searchResult._id,
-      ...searchResult
+      ...searchResult,
     });
   }
 

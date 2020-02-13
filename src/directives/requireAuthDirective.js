@@ -1,9 +1,9 @@
 const {
   SchemaDirectiveVisitor,
-  AuthenticationError
+  AuthenticationError,
 } = require('apollo-server-express');
 const {
-  AccessTokenExpiredError
+  AccessTokenExpiredError,
 } = require('../errors');
 const { defaultFieldResolver } = require('graphql');
 
@@ -20,7 +20,7 @@ class RequireAuthDirective extends SchemaDirectiveVisitor {
      */
     const {
       resolve = defaultFieldResolver,
-      subscribe
+      subscribe,
     } = field;
 
     /**
@@ -39,6 +39,7 @@ class RequireAuthDirective extends SchemaDirectiveVisitor {
       const [, , context] = resolverArgs;
 
       RequireAuthDirective.checkUser(context);
+
       return subscribe.apply(this, resolverArgs);
     };
   }

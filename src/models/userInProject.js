@@ -32,13 +32,13 @@ class UserInProject {
     const time = Date.now() / 1000;
 
     this.collection.updateOne({
-      userId: new ObjectID(this.userId)
+      userId: new ObjectID(this.userId),
     }, {
       $set: {
-        timestamp: time
-      }
+        timestamp: time,
+      },
     }, {
-      upsert: true
+      upsert: true,
     });
 
     return time;
@@ -51,7 +51,7 @@ class UserInProject {
    */
   async getLastVisit() {
     const result = await this.collection.findOne({
-      userId: new ObjectID(this.userId)
+      userId: new ObjectID(this.userId),
     });
 
     return result && result.timestamp;
@@ -63,7 +63,7 @@ class UserInProject {
    */
   async getPersonalNotificationsSettings() {
     const result = await this.collection.findOne({
-      userId: new ObjectID(this.userId)
+      userId: new ObjectID(this.userId),
     });
 
     return result && result.notificationSettings;

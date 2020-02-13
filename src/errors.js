@@ -12,7 +12,7 @@ const errorCodes = {
   /**
    * MongoDB error codes
    */
-  DB_DUPLICATE_KEY_ERROR: '11000'
+  DB_DUPLICATE_KEY_ERROR: '11000',
 };
 
 /**
@@ -29,5 +29,5 @@ class AccessTokenExpiredError extends ApolloError {
 
 module.exports = {
   errorCodes,
-  AccessTokenExpiredError
+  AccessTokenExpiredError,
 };
