@@ -20,10 +20,11 @@ const { ObjectID } = require('mongodb');
 /**
  * EventsFactory
  *
- * Creational Class for Event's Model
+ * Factory Class for Event's Model
  */
 class EventsFactory extends Factory {
   /**
+   * Event types with collections where they stored
    * @return {{EVENTS: string, DAILY_EVENTS: string, REPETITIONS: string}}
    * @constructor
    */
@@ -244,7 +245,7 @@ class EventsFactory extends Factory {
   /**
    * Returns Event concrete repetition
    *
-   * @param {String} repetitionId
+   * @param {String} repetitionId - id of Repetition to find
    * @return {EventRepetitionSchema|null}
    *
    * @todo move to Repetitions(?) model
@@ -257,7 +258,8 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * @param {string} eventId
+   * Return last occurrence of event
+   * @param {string} eventId - id of event to find repetition
    * @return {EventRepetitionSchema|null}
    */
   async getEventLastRepetition(eventId) {
