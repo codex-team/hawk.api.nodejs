@@ -6,7 +6,7 @@ const passport = require('passport');
  */
 const AUTH_ROUTES = {
   GITHUB_REDIR: '/auth/github',
-  GITHUB_CALLBACK: '/auth/github/callback'
+  GITHUB_CALLBACK: '/auth/github/callback',
 };
 
 const authRouter = express.Router();
@@ -22,7 +22,7 @@ authRouter.get(
   AUTH_ROUTES.GITHUB_CALLBACK,
   passport.authenticate('github', {
     session: false,
-    failureRedirect: '/login'
+    failureRedirect: '/login',
   }),
   async (req, res) => {
     // res.json(await req.user.generateTokensPair());
@@ -34,4 +34,7 @@ authRouter.get(
   }
 );
 
-module.exports = { AUTH_ROUTES, authRouter };
+module.exports = {
+  AUTH_ROUTES,
+  authRouter,
+};

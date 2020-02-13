@@ -245,6 +245,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
     if (!this.password) {
       return false;
     }
+
     return argon2.verify(this.password, password);
   }
 
@@ -363,6 +364,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
         ...pipeline,
       ]).toArray();
     }
+
     return this.membershipCollection.aggregate(pipeline).toArray();
   }
 }

@@ -50,7 +50,7 @@ class Workspace extends Model {
 
     return new Workspace({
       id: workspaceId,
-      ...workspaceData
+      ...workspaceData,
     });
   }
 
@@ -62,7 +62,11 @@ class Workspace extends Model {
    * @returns {Promise<void>}
    */
   static async updateWorkspace(workspaceId, workspace) {
-    if (!await objectHasOnlyProps(workspace, { name: true, description: true, image: true })) {
+    if (!await objectHasOnlyProps(workspace, {
+      name: true,
+      description: true,
+      image: true,
+    })) {
       throw new Error('User object has invalid properties\'');
     }
 

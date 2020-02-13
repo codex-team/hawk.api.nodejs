@@ -31,7 +31,7 @@ const ReceiveTypes = {
   /**
    * Receive events that includes words from list
    */
-  INCLUDING: 'INCLUDING'
+  INCLUDING: 'INCLUDING',
 };
 
 /**
@@ -40,7 +40,7 @@ const ReceiveTypes = {
 const ProviderTypes = {
   EMAIL: 'EMAIL',
   TELEGRAM: 'EMAIL',
-  SLACK: 'SLACK'
+  SLACK: 'SLACK',
 };
 
 /**
@@ -90,15 +90,15 @@ class Notify {
           {
             provider: ProviderTypes.EMAIL,
             value: userEmail,
-            enabled: true
-          }
-        ]
+            enabled: true,
+          },
+        ],
       };
     }
 
     return {
       receiveType: ReceiveTypes.ALL,
-      providers: []
+      providers: [],
     };
   }
 }

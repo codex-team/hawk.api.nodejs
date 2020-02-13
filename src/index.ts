@@ -84,6 +84,7 @@ class HawkAPI {
       context: (req: ExpressContext): Promise<ResolverContextBase> => this.createContext(req),
       formatError: (error): GraphQLError => {
         console.error(error.originalError);
+
         return error;
       },
     });

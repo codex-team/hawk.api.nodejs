@@ -79,7 +79,7 @@ class Project {
     return new Project({
       id: projectId,
       token,
-      ...projectData
+      ...projectData,
     });
   }
 
@@ -99,7 +99,10 @@ class Project {
 
     // Memory overflow?
     return (await cursor.toArray()).map(
-      project => new Project({ id: project._id, ...project })
+      project => new Project({
+        id: project._id,
+        ...project,
+      })
     );
   }
 
@@ -111,7 +114,7 @@ class Project {
    */
   static async findById(projectId) {
     const project = await this.collection.findOne({
-      _id: new ObjectID(projectId)
+      _id: new ObjectID(projectId),
     });
 
     if (!project) {
@@ -120,7 +123,7 @@ class Project {
 
     return new Project({
       id: project._id,
-      ...project
+      ...project,
     });
   }
 
@@ -176,7 +179,7 @@ class ProjectToWorkspace {
 
     return (await cursor.toArray()).map(projectWorkspace => ({
       id: projectWorkspace._id,
-      ...projectWorkspace
+      ...projectWorkspace,
     }));
   }
 
@@ -188,7 +191,7 @@ class ProjectToWorkspace {
    */
   async findById(projectWorkspaceId) {
     const projectWorkspace = await this.collection.findOne({
-      _id: new ObjectID(projectWorkspaceId)
+      _id: new ObjectID(projectWorkspaceId),
     });
 
     if (!projectWorkspace) {
@@ -197,7 +200,7 @@ class ProjectToWorkspace {
 
     return {
       id: projectWorkspace._id,
-      ...projectWorkspace
+      ...projectWorkspace,
     };
   }
 
@@ -214,7 +217,7 @@ class ProjectToWorkspace {
 
     return {
       id: projectToWorkspace.insertedId,
-      ...projectToWorkspace
+      ...projectToWorkspace,
     };
   }
 
@@ -234,22 +237,22 @@ class ProjectToWorkspace {
           from: 'projects',
           localField: 'projectId',
           foreignField: '_id',
-          as: 'project'
-        }
+          as: 'project',
+        },
       },
       {
-        $unwind: '$project'
+        $unwind: '$project',
       },
       {
         $replaceRoot: {
-          newRoot: '$project'
-        }
+          newRoot: '$project',
+        },
       },
       {
         $addFields: {
-          id: '$_id'
-        }
-      }
+          id: '$_id',
+        },
+      },
     ];
 
     if (ids.length) {
@@ -258,19 +261,20 @@ class ProjectToWorkspace {
           {
             $match: {
               projectId: {
-                $in: ids
-              }
-            }
+                $in: ids,
+              },
+            },
           },
-          ...pipleine
+          ...pipleine,
         ])
         .toArray();
     }
+
     return this.collection.aggregate(pipleine).toArray();
   }
 }
 
 module.exports = {
   Project,
-  ProjectToWorkspace
+  ProjectToWorkspace,
 };

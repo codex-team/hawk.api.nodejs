@@ -51,47 +51,47 @@ class Transaction extends Model {
     const pipeline = [
       {
         $match: {
-          workspaceId: { $in: ids.map(id => new ObjectID(id)) }
-        }
+          workspaceId: { $in: ids.map(id => new ObjectID(id)) },
+        },
       },
       {
         $lookup: {
           from: 'workspaces',
           localField: 'workspaceId',
           foreignField: '_id',
-          as: 'workspace'
-        }
+          as: 'workspace',
+        },
       },
       {
-        $unwind: '$workspace'
+        $unwind: '$workspace',
       },
       {
         $lookup: {
           from: 'users',
           localField: 'userId',
           foreignField: '_id',
-          as: 'user'
-        }
+          as: 'user',
+        },
       },
       {
         $unwind: {
           path: '$user',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $addFields: {
           'workspace.id': '$workspace._id',
           'user.id': '$user._id',
           workspaceId: '$$REMOVE',
-          userId: '$$REMOVE'
-        }
+          userId: '$$REMOVE',
+        },
       },
       {
         $sort: {
-          date: -1
-        }
-      }
+          date: -1,
+        },
+      },
     ];
 
     const docs = await this.collection.aggregate(pipeline).toArray();
