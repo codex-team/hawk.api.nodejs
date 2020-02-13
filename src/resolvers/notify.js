@@ -87,6 +87,6 @@ module.exports = {
       }
 
       return (await Project.findById(projectId)).commonNotificationsSettings;
-    }
-  }
+    },
+  },
 };

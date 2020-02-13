@@ -1,5 +1,5 @@
 const {
-  SchemaDirectiveVisitor
+  SchemaDirectiveVisitor,
 } = require('apollo-server-express');
 const { defaultFieldResolver } = require('graphql');
 
@@ -18,6 +18,7 @@ module.exports = class RenameFromDirective extends SchemaDirectiveVisitor {
     field.resolve = async (object, args, context, info) => {
       object[field.name] = object[name];
       delete object[name];
+
       return resolve.call(this, object, args, context, info);
     };
   }

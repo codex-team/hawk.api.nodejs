@@ -63,9 +63,10 @@ module.exports = class AsyncIteratorForEmitter {
       this.emitter = await this.emitterResolver;
       this.emitter.on(this.eventName, this.pushValue);
     }
+
     return {
       done: this.done,
-      value: this.done ? undefined : await this.pullValue()
+      value: this.done ? undefined : await this.pullValue(),
     };
   }
 
@@ -76,6 +77,7 @@ module.exports = class AsyncIteratorForEmitter {
   async return() {
     this.emitter.close();
     this.done = true;
+
     return { done: this.done };
   }
 
@@ -87,9 +89,10 @@ module.exports = class AsyncIteratorForEmitter {
   async throw(error) {
     this.emitter.close();
     this.done = true;
+
     return {
       done: this.done,
-      value: Promise.reject(error)
+      value: Promise.reject(error),
     };
   }
 };

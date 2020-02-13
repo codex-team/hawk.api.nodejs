@@ -6,13 +6,13 @@ const AsyncIteratorForEmitter = require('./asyncIteratorForEmitter');
  */
 const pipeline = [
   {
-    $match: { operationType: 'insert' }
+    $match: { operationType: 'insert' },
   },
   {
     $addFields: {
-      'fullDocument.id': '$fullDocument._id'
-    }
-  }
+      'fullDocument.id': '$fullDocument._id',
+    },
+  },
 ];
 
 /**
