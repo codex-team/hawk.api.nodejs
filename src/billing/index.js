@@ -21,6 +21,7 @@ class Billing {
 
     if (token !== body.Token) {
       console.error(`Token mismatched ${token} and ${JSON.stringify(body)}`);
+
       return res.send('ERROR');
     }
 
@@ -30,6 +31,7 @@ class Billing {
     if (body.Status === PAYMENT_AUTHORIZED) {
       body.Timestamp = parseInt((Date.now() / 1000).toFixed(0));
       await rabbitmq.publish('merchant', 'merchant/authorized', JSON.stringify(body));
+
       return res.send('OK');
     }
 

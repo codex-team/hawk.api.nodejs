@@ -34,6 +34,7 @@ class EmailProvider {
     Object.keys(template).forEach(key => {
       template[key] = mustache.render(template[key], variables);
     });
+
     return template;
   }
 }

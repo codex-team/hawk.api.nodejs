@@ -65,7 +65,7 @@ module.exports = {
       }
 
       return Transaction.getWorkspacesTransactions(ids);
-    }
+    },
   },
   Mutation: {
     /**
@@ -76,7 +76,10 @@ module.exports = {
      * @return {Promise<boolean>}
      */
     async removeCard(_obj, { cardId }, { user }) {
-      return (await UserCard.remove({ cardId, userId: user.id })).deletedCount === 1;
+      return (await UserCard.remove({
+        cardId,
+        userId: user.id,
+      })).deletedCount === 1;
     },
 
     /**
@@ -92,10 +95,10 @@ module.exports = {
         recurrent: 'Y',
         language: language || 'en',
         data: {
-          UserId: user.id
+          UserId: user.id,
         },
         amount: 100,
-        orderId: orderId
+        orderId: orderId,
       });
       const transaction = await PaymentTransaction.create({
         userId: user.id,
@@ -103,13 +106,14 @@ module.exports = {
         orderId: orderId,
         paymentId: result.PaymentId,
         status: result.Status,
-        timestamp: parseInt((Date.now() / 1000).toFixed(0))
+        timestamp: parseInt((Date.now() / 1000).toFixed(0)),
       });
 
       await rabbitmq.publish('merchant', 'merchant/initialized', JSON.stringify({
         paymentURL: result.PaymentURL,
-        ...transaction
+        ...transaction,
       }));
+
       return result;
     },
 
@@ -133,16 +137,16 @@ module.exports = {
       const result = await PaymentRequest.apiInitPayment(user.id, {
         language: language || 'en',
         data: {
-          UserId: user.id
+          UserId: user.id,
         },
         amount,
-        orderId
+        orderId,
       });
 
       // Charge payment with bank API
       const chargeResult = await bankApi.charge({
         PaymentId: result.PaymentId,
-        RebillId: card.rebillId
+        RebillId: card.rebillId,
       });
 
       console.log(`Got result for charge: ${JSON.stringify(chargeResult)}`);
@@ -158,10 +162,11 @@ module.exports = {
         orderId,
         paymentId: result.PaymentId,
         status: 'CHARGE',
-        timestamp: parseInt((Date.now() / 1000).toFixed(0))
+        timestamp: parseInt((Date.now() / 1000).toFixed(0)),
       });
 
       await rabbitmq.publish('merchant', 'merchant/charged', JSON.stringify(transaction));
+
       return true;
     },
 
@@ -178,10 +183,10 @@ module.exports = {
       const result = await PaymentRequest.apiInitPayment(user.id, {
         language: language || 'en',
         data: {
-          UserId: user.id
+          UserId: user.id,
         },
         amount,
-        orderId: orderId
+        orderId: orderId,
       });
 
       const transaction = await PaymentTransaction.create({
@@ -191,12 +196,12 @@ module.exports = {
         orderId,
         paymentId: result.PaymentId,
         status: 'SINGLE',
-        timestamp: parseInt((Date.now() / 1000).toFixed(0))
+        timestamp: parseInt((Date.now() / 1000).toFixed(0)),
       });
 
       await rabbitmq.publish('merchant', 'merchant/initialized', JSON.stringify(transaction));
 
       return result;
-    }
-  }
+    },
+  },
 };

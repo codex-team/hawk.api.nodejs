@@ -35,11 +35,11 @@ class PaymentRequest {
           Price: paymentRequest.amount,
           Quantity: 1,
           Amount: paymentRequest.amount,
-          Tax: TaxNone
-        } ]
+          Tax: TaxNone,
+        } ],
       },
       PayType: 'T',
-      DATA: paymentRequest.data
+      DATA: paymentRequest.data,
     };
   }
 
@@ -62,6 +62,7 @@ class PaymentRequest {
     const paymentObject = PaymentRequest.generatePaymentObject(paymentQuery, userData);
 
     console.log('INIT =>', paymentObject);
+
     return paymentObject;
   }
 
@@ -79,6 +80,7 @@ class PaymentRequest {
     if (!result.Success) {
       throw Error(`Merchant API error: ${result.Message} ${result.Details}`);
     }
+
     return result;
   }
 }

@@ -51,7 +51,10 @@ class UserCard extends Model {
    * @return {Promise<UserCard>}
    */
   static async find(userId, cardId) {
-    return this.collection.findOne({ userId: new ObjectID(userId), cardId });
+    return this.collection.findOne({
+      userId: new ObjectID(userId),
+      cardId,
+    });
   }
 
   /**
@@ -72,7 +75,10 @@ class UserCard extends Model {
    * @returns {Promise<Object>} - remove result
    */
   static async remove({ cardNumber, userId }) {
-    return this.collection.deleteOne({ cardNumber, userId });
+    return this.collection.deleteOne({
+      cardNumber,
+      userId,
+    });
   }
 }
 

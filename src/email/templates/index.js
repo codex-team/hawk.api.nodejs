@@ -25,8 +25,9 @@ const templates = fs
     accumulator[templateName] = {
       subject: fs.readFileSync(templateDir + subjectFilename).toString(),
       html: fs.readFileSync(templateDir + htmlFilename).toString(),
-      text: fs.readFileSync(templateDir + textFilename).toString()
+      text: fs.readFileSync(templateDir + textFilename).toString(),
     };
+
     return accumulator;
   }, {});
 
@@ -41,10 +42,10 @@ const templateNames = {
    */
   SUCCESSFUL_SIGN_UP: 'successful-sign-up',
   PASSWORD_RESET: 'password-reset',
-  WORKSPACE_INVITE: 'workspace-invite'
+  WORKSPACE_INVITE: 'workspace-invite',
 };
 
 module.exports = {
   content: templates,
-  names: templateNames
+  names: templateNames,
 };
