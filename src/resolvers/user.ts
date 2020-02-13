@@ -108,6 +108,7 @@ export default {
       if (!user) {
         throw new ApolloError('There is no users with that id');
       }
+
       return user.generateTokensPair();
     },
 
