@@ -7,6 +7,7 @@
     "dev": "ts-node-dev --no-notify index.ts",
     "start": "node index.ts",
     "lint": "eslint -c ./.eslintrc.js src/ --ext .ts --fix",
+    "lint-test": "eslint -c ./.eslintrc.js src/ --ext .ts",
     "dev:up": "docker-compose -f docker-compose.dev.yml up -d",
     "dev:down": "docker-compose -f docker-compose.dev.yml down",
     "build": "tsc && yarn copy-email-templates",
