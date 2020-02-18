@@ -8,7 +8,7 @@ type SourceCodeLine {
   """
   Line number
   """
-  line: Int!
+  line: Int
 
   """
   Line's content
@@ -38,7 +38,7 @@ type EventBacktraceFrame {
   """
   Part of source code file near the called line
   """
-  sourceCode: [SourceCodeLine!]
+  sourceCode: [SourceCodeLine]
 
   """
   Function name extracted from current stack frame
@@ -231,14 +231,14 @@ type Event {
   repetition(id: ID): Repetition
 
   """
-  Array of ID of users who visited event
-  """
-  visitedBy: [ID!]
-
-  """
   Event repetitions
   """
   repetitions(limit: Int = 10): [Repetition!]
+
+  """
+  Array of ID of users who visited event
+  """
+  visitedBy: [ID!]
 }
 
 """

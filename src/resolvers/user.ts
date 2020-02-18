@@ -1,7 +1,7 @@
 import { ResolverContextBase, ResolverContextWithUser, UserJWTData } from '../types/graphql';
 import UserModel, { TokensPair } from '../models/user';
 import { AuthenticationError, ApolloError, UserInputError } from 'apollo-server-express';
-import jwt from 'jsonwebtoken';
+import jwt, { Secret } from 'jsonwebtoken';
 import { errorCodes } from '../errors';
 import emailProvider from '../email';
 import { names as emailTemplatesNames } from '../email/templates';
@@ -96,7 +96,7 @@ export default {
       let userId;
 
       try {
-        const data = await jwt.verify(refreshToken, process.env.JWT_SECRET) as UserJWTData;
+        const data = await jwt.verify(refreshToken, process.env.JWT_SECRET as Secret) as UserJWTData;
 
         userId = data.userId;
       } catch (err) {

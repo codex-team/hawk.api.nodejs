@@ -20,10 +20,11 @@ const { ObjectID } = require('mongodb');
 /**
  * EventsFactory
  *
- * Creational Class for Event's Model
+ * Factory Class for Event's Model
  */
 class EventsFactory extends Factory {
   /**
+   * Event types with collections where they stored
    * @return {{EVENTS: string, DAILY_EVENTS: string, REPETITIONS: string}}
    * @constructor
    */
@@ -37,7 +38,7 @@ class EventsFactory extends Factory {
 
   /**
    * Creates Event instance
-   * @param {string|ObjectID} projectId - project ID
+   * @param {string} projectId - project ID
    */
   constructor(projectId) {
     super();
@@ -199,22 +200,52 @@ class EventsFactory extends Factory {
     limit = this.validateLimit(limit);
     skip = this.validateSkip(skip);
 
+    /**
+     * Get original event
+     * @type {EventSchema}
+     */
     const eventOriginal = await this.findById(eventId);
-    const cursor = this.getCollection(this.TYPES.REPETITIONS)
+
+    /**
+     * Collect repetitions
+     * @type {EventRepetitionSchema[]}
+     */
+    const repetitions = await this.getCollection(this.TYPES.REPETITIONS)
       .find({
         groupHash: eventOriginal.groupHash,
       })
       .sort({ _id: -1 })
       .limit(limit)
-      .skip(skip);
+      .skip(skip)
+      .toArray();
 
-    return cursor.toArray();
+    const isLastPortion = repetitions.length < limit && skip === 0;
+
+    /**
+     * For last portion:
+     * add original event to the end of repetitions list
+     */
+    if (isLastPortion) {
+      /**
+       * Get only 'repetitions' fields from event to fit Repetition scheme
+       * @type {EventRepetitionSchema}
+       */
+      const firstRepetition = {
+        _id: eventOriginal._id,
+        payload: eventOriginal.payload,
+        groupHash: eventOriginal.groupHash,
+      };
+
+      repetitions.push(firstRepetition);
+    }
+
+    return repetitions;
   }
 
   /**
    * Returns Event concrete repetition
    *
-   * @param {String} repetitionId
+   * @param {String} repetitionId - id of Repetition to find
    * @return {EventRepetitionSchema|null}
    *
    * @todo move to Repetitions(?) model
@@ -224,6 +255,21 @@ class EventsFactory extends Factory {
       .findOne({
         _id: ObjectID(repetitionId),
       });
+  }
+
+  /**
+   * Return last occurrence of event
+   * @param {string} eventId - id of event to find repetition
+   * @return {EventRepetitionSchema|null}
+   */
+  async getEventLastRepetition(eventId) {
+    const repetitions = await this.getEventRepetitions(eventId, 1);
+
+    if (repetitions.length === 0) {
+      return null;
+    }
+
+    return repetitions.shift();
   }
 
   /**
