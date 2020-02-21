@@ -229,7 +229,7 @@ class Team {
    * @returns {Promise<User>}
    */
   async getMember(userId) {
-    const users = this.getAllUsers();
+    const users = await this.getAllUsers();
     return users.find(u => u._id.toString() === userId);
   }
 

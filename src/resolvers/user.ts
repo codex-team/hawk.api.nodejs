@@ -259,10 +259,11 @@ export default {
         await foundUser.leaveWorkspace(workspaceId);
         return true;
       } catch (e) {
-        if (e instanceof ApolloError)
+        if (e instanceof ApolloError) {
           throw e;
+        }
         return false;
       }
-    }
+    },
   },
 };
