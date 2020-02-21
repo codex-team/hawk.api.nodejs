@@ -164,7 +164,7 @@ class HawkAPI {
       const accessToken = authorizationHeader.slice(7);
 
       try {
-        const data = await jwt.verify(accessToken, process.env.JWT_SECRET || 'secret') as UserJWTData;
+        const data = await jwt.verify(accessToken, process.env.JWT_SECRET_AUTH || 'secret') as UserJWTData;
 
         userId = data.userId;
       } catch (err) {

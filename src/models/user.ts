@@ -219,7 +219,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       {
         userId: this._id,
       },
-      process.env.JWT_SECRET as Secret,
+      process.env.JWT_SECRET_AUTH as Secret,
       { expiresIn: '15m' }
     );
 
@@ -227,7 +227,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       {
         userId: this._id,
       },
-      process.env.JWT_SECRET as Secret,
+      process.env.JWT_SECRET_AUTH as Secret,
       { expiresIn: '30d' }
     );
 

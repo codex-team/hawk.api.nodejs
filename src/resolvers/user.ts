@@ -96,7 +96,7 @@ export default {
       let userId;
 
       try {
-        const data = await jwt.verify(refreshToken, process.env.JWT_SECRET as Secret) as UserJWTData;
+        const data = await jwt.verify(refreshToken, process.env.JWT_SECRET_AUTH as Secret) as UserJWTData;
 
         userId = data.userId;
       } catch (err) {

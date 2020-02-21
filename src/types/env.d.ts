@@ -24,6 +24,6 @@ declare namespace NodeJS {
     /**
      * Secret string for encoding/decoding user's tokens
      */
-    JWT_SECRET: string;
+    JWT_SECRET_AUTH: string;
   }
 }
