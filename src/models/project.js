@@ -72,7 +72,7 @@ class Project {
     projectData.uidAdded = new ObjectID(projectData.uidAdded);
     const projectId = (await this.collection.insertOne(projectData)).insertedId;
 
-    const token = await sign({ projectId }, process.env.JWT_SECRET_EVENTS);
+    const token = await sign({ projectId }, process.env.JWT_SECRET_PROJECT_TOKEN);
 
     await this.collection.updateOne({ _id: projectId }, { $set: { token } });
 
