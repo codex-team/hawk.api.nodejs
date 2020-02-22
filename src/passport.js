@@ -11,7 +11,7 @@ const initializeStrategies = () => {
   passport.use(
     new JwtStrategy(
       {
-        secretOrKey: process.env.JWT_SECRET,
+        secretOrKey: process.env.JWT_SECRET_AUTH,
         jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       },
       (payload, done) => {
