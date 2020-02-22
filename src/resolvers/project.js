@@ -1,9 +1,10 @@
 import { save } from '../utils/files';
 
-const { ValidationError, ApolloError } = require('apollo-server-express');
+const { ValidationError, ApolloError, UserInputError } = require('apollo-server-express');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
+const Validator = require('../utils/validator');
 const Team = require('../models/team');
 const Notify = require('../models/notify');
 const User = require('../models/user').default;
@@ -77,6 +78,59 @@ module.exports = {
       new ProjectToWorkspace(workspaceId).add({ projectId: project.id });
 
       return project;
+    },
+
+    /**
+     * Update project settings
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} projectId - id of the updated project
+     * @param {string} name - project name
+     * @param {string} description - project description
+     * @param {Promise<FileUpload>} - project logo
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Promise<Boolean>}
+     */
+    async updateProject(_obj, { id, name, description, image: upload }, { user, factories }) {
+      if (!Validator.string(name)) {
+        throw new UserInputError('Invalid name length');
+      }
+
+      if (!Validator.string(description, 0)) {
+        throw new UserInputError('Invalid description length');
+      }
+
+      const project = await Project.findById(id);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id');
+      }
+
+      let image;
+
+      if (upload) {
+        const imageMeta = await upload;
+
+        image = save(imageMeta.createReadStream(), imageMeta.mimetype);
+      }
+
+      try {
+        const options = {
+          name,
+          description,
+        };
+
+        if (image) {
+          options.image = image;
+        }
+        await Project.updateProject(project.id, options);
+      } catch (err) {
+        throw new ApolloError('Something went wrong');
+      }
+
+      return true;
     },
 
     /**
