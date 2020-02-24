@@ -43,6 +43,14 @@ export default {
     ): Promise<boolean> {
       let user;
 
+      user = await factories.usersFactory.findByEmail(email);
+
+      if (user !== null) {
+        throw new AuthenticationError(
+          'User with such email already registered'
+        );
+      }
+
       try {
         user = await factories.usersFactory.create(email);
         emailProvider.send(email, emailTemplatesNames.SUCCESSFUL_SIGN_UP, {
