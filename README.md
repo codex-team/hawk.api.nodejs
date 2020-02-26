@@ -21,3 +21,8 @@ If the playground is turned on, you can access it via `/graphql` route.
 
 To execute the request, enter it in the input field on the left and click on the request execution button.
 On the right side you will see the result of the query.
+
+## Migrations
+
+Run `yarn migrations:up` command to apply migration revisions or
+`yarn migrations:down` to rollback the last revision.
