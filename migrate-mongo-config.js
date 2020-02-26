@@ -2,7 +2,7 @@
  * @file Configuration for migrate-mongo (https://www.npmjs.com/package/migrate-mongo)
  */
 
-require('./src/env');
+require('dotenv').config();
 
 const config = {
   mongodb: {
@@ -16,8 +16,8 @@ const config = {
       /**
        * Removes a deprecation warning when connecting
        */
-      useUnifiedTopology: true
-    }
+      useUnifiedTopology: true,
+    },
   },
 
   /**
@@ -28,7 +28,7 @@ const config = {
   /**
    * The mongodb collection where the applied changes are stored. Only edit this when really necessary
    */
-  changelogCollectionName: 'changelog'
+  changelogCollectionName: 'changelog',
 };
 
 module.exports = config;
