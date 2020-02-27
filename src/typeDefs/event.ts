@@ -119,6 +119,11 @@ type EventPayload {
   Custom data provided by project users
   """
   addons: JSONObject
+
+  """
+  User-Agent
+  """
+  userAgent: String
 }
 
 """
@@ -174,6 +179,11 @@ type RepetitionPayload {
   Custom data provided by project users
   """
   addons: JSONObject
+
+  """
+  User-Agent
+  """
+  userAgent: String
 }
 
 """

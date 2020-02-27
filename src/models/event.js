@@ -34,6 +34,7 @@
  * @property {EventUser} [user] - current authenticated user
  * @property {Object} [context] - any additional data
  * @property {Object} [addons] - catcher-specific fields
+ * @property {string} [userAgent] - User-Agent
  */
 
 /**
