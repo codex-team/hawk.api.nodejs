@@ -91,7 +91,7 @@ module.exports = {
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      *
-     * @returns {Promise<Boolean>}
+     * @returns {Project}
      */
     async updateProject(_obj, { id, name, description, image: upload }, { user, factories }) {
       if (!Validator.string(name)) {
@@ -130,7 +130,9 @@ module.exports = {
         throw new ApolloError('Something went wrong');
       }
 
-      return true;
+      const updatedProject = await Project.findById(id);
+
+      return updatedProject;
     },
 
     /**
