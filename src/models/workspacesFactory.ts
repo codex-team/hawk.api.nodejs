@@ -1,6 +1,7 @@
 import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
 import WorkspaceModel, { WorkspaceDBScheme } from './workspace';
+import DataLoaders from '../dataLoaders';
 
 /**
  * Users factory to work with User Model
@@ -11,13 +12,17 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
    */
   protected collection: Collection<WorkspaceDBScheme>;
 
+  private dataLoaders: DataLoaders;
+
   /**
    * Creates user factory instance
    * @param dbConnection - connection to DataBase
+   * @param dataLoaders - dataLoaders for fetching data
    */
-  constructor(dbConnection: Db) {
+  constructor(dbConnection: Db, dataLoaders: DataLoaders) {
     super(dbConnection, WorkspaceModel);
     this.collection = dbConnection.collection('workspaces');
+    this.dataLoaders = dataLoaders;
   }
 
   /**

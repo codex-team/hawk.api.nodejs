@@ -14,6 +14,7 @@ import { ContextFactories, ResolverContextBase, UserJWTData } from './types/grap
 import UsersFactory from './models/usersFactory';
 import { GraphQLError } from 'graphql';
 import WorkspacesFactory from './models/workspacesFactory';
+import DataLoaders from './dataLoaders';
 
 /**
  * Option to enable playground
@@ -120,7 +121,6 @@ class HawkAPI {
   public async start(): Promise<void> {
     await mongo.setupConnections();
     await rabbitmq.setupConnections();
-    this.setupFactories();
 
     return new Promise((resolve) => {
       this.httpServer.listen({ port: this.serverPort }, () => {
@@ -174,9 +174,11 @@ class HawkAPI {
         }
       }
     }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const dataLoader = new DataLoaders(mongo.databases.hawk!);
 
     return {
-      factories: this.factories,
+      factories: this.setupFactories(dataLoader),
       user: {
         id: userId,
         accessTokenExpired: isAccessTokenExpired,
@@ -187,13 +189,13 @@ class HawkAPI {
   /**
    * Creates factories to work with models
    */
-  private setupFactories(): void {
+  private setupFactories(dataLoaders: DataLoaders): ContextFactories {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const usersFactory = new UsersFactory(mongo.databases.hawk!);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const workspacesFactory = new WorkspacesFactory(mongo.databases.hawk!);
+    const workspacesFactory = new WorkspacesFactory(mongo.databases.hawk!, dataLoaders);
 
-    this.factories = {
+    return {
       usersFactory,
       workspacesFactory,
     };
