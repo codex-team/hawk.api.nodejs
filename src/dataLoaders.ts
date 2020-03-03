@@ -47,7 +47,7 @@ interface ProjectDBScheme {
  */
 export default class DataLoaders {
   /**
-   * Loader for fetching persons by their ids
+   * Loader for fetching projects by their ids
    */
   public projectById = new DataLoader<string, ProjectDBScheme>(
     (projectIds) => this.batchByIds<ProjectDBScheme>('projects', projectIds),
