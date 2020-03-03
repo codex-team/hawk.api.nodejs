@@ -13,6 +13,7 @@ import { ExpressContext } from 'apollo-server-express/dist/ApolloServer';
 import { ContextFactories, ResolverContextBase, UserJWTData } from './types/graphql';
 import UsersFactory from './models/usersFactory';
 import { GraphQLError } from 'graphql';
+import WorkspacesFactory from './models/workspacesFactory';
 
 /**
  * Option to enable playground
@@ -189,9 +190,12 @@ class HawkAPI {
   private setupFactories(): void {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const usersFactory = new UsersFactory(mongo.databases.hawk!);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const workspacesFactory = new WorkspacesFactory(mongo.databases.hawk!);
 
     this.factories = {
       usersFactory,
+      workspacesFactory,
     };
   }
 }
