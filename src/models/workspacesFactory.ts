@@ -2,7 +2,7 @@ import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
 import WorkspaceModel, { WorkspaceDBScheme } from './workspace';
 import DataLoaders from '../dataLoaders';
-import UserModel from "./user";
+import UserModel from './user';
 
 /**
  * Users factory to work with User Model
@@ -32,6 +32,7 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
   /**
    * Creates new workspace in DB
    * @param workspaceData - workspace's data
+   * @param ownerModel - owner of the new workspace
    */
   public async create(workspaceData: WorkspaceDBScheme, ownerModel: UserModel): Promise<WorkspaceModel> {
     const workspaceId = (await this.collection.insertOne(workspaceData)).insertedId;
