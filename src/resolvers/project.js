@@ -1,5 +1,3 @@
-import { save } from '../utils/files';
-
 const { ValidationError, ApolloError } = require('apollo-server-express');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
@@ -30,12 +28,12 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {string} workspaceId - workspace ID
      * @param {string} name - project name
-     * @param {Promise<FileUpload>} image - project logo
+     * @param {string} image - project logo
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      * @return {Project[]}
      */
-    async createProject(_obj, { workspaceId, name, image: upload }, { user, factories }) {
+    async createProject(_obj, { workspaceId, name, image }, { user, factories }) {
       // Check workspace ID
       const userModel = await factories.usersFactory.findById(user.id);
       const workspace = await userModel.getWorkspacesIds([
@@ -53,23 +51,12 @@ module.exports = {
         throw new ApolloError('Only admins can create projects');
       }
 
-      let image;
-
-      if (upload) {
-        const imageMeta = await upload;
-
-        image = save(imageMeta.createReadStream(), imageMeta.mimetype);
-      }
-
       const options = {
         name,
         workspaceId,
         uidAdded: user.id,
+        image,
       };
-
-      if (image) {
-        options.image = image;
-      }
 
       const project = await Project.create(options);
 
