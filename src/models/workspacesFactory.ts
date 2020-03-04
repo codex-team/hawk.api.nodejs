@@ -2,6 +2,7 @@ import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
 import WorkspaceModel, { WorkspaceDBScheme } from './workspace';
 import DataLoaders from '../dataLoaders';
+import UserModel from "./user";
 
 /**
  * Users factory to work with User Model
@@ -32,13 +33,19 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
    * Creates new workspace in DB
    * @param workspaceData - workspace's data
    */
-  public async create(workspaceData: WorkspaceDBScheme): Promise<WorkspaceModel> {
+  public async create(workspaceData: WorkspaceDBScheme, ownerModel: UserModel): Promise<WorkspaceModel> {
     const workspaceId = (await this.collection.insertOne(workspaceData)).insertedId;
 
-    return new WorkspaceModel({
+    const workspaceModel = new WorkspaceModel({
       _id: workspaceId,
       ...workspaceData,
     });
+
+    await workspaceModel.addMember(ownerModel._id.toString());
+    await workspaceModel.grantAdmin(ownerModel._id.toString());
+    await ownerModel.addWorkspace(workspaceModel._id.toString());
+
+    return workspaceModel;
   }
 
   /**
