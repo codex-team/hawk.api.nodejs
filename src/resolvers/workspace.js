@@ -207,13 +207,13 @@ module.exports = {
      * @param {string} workspaceId - id of the updated workspace
      * @param {string} name - workspace name
      * @param {string} description - workspace description
-     * @param {Promise<FileUpload>} - workspace logo
+     * @param {string} image - workspace logo
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      *
      * @returns {Promise<Boolean>}
      */
-    async updateWorkspace(_obj, { id, name, description, image: upload }, { user, factories }) {
+    async updateWorkspace(_obj, { id, name, description, image }, { user, factories }) {
       // @makeAnIssue Create directives for arguments validation
       if (!Validator.string(name)) {
         throw new UserInputError('Invalid name length');
@@ -231,14 +231,6 @@ module.exports = {
         throw new ApolloError('There is no workspace with that id');
       }
 
-      let image;
-
-      if (upload) {
-        const imageMeta = await upload;
-
-        image = save(imageMeta.createReadStream(), imageMeta.mimetype);
-      }
-
       try {
         /**
          * @type {WorkspaceDBScheme}
@@ -246,11 +238,9 @@ module.exports = {
         const options = {
           name,
           description,
+          image,
         };
 
-        if (image) {
-          options.image = image;
-        }
         const workspaceToUpdate = await factories.workspacesFactory.findById(workspaceId);
 
         await workspaceToUpdate.updateWorkspace(options);

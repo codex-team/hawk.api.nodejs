@@ -21,6 +21,8 @@ const rootSchema = gql`
     name: String!
   ) on FIELD_DEFINITION
 
+  directive @uploadImage on ARGUMENT_DEFINITION
+
 
   """
   Type for date and time representation
