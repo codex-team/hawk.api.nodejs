@@ -70,7 +70,7 @@ export default gql`
     """
     Workspace id
     """
-    id: ID!
+    id: ID! @renameFrom(name: "_id")
 
     """
     Workspace name
@@ -160,7 +160,7 @@ export default gql`
 
       "Workspace description"
       description: String
-        
+
       "Workspace image"
       image: Upload
     ): Boolean! @requireAuth
