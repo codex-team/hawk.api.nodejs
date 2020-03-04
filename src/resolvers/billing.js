@@ -55,8 +55,7 @@ module.exports = {
 
       const membership = new Membership(user.id);
 
-      const workspaces = await membership.getWorkspaces();
-      const allowedIds = workspaces.map(w => w.id.toString());
+      const allowedIds = await membership.getWorkspacesIds();
 
       if (ids.length === 0) {
         ids = allowedIds;

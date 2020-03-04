@@ -1,5 +1,6 @@
 import DataLoader from 'dataloader';
 import { Db, ObjectId } from 'mongodb';
+import { WorkspaceDBScheme } from './models/workspace';
 
 /**
  * Project representation in DataBase
@@ -51,6 +52,14 @@ export default class DataLoaders {
    */
   public projectById = new DataLoader<string, ProjectDBScheme>(
     (projectIds) => this.batchByIds<ProjectDBScheme>('projects', projectIds),
+    { cache: false }
+  );
+
+  /**
+   * Loader for fetching workspaces
+   */
+  public workspaceById = new DataLoader<string, WorkspaceDBScheme>(
+    (workspaceIds) => this.batchByIds<WorkspaceDBScheme>('workspaces', workspaceIds),
     { cache: false }
   );
 

@@ -3,7 +3,6 @@ import { save } from '../utils/files';
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const crypto = require('crypto');
 
-const Workspace = require('../models/workspace');
 const Team = require('../models/team');
 // const Plan = require('../models/plan');
 const { ProjectToWorkspace } = require('../models/project');
@@ -26,7 +25,9 @@ module.exports = {
      * @return {Workspace[]}
      */
     async workspaces(_obj, { ids }, { user, factories }) {
-      return (await factories.usersFactory.findById(user.id)).getWorkspaces(ids);
+      const authenticatedUser = await factories.usersFactory.findById(user.id);
+
+      return factories.workspacesFactory.findManyByIds(await authenticatedUser.getWorkspacesIds(ids));
     },
   },
   Mutation: {
@@ -43,8 +44,6 @@ module.exports = {
      */
     async createWorkspace(_obj, { name, description, image: upload }, { user, factories }) {
       const ownerId = user.id;
-
-      // @todo make workspace creation via transactions
 
       try {
         /**
@@ -69,9 +68,12 @@ module.exports = {
           image = save(imageMeta.createReadStream(), imageMeta.mimetype);
         }
 
+        /**
+         * @type {WorkspaceDBScheme}
+         */
         const options = {
           name,
-          balance: 0,
+          // balance: 0,
           description,
           image,
           // plan
@@ -81,14 +83,14 @@ module.exports = {
           options.image = image;
         }
 
-        const workspace = await Workspace.create(options);
+        const workspace = await factories.workspacesFactory.create(options);
 
-        const team = new Team(workspace.id);
+        const team = new Team(workspace._id.toString());
 
         await team.addMember(ownerId);
         await team.grantAdmin(ownerId);
 
-        await (await factories.usersFactory.findById(ownerId)).addWorkspace(workspace.id);
+        await (await factories.usersFactory.findById(ownerId)).addWorkspace(workspace._id.toString());
 
         return workspace;
       } catch (err) {
@@ -101,14 +103,14 @@ module.exports = {
      * Invite user to workspace
      * @param {ResolverObj} _obj
      * @param {String} userEmail - email of the user to invite
-     * @param {Workspace.id} workspaceId - id of the workspace to which the user is invited
+     * @param {string} workspaceId - id of the workspace to which the user is invited
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      * @return {Promise<boolean>} - true if operation is successful
      */
     async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user, factories }) {
       const userModel = await factories.usersFactory.findById(user.id);
-      const [ workspace ] = await userModel.getWorkspaces([ workspaceId ]);
+      const [ workspace ] = await userModel.getWorkspacesIds([ workspaceId ]);
 
       if (!workspace) {
         throw new ApolloError('There is no workspace with that id');
@@ -120,7 +122,7 @@ module.exports = {
       if (!invitedUser) {
         await new Team(workspaceId).addUnregisteredMember(userEmail);
       } else {
-        const [ isUserInThatWorkspace ] = await invitedUser.getWorkspaces([ workspaceId ]);
+        const [ isUserInThatWorkspace ] = await invitedUser.getWorkspacesIds([ workspaceId ]);
 
         if (isUserInThatWorkspace) {
           throw new ApolloError('User already invited to this workspace');
@@ -151,7 +153,7 @@ module.exports = {
      *
      * @param {ResolverObj} _obj
      * @param {String} inviteHash - hash passed to the invite link
-     * @param {Workspace.id} workspaceId - id of the workspace to which the user is invited
+     * @param {string} workspaceId - id of the workspace to which the user is invited
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      * @return {Promise<boolean>} - true if operation is successful
@@ -223,9 +225,9 @@ module.exports = {
 
       const userModel = await factories.usersFactory.findById(user.id);
 
-      const [ workspace ] = await userModel.getWorkspaces([ id ]);
+      const [ workspaceId ] = await userModel.getWorkspacesIds([ id ]);
 
-      if (!workspace) {
+      if (!workspaceId) {
         throw new ApolloError('There is no workspace with that id');
       }
 
@@ -238,6 +240,9 @@ module.exports = {
       }
 
       try {
+        /**
+         * @type {WorkspaceDBScheme}
+         */
         const options = {
           name,
           description,
@@ -246,8 +251,9 @@ module.exports = {
         if (image) {
           options.image = image;
         }
+        const workspaceToUpdate = await factories.workspacesFactory.findById(workspaceId);
 
-        await Workspace.updateWorkspace(workspace.id, options);
+        await workspaceToUpdate.updateWorkspace(options);
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }

@@ -38,7 +38,7 @@ module.exports = {
     async createProject(_obj, { workspaceId, name, image: upload }, { user, factories }) {
       // Check workspace ID
       const userModel = await factories.usersFactory.findById(user.id);
-      const workspace = await userModel.getWorkspaces([
+      const workspace = await userModel.getWorkspacesIds([
         workspaceId,
       ]);
 

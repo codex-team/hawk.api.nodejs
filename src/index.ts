@@ -13,6 +13,8 @@ import { ExpressContext } from 'apollo-server-express/dist/ApolloServer';
 import { ContextFactories, ResolverContextBase, UserJWTData } from './types/graphql';
 import UsersFactory from './models/usersFactory';
 import { GraphQLError } from 'graphql';
+import WorkspacesFactory from './models/workspacesFactory';
+import DataLoaders from './dataLoaders';
 
 /**
  * Option to enable playground
@@ -81,7 +83,7 @@ class HawkAPI {
         onConnect: (connectionParams): { headers: { authorization: string } } =>
           HawkAPI.onWebSocketConnection(connectionParams as Record<string, string>),
       },
-      context: (req: ExpressContext): Promise<ResolverContextBase> => this.createContext(req),
+      context: (req: ExpressContext): Promise<ResolverContextBase> => HawkAPI.createContext(req),
       formatError: (error): GraphQLError => {
         console.error(error.originalError);
 
@@ -99,43 +101,19 @@ class HawkAPI {
   }
 
   /**
-   * Fires when coming new Websocket connection
-   * Returns authorization headers for building request context
-   * @param connectionParams - websocket connection params (actually, headers only)
-   * @return - context for subscription request
+   * Creates factories to work with models
+   * @param dataLoaders - dataLoaders for fetching data form database
    */
-  private static onWebSocketConnection(connectionParams: Record<string, string>): { headers: { authorization: string } } {
+  private static setupFactories(dataLoaders: DataLoaders): ContextFactories {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const usersFactory = new UsersFactory(mongo.databases.hawk!);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const workspacesFactory = new WorkspacesFactory(mongo.databases.hawk!, dataLoaders);
+
     return {
-      headers: {
-        authorization:
-          connectionParams['authorization'] || connectionParams['Authorization'],
-      },
+      usersFactory,
+      workspacesFactory,
     };
-  }
-
-  /**
-   * Start API server
-   */
-  public async start(): Promise<void> {
-    await mongo.setupConnections();
-    await rabbitmq.setupConnections();
-    this.setupFactories();
-
-    return new Promise((resolve) => {
-      this.httpServer.listen({ port: this.serverPort }, () => {
-        console.log(
-          `🚀 Server ready at http://localhost:${this.serverPort}${
-            this.server.graphqlPath
-          }`
-        );
-        console.log(
-          `🚀 Subscriptions ready at ws://localhost:${this.serverPort}${
-            this.server.subscriptionsPath
-          }`
-        );
-        resolve();
-      });
-    });
   }
 
   /**
@@ -143,7 +121,7 @@ class HawkAPI {
    * @param req - Express request
    * @param connection - websocket connection (for subscriptions)
    */
-  private async createContext({ req, connection }: ExpressContext): Promise<ResolverContextBase> {
+  private static async createContext({ req, connection }: ExpressContext): Promise<ResolverContextBase> {
     let userId: string | undefined;
     let isAccessTokenExpired = false;
 
@@ -173,9 +151,11 @@ class HawkAPI {
         }
       }
     }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const dataLoader = new DataLoaders(mongo.databases.hawk!);
 
     return {
-      factories: this.factories,
+      factories: HawkAPI.setupFactories(dataLoader),
       user: {
         id: userId,
         accessTokenExpired: isAccessTokenExpired,
@@ -184,15 +164,42 @@ class HawkAPI {
   }
 
   /**
-   * Creates factories to work with models
+   * Fires when coming new Websocket connection
+   * Returns authorization headers for building request context
+   * @param connectionParams - websocket connection params (actually, headers only)
+   * @return - context for subscription request
    */
-  private setupFactories(): void {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const usersFactory = new UsersFactory(mongo.databases.hawk!);
-
-    this.factories = {
-      usersFactory,
+  private static onWebSocketConnection(connectionParams: Record<string, string>): { headers: { authorization: string } } {
+    return {
+      headers: {
+        authorization:
+          connectionParams['authorization'] || connectionParams['Authorization'],
+      },
     };
+  }
+
+  /**
+   * Start API server
+   */
+  public async start(): Promise<void> {
+    await mongo.setupConnections();
+    await rabbitmq.setupConnections();
+
+    return new Promise((resolve) => {
+      this.httpServer.listen({ port: this.serverPort }, () => {
+        console.log(
+          `🚀 Server ready at http://localhost:${this.serverPort}${
+            this.server.graphqlPath
+          }`
+        );
+        console.log(
+          `🚀 Subscriptions ready at ws://localhost:${this.serverPort}${
+            this.server.subscriptionsPath
+          }`
+        );
+        resolve();
+      });
+    });
   }
 }
 

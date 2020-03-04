@@ -1,4 +1,5 @@
 import UsersFactory from '../models/usersFactory';
+import WorkspacesFactory from '../models/workspacesFactory';
 
 /**
  * Resolver's Context argument
@@ -48,6 +49,11 @@ export interface ContextFactories {
    * Users factory for working with users
    */
   usersFactory: UsersFactory;
+
+  /**
+   * Workspaces factory for working with workspaces
+   */
+  workspacesFactory: WorkspacesFactory;
 }
 
 /**
