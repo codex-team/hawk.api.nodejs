@@ -1,6 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import { OptionalId } from '../mongo';
+import UserModel from './user';
 
 /**
  * Workspace representation in DataBase
@@ -143,12 +144,13 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Remove member from workspace
-   * @param memberId - id of member to remove
+   * @param member - member to remove
    */
-  public async removeMember(memberId: string): Promise<void> {
+  public async removeMember(member: UserModel): Promise<void> {
     await this.teamCollection.deleteOne({
-      userId: new ObjectId(memberId),
+      userId: new ObjectId(member._id),
     });
+    await member.removeWorkspace(this._id.toString());
   }
 
   /**
@@ -186,13 +188,12 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Confirm membership of user
-   * @param memberId
-   * @param memberEmail
+   * @param member - member for whom confirm membership
    */
-  public async confirmMembership(memberId?: string, memberEmail?: string): Promise<boolean> {
+  public async confirmMembership(member: UserModel): Promise<boolean> {
     const { matchedCount, modifiedCount } = await this.collection.updateOne(
       {
-        userId: new ObjectId(memberId),
+        userId: new ObjectId(member._id.toString()),
       },
       { $unset: { isPending: '' } }
     );
@@ -204,10 +205,10 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
     if (!matchedCount) {
       await this.collection.updateOne(
         {
-          userEmail: memberEmail,
+          userEmail: member.email,
         },
         {
-          $set: { userId: new ObjectId(memberId) },
+          $set: { userId: new ObjectId(member._id.toString()) },
           $unset: {
             userEmail: '',
             isPending: '',
