@@ -1,5 +1,3 @@
-import { save } from '../utils/files';
-
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const crypto = require('crypto');
 
@@ -18,7 +16,7 @@ module.exports = {
     /**
      * Returns workspace(s) info by id(s)
      * Returns all user's workspaces if ids = []
-     * @param {ResolverObj} _obj
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {String[]} ids - workspace ids
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
@@ -33,16 +31,16 @@ module.exports = {
   Mutation: {
     /**
      * Create new workspace
-     * @param {ResolverObj} _obj
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {String} name - workspace name
      * @param {String} description - workspace description
-     * @param {String} image - workspace image
+     * @param {string} image - workspace image
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      *
      * @return {String} created workspace id
      */
-    async createWorkspace(_obj, { name, description, image: upload }, { user, factories }) {
+    async createWorkspace(_obj, { name, description, image }, { user, factories }) {
       const ownerId = user.id;
 
       try {
@@ -60,14 +58,6 @@ module.exports = {
          * };
          */
 
-        let image;
-
-        if (upload) {
-          const imageMeta = await upload;
-
-          image = save(imageMeta.createReadStream(), imageMeta.mimetype);
-        }
-
         /**
          * @type {WorkspaceDBScheme}
          */
@@ -78,10 +68,6 @@ module.exports = {
           image,
           // plan
         };
-
-        if (image) {
-          options.image = image;
-        }
 
         const workspace = await factories.workspacesFactory.create(options);
 
@@ -101,7 +87,7 @@ module.exports = {
 
     /**
      * Invite user to workspace
-     * @param {ResolverObj} _obj
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {String} userEmail - email of the user to invite
      * @param {string} workspaceId - id of the workspace to which the user is invited
      * @param {UserInContext} user - current authorized user {@see ../index.js}
@@ -151,7 +137,7 @@ module.exports = {
     /**
      * Confirm user invitation
      *
-     * @param {ResolverObj} _obj
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {String} inviteHash - hash passed to the invite link
      * @param {string} workspaceId - id of the workspace to which the user is invited
      * @param {UserInContext} user - current authorized user {@see ../index.js}
@@ -203,17 +189,17 @@ module.exports = {
     /**
      * Update workspace settings
      *
-     * @param {ResolverObj} _obj
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {string} workspaceId - id of the updated workspace
      * @param {string} name - workspace name
      * @param {string} description - workspace description
-     * @param {Promise<FileUpload>} - workspace logo
+     * @param {string} image - workspace logo
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      *
      * @returns {Promise<Boolean>}
      */
-    async updateWorkspace(_obj, { id, name, description, image: upload }, { user, factories }) {
+    async updateWorkspace(_obj, { id, name, description, image }, { user, factories }) {
       // @makeAnIssue Create directives for arguments validation
       if (!Validator.string(name)) {
         throw new UserInputError('Invalid name length');
@@ -231,14 +217,6 @@ module.exports = {
         throw new ApolloError('There is no workspace with that id');
       }
 
-      let image;
-
-      if (upload) {
-        const imageMeta = await upload;
-
-        image = save(imageMeta.createReadStream(), imageMeta.mimetype);
-      }
-
       try {
         /**
          * @type {WorkspaceDBScheme}
@@ -246,11 +224,9 @@ module.exports = {
         const options = {
           name,
           description,
+          image,
         };
 
-        if (image) {
-          options.image = image;
-        }
         const workspaceToUpdate = await factories.workspacesFactory.findById(workspaceId);
 
         await workspaceToUpdate.updateWorkspace(options);
@@ -264,7 +240,7 @@ module.exports = {
     /**
      * Grant admin permissions
      *
-     * @param {ResolverObj} _obj
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {Workspace.id} workspaceId - id of the workspace
      * @param {User.id} userId - id of user to grant permissions
      * @param {boolean} state - state of permissions (true to grant, false to withdraw)
@@ -292,7 +268,7 @@ module.exports = {
     /**
      * Remove user from workspace
      *
-     * @param {ResolverObj} _obj
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {Workspace.id} workspaceId - id of the workspace where the user should be removed
      * @param {User.id} userId - id of user to remove
      * @param {User.email} userEmail - email of user to remove

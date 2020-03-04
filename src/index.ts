@@ -15,6 +15,7 @@ import UsersFactory from './models/usersFactory';
 import { GraphQLError } from 'graphql';
 import WorkspacesFactory from './models/workspacesFactory';
 import DataLoaders from './dataLoaders';
+import UploadImageDirective from './directives/uploadImageDirective';
 
 /**
  * Option to enable playground
@@ -40,11 +41,6 @@ class HawkAPI {
    * Express application
    */
   private app = express();
-
-  /**
-   * Factories to work with models
-   */
-  private factories!: ContextFactories;
 
   /**
    * Apollo GraphQL server
@@ -77,6 +73,7 @@ class HawkAPI {
       schemaDirectives: {
         requireAuth: require('./directives/requireAuthDirective'),
         renameFrom: require('./directives/renameFrom'),
+        uploadImage: UploadImageDirective,
       },
       subscriptions: {
         path: '/subscriptions',
