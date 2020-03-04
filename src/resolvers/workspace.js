@@ -103,7 +103,7 @@ module.exports = {
      * Invite user to workspace
      * @param {ResolverObj} _obj
      * @param {String} userEmail - email of the user to invite
-     * @param {string } workspaceId - id of the workspace to which the user is invited
+     * @param {string} workspaceId - id of the workspace to which the user is invited
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      * @return {Promise<boolean>} - true if operation is successful

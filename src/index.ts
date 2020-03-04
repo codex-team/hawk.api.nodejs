@@ -83,7 +83,7 @@ class HawkAPI {
         onConnect: (connectionParams): { headers: { authorization: string } } =>
           HawkAPI.onWebSocketConnection(connectionParams as Record<string, string>),
       },
-      context: (req: ExpressContext): Promise<ResolverContextBase> => this.createContext(req),
+      context: (req: ExpressContext): Promise<ResolverContextBase> => HawkAPI.createContext(req),
       formatError: (error): GraphQLError => {
         console.error(error.originalError);
 
@@ -98,6 +98,69 @@ class HawkAPI {
      */
     this.httpServer = http.createServer(this.app);
     this.server.installSubscriptionHandlers(this.httpServer);
+  }
+
+  /**
+   * Creates factories to work with models
+   * @param dataLoaders - dataLoaders for fetching data form database
+   */
+  private static setupFactories(dataLoaders: DataLoaders): ContextFactories {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const usersFactory = new UsersFactory(mongo.databases.hawk!);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const workspacesFactory = new WorkspacesFactory(mongo.databases.hawk!, dataLoaders);
+
+    return {
+      usersFactory,
+      workspacesFactory,
+    };
+  }
+
+  /**
+   * Creates request context
+   * @param req - Express request
+   * @param connection - websocket connection (for subscriptions)
+   */
+  private static async createContext({ req, connection }: ExpressContext): Promise<ResolverContextBase> {
+    let userId: string | undefined;
+    let isAccessTokenExpired = false;
+
+    /*
+     * @todo deny access by refresh tokens
+     * @todo block used refresh token
+     */
+    const authorizationHeader = connection
+      ? connection.context.headers.authorization
+      : req.headers.authorization;
+
+    if (
+      authorizationHeader &&
+      /^Bearer [a-z0-9-_+/=]+\.[a-z0-9-_+/=]+\.[a-z0-9-_+/=]+$/i.test(
+        authorizationHeader
+      )
+    ) {
+      const accessToken = authorizationHeader.slice(7);
+
+      try {
+        const data = await jwt.verify(accessToken, process.env.JWT_SECRET_AUTH || 'secret') as UserJWTData;
+
+        userId = data.userId;
+      } catch (err) {
+        if (err instanceof jwt.TokenExpiredError) {
+          isAccessTokenExpired = true;
+        }
+      }
+    }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const dataLoader = new DataLoaders(mongo.databases.hawk!);
+
+    return {
+      factories: HawkAPI.setupFactories(dataLoader),
+      user: {
+        id: userId,
+        accessTokenExpired: isAccessTokenExpired,
+      },
+    };
   }
 
   /**
@@ -137,68 +200,6 @@ class HawkAPI {
         resolve();
       });
     });
-  }
-
-  /**
-   * Creates request context
-   * @param req - Express request
-   * @param connection - websocket connection (for subscriptions)
-   */
-  private async createContext({ req, connection }: ExpressContext): Promise<ResolverContextBase> {
-    let userId: string | undefined;
-    let isAccessTokenExpired = false;
-
-    /*
-     * @todo deny access by refresh tokens
-     * @todo block used refresh token
-     */
-    const authorizationHeader = connection
-      ? connection.context.headers.authorization
-      : req.headers.authorization;
-
-    if (
-      authorizationHeader &&
-      /^Bearer [a-z0-9-_+/=]+\.[a-z0-9-_+/=]+\.[a-z0-9-_+/=]+$/i.test(
-        authorizationHeader
-      )
-    ) {
-      const accessToken = authorizationHeader.slice(7);
-
-      try {
-        const data = await jwt.verify(accessToken, process.env.JWT_SECRET_AUTH || 'secret') as UserJWTData;
-
-        userId = data.userId;
-      } catch (err) {
-        if (err instanceof jwt.TokenExpiredError) {
-          isAccessTokenExpired = true;
-        }
-      }
-    }
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const dataLoader = new DataLoaders(mongo.databases.hawk!);
-
-    return {
-      factories: this.setupFactories(dataLoader),
-      user: {
-        id: userId,
-        accessTokenExpired: isAccessTokenExpired,
-      },
-    };
-  }
-
-  /**
-   * Creates factories to work with models
-   */
-  private setupFactories(dataLoaders: DataLoaders): ContextFactories {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const usersFactory = new UsersFactory(mongo.databases.hawk!);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const workspacesFactory = new WorkspacesFactory(mongo.databases.hawk!, dataLoaders);
-
-    return {
-      usersFactory,
-      workspacesFactory,
-    };
   }
 }
 

@@ -299,9 +299,9 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   }
 
   /**
-   * Get user's workspaces by ids
+   * Get user's workspaces ids
    * Returns all user's workspaces if ids = []
-   * @param ids - workspaces ids
+   * @param ids - workspaces id to filter them if there are workspaces that doesn't belong to the user
    */
   public async getWorkspacesIds(ids: (string | ObjectId)[] = []): Promise<string[]> {
     const idsAsObjectId = ids.map(id => new ObjectId(id));

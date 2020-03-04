@@ -12,6 +12,9 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
    */
   protected collection: Collection<WorkspaceDBScheme>;
 
+  /**
+   * DataLoaders for fetching data from database
+   */
   private dataLoaders: DataLoaders;
 
   /**
@@ -28,7 +31,6 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
   /**
    * Creates new workspace in DB
    * @param workspaceData - workspace's data
-   * @returns {Promise<Workspace>} - created workspace
    */
   public async create(workspaceData: WorkspaceDBScheme): Promise<WorkspaceModel> {
     const workspaceId = (await this.collection.insertOne(workspaceData)).insertedId;
