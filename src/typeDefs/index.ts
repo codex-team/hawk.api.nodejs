@@ -21,6 +21,9 @@ const rootSchema = gql`
     name: String!
   ) on FIELD_DEFINITION
 
+  """
+  Directive for automatically image uploading
+  """
   directive @uploadImage on ARGUMENT_DEFINITION
 
 
