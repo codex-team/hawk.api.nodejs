@@ -1,5 +1,3 @@
-import { save } from '../utils/files';
-
 const { ValidationError, ApolloError } = require('apollo-server-express');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
