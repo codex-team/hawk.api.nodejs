@@ -1,6 +1,7 @@
 import DataLoader from 'dataloader';
 import { Db, ObjectId } from 'mongodb';
 import { WorkspaceDBScheme } from './models/workspace';
+import { UserDBScheme } from './models/user';
 
 /**
  * Project representation in DataBase
@@ -64,6 +65,23 @@ export default class DataLoaders {
   );
 
   /**
+   * Loader for fetching users by their ids
+   */
+  public userById = new DataLoader<string, UserDBScheme>(
+    (userIds) => this.batchByIds<UserDBScheme>('users', userIds),
+    { cache: false }
+  );
+
+  /**
+   * Loader for fetching users by their emails
+   */
+  public userByEmail = new DataLoader<string, UserDBScheme>(
+    (userEmails) =>
+      this.batchByField<UserDBScheme, string>('users', userEmails, 'email'),
+    { cache: false }
+  );
+
+  /**
    * MongoDB connection to make queries
    */
   private dbConnection: Db;
@@ -82,9 +100,23 @@ export default class DataLoaders {
    * @param ids - ids for resolving
    */
   private async batchByIds<T extends {_id: ObjectId}>(collectionName: string, ids: ReadonlyArray<string>): Promise<(T | Error)[]> {
+    return this.batchByField<T, ObjectId>(collectionName, ids.map(id => new ObjectId(id)), '_id');
+  }
+
+  /**
+   * Batching function for resolving entities by certain field
+   * @param collectionName - collection name to get entities
+   * @param values - values for resolving
+   * @param fieldName - field name to resolve
+   */
+  private async batchByField<
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    T extends {[key: string]: any},
+    FieldType extends object | string
+    >(collectionName: string, values: ReadonlyArray<FieldType>, fieldName: string): Promise<(T | Error)[]> {
     const queryResult = await this.dbConnection.collection(collectionName)
       .find({
-        _id: { $in: ids.map(id => new ObjectId(id)) },
+        [fieldName]: { $in: values },
       })
       .toArray();
 
@@ -95,9 +127,9 @@ export default class DataLoaders {
     const entitiesMap: Record<string, T> = {};
 
     queryResult.forEach((entity: T) => {
-      entitiesMap[entity._id.toString()] = entity;
+      entitiesMap[entity[fieldName].toString()] = entity;
     }, {});
 
-    return ids.map((entityId) => entitiesMap[entityId] as T || new Error('No entity with such id'));
+    return values.map((field) => entitiesMap[field.toString()] || new Error('No entity with such ' + fieldName));
   }
 }
