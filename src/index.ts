@@ -103,7 +103,7 @@ class HawkAPI {
    */
   private static setupFactories(dataLoaders: DataLoaders): ContextFactories {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const usersFactory = new UsersFactory(mongo.databases.hawk!);
+    const usersFactory = new UsersFactory(mongo.databases.hawk!, dataLoaders);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const workspacesFactory = new WorkspacesFactory(mongo.databases.hawk!, dataLoaders);
 
