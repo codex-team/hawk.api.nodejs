@@ -35,7 +35,11 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
   public async findByEmail(email: string): Promise<UserModel | null> {
     const userData = await this.dataLoaders.userByEmail.load(email);
 
-    return userData && new UserModel(userData);
+    if (!userData) {
+      return null;
+    }
+
+    return new UserModel(userData);
   }
 
   /**
@@ -45,7 +49,11 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
   public async findById(id: string): Promise<UserModel | null> {
     const userData = await this.dataLoaders.userById.load(id);
 
-    return userData && new UserModel(userData);
+    if (!userData) {
+      return null;
+    }
+
+    return new UserModel(userData);
   }
 
   /**
