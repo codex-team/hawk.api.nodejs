@@ -106,4 +106,14 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
       ...userData,
     });
   }
+
+  /**
+   * Get Users by their ids
+   * @param ids - users ids to fetch
+   */
+  public async findManyByIds(ids: string[]): Promise<UserDBScheme[]> {
+    return (await this.dataLoaders.userById.loadMany(ids))
+      .map((data) => data instanceof Error ? null : new UserModel(data))
+      .filter(Boolean) as UserModel[];
+  }
 }
