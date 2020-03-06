@@ -217,7 +217,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
     }
 
     /**
-     * In case user was invited via email instead of link sharing
+     * In case user was invited via email instead of invite link
      */
     if (matchedCount > 0) {
       await this.collection.updateOne(
