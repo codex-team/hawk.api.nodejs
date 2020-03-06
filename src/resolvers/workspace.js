@@ -303,7 +303,9 @@ module.exports = {
     async users(rootResolverResult, _args, { factories }) {
       const workspace = await factories.workspacesFactory.findById(rootResolverResult._id.toString());
 
-      return workspace.getAllUsersIds();
+      const userIds = await workspace.getAllUsersIds();
+
+      return factories.usersFactory.findManyByIds(userIds);
     },
 
     /**
@@ -315,7 +317,9 @@ module.exports = {
     async pendingUsers(rootResolverResult, _args, { factories }) {
       const workspace = await factories.workspacesFactory.findById(rootResolverResult._id.toString());
 
-      return workspace.getPendingUsersIds();
+      const userIds = await workspace.getPendingUsersIds();
+
+      return factories.usersFactory.findManyByIds(userIds);
     },
 
     /**

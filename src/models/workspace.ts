@@ -242,4 +242,21 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
       .filter(doc => doc.isPending && doc.userId)
       .map(doc => doc.userId?.toString()) as string[];
   }
+
+  /**
+   * Get workspace team description
+   */
+  public async getTeam(): Promise<TeamDBScheme[]> {
+    return this.teamCollection.find({}).toArray();
+  }
+
+  /**
+   * Get member description for certain workspace
+   * @param memberId - id of the member to get info
+   */
+  public getMemberInfo(memberId: string): Promise<TeamDBScheme | null> {
+    return this.teamCollection.findOne({
+      userId: new ObjectId(memberId),
+    });
+  }
 }

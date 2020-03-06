@@ -1,8 +1,7 @@
-const { ValidationError, ApolloError } = require('apollo-server-express');
+const { ForbiddenError, UserInputError } = require('apollo-server-express');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
-const Team = require('../models/team');
 const Notify = require('../models/notify');
 const User = require('../models/user').default;
 
@@ -34,21 +33,20 @@ module.exports = {
      * @return {Project[]}
      */
     async createProject(_obj, { workspaceId, name, image }, { user, factories }) {
-      // Check workspace ID
-      const userModel = await factories.usersFactory.findById(user.id);
-      const workspace = await userModel.getWorkspacesIds([
-        workspaceId,
-      ]);
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
 
       if (!workspace) {
-        throw new ValidationError('No such workspace');
+        throw new UserInputError('No such workspace');
       }
 
-      const team = new Team(workspaceId);
-      const teamInstance = await team.findByUserId(user.id);
+      const memberInfo = await workspace.getMemberInfo(user.id);
 
-      if (!teamInstance.isAdmin) {
-        throw new ApolloError('Only admins can create projects');
+      if (!memberInfo) {
+        throw new ForbiddenError('You are not member of this workspace');
+      }
+
+      if (!memberInfo.isAdmin) {
+        throw new ForbiddenError('Only admins can create projects in workspace');
       }
 
       const options = {
@@ -150,17 +148,24 @@ module.exports = {
      * @param {ProjectSchema} project
      * @param {object} _args - query args (empty for this query)
      * @param user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @returns {Promise<NotificationSettingsSchema|null>}
      */
-    async personalNotificationsSettings(project, _args, { user }) {
-      const team = new Team(project.workspaceId);
-      const teamInstance = await team.findByUserId(user.id);
+    async personalNotificationsSettings(project, _args, { user, factories }) {
+      const workspace = await factories.workspacesFactory.findById(project.workspaceId);
 
-      /**
-       * Return null if user is not in workspace or is not admin
-       */
-      if (!teamInstance || teamInstance.isPending) {
-        return null;
+      if (!workspace) {
+        throw new UserInputError('No such workspace');
+      }
+
+      const memberInfo = await workspace.getMemberInfo(user.id);
+
+      if (!memberInfo) {
+        throw new ForbiddenError('You are not member of this workspace');
+      }
+
+      if (memberInfo.isPending) {
+        throw new ForbiddenError('Only admins can create projects in workspace');
       }
 
       const factory = new UserInProject(user.id, project.id);
@@ -180,17 +185,24 @@ module.exports = {
      * @param {ProjectSchema} project
      * @param {object} _args - query args (empty for this query)
      * @param user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @returns {Promise<NotificationSettingsSchema>}
      */
-    async commonNotificationsSettings(project, _args, { user }) {
-      const team = new Team(project.workspaceId);
-      const teamInstance = await team.findByUserId(user.id);
+    async commonNotificationsSettings(project, _args, { user, factories }) {
+      const workspace = await factories.workspacesFactory.findById(project.workspaceId);
 
-      /**
-       * Return null if user is not in workspace or is not admin
-       */
-      if (!teamInstance || teamInstance.isPending || !teamInstance.isAdmin) {
-        return null;
+      if (!workspace) {
+        throw new UserInputError('No such workspace');
+      }
+
+      const memberInfo = await workspace.getMemberInfo(user.id);
+
+      if (!memberInfo) {
+        throw new ForbiddenError('You are not member of this workspace');
+      }
+
+      if (memberInfo.isPending || !memberInfo.isAdmin) {
+        throw new ForbiddenError('You are not allowed to edit this settings');
       }
 
       if (project.commonNotificationsSettings) {
