@@ -155,14 +155,6 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   }
 
   /**
-   * Find team instance by user ID
-   * @param userId - user id to find team document
-   */
-  public async findByUserId(userId: string): Promise<TeamDBScheme | null> {
-    return this.teamCollection.findOne({ userId: new ObjectId(userId) });
-  }
-
-  /**
    * Remove member from workspace
    * @param member - member to remove
    */
