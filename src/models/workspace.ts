@@ -216,7 +216,10 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
       throw new Error('User is already confirmed the invitation');
     }
 
-    if (!isUserAlreadyConfirmedInvitation) {
+    /**
+     * In case user was invited via email instead of
+     */
+    if (matchedCount > 0) {
       await this.collection.updateOne(
         {
           userEmail: member.email,
