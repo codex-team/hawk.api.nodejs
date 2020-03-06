@@ -28,11 +28,34 @@ export interface WorkspaceDBScheme {
   image?: string;
 }
 
+/**
+ * Team Document DataBase representation
+ */
 export interface TeamDBScheme {
+  /**
+   * Document id
+   */
   _id: ObjectId;
+
+  /**
+   * Id of the member of workspace
+   * If null, user is invited via email and still pending
+   */
   userId?: ObjectId;
+
+  /**
+   * User email for invitation
+   */
   userEmail?: string;
+
+  /**
+   * Is user admin in workspace
+   */
   isAdmin?: boolean;
+
+  /**
+   * Is user pending (did not accept the invitation)
+   */
   isPending?: boolean;
 }
 
@@ -65,6 +88,9 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    */
   protected collection: Collection<WorkspaceDBScheme>;
 
+  /**
+   * Collection with information about team for workspace
+   */
   protected teamCollection: Collection<TeamDBScheme>;
 
   /**
@@ -96,7 +122,6 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Adds new member to the workspace team
    * @param {String} memberId - user's id to add
    * @param {boolean} isPending - if true, mark member as pending
-   * @returns {Promise<TeamDocumentSchema>} - added document
    */
   public async addMember(memberId: string, isPending = false): Promise<TeamDBScheme> {
     const doc: OptionalId<TeamDBScheme> = {
@@ -224,7 +249,6 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Returns all users data in the team
-   * @return {Promise<User[]>}
    */
   public async getAllUsersIds(): Promise<string[]> {
     return (await this.teamCollection.find({}).toArray())
@@ -234,8 +258,6 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Returns all pending users
-   *
-   * @returns {Promise<User[]>}
    */
   public async getPendingUsersIds(): Promise<string[]> {
     return (await this.teamCollection.find({}).toArray())
