@@ -164,7 +164,7 @@ module.exports = {
         throw new ForbiddenError('You are not member of this workspace');
       }
 
-      if (memberInfo.isPending) {
+      if (!memberInfo.isAdmin) {
         throw new ForbiddenError('Only admins can create projects in workspace');
       }
 
@@ -201,7 +201,7 @@ module.exports = {
         throw new ForbiddenError('You are not member of this workspace');
       }
 
-      if (memberInfo.isPending || !memberInfo.isAdmin) {
+      if (!memberInfo.isAdmin) {
         throw new ForbiddenError('You are not allowed to edit this settings');
       }
 

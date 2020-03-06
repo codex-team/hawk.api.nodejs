@@ -210,11 +210,13 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
       { $unset: { isPending: '' } }
     );
 
-    if (matchedCount > 0 && modifiedCount === 0) {
+    const isUserAlreadyConfirmedInvitation = matchedCount > 0 && modifiedCount === 0;
+
+    if (isUserAlreadyConfirmedInvitation) {
       throw new Error('User is already confirmed the invitation');
     }
 
-    if (!matchedCount) {
+    if (!isUserAlreadyConfirmedInvitation) {
       await this.collection.updateOne(
         {
           userEmail: member.email,
