@@ -144,7 +144,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * @param state - state of permissions
    */
   public async grantAdmin(memberId: string, state = true): Promise<void> {
-    await this.collection.updateOne(
+    await this.teamCollection.updateOne(
       {
         userId: new ObjectId(memberId),
       },
