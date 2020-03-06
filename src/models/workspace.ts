@@ -143,20 +143,15 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * @param memberId - id of member to grant permissions
    * @param state - state of permissions
    */
-  public async grantAdmin(memberId: string, state = true): Promise<TeamDBScheme> {
-    const documentId = (await this.collection.updateOne(
+  public async grantAdmin(memberId: string, state = true): Promise<void> {
+    await this.collection.updateOne(
       {
         userId: new ObjectId(memberId),
       },
       {
         $set: { isAdmin: state },
       }
-    ));
-
-    return {
-      _id: documentId.upsertedId._id,
-      userId: new ObjectId(memberId),
-    };
+    );
   }
 
   /**
