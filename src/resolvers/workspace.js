@@ -153,9 +153,7 @@ module.exports = {
       } else {
         // @todo check if workspace allows invitations through general link
 
-        const membersIds = await workspace.getAllUsersIds();
-
-        if (membersIds.find(m => m === currentUser._id.toString())) {
+        if (await workspace.getMemberInfo(user.id)) {
           throw new ApolloError('You are already member of this workspace');
         }
 
@@ -239,8 +237,7 @@ module.exports = {
      */
     async grantAdmin(_obj, { workspaceId, userId, state }, { user, factories }) {
       const workspace = await factories.workspacesFactory.findById(workspaceId);
-      const usersIds = await workspace.getAllUsersIds();
-      const member = usersIds.find(el => el === user.id);
+      const member = workspace.getMemberInfo(user.id);
 
       if (!member) {
         throw new ApolloError('You are not in the workspace');
@@ -270,9 +267,7 @@ module.exports = {
     async removeMemberFromWorkspace(_obj, { workspaceId, userId, userEmail }, { user, factories }) {
       const workspace = await factories.workspacesFactory.findById(workspaceId);
 
-      const usersIds = await workspace.getAllUsersIds();
-
-      const member = usersIds.find(el => el === user.id);
+      const member = workspace.getMemberInfo(user.id);
 
       if (!member) {
         throw new ApolloError('You are not in the workspace');
@@ -303,9 +298,14 @@ module.exports = {
     async users(rootResolverResult, _args, { factories }) {
       const workspace = await factories.workspacesFactory.findById(rootResolverResult._id.toString());
 
-      const userIds = await workspace.getAllUsersIds();
+      const members = await workspace.getTeam();
 
-      return factories.usersFactory.findManyByIds(userIds);
+      return Promise.all(members.map(async member => {
+        return {
+          ...member,
+          ...await factories.usersFactory.findById(member.userId.toString()),
+        };
+      }));
     },
 
     /**
@@ -317,9 +317,17 @@ module.exports = {
     async pendingUsers(rootResolverResult, _args, { factories }) {
       const workspace = await factories.workspacesFactory.findById(rootResolverResult._id.toString());
 
-      const userIds = await workspace.getPendingUsersIds();
+      const pendingMembers = await workspace.getPendingMembersInfo();
 
-      return factories.usersFactory.findManyByIds(userIds);
+      /**
+       * @makeAnIssue @todo improve member info scheme
+       */
+      return Promise.all(pendingMembers.map(async member => {
+        return {
+          ...member,
+          ...await factories.usersFactory.findById(member.userId.toString()),
+        };
+      }));
     },
 
     /**

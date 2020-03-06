@@ -31,7 +31,7 @@ export interface WorkspaceDBScheme {
 /**
  * Team Document DataBase representation
  */
-export interface TeamDBScheme {
+export interface TeamMemberDBScheme {
   /**
    * Document id
    */
@@ -91,7 +91,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Collection with information about team for workspace
    */
-  protected teamCollection: Collection<TeamDBScheme>;
+  protected teamCollection: Collection<TeamMemberDBScheme>;
 
   /**
    * Creates Workspace instance
@@ -100,7 +100,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   constructor(workspaceData: WorkspaceDBScheme) {
     super(workspaceData);
     this.collection = this.dbConnection.collection<WorkspaceDBScheme>('workspaces');
-    this.teamCollection = this.dbConnection.collection<TeamDBScheme>('team:' + this._id.toString());
+    this.teamCollection = this.dbConnection.collection<TeamMemberDBScheme>('team:' + this._id.toString());
   }
 
   /**
@@ -123,8 +123,8 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * @param {String} memberId - user's id to add
    * @param {boolean} isPending - if true, mark member as pending
    */
-  public async addMember(memberId: string, isPending = false): Promise<TeamDBScheme> {
-    const doc: OptionalId<TeamDBScheme> = {
+  public async addMember(memberId: string, isPending = false): Promise<TeamMemberDBScheme> {
+    const doc: OptionalId<TeamMemberDBScheme> = {
       userId: new ObjectId(memberId),
       isPending,
     };
@@ -179,7 +179,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Add unregistered member to the workspace
    * @param memberEmail - invited member`s email
    */
-  public async addUnregisteredMember(memberEmail: string): Promise<TeamDBScheme> {
+  public async addUnregisteredMember(memberEmail: string): Promise<TeamMemberDBScheme> {
     const foundDocument = await this.teamCollection.findOne({ userEmail: memberEmail });
 
     if (foundDocument) {
@@ -237,25 +237,22 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Returns all users data in the team
    */
-  public async getAllUsersIds(): Promise<string[]> {
-    return (await this.teamCollection.find({}).toArray())
-      .map(doc => doc.userId?.toString())
-      .filter(Boolean) as string[];
+  public async getAllMembersInfo(): Promise<TeamMemberDBScheme[]> {
+    return this.teamCollection.find({}).toArray();
   }
 
   /**
    * Returns all pending users
    */
-  public async getPendingUsersIds(): Promise<string[]> {
+  public async getPendingMembersInfo(): Promise<TeamMemberDBScheme[]> {
     return (await this.teamCollection.find({}).toArray())
-      .filter(doc => doc.isPending && doc.userId)
-      .map(doc => doc.userId?.toString()) as string[];
+      .filter(doc => doc.isPending);
   }
 
   /**
    * Get workspace team description
    */
-  public async getTeam(): Promise<TeamDBScheme[]> {
+  public async getTeam(): Promise<TeamMemberDBScheme[]> {
     return this.teamCollection.find({}).toArray();
   }
 
@@ -263,7 +260,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Get member description for certain workspace
    * @param memberId - id of the member to get info
    */
-  public getMemberInfo(memberId: string): Promise<TeamDBScheme | null> {
+  public getMemberInfo(memberId: string): Promise<TeamMemberDBScheme | null> {
     return this.teamCollection.findOne({
       userId: new ObjectId(memberId),
     });
