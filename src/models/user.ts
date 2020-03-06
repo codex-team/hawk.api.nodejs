@@ -49,7 +49,7 @@ export interface UserDBScheme {
   /**
    * User's id
    */
-  _id: string | ObjectId;
+  _id: ObjectId;
 
   /**
    * User's email
@@ -90,7 +90,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   /**
    * User's id
    */
-  public _id!: string | ObjectId;
+  public _id!: ObjectId;
 
   /**
    * User's email
