@@ -258,7 +258,7 @@ type DailyEventInfo {
   """
   Event occurrence date
   """
-  date: Int!
+  date: DateTime!
 
   """
   Event's last repetition ID
