@@ -49,7 +49,7 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
   public async findById(id: string): Promise<UserModel | null> {
     const userData = await this.dataLoaders.userById.load(id);
 
-    if (!userData) {
+    if (userData instanceof Error) {
       return null;
     }
 
