@@ -49,7 +49,7 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
   public async findById(id: string): Promise<UserModel | null> {
     const userData = await this.dataLoaders.userById.load(id);
 
-    if (userData instanceof Error) {
+    if (!userData) {
       return null;
     }
 
@@ -113,7 +113,7 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
    */
   public async findManyByIds(ids: string[]): Promise<UserDBScheme[]> {
     return (await this.dataLoaders.userById.loadMany(ids))
-      .map((data) => data instanceof Error ? null : new UserModel(data))
+      .map((data) => !data || data instanceof Error ? null : new UserModel(data))
       .filter(Boolean) as UserModel[];
   }
 }

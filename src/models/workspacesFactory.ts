@@ -30,6 +30,20 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
   }
 
   /**
+   * Finds user by its id
+   * @param id - user id
+   */
+  public async findById(id: string): Promise<WorkspaceModel | null> {
+    const workspaceData = await this.dataLoaders.workspaceById.load(id);
+
+    if (!workspaceData) {
+      return null;
+    }
+
+    return new WorkspaceModel(workspaceData);
+  }
+
+  /**
    * Creates new workspace in DB
    * @param workspaceData - workspace's data
    * @param ownerModel - owner of the new workspace
@@ -55,7 +69,7 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
    */
   public async findManyByIds(ids: string[]): Promise<WorkspaceModel[]> {
     return (await this.dataLoaders.workspaceById.loadMany(ids))
-      .map((data) => data instanceof Error ? null : new WorkspaceModel(data))
+      .map((data) => !data || data instanceof Error ? null : new WorkspaceModel(data))
       .filter(Boolean) as WorkspaceModel[];
   }
 }
