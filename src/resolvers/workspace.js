@@ -211,8 +211,11 @@ module.exports = {
         const options = {
           name,
           description,
-          image,
         };
+
+        if (image) {
+          options.image = image;
+        }
 
         const workspaceToUpdate = await factories.workspacesFactory.findById(workspaceId);
 
