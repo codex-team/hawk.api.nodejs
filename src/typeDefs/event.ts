@@ -258,7 +258,7 @@ type DailyEventInfo {
   """
   Event occurrence date
   """
-  date: Int!
+  date: Float!
 
   """
   Event's last repetition ID
@@ -268,7 +268,7 @@ type DailyEventInfo {
   """
   Last event occurrence timestamp
   """
-  timestamp: DateTime!
+  timestamp: Float!
 }
 
 type Subscription {
