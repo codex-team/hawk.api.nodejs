@@ -268,7 +268,7 @@ type DailyEventInfo {
   """
   Last event occurrence timestamp
   """
-  timestamp: Float!
+  timestamp: DateTime!
 }
 
 type Subscription {
