@@ -329,7 +329,7 @@ module.exports = {
       return Promise.all(pendingMembers.map(async member => {
         return {
           ...member,
-          ...await factories.usersFactory.findById(member.userId.toString()),
+          email: member.userEmail,
         };
       }));
     },
