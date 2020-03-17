@@ -186,7 +186,7 @@ module.exports = {
      *
      * @returns {Promise<Boolean>}
      */
-    async updateWorkspace(_obj, { id, name, description, image }, { user, factories }) {
+    async updateWorkspace(_obj, { id: workspaceId, name, description, image }, { user, factories }) {
       // @makeAnIssue Create directives for arguments validation
       if (!Validator.string(name)) {
         throw new UserInputError('Invalid name length');
@@ -195,13 +195,16 @@ module.exports = {
       if (!Validator.string(description, 0)) {
         throw new UserInputError('Invalid description length');
       }
+      const workspaceToUpdate = await factories.workspacesFactory.findById(workspaceId);
 
-      const userModel = await factories.usersFactory.findById(user.id);
+      const member = await workspaceToUpdate.getMemberInfo(user.id);
 
-      const [ workspaceId ] = await userModel.getWorkspacesIds([ id ]);
+      if (!member) {
+        throw new ApolloError('You are not in the workspace');
+      }
 
-      if (!workspaceId) {
-        throw new ApolloError('There is no workspace with that id');
+      if (!member.isAdmin) {
+        throw new ApolloError('Not enough permissions');
       }
 
       try {
@@ -216,8 +219,6 @@ module.exports = {
         if (image) {
           options.image = image;
         }
-
-        const workspaceToUpdate = await factories.workspacesFactory.findById(workspaceId);
 
         await workspaceToUpdate.updateWorkspace(options);
       } catch (err) {
