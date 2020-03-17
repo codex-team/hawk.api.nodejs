@@ -196,6 +196,13 @@ type Repetition {
   payload: RepetitionPayload!
 }
 
+enum EventLabel {
+  NONE
+  STARRED
+  IGNORED
+  RESOLVED
+}
+
 """
 Type representing Hawk single Event
 """
@@ -239,6 +246,11 @@ type Event {
   Array of ID of users who visited event
   """
   visitedBy: [ID!]
+
+  """
+  Event label for current user
+  """
+  label: EventLabel
 }
 
 """
@@ -300,6 +312,15 @@ extend type Mutation {
   visitEvent(
     project: ID!,
     id: ID!
+  ): Boolean! @requireAuth
+
+  """
+  Mutation sets passed label to event for current user
+  """
+  markEvent(
+    project: ID!,
+    id: ID!,
+    label: EventLabel!
   ): Boolean! @requireAuth
 }
 `;

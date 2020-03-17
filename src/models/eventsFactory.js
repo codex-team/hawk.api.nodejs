@@ -37,6 +37,22 @@ class EventsFactory extends Factory {
   }
 
   /**
+   * Event labels
+   *
+   * @return {{RESOLVED: string, VISITED: string, STARRED: string, IGNORED: string}}
+   * @constructor
+   */
+  get EVENT_LABELS() {
+    return {
+      NONE: 'NONE',
+      VISITED: 'VISITED',
+      IGNORED: 'IGNORED',
+      RESOLVED: 'RESOLVED',
+      STARRED: 'STARRED',
+    };
+  }
+
+  /**
    * Creates Event instance
    * @param {string} projectId - project ID
    */
@@ -286,6 +302,23 @@ class EventsFactory extends Factory {
         { _id: new ObjectID(eventId) },
         { $addToSet: { visitedBy: new ObjectID(userId) } }
       );
+  }
+
+  /**
+   * Mark event with passed label
+   *
+   * @param {string|ObjectId} eventId - event to mark
+   * @param {string|ObjectId} userId - user id who marked the event
+   * @param {EVENT_LABELS} label - mark label
+   *
+   * @return {Promise<void>}
+   */
+  async markEvent(eventId, userId, label) {
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const query = { _id: new ObjectID(eventId) };
+    const update = { $set: { [`labels.${userId}`]: label } };
+
+    return collection.updateOne(query, update);
   }
 }
 

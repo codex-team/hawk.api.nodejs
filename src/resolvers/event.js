@@ -11,6 +11,22 @@ const watchController = new MongoWatchController();
  */
 module.exports = {
   Event: {
+
+    /**
+     * Find label for current user
+     *
+     * @param {Event} event - event object
+     * @param {object} _args - resolver arguments
+     * @param {UserInContext} user - user context
+     * @return {string}
+     */
+    label: (event, _args, { user }) => {
+      const userId = user.id;
+      const { labels } = event;
+
+      return (labels && labels[userId]) || 'NONE';
+    },
+
     /**
      * Returns Event with concrete repetition
      *
@@ -97,16 +113,34 @@ module.exports = {
     /**
      * Mark event as visited for current user
      *
-     * @param {ResolverObj} _obj
+     * @param {ResolverObj} _obj - resolver context
      * @param {string} project - project id
      * @param {string} id - event id
-     * @param {UserInContext} user
+     * @param {UserInContext} user - user context
      * @return {Promise<boolean>}
      */
     async visitEvent(_obj, { project, id }, { user }) {
       const factory = new EventsFactory(project);
 
       const { result } = await factory.visitEvent(id, user.id);
+
+      return !!result.ok;
+    },
+
+    /**
+     * Mark event with one of the event labels
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} project - project id
+     * @param {string} id - event id
+     * @param {string} label - label to set
+     * @param {UserInContext} user - user context
+     * @return {Promise<boolean>}
+     */
+    async markEvent(_obj, { project, id, label }, { user }) {
+      const factory = new EventsFactory(project);
+
+      const { result } = await factory.markEvent(id, user.id, label);
 
       return !!result.ok;
     },
