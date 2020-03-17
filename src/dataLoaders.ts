@@ -52,7 +52,7 @@ export default class DataLoaders {
    * Loader for fetching projects by their ids
    */
   public projectById = new DataLoader<string, ProjectDBScheme>(
-    (projectIds: any) => this.batchByIds<ProjectDBScheme>('projects', projectIds),
+    (projectIds) => this.batchByIds<ProjectDBScheme>('projects', projectIds),
     { cache: false }
   );
 
@@ -60,7 +60,7 @@ export default class DataLoaders {
    * Loader for fetching workspaces
    */
   public workspaceById = new DataLoader<string, WorkspaceDBScheme>(
-    (workspaceIds: any) => this.batchByIds<WorkspaceDBScheme>('workspaces', workspaceIds),
+    (workspaceIds) => this.batchByIds<WorkspaceDBScheme>('workspaces', workspaceIds),
     { cache: false }
   );
 
@@ -68,7 +68,7 @@ export default class DataLoaders {
    * Loader for fetching users by their ids
    */
   public userById = new DataLoader<string, UserDBScheme>(
-    (userIds: any) => this.batchByIds<UserDBScheme>('users', userIds),
+    (userIds) => this.batchByIds<UserDBScheme>('users', userIds),
     { cache: false }
   );
 
@@ -76,7 +76,7 @@ export default class DataLoaders {
    * Loader for fetching users by their emails
    */
   public userByEmail = new DataLoader<string, UserDBScheme>(
-    (userEmails: any) =>
+    (userEmails) =>
       this.batchByField<UserDBScheme, string>('users', userEmails, 'email'),
     { cache: false }
   );

@@ -47,7 +47,7 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
    */
   public async findManyByIds(ids: string[]): Promise<WorkspaceModel[]> {
     return (await this.dataLoaders.workspaceById.loadMany(ids))
-      .map((data: any) => data instanceof Error ? null : new WorkspaceModel(data))
+      .map((data) => data instanceof Error ? null : new WorkspaceModel(data))
       .filter(Boolean) as WorkspaceModel[];
   }
 }
