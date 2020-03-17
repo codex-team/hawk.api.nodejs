@@ -281,9 +281,9 @@ module.exports = {
         throw new ApolloError('Not enough permissions');
       }
 
-      const userModel = await factories.usersFactory.findById(userId);
-
       if (userId) {
+        const userModel = await factories.usersFactory.findById(userId);
+
         await workspace.removeMember(userModel);
       } else {
         await workspace.removeMemberByEmail(userEmail);

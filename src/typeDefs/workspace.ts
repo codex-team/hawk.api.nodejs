@@ -216,7 +216,7 @@ export default gql`
       """
       Email of user to remove
       """
-      userEmail: String!
+      userEmail: String
     ): Boolean! @requireAuth
   }
 `;
