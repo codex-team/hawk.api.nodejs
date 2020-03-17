@@ -258,7 +258,8 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Get workspace team description
    */
   public async getTeam(): Promise<TeamMemberDBScheme[]> {
-    return this.teamCollection.find({}).toArray();
+    return (await this.teamCollection.find({}).toArray())
+      .filter(doc => !doc.isPending);
   }
 
   /**
