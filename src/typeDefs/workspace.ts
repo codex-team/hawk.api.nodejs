@@ -5,7 +5,7 @@ export default gql`
     """
     User's id
     """
-    id: ID
+    id: ID! @renameFrom(name: "_id")
 
     """
     User's email
@@ -216,7 +216,7 @@ export default gql`
       """
       Email of user to remove
       """
-      userEmail: String!
+      userEmail: String
     ): Boolean! @requireAuth
   }
 `;
