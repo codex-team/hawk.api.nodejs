@@ -37,22 +37,6 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Event labels
-   *
-   * @return {{RESOLVED: string, VISITED: string, STARRED: string, IGNORED: string}}
-   * @constructor
-   */
-  get EVENT_LABELS() {
-    return {
-      NONE: 'NONE',
-      VISITED: 'VISITED',
-      IGNORED: 'IGNORED',
-      RESOLVED: 'RESOLVED',
-      STARRED: 'STARRED',
-    };
-  }
-
-  /**
    * Creates Event instance
    * @param {string} projectId - project ID
    */
@@ -308,15 +292,28 @@ class EventsFactory extends Factory {
    * Mark event with passed label
    *
    * @param {string|ObjectId} eventId - event to mark
-   * @param {string|ObjectId} userId - user id who marked the event
-   * @param {EVENT_LABELS} label - mark label
+   * @param {string} mark - mark label
    *
    * @return {Promise<void>}
    */
-  async markEvent(eventId, userId, label) {
+  async markEvent(eventId, mark) {
     const collection = this.getCollection(this.TYPES.EVENTS);
     const query = { _id: new ObjectID(eventId) };
-    const update = { $set: { [`labels.${userId}`]: label } };
+
+    const event = await collection.findOne(query);
+    const markKey = `marks.${mark}`;
+
+    let update;
+
+    if (event.marks && event.marks[mark]) {
+      update = {
+        $unset: { [markKey]: '' },
+      };
+    } else {
+      update = {
+        $set: { [markKey]: Math.floor(Date.now() / 1000) },
+      };
+    }
 
     return collection.updateOne(query, update);
   }

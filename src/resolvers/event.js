@@ -13,18 +13,15 @@ module.exports = {
   Event: {
 
     /**
-     * Find label for current user
+     * Get marks for current user
      *
      * @param {Event} event - event object
-     * @param {object} _args - resolver arguments
-     * @param {UserInContext} user - user context
      * @return {string}
      */
-    label: (event, _args, { user }) => {
-      const userId = user.id;
-      const { labels } = event;
+    marks: (event) => {
+      const { marks } = event;
 
-      return (labels && labels[userId]) || 'NONE';
+      return (marks && Object.keys(marks)) || [];
     },
 
     /**
@@ -128,19 +125,18 @@ module.exports = {
     },
 
     /**
-     * Mark event with one of the event labels
+     * Mark event with one of the event marks
      *
      * @param {ResolverObj} _obj - resolver context
      * @param {string} project - project id
      * @param {string} id - event id
-     * @param {string} label - label to set
-     * @param {UserInContext} user - user context
+     * @param {string} mark - mark to set
      * @return {Promise<boolean>}
      */
-    async markEvent(_obj, { project, id, label }, { user }) {
+    async markEvent(_obj, { project, id, mark }) {
       const factory = new EventsFactory(project);
 
-      const { result } = await factory.markEvent(id, user.id, label);
+      const { result } = await factory.markEvent(id, mark);
 
       return !!result.ok;
     },

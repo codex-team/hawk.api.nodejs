@@ -196,8 +196,7 @@ type Repetition {
   payload: RepetitionPayload!
 }
 
-enum EventLabel {
-  NONE
+enum EventMark {
   STARRED
   IGNORED
   RESOLVED
@@ -250,7 +249,7 @@ type Event {
   """
   Event label for current user
   """
-  label: EventLabel
+  marks: [EventMark]
 }
 
 """
@@ -320,7 +319,7 @@ extend type Mutation {
   markEvent(
     project: ID!,
     id: ID!,
-    label: EventLabel!
+    mark: EventMark!
   ): Boolean! @requireAuth
 }
 `;
