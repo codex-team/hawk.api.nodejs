@@ -10,7 +10,7 @@ export default gql`
     """
     If membed accepts an invitation, the user id will be stored there
     """
-    userId: ID!
+    userId: ID
 
     """
     User's email
