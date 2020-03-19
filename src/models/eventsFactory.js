@@ -289,14 +289,14 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Mark event with passed label
+   * Mark or unmark event as Resolved, Ignored or Starred
    *
    * @param {string|ObjectId} eventId - event to mark
    * @param {string} mark - mark label
    *
    * @return {Promise<void>}
    */
-  async markEvent(eventId, mark) {
+  async toggleEventMark(eventId, mark) {
     const collection = this.getCollection(this.TYPES.EVENTS);
     const query = { _id: new ObjectID(eventId) };
 

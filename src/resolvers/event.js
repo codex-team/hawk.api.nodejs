@@ -133,10 +133,10 @@ module.exports = {
      * @param {string} mark - mark to set
      * @return {Promise<boolean>}
      */
-    async markEvent(_obj, { project, id, mark }) {
+    async toggleEventMark(_obj, { project, id, mark }) {
       const factory = new EventsFactory(project);
 
-      const { result } = await factory.markEvent(id, mark);
+      const { result } = await factory.toggleEventMark(id, mark);
 
       return !!result.ok;
     },

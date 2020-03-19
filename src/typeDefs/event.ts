@@ -196,6 +196,9 @@ type Repetition {
   payload: RepetitionPayload!
 }
 
+"""
+Possible event marks
+"""
 enum EventMark {
   STARRED
   IGNORED
@@ -314,9 +317,9 @@ extend type Mutation {
   ): Boolean! @requireAuth
 
   """
-  Mutation sets passed label to event for current user
+  Mutation sets or unsets passed mark to event
   """
-  markEvent(
+  toggleEventMark(
     project: ID!,
     id: ID!,
     mark: EventMark!
