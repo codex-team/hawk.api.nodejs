@@ -294,10 +294,10 @@ module.exports = {
   Member: {
     /**
      * Returns type of the team member
-     * @param {ConfirmedMemberDBScheme} obj - result from resolver above
+     * @param {MemberDBScheme} obj - result from resolver above
      */
     __resolveType(obj) {
-      return WorkspaceModel.isPendingMember(obj) ? 'PendingMemberInfo' : 'ConfirmedMemberInfo';
+      return WorkspaceModel.isPendingMember(obj) ? 'PendingMember' : 'ConfirmedMember';
     },
   },
   ConfirmedMember: {
