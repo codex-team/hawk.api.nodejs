@@ -288,7 +288,7 @@ module.exports = {
     async team(rootResolverResult, _args, { factories }) {
       const workspace = await factories.workspacesFactory.findById(rootResolverResult._id.toString());
 
-      return workspace.getAllMembersInfo();
+      return workspace.getMembers();
     },
   },
   Member: {

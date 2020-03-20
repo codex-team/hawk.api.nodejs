@@ -254,24 +254,8 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Returns all users data in the team
    */
-  public async getAllMembersInfo(): Promise<MemberDBScheme[]> {
+  public async getMembers(): Promise<MemberDBScheme[]> {
     return this.teamCollection.find({}).toArray();
-  }
-
-  /**
-   * Returns all pending users
-   */
-  public async getPendingMembersInfo(): Promise<PendingMemberDBScheme[]> {
-    return (await this.teamCollection.find({}).toArray())
-      .filter(doc => WorkspaceModel.isPendingMember(doc)) as PendingMemberDBScheme[];
-  }
-
-  /**
-   * Get workspace team description
-   */
-  public async getTeam(): Promise<ConfirmedMemberDBScheme[]> {
-    return (await this.teamCollection.find({}).toArray())
-      .filter(doc => !WorkspaceModel.isPendingMember(doc)) as ConfirmedMemberDBScheme[];
   }
 
   /**
