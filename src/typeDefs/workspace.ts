@@ -1,7 +1,7 @@
 import { gql } from 'apollo-server-express';
 
 export default gql`
-  type ConfirmedMemberInfo {
+  type ConfirmedMember {
     """
     Member info id
     """
@@ -18,7 +18,7 @@ export default gql`
     isAdmin: Boolean!
   }
 
-  type PendingMemberInfo {
+  type PendingMember {
     """
     Member info id
     """
@@ -33,7 +33,7 @@ export default gql`
   """
   Represents two types of Members in workspace's team
   """
-  union MemberInfo = ConfirmedMemberInfo | PendingMemberInfo
+  union Member = ConfirmedMember | PendingMember
 
 
   """
@@ -93,7 +93,7 @@ export default gql`
     """
     Workspace team info
     """
-    team: [MemberInfo!]!
+    team: [Member!]!
 
     """
     Workspace balance

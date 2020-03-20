@@ -291,18 +291,16 @@ module.exports = {
       return workspace.getAllMembersInfo();
     },
   },
-  MemberInfo: {
+  Member: {
     /**
      * Returns type of the team member
      * @param {ConfirmedMemberInfoDBScheme} obj - result from resolver above
      */
     __resolveType(obj) {
-      console.log(obj);
-
       return WorkspaceModel.isPendingMember(obj) ? 'PendingMemberInfo' : 'ConfirmedMemberInfo';
     },
   },
-  ConfirmedMemberInfo: {
+  ConfirmedMember: {
     /**
      * Fetch user of the workspace
      * @param {ConfirmedMemberInfoDBScheme} obj - result from resolver above
