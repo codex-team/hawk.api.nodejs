@@ -197,16 +197,6 @@ module.exports = {
       }
       const workspaceToUpdate = await factories.workspacesFactory.findById(workspaceId);
 
-      const member = await workspaceToUpdate.getMemberInfo(user.id);
-
-      if (!member) {
-        throw new ApolloError('You are not in the workspace');
-      }
-
-      if (!member.isAdmin) {
-        throw new ApolloError('Not enough permissions');
-      }
-
       try {
         /**
          * @type {WorkspaceDBScheme}

@@ -13,6 +13,9 @@ const rootSchema = gql`
   """
   directive @requireAuth on FIELD_DEFINITION
 
+  directive @requireAdmin on FIELD_DEFINITION
+  directive @requireMember on FIELD_DEFINITION
+
   """
   Directive for field renaming
   """
