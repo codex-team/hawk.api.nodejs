@@ -33,11 +33,11 @@ export default class RequireAdminDirective extends RequireAuthDirective {
 
       const member = await workspace.getMemberInfo(context.user.id);
 
-      if (!member) {
+      if (!member || WorkspaceModel.isPendingMember(member)) {
         throw new ForbiddenError('You are not a member of this workspace');
       }
 
-      if (!WorkspaceModel.isPendingMember(member) && !member.isAdmin) {
+      if (!member.isAdmin) {
         throw new ForbiddenError('Not enough permissions');
       }
 
