@@ -2,6 +2,7 @@ import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
 import WorkspaceModel, { WorkspaceDBScheme } from './workspace';
 import DataLoaders from '../dataLoaders';
+import UserModel from './user';
 
 /**
  * Users factory to work with User Model
@@ -29,16 +30,37 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
   }
 
   /**
+   * Finds user by its id
+   * @param id - user id
+   */
+  public async findById(id: string): Promise<WorkspaceModel | null> {
+    const workspaceData = await this.dataLoaders.workspaceById.load(id);
+
+    if (!workspaceData) {
+      return null;
+    }
+
+    return new WorkspaceModel(workspaceData);
+  }
+
+  /**
    * Creates new workspace in DB
    * @param workspaceData - workspace's data
+   * @param ownerModel - owner of the new workspace
    */
-  public async create(workspaceData: WorkspaceDBScheme): Promise<WorkspaceModel> {
+  public async create(workspaceData: WorkspaceDBScheme, ownerModel: UserModel): Promise<WorkspaceModel> {
     const workspaceId = (await this.collection.insertOne(workspaceData)).insertedId;
 
-    return new WorkspaceModel({
+    const workspaceModel = new WorkspaceModel({
       _id: workspaceId,
       ...workspaceData,
     });
+
+    await workspaceModel.addMember(ownerModel._id.toString());
+    await workspaceModel.grantAdmin(ownerModel._id.toString());
+    await ownerModel.addWorkspace(workspaceModel._id.toString());
+
+    return workspaceModel;
   }
 
   /**
@@ -47,7 +69,7 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
    */
   public async findManyByIds(ids: string[]): Promise<WorkspaceModel[]> {
     return (await this.dataLoaders.workspaceById.loadMany(ids))
-      .map((data) => data instanceof Error ? null : new WorkspaceModel(data))
+      .map((data) => !data || data instanceof Error ? null : new WorkspaceModel(data))
       .filter(Boolean) as WorkspaceModel[];
   }
 }

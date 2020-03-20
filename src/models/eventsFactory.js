@@ -126,7 +126,12 @@ class EventsFactory extends Factory {
     limit = this.validateLimit(limit);
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate([
-      { $sort: { timestamp: -1 } },
+      {
+        $sort: {
+          date: -1,
+          timestamp: -1,
+        },
+      },
       { $skip: skip },
       { $limit: limit },
       {

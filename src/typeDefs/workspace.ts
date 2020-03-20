@@ -5,7 +5,12 @@ export default gql`
     """
     User's id
     """
-    id: ID
+    id: ID! @renameFrom(name: "_id")
+      
+    """
+    If membed accepts an invitation, the user id will be stored there
+    """
+    userId: ID
 
     """
     User's email
@@ -216,7 +221,7 @@ export default gql`
       """
       Email of user to remove
       """
-      userEmail: String!
+      userEmail: String
     ): Boolean! @requireAuth
   }
 `;
