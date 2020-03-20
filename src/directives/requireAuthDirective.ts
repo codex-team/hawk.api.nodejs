@@ -6,7 +6,7 @@ import {
   AccessTokenExpiredError
 } from '../errors';
 import { defaultFieldResolver, GraphQLField } from 'graphql';
-import { ResolverContextBase } from '../types/graphql';
+import { ResolverContextBase, UnknownGraphQLField, UnknownGraphQLResolverResult } from '../types/graphql';
 
 /**
  * Defines directive for accessing to a field only to authorized users
@@ -33,10 +33,8 @@ export default class RequireAuthDirective extends SchemaDirectiveVisitor {
    * @param field - field to access
    */
   public visitFieldDefinition(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    field: GraphQLField<any, any>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): GraphQLField<any, any> | void | null {
+    field: UnknownGraphQLField
+  ): void {
     const {
       resolve = defaultFieldResolver,
       subscribe,
@@ -46,7 +44,7 @@ export default class RequireAuthDirective extends SchemaDirectiveVisitor {
      * New field resolver
      * @param resolverArgs - default GraphQL resolver args
      */
-    field.resolve = async function (...resolverArgs): Promise<void> {
+    field.resolve = async function (...resolverArgs): UnknownGraphQLResolverResult {
       const [, , context] = resolverArgs;
 
       RequireAuthDirective.checkUser(context);
@@ -55,7 +53,7 @@ export default class RequireAuthDirective extends SchemaDirectiveVisitor {
     };
 
     if (subscribe) {
-      field.subscribe = async function (...resolverArgs): Promise<void> {
+      field.subscribe = async function (...resolverArgs): UnknownGraphQLResolverResult {
         const [, , context] = resolverArgs;
 
         RequireAuthDirective.checkUser(context);
