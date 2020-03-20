@@ -14,6 +14,11 @@ const rootSchema = gql`
   directive @requireAuth on FIELD_DEFINITION
 
   """
+  Access to the field only for admins
+  """
+  directive @requireAdmin on FIELD_DEFINITION
+
+  """
   Directive for field renaming
   """
   directive @renameFrom(

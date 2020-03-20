@@ -186,7 +186,7 @@ module.exports = {
      *
      * @returns {Promise<Boolean>}
      */
-    async updateWorkspace(_obj, { id: workspaceId, name, description, image }, { user, factories }) {
+    async updateWorkspace(_obj, { workspaceId, name, description, image }, { user, factories }) {
       // @makeAnIssue Create directives for arguments validation
       if (!Validator.string(name)) {
         throw new UserInputError('Invalid name length');
@@ -196,16 +196,6 @@ module.exports = {
         throw new UserInputError('Invalid description length');
       }
       const workspaceToUpdate = await factories.workspacesFactory.findById(workspaceId);
-
-      const member = await workspaceToUpdate.getMemberInfo(user.id);
-
-      if (!member) {
-        throw new ApolloError('You are not in the workspace');
-      }
-
-      if (!member.isAdmin) {
-        throw new ApolloError('Not enough permissions');
-      }
 
       try {
         /**
@@ -241,15 +231,6 @@ module.exports = {
      */
     async grantAdmin(_obj, { workspaceId, userId, state }, { user, factories }) {
       const workspace = await factories.workspacesFactory.findById(workspaceId);
-      const member = await workspace.getMemberInfo(user.id);
-
-      if (!member) {
-        throw new ApolloError('You are not in the workspace');
-      }
-
-      if (!member.isAdmin) {
-        throw new ApolloError('Not enough permissions');
-      }
 
       await workspace.grantAdmin(userId, state);
 
@@ -270,16 +251,6 @@ module.exports = {
      */
     async removeMemberFromWorkspace(_obj, { workspaceId, userId, userEmail }, { user, factories }) {
       const workspace = await factories.workspacesFactory.findById(workspaceId);
-
-      const member = await workspace.getMemberInfo(user.id);
-
-      if (!member) {
-        throw new ApolloError('You are not in the workspace');
-      }
-
-      if (!member.isAdmin) {
-        throw new ApolloError('Not enough permissions');
-      }
 
       if (userId) {
         const userModel = await factories.usersFactory.findById(userId);
