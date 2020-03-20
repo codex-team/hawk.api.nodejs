@@ -13,7 +13,7 @@ export default gql`
     user: User!
 
     """
-    True is user has admin permissions
+    True if user has admin permissions
     """
     isAdmin: Boolean!
   }
@@ -27,7 +27,7 @@ export default gql`
     """
     Email to which the invitation was sent
     """
-    email: String!
+    email: String! @renameFrom(name: "userEmail")
   }
 
   """

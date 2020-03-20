@@ -2,7 +2,7 @@ import { ForbiddenError, UserInputError } from 'apollo-server-express';
 import { defaultFieldResolver } from 'graphql';
 import { ResolverContextWithUser, UnknownGraphQLField, UnknownGraphQLResolverResult } from '../types/graphql';
 import RequireAuthDirective from './requireAuthDirective';
-import WorkspaceModel from "../models/workspace";
+import WorkspaceModel from '../models/workspace';
 
 /**
  * Defines directive for accessing to a field only for admins
