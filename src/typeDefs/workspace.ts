@@ -201,7 +201,7 @@ export default gql`
       Permissions state (true to grant, false to withdraw)
       """
       state: Boolean = true
-    ): Boolean! @requireAuth
+    ): Boolean! @requireAdmin
 
     """
     Remove member from workspace
@@ -222,6 +222,6 @@ export default gql`
       Email of user to remove
       """
       userEmail: String
-    ): Boolean! @requireAuth
+    ): Boolean! @requireAdmin
   }
 `;

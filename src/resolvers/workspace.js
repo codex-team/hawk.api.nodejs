@@ -231,15 +231,6 @@ module.exports = {
      */
     async grantAdmin(_obj, { workspaceId, userId, state }, { user, factories }) {
       const workspace = await factories.workspacesFactory.findById(workspaceId);
-      const member = await workspace.getMemberInfo(user.id);
-
-      if (!member) {
-        throw new ApolloError('You are not in the workspace');
-      }
-
-      if (!member.isAdmin) {
-        throw new ApolloError('Not enough permissions');
-      }
 
       await workspace.grantAdmin(userId, state);
 
@@ -260,16 +251,6 @@ module.exports = {
      */
     async removeMemberFromWorkspace(_obj, { workspaceId, userId, userEmail }, { user, factories }) {
       const workspace = await factories.workspacesFactory.findById(workspaceId);
-
-      const member = await workspace.getMemberInfo(user.id);
-
-      if (!member) {
-        throw new ApolloError('You are not in the workspace');
-      }
-
-      if (!member.isAdmin) {
-        throw new ApolloError('Not enough permissions');
-      }
 
       if (userId) {
         const userModel = await factories.usersFactory.findById(userId);
