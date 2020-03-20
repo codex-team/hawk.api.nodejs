@@ -1,3 +1,5 @@
+import WorkspaceModel from '../models/workspace';
+
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const crypto = require('crypto');
 
@@ -270,18 +272,20 @@ module.exports = {
      * @param _args - empty list of args
      * @param {ContextFactories} factories - factories for working with models
      */
-    async users(rootResolverResult, _args, { factories }) {
-      const workspace = await factories.workspacesFactory.findById(rootResolverResult._id.toString());
-
-      const members = await workspace.getTeam();
-
-      return Promise.all(members.map(async member => {
-        return {
-          ...member,
-          ...await factories.usersFactory.findById(member.userId.toString()),
-        };
-      }));
-    },
+    /*
+     * async users(rootResolverResult, _args, { factories }) {
+     *   const workspace = await factories.workspacesFactory.findById(rootResolverResult._id.toString());
+     *
+     *   const members = await workspace.getTeam();
+     *
+     *   return Promise.all(members.map(async member => {
+     *     return {
+     *       ...member,
+     *       ...await factories.usersFactory.findById(member.userId.toString()),
+     *     };
+     *   }));
+     * },
+     */
 
     /**
      * Fetch pending users
@@ -289,21 +293,21 @@ module.exports = {
      * @param _args - empty list of args
      * @param {ContextFactories} factories - factories for working with models
      */
-    async pendingUsers(rootResolverResult, _args, { factories }) {
-      const workspace = await factories.workspacesFactory.findById(rootResolverResult._id.toString());
-
-      const pendingMembers = await workspace.getPendingMembersInfo();
-
-      /**
-       * @makeAnIssue @todo improve member info scheme
-       */
-      return Promise.all(pendingMembers.map(async member => {
-        return {
-          ...member,
-          email: member.userEmail,
-        };
-      }));
-    },
+    // async pendingUsers(rootResolverResult, _args, { factories }) {
+    //   const workspace = await factories.workspacesFactory.findById(rootResolverResult._id.toString());
+    //
+    //   const pendingMembers = await workspace.getPendingMembersInfo();
+    //
+    //   /**
+    //    * @makeAnIssue @todo improve member info scheme
+    //    */
+    //   return Promise.all(pendingMembers.map(async member => {
+    //     return {
+    //       ...member,
+    //       email: member.userEmail,
+    //     };
+    //   }));
+    // },
 
     /**
      * Fetch projects in workspace
@@ -316,5 +320,40 @@ module.exports = {
 
       return projectToWorkspace.getProjects(ids);
     },
+
+    async team(rootResolverResult, _args, { factories }) {
+      const workspace = await factories.workspacesFactory.findById(rootResolverResult._id.toString());
+
+      return workspace.getAllMembersInfo();
+    },
+  },
+  MemberInfo: {
+    __resolveType(obj) {
+      console.log(obj);
+
+      return WorkspaceModel.isPendingMember(obj) ? 'PendingMemberInfo' : 'ConfirmedMemberInfo';
+    },
+  },
+  ConfirmedMemberInfo: {
+    /**
+     * Fetch workspaces users
+     * @param {ConfirmedMemberInfoDBScheme} obj - result from resolver above
+     * @param _args - empty list of args
+     * @param {ContextFactories} factories - factories for working with models
+     */
+    user(obj, _args, { factories }) {
+      return factories.usersFactory.findById(obj.userId.toString());
+    },
+
+    /**
+     *
+     * @param {ConfirmedMemberInfoDBScheme} obj - result from resolver above
+     */
+    isAdmin(obj) {
+      return !WorkspaceModel.isPendingMember(obj) && (obj.isAdmin || false);
+    },
+  },
+  PendingMemberInfo: {
+    email: obj => WorkspaceModel.isPendingMember(obj) && obj.userEmail,
   },
 };

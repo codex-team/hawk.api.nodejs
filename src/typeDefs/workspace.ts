@@ -1,42 +1,40 @@
 import { gql } from 'apollo-server-express';
 
 export default gql`
-  type Member {
+  type ConfirmedMemberInfo {
     """
-    User's id
+    Member info id
     """
     id: ID! @renameFrom(name: "_id")
 
     """
-    If membed accepts an invitation, the user id will be stored there
+    If member accepts an invitation, the user id will be stored there
     """
-    userId: ID
-
-    """
-    User's email
-    """
-    email: String
-
-    """
-    User's name
-    """
-    name: String
-
-    """
-    User's image
-    """
-    image: String
+    user: User!
 
     """
     True is user has admin permissions
     """
-    isAdmin: Boolean
+    isAdmin: Boolean!
+  }
+
+  type PendingMemberInfo {
+    """
+    Member info id
+    """
+    id: ID! @renameFrom(name: "_id")
 
     """
-    True if user invitation should be confirmed
+    Email to which the invitation was sent
     """
-    isPending: Boolean
+    email: String!
   }
+
+  """
+  Represents two types of Members in workspace's team
+  """
+  union MemberInfo = ConfirmedMemberInfo | PendingMemberInfo
+
 
   """
   Workspace tariff plan
@@ -93,14 +91,9 @@ export default gql`
     image: String
 
     """
-    Workspace users array
+    Workspace team info
     """
-    users: [Member!]
-
-    """
-    Workspace pending users array
-    """
-    pendingUsers: [Member!]
+    team: [MemberInfo!]!
 
     """
     Workspace balance
