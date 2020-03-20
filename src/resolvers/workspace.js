@@ -279,11 +279,11 @@ module.exports = {
     },
 
     /**
-     *
+     * Returns workspace team
      * @param {WorkspaceDBScheme} rootResolverResult - result from resolver above
      * @param _args - empty list of args
      * @param {ContextFactories} factories - factories for working with models
-     * @return {Promise<MemberInfoDBScheme[]>}
+     * @return {Promise<MemberDBScheme[]>}
      */
     async team(rootResolverResult, _args, { factories }) {
       const workspace = await factories.workspacesFactory.findById(rootResolverResult._id.toString());
@@ -294,7 +294,7 @@ module.exports = {
   Member: {
     /**
      * Returns type of the team member
-     * @param {ConfirmedMemberInfoDBScheme} obj - result from resolver above
+     * @param {ConfirmedMemberDBScheme} obj - result from resolver above
      */
     __resolveType(obj) {
       return WorkspaceModel.isPendingMember(obj) ? 'PendingMemberInfo' : 'ConfirmedMemberInfo';
@@ -303,7 +303,7 @@ module.exports = {
   ConfirmedMember: {
     /**
      * Fetch user of the workspace
-     * @param {ConfirmedMemberInfoDBScheme} obj - result from resolver above
+     * @param {ConfirmedMemberDBScheme} obj - result from resolver above
      * @param _args - empty list of args
      * @param {ContextFactories} factories - factories for working with models
      */
@@ -313,7 +313,7 @@ module.exports = {
 
     /**
      * True if user has admin permissions
-     * @param {ConfirmedMemberInfoDBScheme} obj - result from resolver above
+     * @param {ConfirmedMemberDBScheme} obj - result from resolver above
      */
     isAdmin(obj) {
       return !WorkspaceModel.isPendingMember(obj) && (obj.isAdmin || false);
