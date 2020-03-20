@@ -4,7 +4,7 @@ import { ResolverContextWithUser, UnknownGraphQLField, UnknownGraphQLResolverRes
 import RequireAuthDirective from './requireAuthDirective';
 
 /**
- * Defines directive for accessing to a field only to authorized users
+ * Defines directive for accessing to a field only for admins
  */
 export default class RequireAdminDirective extends RequireAuthDirective {
   /**
