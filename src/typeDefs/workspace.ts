@@ -6,6 +6,11 @@ export default gql`
     User's id
     """
     id: ID! @renameFrom(name: "_id")
+      
+    """
+    If membed accepts an invitation, the user id will be stored there
+    """
+    userId: ID
 
     """
     User's email
