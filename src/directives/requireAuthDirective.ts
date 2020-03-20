@@ -5,7 +5,7 @@ import {
 import {
   AccessTokenExpiredError
 } from '../errors';
-import { defaultFieldResolver, GraphQLField } from 'graphql';
+import { defaultFieldResolver } from 'graphql';
 import { ResolverContextBase, UnknownGraphQLField, UnknownGraphQLResolverResult } from '../types/graphql';
 
 /**
