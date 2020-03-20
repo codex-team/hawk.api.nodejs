@@ -24,7 +24,6 @@ export default class RequireAdminDirective extends RequireAuthDirective {
      */
     field.resolve = async function (...resolverArgs): UnknownGraphQLResolverResult {
       const [, args, context] = resolverArgs;
-
       const workspace = await context.factories.workspacesFactory.findById(args.workspaceId);
 
       if (!workspace) {
@@ -34,7 +33,7 @@ export default class RequireAdminDirective extends RequireAuthDirective {
       const member = await workspace.getMemberInfo(context.user.id);
 
       if (!member) {
-        throw new ForbiddenError('You are not in the workspace');
+        throw new ForbiddenError('You are not a member of this workspace');
       }
 
       if (!member.isAdmin) {
