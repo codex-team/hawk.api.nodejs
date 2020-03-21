@@ -39,16 +39,6 @@ module.exports = {
         throw new UserInputError('No such workspace');
       }
 
-      const memberInfo = await workspace.getMemberInfo(user.id);
-
-      if (!memberInfo) {
-        throw new ForbiddenError('You are not member of this workspace');
-      }
-
-      if (!memberInfo.isAdmin) {
-        throw new ForbiddenError('Only admins can create projects in workspace');
-      }
-
       const options = {
         name,
         workspaceId,

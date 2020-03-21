@@ -15,7 +15,10 @@ import UsersFactory from './models/usersFactory';
 import { GraphQLError } from 'graphql';
 import WorkspacesFactory from './models/workspacesFactory';
 import DataLoaders from './dataLoaders';
+
 import UploadImageDirective from './directives/uploadImageDirective';
+import RequireAuthDirective from './directives/requireAuthDirective';
+import RequireAdminDirective from './directives/requireAdminDirective';
 
 /**
  * Option to enable playground
@@ -71,9 +74,10 @@ class HawkAPI {
       playground: PLAYGROUND_ENABLE,
       introspection: PLAYGROUND_ENABLE,
       schemaDirectives: {
-        requireAuth: require('./directives/requireAuthDirective'),
+        requireAuth: RequireAuthDirective,
         renameFrom: require('./directives/renameFrom'),
         uploadImage: UploadImageDirective,
+        requireAdmin: RequireAdminDirective,
       },
       subscriptions: {
         path: '/subscriptions',

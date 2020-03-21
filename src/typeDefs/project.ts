@@ -107,7 +107,7 @@ extend type Mutation {
 
     "Project image"
     image: Upload @uploadImage
-  ): Project! @requireAuth
+  ): Project! @requireAdmin
 
   """
   Updates user's visit time on project
