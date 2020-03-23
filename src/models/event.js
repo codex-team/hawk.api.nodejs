@@ -42,7 +42,7 @@
  * @property {String} catcherType - type of an event
  * @property {Number} count - event repetitions count
  * @property {String} groupHash - event's hash (catcherType + title + salt)
- * @property {ObjectId[]} visitedBy - array of users who visited this event
+ * @property {User[]} visitedBy - array of users who visited this event
  * @property {EventPayload} payload - event's payload
  */
 

@@ -45,6 +45,21 @@ module.exports = {
 
       return factory.getEventRepetitions(eventId, limit, skip);
     },
+
+    /**
+     * Returns users who visited event
+     * @param {string[]} visitedBy - id's users who visited event
+     * @param _args - query args (empty)
+     * @param factories - factories for working with models
+     * @return {Promise<UserModel[]> | null}
+     */
+    async visitedBy({ visitedBy }, _args, { factories }) {
+      if (!visitedBy || !visitedBy.length) {
+        return null;
+      }
+
+      return visitedBy.map(userId => factories.usersFactory.findById(userId));
+    },
   },
   Subscription: {
     eventOccurred: {
