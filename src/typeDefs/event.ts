@@ -200,9 +200,18 @@ type Repetition {
 Possible event marks
 """
 enum EventMark {
-  STARRED
-  IGNORED
-  RESOLVED
+  resolved
+  starred
+  ignored
+}
+
+"""
+Object returned in marks property of event object
+"""
+type EventMarks {
+  resolved: Boolean!
+  starred: Boolean!
+  ignored: Boolean!
 }
 
 """
@@ -252,7 +261,7 @@ type Event {
   """
   Event label for current user
   """
-  marks: [EventMark]
+  marks: EventMarks!
 }
 
 """
@@ -320,8 +329,19 @@ extend type Mutation {
   Mutation sets or unsets passed mark to event
   """
   toggleEventMark(
+    """
+    ID of project event is related to
+    """
     project: ID!,
-    id: ID!,
+
+    """
+    EvenID of the event to set the mark
+    """
+    eventId: ID!,
+
+    """
+    Mark to set
+    """
     mark: EventMark!
   ): Boolean! @requireAuth
 }

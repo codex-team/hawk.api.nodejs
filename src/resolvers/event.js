@@ -10,20 +10,18 @@ const watchController = new MongoWatchController();
  * See all types and fields here {@see ../typeDefs/event.graphql}
  */
 module.exports = {
-  Event: {
-
-    /**
-     * Get marks for current user
-     *
-     * @param {Event} event - event object
-     * @return {string}
-     */
-    marks: (event) => {
-      const { marks } = event;
-
-      return (marks && Object.keys(marks)) || [];
+  EventMarks: {
+    starred(marks) {
+      return 'starred' in marks;
     },
-
+    ignored(marks) {
+      return 'ignored' in marks;
+    },
+    resolved(marks) {
+      return 'resolved' in marks;
+    },
+  },
+  Event: {
     /**
      * Returns Event with concrete repetition
      *
@@ -133,10 +131,10 @@ module.exports = {
      * @param {string} mark - mark to set
      * @return {Promise<boolean>}
      */
-    async toggleEventMark(_obj, { project, id, mark }) {
+    async toggleEventMark(_obj, { project, eventId, mark }) {
       const factory = new EventsFactory(project);
 
-      const { result } = await factory.toggleEventMark(id, mark);
+      const { result } = await factory.toggleEventMark(eventId, mark);
 
       return !!result.ok;
     },
