@@ -26,6 +26,14 @@ const rootSchema = gql`
     name: String!
   ) on FIELD_DEFINITION
 
+ """
+  Directive for setting field default value
+  """
+  directive @default(
+    "Default field value encoded in JSON"
+    value: String!
+  ) on FIELD_DEFINITION
+
   """
   Directive for automatically image uploading
   """
