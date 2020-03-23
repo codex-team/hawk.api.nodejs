@@ -128,8 +128,8 @@ class EventsFactory extends Factory {
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate([
       {
         $sort: {
-          date: -1,
-          timestamp: -1,
+          groupingTimestamp: -1,
+          lastRepetitionTime: -1,
         },
       },
       { $skip: skip },
