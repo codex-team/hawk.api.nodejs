@@ -7,7 +7,7 @@ import { defaultFieldResolver } from 'graphql';
 /**
  * Directive for setting field default value
  */
-module.exports = class DefaultValueDirective extends SchemaDirectiveVisitor {
+export default class DefaultValueDirective extends SchemaDirectiveVisitor {
   /**
    * Method to be called on field visit
    * @param field {UnknownGraphQLField} - GraphQL field definition
