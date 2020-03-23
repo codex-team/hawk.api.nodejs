@@ -19,6 +19,7 @@ import DataLoaders from './dataLoaders';
 import UploadImageDirective from './directives/uploadImageDirective';
 import RequireAuthDirective from './directives/requireAuthDirective';
 import RequireAdminDirective from './directives/requireAdminDirective';
+import DefaultValueDirective from './directives/defaultValue';
 
 /**
  * Option to enable playground
@@ -78,6 +79,7 @@ class HawkAPI {
         renameFrom: require('./directives/renameFrom'),
         uploadImage: UploadImageDirective,
         requireAdmin: RequireAdminDirective,
+        default: DefaultValueDirective,
       },
       subscriptions: {
         path: '/subscriptions',
