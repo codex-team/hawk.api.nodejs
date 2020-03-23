@@ -197,6 +197,24 @@ type Repetition {
 }
 
 """
+Possible event marks
+"""
+enum EventMark {
+  resolved
+  starred
+  ignored
+}
+
+"""
+Object returned in marks property of event object
+"""
+type EventMarks {
+  resolved: Boolean!
+  starred: Boolean!
+  ignored: Boolean!
+}
+
+"""
 Type representing Hawk single Event
 """
 type Event {
@@ -239,6 +257,11 @@ type Event {
   Array of ID of users who visited event
   """
   visitedBy: [ID!]
+
+  """
+  Event label for current user
+  """
+  marks: EventMarks!
 }
 
 """
@@ -300,6 +323,26 @@ extend type Mutation {
   visitEvent(
     project: ID!,
     id: ID!
+  ): Boolean! @requireAuth
+
+  """
+  Mutation sets or unsets passed mark to event
+  """
+  toggleEventMark(
+    """
+    ID of project event is related to
+    """
+    project: ID!,
+
+    """
+    EvenID of the event to set the mark
+    """
+    eventId: ID!,
+
+    """
+    Mark to set
+    """
+    mark: EventMark!
   ): Boolean! @requireAuth
 }
 `;

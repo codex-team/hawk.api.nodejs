@@ -292,6 +292,36 @@ class EventsFactory extends Factory {
         { $addToSet: { visitedBy: new ObjectID(userId) } }
       );
   }
+
+  /**
+   * Mark or unmark event as Resolved, Ignored or Starred
+   *
+   * @param {string|ObjectId} eventId - event to mark
+   * @param {string} mark - mark label
+   *
+   * @return {Promise<void>}
+   */
+  async toggleEventMark(eventId, mark) {
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const query = { _id: new ObjectID(eventId) };
+
+    const event = await collection.findOne(query);
+    const markKey = `marks.${mark}`;
+
+    let update;
+
+    if (event.marks && event.marks[mark]) {
+      update = {
+        $unset: { [markKey]: '' },
+      };
+    } else {
+      update = {
+        $set: { [markKey]: Math.floor(Date.now() / 1000) },
+      };
+    }
+
+    return collection.updateOne(query, update);
+  }
 }
 
 module.exports = EventsFactory;
