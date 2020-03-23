@@ -1,4 +1,4 @@
-import { UnknownGraphQLField } from '../types/graphql';
+import { UnknownGraphQLField, UnknownGraphQLResolverResult } from '../types/graphql';
 import {
   SchemaDirectiveVisitor
 } from 'apollo-server-express';
@@ -23,7 +23,7 @@ export default class DefaultValueDirective extends SchemaDirectiveVisitor {
     }
     const { resolve = defaultFieldResolver } = field;
 
-    field.resolve = async (object, args, context, info): Promise<any> => {
+    field.resolve = async (object, args, context, info): UnknownGraphQLResolverResult => {
       let result = await resolve.call(this, object, args, context, info);
 
       if (value && !result) {
