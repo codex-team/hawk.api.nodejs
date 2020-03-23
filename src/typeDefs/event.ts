@@ -261,7 +261,7 @@ type Event {
   """
   Event label for current user
   """
-  marks: EventMarks!
+  marks: EventMarks! @default(value: "{}")
 }
 
 """

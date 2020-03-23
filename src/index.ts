@@ -78,6 +78,7 @@ class HawkAPI {
         renameFrom: require('./directives/renameFrom'),
         uploadImage: UploadImageDirective,
         requireAdmin: RequireAdminDirective,
+        default: require('./directives/defaultValue'),
       },
       subscriptions: {
         path: '/subscriptions',
