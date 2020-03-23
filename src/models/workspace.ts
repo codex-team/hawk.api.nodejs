@@ -29,9 +29,9 @@ export interface WorkspaceDBScheme {
 }
 
 /**
- * Team Document DataBase representation
+ * Represents confirmed member info in DB
  */
-export interface TeamMemberDBScheme {
+interface ConfirmedMemberDBScheme {
   /**
    * Document id
    */
@@ -39,25 +39,34 @@ export interface TeamMemberDBScheme {
 
   /**
    * Id of the member of workspace
-   * If null, user is invited via email and still pending
    */
-  userId?: ObjectId;
-
-  /**
-   * User email for invitation
-   */
-  userEmail?: string;
+  userId: ObjectId;
 
   /**
    * Is user admin in workspace
    */
   isAdmin?: boolean;
+}
+
+/**
+ * Represents pending member info in DB
+ */
+interface PendingMemberDBScheme {
+  /**
+   * Document id
+   */
+  _id: ObjectId;
 
   /**
-   * Is user pending (did not accept the invitation)
+   * User email for invitation
    */
-  isPending?: boolean;
+  userEmail: string;
 }
+
+/**
+ * Represents full structure of team collection documents
+ */
+type MemberDBScheme = ConfirmedMemberDBScheme | PendingMemberDBScheme;
 
 /**
  * Workspace model
@@ -91,7 +100,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Collection with information about team for workspace
    */
-  protected teamCollection: Collection<TeamMemberDBScheme>;
+  protected teamCollection: Collection<MemberDBScheme>;
 
   /**
    * Creates Workspace instance
@@ -100,7 +109,15 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   constructor(workspaceData: WorkspaceDBScheme) {
     super(workspaceData);
     this.collection = this.dbConnection.collection<WorkspaceDBScheme>('workspaces');
-    this.teamCollection = this.dbConnection.collection<TeamMemberDBScheme>('team:' + this._id.toString());
+    this.teamCollection = this.dbConnection.collection<MemberDBScheme>('team:' + this._id.toString());
+  }
+
+  /**
+   * Checks is provided document represents pending member
+   * @param doc - doc to check
+   */
+  public static isPendingMember(doc: MemberDBScheme): doc is PendingMemberDBScheme {
+    return !!(doc as PendingMemberDBScheme).userEmail && !(doc as ConfirmedMemberDBScheme).userId;
   }
 
   /**
@@ -121,12 +138,10 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Adds new member to the workspace team
    * @param {String} memberId - user's id to add
-   * @param {boolean} isPending - if true, mark member as pending
    */
-  public async addMember(memberId: string, isPending = false): Promise<TeamMemberDBScheme> {
-    const doc: OptionalId<TeamMemberDBScheme> = {
+  public async addMember(memberId: string): Promise<ConfirmedMemberDBScheme> {
+    const doc: OptionalId<ConfirmedMemberDBScheme> = {
       userId: new ObjectId(memberId),
-      isPending,
     };
 
     const documentId = (await this.teamCollection.insertOne(doc)).insertedId;
@@ -134,7 +149,6 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
     return {
       _id: documentId,
       userId: new ObjectId(memberId),
-      isPending,
     };
   }
 
@@ -179,7 +193,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Add unregistered member to the workspace
    * @param memberEmail - invited member`s email
    */
-  public async addUnregisteredMember(memberEmail: string): Promise<TeamMemberDBScheme> {
+  public async addUnregisteredMember(memberEmail: string): Promise<PendingMemberDBScheme> {
     const foundDocument = await this.teamCollection.findOne({ userEmail: memberEmail });
 
     if (foundDocument) {
@@ -188,13 +202,11 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
     const documentId = (await this.teamCollection.insertOne({
       userEmail: memberEmail,
-      isPending: true,
-    })).insertedId;
+    } as PendingMemberDBScheme)).insertedId;
 
     return {
       _id: documentId,
       userEmail: memberEmail,
-      isPending: true,
     };
   }
 
@@ -242,31 +254,15 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Returns all users data in the team
    */
-  public async getAllMembersInfo(): Promise<TeamMemberDBScheme[]> {
+  public async getMembers(): Promise<MemberDBScheme[]> {
     return this.teamCollection.find({}).toArray();
-  }
-
-  /**
-   * Returns all pending users
-   */
-  public async getPendingMembersInfo(): Promise<TeamMemberDBScheme[]> {
-    return (await this.teamCollection.find({}).toArray())
-      .filter(doc => doc.isPending);
-  }
-
-  /**
-   * Get workspace team description
-   */
-  public async getTeam(): Promise<TeamMemberDBScheme[]> {
-    return (await this.teamCollection.find({}).toArray())
-      .filter(doc => !doc.isPending);
   }
 
   /**
    * Get member description for certain workspace
    * @param memberId - id of the member to get info
    */
-  public getMemberInfo(memberId: string): Promise<TeamMemberDBScheme | null> {
+  public getMemberInfo(memberId: string): Promise<MemberDBScheme | null> {
     return this.teamCollection.findOne({
       userId: new ObjectId(memberId),
     });
