@@ -1,6 +1,9 @@
 import { gql } from 'apollo-server-express';
 
 export default gql`
+  """
+  Confirmed member data in workspace
+  """
   type ConfirmedMember {
     """
     Member info id
@@ -18,6 +21,9 @@ export default gql`
     isAdmin: Boolean!
   }
 
+  """
+  Pending member data in workspace
+  """
   type PendingMember {
     """
     Member info id

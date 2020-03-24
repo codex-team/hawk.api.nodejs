@@ -291,6 +291,11 @@ module.exports = {
       return workspace.getMembers();
     },
   },
+
+  /**
+   * Resolver for Union Member type.
+   * Represents two types of Members in workspace's team
+   */
   Member: {
     /**
      * Returns type of the team member
@@ -300,6 +305,10 @@ module.exports = {
       return WorkspaceModel.isPendingMember(obj) ? 'PendingMember' : 'ConfirmedMember';
     },
   },
+
+  /**
+   * Resolver for confirmed member data in workspace
+   */
   ConfirmedMember: {
     /**
      * Fetch user of the workspace
