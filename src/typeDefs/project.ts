@@ -104,10 +104,10 @@ extend type Mutation {
     workspaceId: ID!
     "Project name"
     name: String!
-      
+
     "Project image"
-    image: Upload
-  ): Project! @requireAuth
+    image: Upload @uploadImage
+  ): Project! @requireAdmin
 
   """
   Update project settings
@@ -123,9 +123,9 @@ extend type Mutation {
     description: String
 
     "Project image"
-    image: Upload
+    image: Upload @uploadImage
   ): Project! @requireAuth
-    
+
   """
   Updates user's visit time on project
   """

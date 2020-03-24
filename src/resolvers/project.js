@@ -1,11 +1,8 @@
-import { save } from '../utils/files';
-
-const { ValidationError, ApolloError, UserInputError } = require('apollo-server-express');
+const { ForbiddenError, ApolloError, UserInputError } = require('apollo-server-express');
+const Validator = require('../utils/validator');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
-const Validator = require('../utils/validator');
-const Team = require('../models/team');
 const Notify = require('../models/notify');
 const User = require('../models/user').default;
 
@@ -31,46 +28,24 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {string} workspaceId - workspace ID
      * @param {string} name - project name
-     * @param {Promise<FileUpload>} image - project logo
+     * @param {string} image - project logo
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      * @return {Project[]}
      */
-    async createProject(_obj, { workspaceId, name, image: upload }, { user, factories }) {
-      // Check workspace ID
-      const userModel = await factories.usersFactory.findById(user.id);
-      const workspace = await userModel.getWorkspaces([
-        workspaceId,
-      ]);
+    async createProject(_obj, { workspaceId, name, image }, { user, factories }) {
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
 
       if (!workspace) {
-        throw new ValidationError('No such workspace');
-      }
-
-      const team = new Team(workspaceId);
-      const teamInstance = await team.findByUserId(user.id);
-
-      if (!teamInstance.isAdmin) {
-        throw new ApolloError('Only admins can create projects');
-      }
-
-      let image;
-
-      if (upload) {
-        const imageMeta = await upload;
-
-        image = save(imageMeta.createReadStream(), imageMeta.mimetype);
+        throw new UserInputError('No such workspace');
       }
 
       const options = {
         name,
         workspaceId,
         uidAdded: user.id,
+        image,
       };
-
-      if (image) {
-        options.image = image;
-      }
 
       const project = await Project.create(options);
 
@@ -87,13 +62,13 @@ module.exports = {
      * @param {string} projectId - id of the updated project
      * @param {string} name - project name
      * @param {string} description - project description
-     * @param {Promise<FileUpload>} - project logo
+     * @param {string} - project logo
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      *
      * @returns {Project}
      */
-    async updateProject(_obj, { id, name, description, image: upload }, { user, factories }) {
+    async updateProject(_obj, { id, name, description, image }, { user, factories }) {
       if (!Validator.string(name)) {
         throw new UserInputError('Invalid name length');
       }
@@ -106,14 +81,6 @@ module.exports = {
 
       if (!project) {
         throw new ApolloError('There is no project with that id');
-      }
-
-      let image;
-
-      if (upload) {
-        const imageMeta = await upload;
-
-        image = save(imageMeta.createReadStream(), imageMeta.mimetype);
       }
 
       try {
@@ -219,17 +186,24 @@ module.exports = {
      * @param {ProjectSchema} project
      * @param {object} _args - query args (empty for this query)
      * @param user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @returns {Promise<NotificationSettingsSchema|null>}
      */
-    async personalNotificationsSettings(project, _args, { user }) {
-      const team = new Team(project.workspaceId);
-      const teamInstance = await team.findByUserId(user.id);
+    async personalNotificationsSettings(project, _args, { user, factories }) {
+      const workspace = await factories.workspacesFactory.findById(project.workspaceId);
 
-      /**
-       * Return null if user is not in workspace or is not admin
-       */
-      if (!teamInstance || teamInstance.isPending) {
-        return null;
+      if (!workspace) {
+        throw new UserInputError('No such workspace');
+      }
+
+      const memberInfo = await workspace.getMemberInfo(user.id);
+
+      if (!memberInfo) {
+        throw new ForbiddenError('You are not member of this workspace');
+      }
+
+      if (!memberInfo.isAdmin) {
+        throw new ForbiddenError('Only admins can create projects in workspace');
       }
 
       const factory = new UserInProject(user.id, project.id);
@@ -249,17 +223,24 @@ module.exports = {
      * @param {ProjectSchema} project
      * @param {object} _args - query args (empty for this query)
      * @param user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @returns {Promise<NotificationSettingsSchema>}
      */
-    async commonNotificationsSettings(project, _args, { user }) {
-      const team = new Team(project.workspaceId);
-      const teamInstance = await team.findByUserId(user.id);
+    async commonNotificationsSettings(project, _args, { user, factories }) {
+      const workspace = await factories.workspacesFactory.findById(project.workspaceId);
 
-      /**
-       * Return null if user is not in workspace or is not admin
-       */
-      if (!teamInstance || teamInstance.isPending || !teamInstance.isAdmin) {
-        return null;
+      if (!workspace) {
+        throw new UserInputError('No such workspace');
+      }
+
+      const memberInfo = await workspace.getMemberInfo(user.id);
+
+      if (!memberInfo) {
+        throw new ForbiddenError('You are not member of this workspace');
+      }
+
+      if (!memberInfo.isAdmin) {
+        throw new ForbiddenError('You are not allowed to edit this settings');
       }
 
       if (project.commonNotificationsSettings) {

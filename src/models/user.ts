@@ -2,7 +2,7 @@ import argon2 from 'argon2';
 import crypto from 'crypto';
 import jwt, { Secret } from 'jsonwebtoken';
 import { OptionalId } from '../mongo';
-import { Collection, ObjectID } from 'mongodb';
+import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 
@@ -29,12 +29,12 @@ export interface MembershipDBScheme {
   /**
    * Document id
    */
-  _id: ObjectID;
+  _id: ObjectId;
 
   /**
    * User's workspace id
    */
-  workspaceId: ObjectID | string;
+  workspaceId: ObjectId;
 
   /**
    * Shows if member is pending
@@ -49,7 +49,7 @@ export interface UserDBScheme {
   /**
    * User's id
    */
-  _id: string | ObjectID;
+  _id: ObjectId;
 
   /**
    * User's email
@@ -90,7 +90,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   /**
    * User's id
    */
-  public _id!: string | ObjectID;
+  public _id!: ObjectId;
 
   /**
    * User's email
@@ -178,7 +178,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
     const hashedPassword = await UserModel.hashPassword(newPassword);
 
     const status = await this.update(
-      { _id: new ObjectID(this._id) },
+      { _id: new ObjectId(this._id) },
       { password: hashedPassword }
     );
 
@@ -203,7 +203,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
 
     try {
       await this.update(
-        { _id: new ObjectID(this._id) },
+        { _id: new ObjectId(this._id) },
         user
       );
     } catch (e) {
@@ -256,7 +256,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    */
   public async addWorkspace(workspaceId: string, isPending = false): Promise<object> {
     const doc: OptionalId<MembershipDBScheme> = {
-      workspaceId: new ObjectID(workspaceId),
+      workspaceId: new ObjectId(workspaceId),
     };
 
     if (isPending) {
@@ -277,7 +277,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    */
   public async removeWorkspace(workspaceId: string): Promise<{workspaceId: string}> {
     await this.membershipCollection.deleteOne({
-      workspaceId: new ObjectID(workspaceId),
+      workspaceId: new ObjectId(workspaceId),
     });
 
     return {
@@ -292,79 +292,27 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   public async confirmMembership(workspaceId: string): Promise<void> {
     await this.membershipCollection.updateOne(
       {
-        workspaceId: new ObjectID(workspaceId),
+        workspaceId: new ObjectId(workspaceId),
       },
       { $unset: { isPending: '' } }
     );
   }
 
   /**
-   * Get user's workspaces by ids
+   * Get user's workspaces ids
    * Returns all user's workspaces if ids = []
-   * @param ids - workspaces ids
+   * @param ids - workspaces id to filter them if there are workspaces that doesn't belong to the user
    */
-  public async getWorkspaces(ids: (string| ObjectID)[] = []): Promise<object> {
-    ids = ids.map(id => new ObjectID(id));
+  public async getWorkspacesIds(ids: (string | ObjectId)[] = []): Promise<string[]> {
+    const idsAsObjectId = ids.map(id => new ObjectId(id));
+    const searchQuery = ids.length ? {
+      workspaceId: {
+        $in: idsAsObjectId,
+      },
+    } : {};
 
-    const pipeline = [
-      {
-        $lookup: {
-          from: 'workspaces',
-          localField: 'workspaceId',
-          foreignField: '_id',
-          as: 'workspace',
-        },
-      },
-      {
-        $match: {
-          isPending: { $exists: false },
-        },
-      },
-      {
-        $unwind: '$workspace',
-      },
-      {
-        $replaceRoot: {
-          newRoot: '$workspace',
-        },
-      },
-      {
-        $lookup: {
-          from: 'plans',
-          localField: 'plan.name',
-          foreignField: 'name',
-          as: 'planInfo',
-        },
-      },
-      {
-        $unwind: {
-          path: '$planInfo',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $addFields: {
-          id: '$_id',
-          'plan.monthlyCharge': '$planInfo.monthlyCharge',
-          'plan.eventsLimit': '$planInfo.eventsLimit',
-          planInfo: '$$REMOVE',
-        },
-      },
-    ];
+    const membershipDocuments = await this.membershipCollection.find(searchQuery).toArray();
 
-    if (ids.length) {
-      return this.membershipCollection.aggregate([
-        {
-          $match: {
-            workspaceId: {
-              $in: ids,
-            },
-          },
-        },
-        ...pipeline,
-      ]).toArray();
-    }
-
-    return this.membershipCollection.aggregate(pipeline).toArray();
+    return membershipDocuments.map(doc => doc.workspaceId.toString());
   }
 }

@@ -1,6 +1,7 @@
 import AbstractModelFactory from './abstactModelFactory';
 import UserModel, { UserDBScheme } from './user';
 import { Collection, Db } from 'mongodb';
+import DataLoaders from '../dataLoaders';
 
 /**
  * Users factory to work with User Model
@@ -12,12 +13,19 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
   protected collection: Collection<UserDBScheme>;
 
   /**
+   * DataLoaders for fetching data from database
+   */
+  private dataLoaders: DataLoaders;
+
+  /**
    * Creates user factory instance
    * @param dbConnection - connection to DataBase
+   * @param dataLoaders - dataLoaders for fetching data
    */
-  constructor(dbConnection: Db) {
+  constructor(dbConnection: Db, dataLoaders: DataLoaders) {
     super(dbConnection, UserModel);
     this.collection = dbConnection.collection('users');
+    this.dataLoaders = dataLoaders;
   }
 
   /**
@@ -25,13 +33,27 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
    * @param email - user's email
    */
   public async findByEmail(email: string): Promise<UserModel | null> {
-    const searchResult = await this.collection.findOne({ email });
+    const userData = await this.dataLoaders.userByEmail.load(email);
 
-    if (!searchResult) {
+    if (!userData) {
       return null;
     }
 
-    return new UserModel(searchResult);
+    return new UserModel(userData);
+  }
+
+  /**
+   * Finds user by its id
+   * @param id - user id
+   */
+  public async findById(id: string): Promise<UserModel | null> {
+    const userData = await this.dataLoaders.userById.load(id);
+
+    if (!userData) {
+      return null;
+    }
+
+    return new UserModel(userData);
   }
 
   /**
@@ -83,5 +105,15 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
       _id: userId,
       ...userData,
     });
+  }
+
+  /**
+   * Get Users by their ids
+   * @param ids - users ids to fetch
+   */
+  public async findManyByIds(ids: string[]): Promise<UserDBScheme[]> {
+    return (await this.dataLoaders.userById.loadMany(ids))
+      .map((data) => !data || data instanceof Error ? null : new UserModel(data))
+      .filter(Boolean) as UserModel[];
   }
 }

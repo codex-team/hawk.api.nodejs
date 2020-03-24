@@ -126,7 +126,12 @@ class EventsFactory extends Factory {
     limit = this.validateLimit(limit);
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate([
-      { $sort: { timestamp: -1 } },
+      {
+        $sort: {
+          groupingTimestamp: -1,
+          lastRepetitionTime: -1,
+        },
+      },
       { $skip: skip },
       { $limit: limit },
       {
@@ -286,6 +291,36 @@ class EventsFactory extends Factory {
         { _id: new ObjectID(eventId) },
         { $addToSet: { visitedBy: new ObjectID(userId) } }
       );
+  }
+
+  /**
+   * Mark or unmark event as Resolved, Ignored or Starred
+   *
+   * @param {string|ObjectId} eventId - event to mark
+   * @param {string} mark - mark label
+   *
+   * @return {Promise<void>}
+   */
+  async toggleEventMark(eventId, mark) {
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const query = { _id: new ObjectID(eventId) };
+
+    const event = await collection.findOne(query);
+    const markKey = `marks.${mark}`;
+
+    let update;
+
+    if (event.marks && event.marks[mark]) {
+      update = {
+        $unset: { [markKey]: '' },
+      };
+    } else {
+      update = {
+        $set: { [markKey]: Math.floor(Date.now() / 1000) },
+      };
+    }
+
+    return collection.updateOne(query, update);
   }
 }
 

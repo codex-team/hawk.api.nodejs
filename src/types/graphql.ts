@@ -1,4 +1,6 @@
 import UsersFactory from '../models/usersFactory';
+import WorkspacesFactory from '../models/workspacesFactory';
+import { GraphQLField } from 'graphql';
 
 /**
  * Resolver's Context argument
@@ -48,6 +50,11 @@ export interface ContextFactories {
    * Users factory for working with users
    */
   usersFactory: UsersFactory;
+
+  /**
+   * Workspaces factory for working with workspaces
+   */
+  workspacesFactory: WorkspacesFactory;
 }
 
 /**
@@ -59,3 +66,19 @@ export interface ResolverContextWithUser extends ResolverContextBase {
    */
   user: Required<UserInContext>;
 }
+
+/**
+ * Use this type when you want to show that you don't know what contains GraphQL field (to avoid 'any' type),
+ * e.g. in directive definition
+ */
+export type UnknownGraphQLField<TContext extends ResolverContextBase = ResolverContextBase>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  = GraphQLField<any, TContext>
+
+/**
+ * Use this type when you want to show that you don't know what GraphQL field resolver returns (to avoid 'any' type),
+ * e.g. in directive definition
+ */
+export type UnknownGraphQLResolverResult
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  = Promise<any>;

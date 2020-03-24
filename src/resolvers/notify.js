@@ -1,6 +1,5 @@
-const { ApolloError } = require('apollo-server-express');
+const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const { Project } = require('../models/project');
-const Team = require('../models/team');
 const UserInProject = require('../models/userInProject');
 
 /**
@@ -14,9 +13,10 @@ module.exports = {
      * @param {String} projectId - Project ID
      * @param {NotificationSettingsSchema} settings - Notify settings
      * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @returns {Promise<NotificationSettingsSchema|null>}
      */
-    async updatePersonalNotificationSettings(_obj, { projectId, notifySettings }, { user }) {
+    async updatePersonalNotificationSettings(_obj, { projectId, notifySettings }, { user, factories }) {
       const project = await Project.findById(projectId);
 
       /**
@@ -26,14 +26,20 @@ module.exports = {
         return null;
       }
 
-      const team = new Team(project.workspaceId);
-      const teamInstance = await team.findByUserId(user.id);
+      const workspace = await factories.workspacesFactory.findById(project.workspaceId);
 
-      /**
-       * Return null if user is not in workspace or is not admin
-       */
-      if (!teamInstance || teamInstance.isPending) {
-        throw new ApolloError('User does not have access to this project');
+      if (!workspace) {
+        throw new UserInputError('No such workspace');
+      }
+
+      const memberInfo = await workspace.getMemberInfo(user.id);
+
+      if (!memberInfo) {
+        throw new ForbiddenError('You are not member of this workspace');
+      }
+
+      if (!memberInfo.isAdmin) {
+        throw new ForbiddenError('Only admins can create projects in workspace');
       }
 
       const factory = new UserInProject(user.id, projectId);
@@ -52,9 +58,10 @@ module.exports = {
      * @param {String} projectId - Project ID
      * @param {NotificationSettingsSchema} notifySettings - notification settings
      * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @returns {Promise<NotificationSettingsSchema>}
      */
-    async updateCommonNotificationSettings(_obj, { projectId, notifySettings }, { user }) {
+    async updateCommonNotificationSettings(_obj, { projectId, notifySettings }, { user, factories }) {
       /**
        * First check if user is in workspace and is he admin.
        *
@@ -70,14 +77,20 @@ module.exports = {
         throw new ApolloError('Project not exists');
       }
 
-      const team = new Team(project.workspaceId);
-      const teamInstance = await team.findByUserId(user.id);
+      const workspace = await factories.workspacesFactory.findById(project.workspaceId);
 
-      /**
-       * Return null if user is not in workspace or is not admin
-       */
-      if (!teamInstance || !teamInstance.isAdmin) {
-        throw new ApolloError('Only an administrator can change general settings');
+      if (!workspace) {
+        throw new UserInputError('No such workspace');
+      }
+
+      const memberInfo = await workspace.getMemberInfo(user.id);
+
+      if (!memberInfo) {
+        throw new ForbiddenError('You are not member of this workspace');
+      }
+
+      if (!memberInfo.isAdmin) {
+        throw new ForbiddenError('You are not allowed to edit this settings');
       }
 
       const success = await Project.updateNotify(projectId, notifySettings);

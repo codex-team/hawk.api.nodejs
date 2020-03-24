@@ -5,7 +5,12 @@ export default gql`
     """
     User's id
     """
-    id: ID
+    id: ID! @renameFrom(name: "_id")
+
+    """
+    If membed accepts an invitation, the user id will be stored there
+    """
+    userId: ID
 
     """
     User's email
@@ -70,7 +75,7 @@ export default gql`
     """
     Workspace id
     """
-    id: ID!
+    id: ID! @renameFrom(name: "_id")
 
     """
     Workspace name
@@ -133,7 +138,7 @@ export default gql`
       description: String
 
       "New workspace image"
-      image: Upload
+      image: Upload @uploadImage
     ): Workspace! @requireAuth
 
     """
@@ -153,17 +158,17 @@ export default gql`
     """
     updateWorkspace(
       "What workspace to update"
-      id: ID!
+      workspaceId: ID!
 
       "Workspace name"
       name: String!
 
       "Workspace description"
       description: String
-        
+
       "Workspace image"
-      image: Upload
-    ): Boolean! @requireAuth
+      image: Upload @uploadImage
+    ): Boolean! @requireAdmin
 
     """
     Confirm invitation to workspace
@@ -196,7 +201,7 @@ export default gql`
       Permissions state (true to grant, false to withdraw)
       """
       state: Boolean = true
-    ): Boolean! @requireAuth
+    ): Boolean! @requireAdmin
 
     """
     Remove member from workspace
@@ -216,7 +221,7 @@ export default gql`
       """
       Email of user to remove
       """
-      userEmail: String!
-    ): Boolean! @requireAuth
+      userEmail: String
+    ): Boolean! @requireAdmin
   }
 `;
