@@ -110,6 +110,23 @@ extend type Mutation {
   ): Project! @requireAdmin
 
   """
+  Update project settings
+  """
+  updateProject(
+    "What project to update"
+    id: ID!
+
+    "Project name"
+    name: String!
+
+    "Project description"
+    description: String
+
+    "Project image"
+    image: Upload @uploadImage
+  ): Project! @requireAuth
+
+  """
   Updates user's visit time on project
   """
   updateLastProjectVisit(
