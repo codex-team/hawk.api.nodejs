@@ -66,7 +66,7 @@ module.exports = {
      */
     async visitedBy({ visitedBy }, _args, { factories }) {
       if (!visitedBy || !visitedBy.length) {
-        return null;
+        return [];
       }
 
       return visitedBy.map(userId => factories.usersFactory.findById(userId));
