@@ -2,6 +2,7 @@ import { ForbiddenError, UserInputError } from 'apollo-server-express';
 import { defaultFieldResolver } from 'graphql';
 import { ResolverContextWithUser, UnknownGraphQLField, UnknownGraphQLResolverResult } from '../types/graphql';
 import RequireAuthDirective from './requireAuthDirective';
+import WorkspaceModel from '../models/workspace';
 
 /**
  * Defines directive for accessing to a field only for admins
@@ -32,7 +33,7 @@ export default class RequireAdminDirective extends RequireAuthDirective {
 
       const member = await workspace.getMemberInfo(context.user.id);
 
-      if (!member) {
+      if (!member || WorkspaceModel.isPendingMember(member)) {
         throw new ForbiddenError('You are not a member of this workspace');
       }
 
