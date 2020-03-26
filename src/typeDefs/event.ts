@@ -254,9 +254,9 @@ type Event {
   repetitions(limit: Int = 10): [Repetition!]
 
   """
-  Array of ID of users who visited event
+  Array of users who visited event
   """
-  visitedBy: [ID!]
+  visitedBy: [User!]
 
   """
   Event label for current user
