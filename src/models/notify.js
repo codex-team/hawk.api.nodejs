@@ -79,27 +79,36 @@ class Notify {
 
   /**
    * Default notify settings
-   * @param {string} [userEmail] - for personal notifications settings default email is user's email
-   *                               for common notifications settings value is not provided by default
    */
-  static getDefaultNotify(userEmail) {
-    if (userEmail) {
-      return {
-        receiveType: ReceiveTypes.ALL,
-        providers: [
-          {
-            provider: ProviderTypes.EMAIL,
-            value: userEmail,
-            enabled: true,
-          },
-        ],
-      };
-    }
+  static getDefaultNotify() {
+    console.log(ReceiveTypes.ALL);
 
-    return {
-      receiveType: ReceiveTypes.ALL,
-      providers: [],
-    };
+    return [
+      {
+        _id: '1234141',
+        isEnabled: true,
+        whatToReceive: ReceiveTypes.ALL,
+        including: ['codex', 'editor'],
+        excluding: [ 'script error.' ],
+        channels: {
+          email: {
+            isEnabled: true,
+            endpoint: 'alerts@yourteam.com',
+            minPeriod: 60,
+          },
+          slack: {
+            isEnabled: true,
+            endpoint: 'slack',
+            minPeriod: 60,
+          },
+          telegram: {
+            isEnabled: true,
+            endpoint: 'telegram',
+            minPeriod: 60,
+          },
+        },
+      },
+    ];
   }
 }
 

@@ -1,0 +1,183 @@
+import { gql } from 'apollo-server-express';
+
+export default gql`
+  """
+  What events to receive
+  """
+  enum ReceiveTypes {
+    """
+    Receive only new events
+    """
+    ONLY_NEW
+
+    """
+    Receive all events
+    """
+    ALL
+
+    """
+    Receive events that includes words from list
+    """
+    INCLUDING
+  }
+
+  """
+  Settings for notification channels
+  """
+  type ChannelSettings {
+    """
+    True if channel is enabled
+    """
+    isEnabled: Boolean!
+
+    """
+    Where to deliver messages
+    """
+    endpoint: String!
+
+    """
+    How often to send event
+    """
+    minPeriod: Int!
+  }
+
+  """
+  All available notification channels
+  """
+  type NotificationsChannels {
+    """
+    Email channel
+    """
+    email: ChannelSettings
+
+    """
+    Telegram channel
+    """
+    telegram: ChannelSettings
+
+    """
+    Slack channel
+    """
+    slack: ChannelSettings
+  }
+
+  """
+  Project notify settings
+  """
+  type NotificationsSettings {
+    """
+    Notification settings id
+    """
+    id: ID! @renameFrom(name: "_id")
+
+    """
+    True if settings is enabled
+    """
+    isEnabled: Boolean!
+
+    """
+    What events type to recieve
+    """
+    whatToReceive: ReceiveTypes!
+
+    """
+    Words to include in notification
+    """
+    including: [String!]!
+
+    """
+    Words to exclude from notification
+    """
+    excluding: [String!]!
+
+    """
+    Notification channels to recieve events
+    """
+    channels: NotificationsChannels
+  }
+
+  """
+  Input type for updateting channel settings
+  """
+  input ChannelSettingsInput {
+    """
+    True if channel is enabled
+    """
+    isEnabled: Boolean!
+
+    """
+    Where to deliver messages
+    """
+    endpoint: String!
+
+    """
+    How often to send event
+    """
+    minPeriod: Int!
+  }
+
+  """
+  Input type for creating and updating notification channels
+  """
+  input NotificationsChannelsInput {
+    """
+    Email channel
+    """
+    email: ChannelSettingsInput
+
+    """
+    Telegram channel
+    """
+    telegram: ChannelSettingsInput
+
+    """
+    Slack channel
+    """
+    slack: ChannelSettingsInput
+  }
+
+  """
+  Input type for creating new notification rule
+  """
+  input CreateNotificationsRuleInput {
+    """
+    Project id to setup
+    """
+    projectId: ID!
+
+    """
+    True if settings is enabled
+    """
+    isEnabled: Boolean!
+
+    """
+    What events type to recieve
+    """
+    whatToRecieve: ReceiveTypes!
+
+    """
+    Words to include in notification
+    """
+    including: [String!]!
+
+    """
+    Words to exclude from notification
+    """
+    excluding: [String!]!
+
+    """
+    Notification channels to recieve events
+    """
+    channels: NotificationsChannelsInput
+  }
+
+  extend type Mutation {
+    """
+    Creates new notification rule for project common settings
+    """
+    createCommonNotificationsRule(
+      "Data for creating"
+      input: CreateNotificationsRuleInput
+    ): NotificationsSettings @requireAuth
+  }
+`;

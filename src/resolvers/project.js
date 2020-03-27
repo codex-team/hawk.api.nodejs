@@ -190,32 +190,7 @@ module.exports = {
      * @returns {Promise<NotificationSettingsSchema|null>}
      */
     async personalNotificationsSettings(project, _args, { user, factories }) {
-      const workspace = await factories.workspacesFactory.findById(project.workspaceId);
-
-      if (!workspace) {
-        throw new UserInputError('No such workspace');
-      }
-
-      const memberInfo = await workspace.getMemberInfo(user.id);
-
-      if (!memberInfo) {
-        throw new ForbiddenError('You are not member of this workspace');
-      }
-
-      if (!memberInfo.isAdmin) {
-        throw new ForbiddenError('Only admins can create projects in workspace');
-      }
-
-      const factory = new UserInProject(user.id, project.id);
-      const personalSettings = await factory.getPersonalNotificationsSettings();
-
-      if (personalSettings) {
-        return personalSettings;
-      }
-
-      const fullUserInfo = await User.findById(user.id);
-
-      return Notify.getDefaultNotify(fullUserInfo.email);
+      return Notify.getDefaultNotify();
     },
 
     /**
@@ -227,26 +202,6 @@ module.exports = {
      * @returns {Promise<NotificationSettingsSchema>}
      */
     async commonNotificationsSettings(project, _args, { user, factories }) {
-      const workspace = await factories.workspacesFactory.findById(project.workspaceId);
-
-      if (!workspace) {
-        throw new UserInputError('No such workspace');
-      }
-
-      const memberInfo = await workspace.getMemberInfo(user.id);
-
-      if (!memberInfo) {
-        throw new ForbiddenError('You are not member of this workspace');
-      }
-
-      if (!memberInfo.isAdmin) {
-        throw new ForbiddenError('You are not allowed to edit this settings');
-      }
-
-      if (project.commonNotificationsSettings) {
-        return project.commonNotificationsSettings;
-      }
-
       return Notify.getDefaultNotify();
     },
   },

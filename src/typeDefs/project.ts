@@ -80,12 +80,12 @@ type Project {
   """
   Get project personal notification settings
   """
-  personalNotificationsSettings: NotifySettings! @requireAuth
+  personalNotificationsSettings: [NotificationsSettings]! @requireAuth
 
   """
   Get project common notification settings
   """
-  commonNotificationsSettings: NotifySettings! @requireAuth
+  commonNotificationsSettings: [NotificationsSettings]! @requireAuth
 }
 
 extend type Query {
