@@ -35,15 +35,6 @@ const ReceiveTypes = {
 };
 
 /**
- * Supported provider types
- */
-const ProviderTypes = {
-  EMAIL: 'EMAIL',
-  TELEGRAM: 'EMAIL',
-  SLACK: 'SLACK',
-};
-
-/**
  * Notify model
  * Represents notify setting for given user and project
  */

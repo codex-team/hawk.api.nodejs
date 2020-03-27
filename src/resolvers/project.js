@@ -1,10 +1,9 @@
-const { ForbiddenError, ApolloError, UserInputError } = require('apollo-server-express');
+const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 const Notify = require('../models/notify');
-const User = require('../models/user').default;
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
