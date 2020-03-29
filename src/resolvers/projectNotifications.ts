@@ -1,7 +1,4 @@
-import {
-  NotificationsChannelsDBScheme, ProjectNotificationsRuleDBScheme,
-  ReceiveTypes
-} from '../models/newProjectModel';
+import { NotificationsChannelsDBScheme, ProjectNotificationsRuleDBScheme, ReceiveTypes } from '../models/newProjectModel';
 import { ResolverContextWithUser } from '../types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
 
@@ -62,6 +59,14 @@ export default {
 
       if (!Object.keys(input.channels).length) {
         throw new UserInputError('At least one channel is required');
+      }
+
+      /**
+       * In GraphQL Schema there is default value for this field, but due to bug we have to specify default value manually
+       * @see https://spectrum.chat/ariadne/general/default-value-for-enum~4ca31053-b8ab-4886-aba2-3899343ed9a4
+       */
+      if (!input.whatToReceive) {
+        input.whatToReceive = ReceiveTypes.ONLY_NEW;
       }
 
       return project.createNotificationRule({

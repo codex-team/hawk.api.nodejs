@@ -3,7 +3,6 @@ const Validator = require('../utils/validator');
 const { Project, ProjectToWorkspace } = require('../models/project.js');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
-const Notify = require('../models/notify');
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -14,10 +13,11 @@ module.exports = {
      * Returns project's Model
      * @param {ResolverObj} _obj
      * @param {String} id - project id
-     * @return {Promise<ProjectSchema>}
+     * @param {ContextFactories} factories - factories for working with models
+     * @return {Promise<ProjectDBScheme>}
      */
-    async project(_obj, { id }) {
-      return Project.findById(id);
+    async project(_obj, { id }, { factories }) {
+      return factories.projectsFactory.findById(id);
     },
   },
   Mutation: {
@@ -178,18 +178,6 @@ module.exports = {
       const factory = new EventsFactory(projectId);
 
       return factory.findRecent(limit, skip);
-    },
-
-    /**
-     * Get common notifications settings. Only for admins.
-     * @param {ProjectSchema} project
-     * @param {object} _args - query args (empty for this query)
-     * @param user - current authorized user {@see ../index.js}
-     * @param {ContextFactories} factories - factories for working with models
-     * @returns {Promise<NotificationSettingsSchema>}
-     */
-    async notifications(project, _args, { user, factories }) {
-      return Notify.getDefaultNotify();
     },
   },
 };
