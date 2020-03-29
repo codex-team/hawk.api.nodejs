@@ -1,7 +1,7 @@
 import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
 import DataLoaders from '../dataLoaders';
-import ProjectModel, { ProjectDBScheme } from './project';
+import ProjectModel, { ProjectDBScheme } from './newProjectModel';
 
 /**
  * Users factory to work with User Model
