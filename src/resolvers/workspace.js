@@ -1,7 +1,8 @@
+import WorkspaceModel from '../models/workspace';
+
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const crypto = require('crypto');
 
-const Team = require('../models/team');
 // const Plan = require('../models/plan');
 const { ProjectToWorkspace } = require('../models/project');
 const Validator = require('../utils/validator');
@@ -41,8 +42,6 @@ module.exports = {
      * @return {String} created workspace id
      */
     async createWorkspace(_obj, { name, description, image }, { user, factories }) {
-      const ownerId = user.id;
-
       try {
         /**
          * @since 2019-12-11 - Remove default Plan saving to fix workspace creation with empty DB
@@ -69,16 +68,9 @@ module.exports = {
           // plan
         };
 
-        const workspace = await factories.workspacesFactory.create(options);
+        const ownerModel = await factories.usersFactory.findById(user.id);
 
-        const team = new Team(workspace._id.toString());
-
-        await team.addMember(ownerId);
-        await team.grantAdmin(ownerId);
-
-        await (await factories.usersFactory.findById(ownerId)).addWorkspace(workspace._id.toString());
-
-        return workspace;
+        return await factories.workspacesFactory.create(options, ownerModel);
       } catch (err) {
         console.log('\nლ(´ڡ`ლ) Error [resolvers:workspace:createWorkspace]: \n\n', err, '\n\n');
         throw new ApolloError('Something went wrong');
@@ -96,17 +88,17 @@ module.exports = {
      */
     async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user, factories }) {
       const userModel = await factories.usersFactory.findById(user.id);
-      const [ workspace ] = await userModel.getWorkspacesIds([ workspaceId ]);
+      const [ isWorkspaceBelongsToUser ] = await userModel.getWorkspacesIds([ workspaceId ]);
 
-      if (!workspace) {
+      if (!isWorkspaceBelongsToUser) {
         throw new ApolloError('There is no workspace with that id');
       }
 
-      // @todo invite users to workspace, even if they are not registered
       const invitedUser = await factories.usersFactory.findByEmail(userEmail);
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
 
       if (!invitedUser) {
-        await new Team(workspaceId).addUnregisteredMember(userEmail);
+        await workspace.addUnregisteredMember(userEmail);
       } else {
         const [ isUserInThatWorkspace ] = await invitedUser.getWorkspacesIds([ workspaceId ]);
 
@@ -114,9 +106,8 @@ module.exports = {
           throw new ApolloError('User already invited to this workspace');
         }
 
-        // @todo make via transactions
         await invitedUser.addWorkspace(workspaceId, true);
-        await new Team(workspaceId).addMember(invitedUser._id, true);
+        await workspace.addMember(invitedUser._id.toString(), true);
       }
 
       const linkHash = crypto
@@ -148,6 +139,7 @@ module.exports = {
       const currentUser = await factories.usersFactory.findById(user.id);
 
       let membershipExists;
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
 
       if (inviteHash) {
         const hash = crypto
@@ -159,18 +151,15 @@ module.exports = {
           throw new ApolloError('The link is broken');
         }
 
-        membershipExists = await new Team(workspaceId).confirmMembership(currentUser);
+        membershipExists = await workspace.confirmMembership(currentUser);
       } else {
         // @todo check if workspace allows invitations through general link
 
-        const team = new Team(workspaceId);
-        const members = await team.getAllUsers();
-
-        if (members.find(m => m._id.toString() === currentUser._id.toString())) {
+        if (await workspace.getMemberInfo(user.id)) {
           throw new ApolloError('You are already member of this workspace');
         }
 
-        await team.addMember(currentUser._id);
+        await workspace.addMember(currentUser._id.toString());
 
         membershipExists = false;
       }
@@ -199,7 +188,7 @@ module.exports = {
      *
      * @returns {Promise<Boolean>}
      */
-    async updateWorkspace(_obj, { id, name, description, image }, { user, factories }) {
+    async updateWorkspace(_obj, { workspaceId, name, description, image }, { user, factories }) {
       // @makeAnIssue Create directives for arguments validation
       if (!Validator.string(name)) {
         throw new UserInputError('Invalid name length');
@@ -208,14 +197,7 @@ module.exports = {
       if (!Validator.string(description, 0)) {
         throw new UserInputError('Invalid description length');
       }
-
-      const userModel = await factories.usersFactory.findById(user.id);
-
-      const [ workspaceId ] = await userModel.getWorkspacesIds([ id ]);
-
-      if (!workspaceId) {
-        throw new ApolloError('There is no workspace with that id');
-      }
+      const workspaceToUpdate = await factories.workspacesFactory.findById(workspaceId);
 
       try {
         /**
@@ -224,10 +206,11 @@ module.exports = {
         const options = {
           name,
           description,
-          image,
         };
 
-        const workspaceToUpdate = await factories.workspacesFactory.findById(workspaceId);
+        if (image) {
+          options.image = image;
+        }
 
         await workspaceToUpdate.updateWorkspace(options);
       } catch (err) {
@@ -241,26 +224,17 @@ module.exports = {
      * Grant admin permissions
      *
      * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
-     * @param {Workspace.id} workspaceId - id of the workspace
-     * @param {User.id} userId - id of user to grant permissions
+     * @param {string} workspaceId - id of the workspace
+     * @param {string} userId - id of user to grant permissions
      * @param {boolean} state - state of permissions (true to grant, false to withdraw)
-     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @return {Promise<boolean>} - true if operation is successful
      */
-    async grantAdmin(_obj, { workspaceId, userId, state }, { user }) {
-      const team = new Team(workspaceId);
-      const users = await team.getAllUsers();
-      const member = users.find(el => el._id.toString() === user.id);
+    async grantAdmin(_obj, { workspaceId, userId, state }, { user, factories }) {
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
 
-      if (!member) {
-        throw new ApolloError('You are not in the workspace');
-      }
-
-      if (!member.isAdmin) {
-        throw new ApolloError('Not enough permissions');
-      }
-
-      await team.grantAdmin(userId, state);
+      await workspace.grantAdmin(userId, state);
 
       return true;
     },
@@ -269,36 +243,23 @@ module.exports = {
      * Remove user from workspace
      *
      * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
-     * @param {Workspace.id} workspaceId - id of the workspace where the user should be removed
-     * @param {User.id} userId - id of user to remove
-     * @param {User.email} userEmail - email of user to remove
+     * @param {string} workspaceId - id of the workspace where the user should be removed
+     * @param {string} userId - id of user to remove
+     * @param {string} userEmail - email of user to remove
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      * @return {Promise<boolean>} - true if operation is successful
      * @returns {Promise<boolean>}
      */
     async removeMemberFromWorkspace(_obj, { workspaceId, userId, userEmail }, { user, factories }) {
-      const team = new Team(workspaceId);
-
-      const users = await team.getAllUsers();
-
-      const member = users.find(el => el._id.toString() === user.id);
-
-      if (!member) {
-        throw new ApolloError('You are not in the workspace');
-      }
-
-      if (!member.isAdmin) {
-        throw new ApolloError('Not enough permissions');
-      }
-
-      const userModel = await factories.usersFactory.findById(userId);
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
 
       if (userId) {
-        await team.removeMember(userId);
-        await userModel.removeWorkspace(workspaceId);
+        const userModel = await factories.usersFactory.findById(userId);
+
+        await workspace.removeMember(userModel);
       } else {
-        await team.removeMemberByEmail(userEmail);
+        await workspace.removeMemberByEmail(userEmail);
       }
 
       return true;
@@ -306,37 +267,65 @@ module.exports = {
   },
   Workspace: {
     /**
-     * Fetch workspaces users
-     * @param {ResolverObj} rootResolverResult - result from resolver above
-     * @return {Promise<User[]>}
-     */
-    async users(rootResolverResult) {
-      const team = new Team(rootResolverResult.id);
-
-      return team.getAllUsers();
-    },
-
-    /**
-     * Fetch pending users
-     * @param {ResolverObj} rootResolverResult - result from resolver above
-     * @return {Promise<User[]>}
-     */
-    async pendingUsers(rootResolverResult) {
-      const team = new Team(rootResolverResult.id);
-
-      return team.getPendingUsers();
-    },
-
-    /**
      * Fetch projects in workspace
-     * @param {ResolverObj} rootResolverResult - result from resolver above
+     * @param {ResolverObj} workspace - result from resolver above
      * @param {String[]} ids - project ids
      * @returns {Promise<Project[]>}
      */
-    async projects(rootResolverResult, { ids }) {
-      const projectToWorkspace = new ProjectToWorkspace(rootResolverResult.id);
+    async projects(workspace, { ids }) {
+      const projectToWorkspace = new ProjectToWorkspace(workspace.id);
 
       return projectToWorkspace.getProjects(ids);
+    },
+
+    /**
+     * Returns workspace team
+     * @param {WorkspaceDBScheme} workspaceData - result from resolver above
+     * @param _args - empty list of args
+     * @param {ContextFactories} factories - factories for working with models
+     * @return {Promise<MemberDBScheme[]>}
+     */
+    async team(workspaceData, _args, { factories }) {
+      const workspaceModel = await factories.workspacesFactory.findById(workspaceData._id.toString());
+
+      return workspaceModel.getMembers();
+    },
+  },
+
+  /**
+   * Resolver for Union Member type.
+   * Represents two types of Members in workspace's team
+   */
+  Member: {
+    /**
+     * Returns type of the team member
+     * @param {MemberDBScheme} memberData - result from resolver above
+     */
+    __resolveType(memberData) {
+      return WorkspaceModel.isPendingMember(memberData) ? 'PendingMember' : 'ConfirmedMember';
+    },
+  },
+
+  /**
+   * Resolver for confirmed member data in workspace
+   */
+  ConfirmedMember: {
+    /**
+     * Fetch user of the workspace
+     * @param {ConfirmedMemberDBScheme} memberData - result from resolver above
+     * @param _args - empty list of args
+     * @param {ContextFactories} factories - factories for working with models
+     */
+    user(memberData, _args, { factories }) {
+      return factories.usersFactory.findById(memberData.userId.toString());
+    },
+
+    /**
+     * True if user has admin permissions
+     * @param {ConfirmedMemberDBScheme} memberData - result from resolver above
+     */
+    isAdmin(memberData) {
+      return !WorkspaceModel.isPendingMember(memberData) && (memberData.isAdmin || false);
     },
   },
 };

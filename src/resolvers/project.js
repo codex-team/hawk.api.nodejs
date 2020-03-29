@@ -1,10 +1,9 @@
-const { ValidationError, ApolloError } = require('apollo-server-express');
+const { ApolloError, UserInputError } = require('apollo-server-express');
+const Validator = require('../utils/validator');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
-const Team = require('../models/team');
 const Notify = require('../models/notify');
-const User = require('../models/user').default;
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -34,21 +33,10 @@ module.exports = {
      * @return {Project[]}
      */
     async createProject(_obj, { workspaceId, name, image }, { user, factories }) {
-      // Check workspace ID
-      const userModel = await factories.usersFactory.findById(user.id);
-      const workspace = await userModel.getWorkspacesIds([
-        workspaceId,
-      ]);
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
 
       if (!workspace) {
-        throw new ValidationError('No such workspace');
-      }
-
-      const team = new Team(workspaceId);
-      const teamInstance = await team.findByUserId(user.id);
-
-      if (!teamInstance.isAdmin) {
-        throw new ApolloError('Only admins can create projects');
+        throw new UserInputError('No such workspace');
       }
 
       const options = {
@@ -64,6 +52,53 @@ module.exports = {
       new ProjectToWorkspace(workspaceId).add({ projectId: project.id });
 
       return project;
+    },
+
+    /**
+     * Update project settings
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} projectId - id of the updated project
+     * @param {string} name - project name
+     * @param {string} description - project description
+     * @param {string} - project logo
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Project}
+     */
+    async updateProject(_obj, { id, name, description, image }, { user, factories }) {
+      if (!Validator.string(name)) {
+        throw new UserInputError('Invalid name length');
+      }
+
+      if (!Validator.string(description, 0)) {
+        throw new UserInputError('Invalid description length');
+      }
+
+      const project = await Project.findById(id);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id');
+      }
+
+      try {
+        const options = {
+          name,
+          description,
+        };
+
+        if (image) {
+          options.image = image;
+        }
+        await Project.updateProject(project.id, options);
+      } catch (err) {
+        throw new ApolloError('Something went wrong');
+      }
+
+      const updatedProject = await Project.findById(id);
+
+      return updatedProject;
     },
 
     /**
@@ -146,57 +181,14 @@ module.exports = {
     },
 
     /**
-     * Get project personal notifications settings
-     * @param {ProjectSchema} project
-     * @param {object} _args - query args (empty for this query)
-     * @param user - current authorized user {@see ../index.js}
-     * @returns {Promise<NotificationSettingsSchema|null>}
-     */
-    async personalNotificationsSettings(project, _args, { user }) {
-      const team = new Team(project.workspaceId);
-      const teamInstance = await team.findByUserId(user.id);
-
-      /**
-       * Return null if user is not in workspace or is not admin
-       */
-      if (!teamInstance || teamInstance.isPending) {
-        return null;
-      }
-
-      const factory = new UserInProject(user.id, project.id);
-      const personalSettings = await factory.getPersonalNotificationsSettings();
-
-      if (personalSettings) {
-        return personalSettings;
-      }
-
-      const fullUserInfo = await User.findById(user.id);
-
-      return Notify.getDefaultNotify(fullUserInfo.email);
-    },
-
-    /**
      * Get common notifications settings. Only for admins.
      * @param {ProjectSchema} project
      * @param {object} _args - query args (empty for this query)
      * @param user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @returns {Promise<NotificationSettingsSchema>}
      */
-    async commonNotificationsSettings(project, _args, { user }) {
-      const team = new Team(project.workspaceId);
-      const teamInstance = await team.findByUserId(user.id);
-
-      /**
-       * Return null if user is not in workspace or is not admin
-       */
-      if (!teamInstance || teamInstance.isPending || !teamInstance.isAdmin) {
-        return null;
-      }
-
-      if (project.commonNotificationsSettings) {
-        return project.commonNotificationsSettings;
-      }
-
+    async notifications(project, _args, { user, factories }) {
       return Notify.getDefaultNotify();
     },
   },

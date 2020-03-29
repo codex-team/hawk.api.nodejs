@@ -35,15 +35,6 @@ const ReceiveTypes = {
 };
 
 /**
- * Supported provider types
- */
-const ProviderTypes = {
-  EMAIL: 'EMAIL',
-  TELEGRAM: 'EMAIL',
-  SLACK: 'SLACK',
-};
-
-/**
  * Notify model
  * Represents notify setting for given user and project
  */
@@ -79,27 +70,34 @@ class Notify {
 
   /**
    * Default notify settings
-   * @param {string} [userEmail] - for personal notifications settings default email is user's email
-   *                               for common notifications settings value is not provided by default
    */
-  static getDefaultNotify(userEmail) {
-    if (userEmail) {
-      return {
-        receiveType: ReceiveTypes.ALL,
-        providers: [
-          {
-            provider: ProviderTypes.EMAIL,
-            value: userEmail,
-            enabled: true,
+  static getDefaultNotify() {
+    return [
+      {
+        _id: '1234141',
+        isEnabled: true,
+        whatToReceive: ReceiveTypes.ALL,
+        including: ['codex', 'editor'],
+        excluding: [ 'script error.' ],
+        channels: {
+          email: {
+            isEnabled: true,
+            endpoint: 'alerts@yourteam.com',
+            minPeriod: 60,
           },
-        ],
-      };
-    }
-
-    return {
-      receiveType: ReceiveTypes.ALL,
-      providers: [],
-    };
+          slack: {
+            isEnabled: true,
+            endpoint: 'slack',
+            minPeriod: 60,
+          },
+          telegram: {
+            isEnabled: true,
+            endpoint: 'telegram',
+            minPeriod: 60,
+          },
+        },
+      },
+    ];
   }
 }
 

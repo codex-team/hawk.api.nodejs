@@ -1,6 +1,8 @@
 const mongo = require('../mongo');
 const { ObjectID } = require('mongodb');
 const { sign } = require('jsonwebtoken');
+const Model = require('./model');
+const objectHasOnlyProps = require('../utils/objectHasOnlyProps');
 
 /**
  * @typedef {Object} ProjectSchema
@@ -25,13 +27,14 @@ const { sign } = require('jsonwebtoken');
 /**
  * Project model
  */
-class Project {
+class Project extends Model {
   /**
    * Create Project instance
    *
    * @param {ProjectSchema} projectData
    */
   constructor(projectData) {
+    super();
     if (!projectData) {
       throw new Error(
         'Can not construct Project model, because projectData is not provided'
@@ -125,6 +128,32 @@ class Project {
       id: project._id,
       ...project,
     });
+  }
+
+  /**
+   * Update project data
+   *
+   * @param {string|ObjectID} projectId - project ID
+   * @param {Project} project – project data
+   * @returns {Promise<void>}
+   */
+  static async updateProject(projectId, project) {
+    if (!await objectHasOnlyProps(project, {
+      name: true,
+      description: true,
+      image: true,
+    })) {
+      throw new Error('User object has invalid properties\'');
+    }
+
+    try {
+      await this.update(
+        { _id: new ObjectID(projectId) },
+        project
+      );
+    } catch (e) {
+      throw new Error('Can\'t update project');
+    }
   }
 
   /**

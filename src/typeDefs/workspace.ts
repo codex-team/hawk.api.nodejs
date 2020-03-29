@@ -1,37 +1,46 @@
 import { gql } from 'apollo-server-express';
 
 export default gql`
-  type Member {
+  """
+  Confirmed member data in workspace
+  """
+  type ConfirmedMember {
     """
-    User's id
+    Member info id
     """
-    id: ID
+    id: ID! @renameFrom(name: "_id")
 
     """
-    User's email
+    If member accepts an invitation, the user id will be stored there
     """
-    email: String
+    user: User!
 
     """
-    User's name
+    True if user has admin permissions
     """
-    name: String
-
-    """
-    User's image
-    """
-    image: String
-
-    """
-    True is user has admin permissions
-    """
-    isAdmin: Boolean
-
-    """
-    True if user invitation should be confirmed
-    """
-    isPending: Boolean
+    isAdmin: Boolean!
   }
+
+  """
+  Pending member data in workspace
+  """
+  type PendingMember {
+    """
+    Member info id
+    """
+    id: ID! @renameFrom(name: "_id")
+
+    """
+    Email to which the invitation was sent
+    """
+    email: String! @renameFrom(name: "userEmail")
+  }
+
+  """
+  Represents two types of Members in workspace's team
+  """
+  union Member = ConfirmedMember | PendingMember
+
 
   """
   Workspace tariff plan
@@ -88,14 +97,9 @@ export default gql`
     image: String
 
     """
-    Workspace users array
+    Workspace team info
     """
-    users: [Member!]
-
-    """
-    Workspace pending users array
-    """
-    pendingUsers: [Member!]
+    team: [Member!]!
 
     """
     Workspace balance
@@ -153,7 +157,7 @@ export default gql`
     """
     updateWorkspace(
       "What workspace to update"
-      id: ID!
+      workspaceId: ID!
 
       "Workspace name"
       name: String!
@@ -163,7 +167,7 @@ export default gql`
 
       "Workspace image"
       image: Upload @uploadImage
-    ): Boolean! @requireAuth
+    ): Boolean! @requireAdmin
 
     """
     Confirm invitation to workspace
@@ -196,7 +200,7 @@ export default gql`
       Permissions state (true to grant, false to withdraw)
       """
       state: Boolean = true
-    ): Boolean! @requireAuth
+    ): Boolean! @requireAdmin
 
     """
     Remove member from workspace
@@ -216,7 +220,7 @@ export default gql`
       """
       Email of user to remove
       """
-      userEmail: String!
-    ): Boolean! @requireAuth
+      userEmail: String
+    ): Boolean! @requireAdmin
   }
 `;

@@ -2,7 +2,8 @@ import { gql, concatenateTypeDefs } from 'apollo-server-express';
 
 import billing from './billing';
 import event from './event';
-import notify from './notify';
+import projectNotifications from './projectNotifications';
+import projectNotificationsMutations from './projectNotificationsMutations';
 import project from './project';
 import user from './user';
 import workspace from './workspace';
@@ -14,11 +15,24 @@ const rootSchema = gql`
   directive @requireAuth on FIELD_DEFINITION
 
   """
+  Access to the field only for admins
+  """
+  directive @requireAdmin on FIELD_DEFINITION
+
+  """
   Directive for field renaming
   """
   directive @renameFrom(
     "Parent's field name"
     name: String!
+  ) on FIELD_DEFINITION
+
+ """
+  Directive for setting field default value
+  """
+  directive @default(
+    "Default field value encoded in JSON"
+    value: String!
   ) on FIELD_DEFINITION
 
   """
@@ -76,7 +90,8 @@ export default concatenateTypeDefs(
     rootSchema,
     billing,
     event,
-    notify,
+    projectNotifications,
+    projectNotificationsMutations,
     project,
     user,
     workspace,

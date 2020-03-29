@@ -78,14 +78,9 @@ type Project {
   unreadCount: Int! @requireAuth
 
   """
-  Get project personal notification settings
+  Project notification settings
   """
-  personalNotificationsSettings: NotifySettings! @requireAuth
-
-  """
-  Get project common notification settings
-  """
-  commonNotificationsSettings: NotifySettings! @requireAuth
+  notifications: [ProjectNotificationsRule]! @requireAuth
 }
 
 extend type Query {
@@ -104,6 +99,23 @@ extend type Mutation {
     workspaceId: ID!
     "Project name"
     name: String!
+
+    "Project image"
+    image: Upload @uploadImage
+  ): Project! @requireAdmin
+
+  """
+  Update project settings
+  """
+  updateProject(
+    "What project to update"
+    id: ID!
+
+    "Project name"
+    name: String!
+
+    "Project description"
+    description: String
 
     "Project image"
     image: Upload @uploadImage

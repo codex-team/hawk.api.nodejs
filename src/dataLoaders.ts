@@ -51,7 +51,7 @@ export default class DataLoaders {
   /**
    * Loader for fetching projects by their ids
    */
-  public projectById = new DataLoader<string, ProjectDBScheme>(
+  public projectById = new DataLoader<string, ProjectDBScheme | null>(
     (projectIds) => this.batchByIds<ProjectDBScheme>('projects', projectIds),
     { cache: false }
   );
@@ -59,7 +59,7 @@ export default class DataLoaders {
   /**
    * Loader for fetching workspaces
    */
-  public workspaceById = new DataLoader<string, WorkspaceDBScheme>(
+  public workspaceById = new DataLoader<string, WorkspaceDBScheme | null>(
     (workspaceIds) => this.batchByIds<WorkspaceDBScheme>('workspaces', workspaceIds),
     { cache: false }
   );
@@ -67,7 +67,7 @@ export default class DataLoaders {
   /**
    * Loader for fetching users by their ids
    */
-  public userById = new DataLoader<string, UserDBScheme>(
+  public userById = new DataLoader<string, UserDBScheme | null>(
     (userIds) => this.batchByIds<UserDBScheme>('users', userIds),
     { cache: false }
   );
@@ -75,7 +75,7 @@ export default class DataLoaders {
   /**
    * Loader for fetching users by their emails
    */
-  public userByEmail = new DataLoader<string, UserDBScheme>(
+  public userByEmail = new DataLoader<string, UserDBScheme | null>(
     (userEmails) =>
       this.batchByField<UserDBScheme, string>('users', userEmails, 'email'),
     { cache: false }
@@ -99,7 +99,7 @@ export default class DataLoaders {
    * @param collectionName - collection name to get entities
    * @param ids - ids for resolving
    */
-  private async batchByIds<T extends {_id: ObjectId}>(collectionName: string, ids: ReadonlyArray<string>): Promise<(T | Error)[]> {
+  private async batchByIds<T extends {_id: ObjectId}>(collectionName: string, ids: ReadonlyArray<string>): Promise<(T | null | Error)[]> {
     return this.batchByField<T, ObjectId>(collectionName, ids.map(id => new ObjectId(id)), '_id');
   }
 
@@ -113,7 +113,7 @@ export default class DataLoaders {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     T extends {[key: string]: any},
     FieldType extends object | string
-    >(collectionName: string, values: ReadonlyArray<FieldType>, fieldName: string): Promise<(T | Error)[]> {
+    >(collectionName: string, values: ReadonlyArray<FieldType>, fieldName: string): Promise<(T | null | Error)[]> {
     const queryResult = await this.dbConnection.collection(collectionName)
       .find({
         [fieldName]: { $in: values },
@@ -130,6 +130,6 @@ export default class DataLoaders {
       entitiesMap[entity[fieldName].toString()] = entity;
     }, {});
 
-    return values.map((field) => entitiesMap[field.toString()] || new Error('No entity with such ' + fieldName));
+    return values.map((field) => entitiesMap[field.toString()] || null);
   }
 }
