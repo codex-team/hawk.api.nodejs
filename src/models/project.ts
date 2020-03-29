@@ -1,4 +1,5 @@
-import { ObjectId } from 'mongodb';
+import { Collection, ObjectId } from 'mongodb';
+import AbstractModel from './abstractModel';
 
 /**
  * Structure represents a Project in DataBase
@@ -133,4 +134,58 @@ export interface NotificationsChannelSettingsDBScheme {
    * Minimal pause between second notification, in seconds
    */
   minPeriod?: number;
+}
+
+/**
+ * Project model to work with project data
+ */
+export default class ProjectModel extends AbstractModel<ProjectDBScheme> implements ProjectDBScheme {
+  /**
+   * Project ID
+   */
+  public _id!: ObjectId;
+
+  /**
+   * Project Integration Token
+   */
+  public token!: string;
+
+  /**
+   * Project name
+   */
+  public name!: string;
+
+  /**
+   * User who created project
+   */
+  public uidAdded!: ObjectId;
+
+  /**
+   * Project description
+   */
+  public description?: string;
+
+  /**
+   * URL of a project logo
+   */
+  public image?: string;
+
+  /**
+   * Project notifications settings
+   */
+  public notifications?: ProjectNotificationsRuleDBScheme[];
+
+  /**
+   * Model's collection
+   */
+  protected collection: Collection<ProjectDBScheme>;
+
+  /**
+   * Creates Workspace instance
+   * @param projectData - workspace's data
+   */
+  constructor(projectData: ProjectDBScheme) {
+    super(projectData);
+    this.collection = this.dbConnection.collection<ProjectDBScheme>('projects');
+  }
 }
