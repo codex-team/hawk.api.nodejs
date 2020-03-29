@@ -8,7 +8,7 @@ type Project {
   """
   Project ID
   """
-  id: ID!
+  id: ID! @renameFrom(name: "_id")
 
   """
   Project token
@@ -80,7 +80,7 @@ type Project {
   """
   Project notification settings
   """
-  notifications: [ProjectNotificationsRule]! @requireAuth
+  notifications: [ProjectNotificationsRule] @requireAuth
 }
 
 extend type Query {

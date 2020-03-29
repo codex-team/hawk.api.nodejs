@@ -2,47 +2,7 @@ import DataLoader from 'dataloader';
 import { Db, ObjectId } from 'mongodb';
 import { WorkspaceDBScheme } from './models/workspace';
 import { UserDBScheme } from './models/user';
-
-/**
- * Project representation in DataBase
- * @todo move to the project model when it will be rewrite to ts
- */
-interface ProjectDBScheme {
-  /**
-   * Project id
-   */
-  _id: ObjectId;
-
-  /**
-   * Name of the project
-   */
-  name: string;
-
-  /**
-   * Project description
-   */
-  description?: string;
-
-  /**
-   * Project image
-   */
-  image?: string;
-
-  /**
-   * User who added the project
-   */
-  uidAdded: ObjectId;
-
-  /**
-   * Workspace id who owns the project
-   */
-  workspaceId: ObjectId;
-
-  /**
-   * Project token for errors collecting
-   */
-  token: string;
-}
+import { ProjectDBScheme } from './models/newProjectModel';
 
 /**
  * Class for setting up data loaders
