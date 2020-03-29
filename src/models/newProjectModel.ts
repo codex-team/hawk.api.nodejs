@@ -38,7 +38,7 @@ export interface ProjectDBScheme {
   /**
    * Project notifications settings
    */
-  notifications?: ProjectNotificationsRuleDBScheme[];
+  notifications: ProjectNotificationsRuleDBScheme[];
 }
 
 /**
@@ -58,7 +58,7 @@ export interface ProjectNotificationsRuleDBScheme {
   /**
    * Creator of the rule
    */
-  uidAdded: string;
+  uidAdded: ObjectId;
 
   /**
    * Receive type: 'ALL'  or 'ONLY_NEW'
@@ -136,6 +136,38 @@ export interface NotificationsChannelSettingsDBScheme {
   minPeriod: number;
 }
 
+export interface CreateProjectNotificationsRulePayload {
+  /**
+   * Allows to disable rule without removing
+   */
+  isEnabled: true;
+
+  /**
+   * Receive type: 'ALL'  or 'ONLY_NEW'
+   */
+  whatToReceive: ReceiveTypes;
+
+  /**
+   * Only those which contains passed words
+   */
+  including: string[];
+
+  /**
+   * Skip those which contains passed words
+   */
+  excluding: string[];
+
+  /**
+   * Creator of the rule
+   */
+  uidAdded: string;
+
+  /**
+   * Available channels to receive
+   */
+  channels: NotificationsChannelsDBScheme;
+}
+
 /**
  * Project model to work with project data
  */
@@ -173,7 +205,7 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
   /**
    * Project notifications settings
    */
-  public notifications?: ProjectNotificationsRuleDBScheme[];
+  public notifications!: ProjectNotificationsRuleDBScheme[];
 
   /**
    * Model's collection
@@ -187,5 +219,32 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
   constructor(projectData: ProjectDBScheme) {
     super(projectData);
     this.collection = this.dbConnection.collection<ProjectDBScheme>('projects');
+  }
+
+  /**
+   * Creates new notification rule
+   * @param payload - rule data to save
+   */
+  public async createNotificationRule(payload: CreateProjectNotificationsRulePayload): Promise<ProjectNotificationsRuleDBScheme> {
+    const rule: ProjectNotificationsRuleDBScheme = {
+      _id: new ObjectId(),
+      uidAdded: new ObjectId(payload.uidAdded),
+      isEnabled: payload.isEnabled,
+      whatToReceive: payload.whatToReceive,
+      channels: payload.channels,
+      including: payload.including,
+      excluding: payload.excluding,
+    };
+
+    await this.collection.updateOne({
+      _id: this._id,
+    },
+    {
+      $push: {
+        notifications: rule,
+      },
+    });
+
+    return rule;
   }
 }
