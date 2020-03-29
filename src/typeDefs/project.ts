@@ -78,9 +78,9 @@ type Project {
   unreadCount: Int! @requireAuth
 
   """
-  Get project common notification settings
+  Project notification settings
   """
-  commonNotificationsSettings: [NotificationsSettings]! @requireAuth
+  notifications: [ProjectNotificationsRule]! @requireAuth
 }
 
 extend type Query {

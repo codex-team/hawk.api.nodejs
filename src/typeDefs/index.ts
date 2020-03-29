@@ -2,7 +2,7 @@ import { gql, concatenateTypeDefs } from 'apollo-server-express';
 
 import billing from './billing';
 import event from './event';
-import notify from './notifications';
+import notify from './projectNotifications';
 import project from './project';
 import user from './user';
 import workspace from './workspace';

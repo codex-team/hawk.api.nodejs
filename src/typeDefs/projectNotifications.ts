@@ -59,7 +59,7 @@ export default gql`
   """
   Project notify settings
   """
-  type NotificationsSettings {
+  type ProjectNotificationsRule {
     """
     Notification settings id
     """
@@ -134,7 +134,7 @@ export default gql`
   """
   Input type for creating new notification rule
   """
-  input CreateNotificationsRuleInput {
+  input CreateProjectNotificationsRuleInput {
     """
     Project id to setup
     """
@@ -170,9 +170,9 @@ export default gql`
     """
     Creates new notification rule for project common settings
     """
-    createCommonNotificationsRule(
+    createProjectNotificationsRule(
       "Data for creating"
-      input: CreateNotificationsRuleInput
-    ): NotificationsSettings @requireAuth
+      input: CreateProjectNotificationsRuleInput
+    ): ProjectNotificationsRule @requireAuth
   }
 `;
