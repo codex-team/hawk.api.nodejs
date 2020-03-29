@@ -6,7 +6,7 @@ const Notify = require('../models/notify');
 module.exports = {
   Mutation: {
     /**
-     * Creates new notification rule for project common settings
+     * Creates new rule for project notifications settings
      * @param _obj - parent object
      * @param {object} input - input data for creating
      */
