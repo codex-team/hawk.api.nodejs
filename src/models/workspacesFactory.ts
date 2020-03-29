@@ -5,7 +5,7 @@ import DataLoaders from '../dataLoaders';
 import UserModel from './user';
 
 /**
- * Users factory to work with User Model
+ * Workspaces factory to work with WorkspaceModel
  */
 export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBScheme, WorkspaceModel> {
   /**
@@ -19,7 +19,7 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
   private dataLoaders: DataLoaders;
 
   /**
-   * Creates user factory instance
+   * Creates workspaces factory instance
    * @param dbConnection - connection to DataBase
    * @param dataLoaders - dataLoaders for fetching data
    */
@@ -30,7 +30,7 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
   }
 
   /**
-   * Finds user by its id
+   * Finds workspace by its id
    * @param id - user id
    */
   public async findById(id: string): Promise<WorkspaceModel | null> {

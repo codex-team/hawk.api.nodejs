@@ -20,6 +20,7 @@ import UploadImageDirective from './directives/uploadImageDirective';
 import RequireAuthDirective from './directives/requireAuthDirective';
 import RequireAdminDirective from './directives/requireAdminDirective';
 import DefaultValueDirective from './directives/defaultValue';
+import ProjectsFactory from './models/projectsFactory';
 
 /**
  * Option to enable playground
@@ -110,12 +111,17 @@ class HawkAPI {
   private static setupFactories(dataLoaders: DataLoaders): ContextFactories {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const usersFactory = new UsersFactory(mongo.databases.hawk!, dataLoaders);
+
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const workspacesFactory = new WorkspacesFactory(mongo.databases.hawk!, dataLoaders);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const projectsFactory = new ProjectsFactory(mongo.databases.hawk!, dataLoaders);
 
     return {
       usersFactory,
       workspacesFactory,
+      projectsFactory,
     };
   }
 
