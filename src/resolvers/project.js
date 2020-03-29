@@ -188,7 +188,7 @@ module.exports = {
      * @param {ContextFactories} factories - factories for working with models
      * @returns {Promise<NotificationSettingsSchema>}
      */
-    async commonNotificationsSettings(project, _args, { user, factories }) {
+    async notifications(project, _args, { user, factories }) {
       return Notify.getDefaultNotify();
     },
   },

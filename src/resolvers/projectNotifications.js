@@ -10,7 +10,7 @@ module.exports = {
      * @param _obj - parent object
      * @param {object} input - input data for creating
      */
-    createCommonNotificationsRule(_obj, input) {
+    createProjectNotificationsRule(_obj, input) {
       return Notify.getDefaultNotify().shift();
     },
   },
