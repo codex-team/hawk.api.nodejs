@@ -8,7 +8,7 @@ export default gql`
     """
     True if channel is enabled
     """
-    isEnabled: Boolean!
+    isEnabled: Boolean! = true
 
     """
     Where to deliver messages
@@ -18,7 +18,7 @@ export default gql`
     """
     How often to send event
     """
-    minPeriod: Int!
+    minPeriod: Int! = 60
   }
 
   """
@@ -53,27 +53,27 @@ export default gql`
     """
     True if settings is enabled
     """
-    isEnabled: Boolean!
+    isEnabled: Boolean! = true
 
     """
     What events type to recieve
     """
-    whatToRecieve: ReceiveTypes!
+    whatToRecieve: ReceiveTypes! = ONLY_NEW
 
     """
     Words to include in notification
     """
-    including: [String!]!
+    including: [String!]! = []
 
     """
     Words to exclude from notification
     """
-    excluding: [String!]!
+    excluding: [String!]! = []
 
     """
     Notification channels to recieve events
     """
-    channels: NotificationsChannelsInput
+    channels: NotificationsChannelsInput!
   }
 
   extend type Mutation {
