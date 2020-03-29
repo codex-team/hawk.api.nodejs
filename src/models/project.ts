@@ -133,7 +133,7 @@ export interface NotificationsChannelSettingsDBScheme {
   /**
    * Minimal pause between second notification, in seconds
    */
-  minPeriod?: number;
+  minPeriod: number;
 }
 
 /**
