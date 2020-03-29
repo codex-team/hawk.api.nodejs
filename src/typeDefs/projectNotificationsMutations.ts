@@ -16,7 +16,7 @@ export default gql`
     endpoint: String!
 
     """
-    How often to send event
+    How often to send event (one alert in 'minPeriod' secs)
     """
     minPeriod: Int! = 60
   }
