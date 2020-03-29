@@ -2,6 +2,9 @@ import { NotificationsChannelsDBScheme, ProjectNotificationsRuleDBScheme, Receiv
 import { ResolverContextWithUser } from '../types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
 
+/**
+ * Mutation payload for creating notifications rule from GraphQL Schema
+ */
 interface CreateProjectNotificationsRuleMutationPayload {
   /**
    * Project id to update

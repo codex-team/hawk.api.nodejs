@@ -136,6 +136,9 @@ export interface NotificationsChannelSettingsDBScheme {
   minPeriod: number;
 }
 
+/**
+ * Payload for creating new notification rule
+ */
 export interface CreateProjectNotificationsRulePayload {
   /**
    * Allows to disable rule without removing
