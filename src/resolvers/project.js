@@ -181,18 +181,6 @@ module.exports = {
     },
 
     /**
-     * Get project personal notifications settings
-     * @param {ProjectSchema} project
-     * @param {object} _args - query args (empty for this query)
-     * @param user - current authorized user {@see ../index.js}
-     * @param {ContextFactories} factories - factories for working with models
-     * @returns {Promise<NotificationSettingsSchema|null>}
-     */
-    async personalNotificationsSettings(project, _args, { user, factories }) {
-      return Notify.getDefaultNotify();
-    },
-
-    /**
      * Get common notifications settings. Only for admins.
      * @param {ProjectSchema} project
      * @param {object} _args - query args (empty for this query)

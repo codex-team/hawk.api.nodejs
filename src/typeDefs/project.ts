@@ -78,11 +78,6 @@ type Project {
   unreadCount: Int! @requireAuth
 
   """
-  Get project personal notification settings
-  """
-  personalNotificationsSettings: [NotificationsSettings]! @requireAuth
-
-  """
   Get project common notification settings
   """
   commonNotificationsSettings: [NotificationsSettings]! @requireAuth

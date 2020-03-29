@@ -72,8 +72,6 @@ class Notify {
    * Default notify settings
    */
   static getDefaultNotify() {
-    console.log(ReceiveTypes.ALL);
-
     return [
       {
         _id: '1234141',
