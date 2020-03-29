@@ -14,17 +14,12 @@ export default gql`
     Receive all events
     """
     ALL
-
-    """
-    Receive events that includes words from list
-    """
-    INCLUDING
   }
 
   """
   Settings for notification channels
   """
-  type ChannelSettings {
+  type NotificationsChannelSettings {
     """
     True if channel is enabled
     """
@@ -48,17 +43,17 @@ export default gql`
     """
     Email channel
     """
-    email: ChannelSettings
+    email: NotificationsChannelSettings
 
     """
     Telegram channel
     """
-    telegram: ChannelSettings
+    telegram: NotificationsChannelSettings
 
     """
     Slack channel
     """
-    slack: ChannelSettings
+    slack: NotificationsChannelSettings
   }
 
   """
@@ -99,7 +94,7 @@ export default gql`
   """
   Input type for updateting channel settings
   """
-  input ChannelSettingsInput {
+  input NotificationsChannelSettingsInput {
     """
     True if channel is enabled
     """
@@ -123,17 +118,17 @@ export default gql`
     """
     Email channel
     """
-    email: ChannelSettingsInput
+    email: NotificationsChannelSettingsInput
 
     """
     Telegram channel
     """
-    telegram: ChannelSettingsInput
+    telegram: NotificationsChannelSettingsInput
 
     """
     Slack channel
     """
-    slack: ChannelSettingsInput
+    slack: NotificationsChannelSettingsInput
   }
 
   """
