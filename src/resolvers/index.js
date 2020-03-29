@@ -5,7 +5,7 @@ const user = require('./user').default;
 const workspace = require('./workspace');
 const project = require('./project');
 const event = require('./event');
-const notify = require('./notify');
+const notify = require('./projectNotifications');
 
 /**
  * @typedef ResolverObj

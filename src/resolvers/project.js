@@ -1,10 +1,9 @@
-const { ForbiddenError, ApolloError, UserInputError } = require('apollo-server-express');
+const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
 const { Project, ProjectToWorkspace } = require('../models/project');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 const Notify = require('../models/notify');
-const User = require('../models/user').default;
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -182,43 +181,6 @@ module.exports = {
     },
 
     /**
-     * Get project personal notifications settings
-     * @param {ProjectSchema} project
-     * @param {object} _args - query args (empty for this query)
-     * @param user - current authorized user {@see ../index.js}
-     * @param {ContextFactories} factories - factories for working with models
-     * @returns {Promise<NotificationSettingsSchema|null>}
-     */
-    async personalNotificationsSettings(project, _args, { user, factories }) {
-      const workspace = await factories.workspacesFactory.findById(project.workspaceId);
-
-      if (!workspace) {
-        throw new UserInputError('No such workspace');
-      }
-
-      const memberInfo = await workspace.getMemberInfo(user.id);
-
-      if (!memberInfo) {
-        throw new ForbiddenError('You are not member of this workspace');
-      }
-
-      if (!memberInfo.isAdmin) {
-        throw new ForbiddenError('Only admins can create projects in workspace');
-      }
-
-      const factory = new UserInProject(user.id, project.id);
-      const personalSettings = await factory.getPersonalNotificationsSettings();
-
-      if (personalSettings) {
-        return personalSettings;
-      }
-
-      const fullUserInfo = await User.findById(user.id);
-
-      return Notify.getDefaultNotify(fullUserInfo.email);
-    },
-
-    /**
      * Get common notifications settings. Only for admins.
      * @param {ProjectSchema} project
      * @param {object} _args - query args (empty for this query)
@@ -226,27 +188,7 @@ module.exports = {
      * @param {ContextFactories} factories - factories for working with models
      * @returns {Promise<NotificationSettingsSchema>}
      */
-    async commonNotificationsSettings(project, _args, { user, factories }) {
-      const workspace = await factories.workspacesFactory.findById(project.workspaceId);
-
-      if (!workspace) {
-        throw new UserInputError('No such workspace');
-      }
-
-      const memberInfo = await workspace.getMemberInfo(user.id);
-
-      if (!memberInfo) {
-        throw new ForbiddenError('You are not member of this workspace');
-      }
-
-      if (!memberInfo.isAdmin) {
-        throw new ForbiddenError('You are not allowed to edit this settings');
-      }
-
-      if (project.commonNotificationsSettings) {
-        return project.commonNotificationsSettings;
-      }
-
+    async notifications(project, _args, { user, factories }) {
       return Notify.getDefaultNotify();
     },
   },
