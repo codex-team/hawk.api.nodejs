@@ -1,6 +1,7 @@
 import UsersFactory from '../models/usersFactory';
 import WorkspacesFactory from '../models/workspacesFactory';
 import { GraphQLField } from 'graphql';
+import ProjectsFactory from '../models/projectsFactory';
 
 /**
  * Resolver's Context argument
@@ -55,6 +56,11 @@ export interface ContextFactories {
    * Workspaces factory for working with workspaces
    */
   workspacesFactory: WorkspacesFactory;
+
+  /**
+   * Projects factory for working with projects
+   */
+  projectsFactory: ProjectsFactory;
 }
 
 /**
