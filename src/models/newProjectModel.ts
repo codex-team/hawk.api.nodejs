@@ -26,6 +26,11 @@ export interface ProjectDBScheme {
   uidAdded: ObjectId;
 
   /**
+   * Workspace id which project is belong
+   */
+  workspaceId: ObjectId;
+
+  /**
    * Project description
    */
   description?: string;
@@ -194,6 +199,11 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * User who created project
    */
   public uidAdded!: ObjectId;
+
+  /**
+   * Workspace id which project is belong
+   */
+  public workspaceId!: ObjectId;
 
   /**
    * Project description

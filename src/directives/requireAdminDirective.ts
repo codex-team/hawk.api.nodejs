@@ -6,8 +6,52 @@ import WorkspaceModel from '../models/workspace';
 
 /**
  * Defines directive for accessing to a field only for admins
+ *
+ * Order to check workspace or project id:
+ * 1) args.workspaceId
+ * 2) args.input.workspaceId
+ * 3) args.projectId
+ * 4) args.input.projectId
  */
 export default class RequireAdminDirective extends RequireAuthDirective {
+  /**
+   * Check is user admin via workspace id
+   * @param context - resolver context
+   * @param workspaceId - workspace id to check
+   */
+  private static async checkByWorkspaceId(context: ResolverContextWithUser, workspaceId: string): Promise<void> {
+    const workspace = await context.factories.workspacesFactory.findById(workspaceId);
+
+    if (!workspace) {
+      throw new UserInputError('There is no workspace with that id');
+    }
+
+    const member = await workspace.getMemberInfo(context.user.id);
+
+    if (!member || WorkspaceModel.isPendingMember(member)) {
+      throw new ForbiddenError('You are not a member of this workspace');
+    }
+
+    if (!member.isAdmin) {
+      throw new ForbiddenError('Not enough permissions');
+    }
+  }
+
+  /**
+   * Check is user admin via project id
+   * @param context - resolver context
+   * @param projectId - project id to check
+   */
+  private static async checkByProjectId(context: ResolverContextWithUser, projectId: string): Promise<void> {
+    const project = await context.factories.projectsFactory.findById(projectId);
+
+    if (!project) {
+      throw new UserInputError('There is no project with provided ID');
+    }
+
+    await RequireAdminDirective.checkByWorkspaceId(context, project.workspaceId.toString());
+  }
+
   /**
    * Function to call on visiting field definition
    * @param field - field to access
@@ -23,22 +67,15 @@ export default class RequireAdminDirective extends RequireAuthDirective {
      * New field resolver
      * @param resolverArgs - default GraphQL resolver args
      */
-    field.resolve = async function (...resolverArgs): UnknownGraphQLResolverResult {
+    field.resolve = async (...resolverArgs): UnknownGraphQLResolverResult => {
       const [, args, context] = resolverArgs;
-      const workspace = await context.factories.workspacesFactory.findById(args.workspaceId);
 
-      if (!workspace) {
-        throw new UserInputError('There is no workspace with that id');
+      if (args.workspaceId) {
+        await RequireAdminDirective.checkByWorkspaceId(context, args.workspaceId);
       }
 
-      const member = await workspace.getMemberInfo(context.user.id);
-
-      if (!member || WorkspaceModel.isPendingMember(member)) {
-        throw new ForbiddenError('You are not a member of this workspace');
-      }
-
-      if (!member.isAdmin) {
-        throw new ForbiddenError('Not enough permissions');
+      if (args.input?.projectId) {
+        await RequireAdminDirective.checkByProjectId(context, args.input.projectId);
       }
 
       return resolve.apply(this, resolverArgs);

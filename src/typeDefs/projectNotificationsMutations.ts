@@ -83,6 +83,6 @@ export default gql`
     createProjectNotificationsRule(
       "Data for creating"
       input: CreateProjectNotificationsRuleInput
-    ): ProjectNotificationsRule @requireAuth
+    ): ProjectNotificationsRule @requireAdmin
   }
 `;
