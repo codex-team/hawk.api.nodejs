@@ -73,7 +73,7 @@ type EventPayload {
   """
   Event timestamp
   """
-  timestamp: DateTime!
+  timestamp: Float!
 
   """
   Event severity level
@@ -128,7 +128,7 @@ type RepetitionPayload {
   """
   Event timestamp
   """
-  timestamp: DateTime!
+  timestamp: Float
 
   """
   Event severity level
