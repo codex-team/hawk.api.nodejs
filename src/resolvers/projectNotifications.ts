@@ -37,6 +37,9 @@ interface CreateProjectNotificationsRuleMutationPayload {
   channels: NotificationsChannelsDBScheme;
 }
 
+/**
+ * Mutation payload for updating project notifications rule
+ */
 interface UpdateProjectNotificationsRuleMutationPayload extends CreateProjectNotificationsRuleMutationPayload {
   /**
    * Rule id to update
@@ -44,6 +47,9 @@ interface UpdateProjectNotificationsRuleMutationPayload extends CreateProjectNot
   ruleId: string;
 }
 
+/**
+ * Mutation payload for deleting project notifications rule
+ */
 interface DeleteProjectNotificationsRuleMutationPayload {
   /**
    * Project id which owns the rule

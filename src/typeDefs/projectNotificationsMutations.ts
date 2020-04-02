@@ -81,14 +81,14 @@ export default gql`
   """
   input UpdateProjectNotificationsRuleInput {
     """
-    Project id to setup
-    """
-    projectId: ID!
-
-    """
     Rule id to update
     """
     ruleId: ID!
+
+    """
+    Project id to setup
+    """
+    projectId: ID!
 
     """
     True if settings is enabled
