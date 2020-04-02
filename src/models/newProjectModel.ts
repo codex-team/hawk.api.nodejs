@@ -300,7 +300,7 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * Updates notifications rule in project
    * @param payload - data for updating
    */
-  public async updateNotificationsRule(payload: UpdateProjectNotificationsRulePayload): Promise<void> {
+  public async updateNotificationsRule(payload: UpdateProjectNotificationsRulePayload): Promise<ProjectNotificationsRuleDBScheme | null> {
     const rule: Partial<ProjectNotificationsRuleDBScheme> = {
       _id: new ObjectId(payload.ruleId),
       isEnabled: payload.isEnabled,
@@ -310,19 +310,26 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
       excluding: payload.excluding,
     };
 
-    await this.collection.updateOne({
-      _id: this._id,
-      notifications: {
-        $elemMatch: {
-          _id: new ObjectId(payload.ruleId),
+    const result = await this.collection.findOneAndUpdate(
+      {
+        _id: this._id,
+        notifications: {
+          $elemMatch: {
+            _id: new ObjectId(payload.ruleId),
+          },
         },
       },
-    },
-    {
-      $set: {
-        'notifications.$': rule,
+      {
+        $set: {
+          'notifications.$': rule,
+        },
       },
-    });
+      {
+        returnOriginal: false,
+      }
+    );
+
+    return result.value?.notifications.find(doc => doc._id.toString() === payload.ruleId) || null;
   }
 
   /**

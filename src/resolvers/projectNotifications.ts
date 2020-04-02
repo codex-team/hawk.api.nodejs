@@ -106,7 +106,7 @@ export default {
       _obj: undefined,
       { input }: { input: UpdateProjectNotificationsRuleMutationPayload },
       { user, factories }: ResolverContextWithUser
-    ): Promise<void> {
+    ): Promise<ProjectNotificationsRuleDBScheme | null> {
       const project = await factories.projectsFactory.findById(input.projectId);
 
       if (!project) {
