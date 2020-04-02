@@ -111,10 +111,7 @@ export default {
         throw new UserInputError('At least one channel is required');
       }
 
-      return project.updateNotificationsRule({
-        ...input,
-        uidAdded: user.id,
-      });
+      return project.updateNotificationsRule(input);
     },
 
     /**

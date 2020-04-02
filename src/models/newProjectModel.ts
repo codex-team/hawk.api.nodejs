@@ -179,11 +179,36 @@ export interface CreateProjectNotificationsRulePayload {
 /**
  * Payload for updating existing notifications rule
  */
-interface UpdateProjectNotificationsRulePayload extends CreateProjectNotificationsRulePayload{
+interface UpdateProjectNotificationsRulePayload {
   /**
-   * Project id which owns the rule
+   * Rule id to update
    */
-  projectId: string;
+  ruleId: string;
+
+  /**
+   * Allows to disable rule without removing
+   */
+  isEnabled: true;
+
+  /**
+   * Receive type: 'ALL'  or 'ONLY_NEW'
+   */
+  whatToReceive: ReceiveTypes;
+
+  /**
+   * Only those which contains passed words
+   */
+  including: string[];
+
+  /**
+   * Skip those which contains passed words
+   */
+  excluding: string[];
+
+  /**
+   * Available channels to receive
+   */
+  channels: NotificationsChannelsDBScheme;
 }
 
 /**
@@ -276,7 +301,28 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * @param payload - data for updating
    */
   public async updateNotificationsRule(payload: UpdateProjectNotificationsRulePayload): Promise<void> {
+    const rule: object = {
+      _id: new ObjectId(payload.ruleId),
+      isEnabled: payload.isEnabled,
+      whatToReceive: payload.whatToReceive,
+      channels: payload.channels,
+      including: payload.including,
+      excluding: payload.excluding,
+    };
 
+    await this.collection.updateOne({
+      _id: this._id,
+      // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+      // @ts-ignore
+      notifications: {
+        $elemMatch: { _id: new ObjectId(payload.ruleId) },
+      },
+    },
+    {
+      $set: {
+        'notifications.$': rule,
+      },
+    });
   }
 
   /**
