@@ -301,7 +301,7 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * @param payload - data for updating
    */
   public async updateNotificationsRule(payload: UpdateProjectNotificationsRulePayload): Promise<void> {
-    const rule: object = {
+    const rule: Partial<ProjectNotificationsRuleDBScheme> = {
       _id: new ObjectId(payload.ruleId),
       isEnabled: payload.isEnabled,
       whatToReceive: payload.whatToReceive,
@@ -312,10 +312,10 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
 
     await this.collection.updateOne({
       _id: this._id,
-      // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-      // @ts-ignore
       notifications: {
-        $elemMatch: { _id: new ObjectId(payload.ruleId) },
+        $elemMatch: {
+          _id: new ObjectId(payload.ruleId),
+        },
       },
     },
     {
