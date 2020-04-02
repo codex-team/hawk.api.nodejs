@@ -64,14 +64,6 @@ export default {
         throw new UserInputError('At least one channel is required');
       }
 
-      /**
-       * In GraphQL Schema there is default value for this field, but due to bug we have to specify default value manually
-       * @see https://spectrum.chat/ariadne/general/default-value-for-enum~4ca31053-b8ab-4886-aba2-3899343ed9a4
-       */
-      if (!input.whatToReceive) {
-        input.whatToReceive = ReceiveTypes.ONLY_NEW;
-      }
-
       return project.createNotificationRule({
         ...input,
         uidAdded: user.id,

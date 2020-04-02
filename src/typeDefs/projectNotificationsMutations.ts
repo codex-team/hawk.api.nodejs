@@ -58,7 +58,7 @@ export default gql`
     """
     What events type to recieve
     """
-    whatToRecieve: ReceiveTypes! = ONLY_NEW
+    whatToReceive: ReceiveTypes! = ONLY_NEW
 
     """
     Words to include in notification
