@@ -131,16 +131,14 @@ export default {
       _obj: undefined,
       { input }: { input: DeleteProjectNotificationsRuleMutationPayload },
       { user, factories }: ResolverContextWithUser
-    ): Promise<boolean> {
+    ): Promise<ProjectNotificationsRuleDBScheme | null> {
       const project = await factories.projectsFactory.findById(input.projectId);
 
       if (!project) {
         throw new ApolloError('No project with such id');
       }
 
-      await project.deleteNotificationsRule(input.ruleId);
-
-      return true;
+      return project.deleteNotificationsRule(input.ruleId);
     },
   },
 };

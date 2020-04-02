@@ -336,16 +336,22 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * Removes notifications rule
    * @param ruleId - rule id to delete
    */
-  public async deleteNotificationsRule(ruleId: string): Promise<void> {
-    await this.collection.updateOne({
-      _id: this._id,
-    },
-    {
-      $pull: {
-        notifications: {
-          _id: new ObjectId(ruleId),
+  public async deleteNotificationsRule(ruleId: string): Promise<ProjectNotificationsRuleDBScheme | null> {
+    const result = await this.collection.findOneAndUpdate(
+      {
+        _id: this._id,
+      },
+      {
+        $pull: {
+          notifications: {
+            _id: new ObjectId(ruleId),
+          },
         },
       },
-    });
+      {
+        returnOriginal: false,
+      });
+
+    return result.value?.notifications.find(doc => doc._id.toString() === ruleId) || null;
   }
 }
