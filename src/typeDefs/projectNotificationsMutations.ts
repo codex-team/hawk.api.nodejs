@@ -153,6 +153,6 @@ export default gql`
     """
     deleteProjectNotificationsRule(
       input: DeleteProjectNotificationsRuleInput!
-    ): ProjectNotificationsRule @requireAdmin
+    ): Boolean! @requireAdmin
   }
 `;

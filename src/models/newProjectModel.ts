@@ -177,6 +177,16 @@ export interface CreateProjectNotificationsRulePayload {
 }
 
 /**
+ * Payload for updating existing notifications rule
+ */
+interface UpdateProjectNotificationsRulePayload extends CreateProjectNotificationsRulePayload{
+  /**
+   * Project id which owns the rule
+   */
+  projectId: string;
+}
+
+/**
  * Project model to work with project data
  */
 export default class ProjectModel extends AbstractModel<ProjectDBScheme> implements ProjectDBScheme {
@@ -238,7 +248,7 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * Creates new notification rule
    * @param payload - rule data to save
    */
-  public async createNotificationRule(payload: CreateProjectNotificationsRulePayload): Promise<ProjectNotificationsRuleDBScheme> {
+  public async createNotificationsRule(payload: CreateProjectNotificationsRulePayload): Promise<ProjectNotificationsRuleDBScheme> {
     const rule: ProjectNotificationsRuleDBScheme = {
       _id: new ObjectId(),
       uidAdded: new ObjectId(payload.uidAdded),
@@ -259,5 +269,30 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
     });
 
     return rule;
+  }
+
+  /**
+   * Updates notifications rule in project
+   * @param payload - data for updating
+   */
+  public async updateNotificationsRule(payload: UpdateProjectNotificationsRulePayload): Promise<void> {
+
+  }
+
+  /**
+   * Removes notifications rule
+   * @param ruleId - rule id to delete
+   */
+  public async deleteNotificationsRule(ruleId: string): Promise<void> {
+    await this.collection.updateOne({
+      _id: this._id,
+    },
+    {
+      $pull: {
+        notifications: {
+          _id: new ObjectId(ruleId),
+        },
+      },
+    });
   }
 }
