@@ -38,14 +38,16 @@ class EventsFactory extends Factory {
 
   /**
    * Creates Event instance
-   * @param {string} projectId - project ID
+   * @param {ObjectId} projectId - project ID
    */
   constructor(projectId) {
     super();
+
     if (!projectId) {
       throw new Error('Can not construct Event model, because projectId is not provided');
     }
-    this.projectId = new ObjectID(projectId);
+
+    this.projectId = projectId;
   }
 
   /**
