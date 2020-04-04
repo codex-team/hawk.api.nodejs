@@ -120,7 +120,6 @@ module.exports = {
      * Find project's event
      *
      * @param {ProjectDBScheme} project - result of parent resolver
-     * @param {String} id  - id of project (root resolver)
      * @param {String} eventId - event's identifier
      *
      * @returns {Event}
@@ -153,7 +152,6 @@ module.exports = {
      * Returns events count that wasn't seen on project
      *
      * @param {ProjectDBScheme} project - result of parent resolver
-     * @param {String} projectId - project identifier
      * @param {Object} data - additional data. In this case it is empty
      * @param {User} user - authorized user
      *
