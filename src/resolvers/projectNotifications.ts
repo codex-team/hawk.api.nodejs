@@ -1,4 +1,9 @@
-import { NotificationsChannelsDBScheme, ProjectNotificationsRuleDBScheme, ReceiveTypes } from '../models/newProjectModel';
+import {
+  NotificationsChannelsDBScheme,
+  ProjectNotificationsRuleDBScheme,
+  ReceiveTypes,
+  NotificationsChannelSettingsDBScheme
+} from '../models/newProjectModel';
 import { ResolverContextWithUser } from '../types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
 
@@ -63,6 +68,19 @@ interface DeleteProjectNotificationsRuleMutationPayload {
 }
 
 /**
+ * Return true if all passed channels are empty
+ * @param channels - project notifications channels
+ */
+function isChannelsEmpty(channels: NotificationsChannelsDBScheme): boolean {
+  const notEmptyChannels = Object.entries(channels)
+    .filter(([name, channel]: [string, NotificationsChannelSettingsDBScheme]) => {
+      return channel.endpoint.replace(/\s+/, '').trim().length !== 0;
+    });
+
+  return notEmptyChannels.length === 0;
+}
+
+/**
  * See all types and fields here {@see ../typeDefs/notify.graphql}
  */
 export default {
@@ -85,7 +103,7 @@ export default {
         throw new ApolloError('No project with such id');
       }
 
-      if (!Object.keys(input.channels).length) {
+      if (isChannelsEmpty(input.channels)) {
         throw new UserInputError('At least one channel is required');
       }
 
@@ -113,7 +131,7 @@ export default {
         throw new ApolloError('No project with such id');
       }
 
-      if (!Object.keys(input.channels).length) {
+      if (isChannelsEmpty(input.channels)) {
         throw new UserInputError('At least one channel is required');
       }
 
