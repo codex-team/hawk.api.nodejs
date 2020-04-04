@@ -119,16 +119,17 @@ module.exports = {
     /**
      * Find project's event
      *
+     * @param {ProjectDBScheme} project - result of parent resolver
      * @param {String} id  - id of project (root resolver)
      * @param {String} eventId - event's identifier
      *
      * @returns {Event}
      */
-    async event({ id }, { id: eventId }) {
-      const factory = new EventsFactory(id);
+    async event(project, { id: eventId }) {
+      const factory = new EventsFactory(project._id);
       const event = await factory.findById(eventId);
 
-      event.projectId = id;
+      event.projectId = project._id;
 
       return event;
     },
@@ -136,14 +137,14 @@ module.exports = {
     /**
      * Find project events
      *
-     * @param {String} id  - id of project (root resolver)
+     * @param {ProjectDBScheme} project - result of parent resolver
      * @param {number} limit - query limit
      * @param {number} skip - query skip
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @returns {Event[]}
      */
-    async events({ id }, { limit, skip }) {
-      const factory = new EventsFactory(id);
+    async events(project, { limit, skip }) {
+      const factory = new EventsFactory(project._id);
 
       return factory.find({}, limit, skip);
     },
@@ -151,15 +152,16 @@ module.exports = {
     /**
      * Returns events count that wasn't seen on project
      *
+     * @param {ProjectDBScheme} project - result of parent resolver
      * @param {String} projectId - project identifier
      * @param {Object} data - additional data. In this case it is empty
      * @param {User} user - authorized user
      *
      * @return {Promise<number>}
      */
-    async unreadCount({ id: projectId }, data, { user }) {
-      const eventsFactory = new EventsFactory(projectId);
-      const userInProject = new UserInProject(user.id, projectId);
+    async unreadCount(project, data, { user }) {
+      const eventsFactory = new EventsFactory(project._id);
+      const userInProject = new UserInProject(user.id, project._id);
       const lastVisit = await userInProject.getLastVisit();
 
       return eventsFactory.getUnreadCount(lastVisit);
@@ -168,14 +170,14 @@ module.exports = {
     /**
      * Returns recent Events grouped by day
      *
-     * @param {ResolverObj} _obj
+     * @param {ProjectDBScheme} project - result of parent resolver
      * @param {Number} limit - limit for events count
      * @param {Number} skip - certain number of documents to skip
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async recentEvents({ id: projectId }, { limit, skip }) {
-      const factory = new EventsFactory(projectId);
+    async recentEvents(project, { limit, skip }) {
+      const factory = new EventsFactory(project._id);
 
       return factory.findRecent(limit, skip);
     },

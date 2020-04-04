@@ -8,7 +8,7 @@ const { ObjectID } = require('mongodb');
 class UserInProject {
   /**
    * @param {String} userId - user's identifier
-   * @param {String} projectId - project's identifier
+   * @param {ObjectId} projectId - project's identifier
    */
   constructor(userId, projectId) {
     this.userId = userId;
