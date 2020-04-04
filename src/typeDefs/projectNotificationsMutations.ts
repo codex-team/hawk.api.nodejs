@@ -58,7 +58,7 @@ export default gql`
     """
     What events type to recieve
     """
-    whatToRecieve: ReceiveTypes! = ONLY_NEW
+    whatToReceive: ReceiveTypes! = ONLY_NEW
 
     """
     Words to include in notification
@@ -76,13 +76,83 @@ export default gql`
     channels: NotificationsChannelsInput!
   }
 
+  """
+  Input type for updating exsiting notification rule
+  """
+  input UpdateProjectNotificationsRuleInput {
+    """
+    Rule id to update
+    """
+    ruleId: ID!
+
+    """
+    Project id to setup
+    """
+    projectId: ID!
+
+    """
+    True if settings is enabled
+    """
+    isEnabled: Boolean! = true
+
+    """
+    What events type to recieve
+    """
+    whatToReceive: ReceiveTypes! = ONLY_NEW
+
+    """
+    Words to include in notification
+    """
+    including: [String!]! = []
+
+    """
+    Words to exclude from notification
+    """
+    excluding: [String!]! = []
+
+    """
+    Notification channels to recieve events
+    """
+    channels: NotificationsChannelsInput!
+  }
+
+
+  """
+  Input type deleting project notifications rule
+  """
+  input DeleteProjectNotificationsRuleInput {
+    """
+    Project id which owns the rule
+    """
+    projectId: ID!
+
+    """
+    Rule id to delete
+    """
+    ruleId: ID!
+  }
+
   extend type Mutation {
     """
     Creates new notification rule for project common settings
     """
     createProjectNotificationsRule(
       "Data for creating"
-      input: CreateProjectNotificationsRuleInput
+      input: CreateProjectNotificationsRuleInput!
+    ): ProjectNotificationsRule @requireAdmin
+
+    """
+    Updates existing notifications rule
+    """
+    updateProjectNotificationsRule(
+      input: UpdateProjectNotificationsRuleInput!
+    ): ProjectNotificationsRule @requireAdmin
+
+    """
+    Removes notifications rule from project
+    """
+    deleteProjectNotificationsRule(
+      input: DeleteProjectNotificationsRuleInput!
     ): ProjectNotificationsRule @requireAdmin
   }
 `;
