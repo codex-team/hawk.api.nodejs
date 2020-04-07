@@ -134,7 +134,7 @@ export default gql`
 
   extend type Mutation {
     """
-    Creates new notification rule for project common settings
+    Creates new notification rule and add it to start of the array of notifications rules
     """
     createProjectNotificationsRule(
       "Data for creating"

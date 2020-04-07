@@ -270,7 +270,7 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
   }
 
   /**
-   * Creates new notification rule
+   * Creates new notification rule and add it to start of the array of notifications rules
    * @param payload - rule data to save
    */
   public async createNotificationsRule(payload: CreateProjectNotificationsRulePayload): Promise<ProjectNotificationsRuleDBScheme> {
