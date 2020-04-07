@@ -289,7 +289,10 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
     },
     {
       $push: {
-        notifications: rule,
+        notifications: {
+          $each: [ rule ],
+          $position: 0,
+        },
       },
     });
 
