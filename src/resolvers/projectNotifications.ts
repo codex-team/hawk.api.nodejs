@@ -86,7 +86,7 @@ function isChannelsEmpty(channels: NotificationsChannelsDBScheme): boolean {
 export default {
   Mutation: {
     /**
-     * Creates new rule for project notifications settings
+     * Creates new notification rule and add it to start of the array of notifications rules
      * @param _obj - parent object
      * @param user - current authorized user {@see ../index.js}
      * @param factories - factories for working with models
