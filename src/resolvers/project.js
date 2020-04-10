@@ -1,6 +1,5 @@
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
-const ProjectToWorkspace = require('../models/projectToWorkspace.js');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 

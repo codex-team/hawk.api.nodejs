@@ -2,7 +2,7 @@ import DataLoader from 'dataloader';
 import { Db, ObjectId } from 'mongodb';
 import { WorkspaceDBScheme } from './models/workspace';
 import { UserDBScheme } from './models/user';
-import { ProjectDBScheme } from './models/newProjectModel';
+import { ProjectDBScheme } from './models/project';
 
 /**
  * Class for setting up data loaders

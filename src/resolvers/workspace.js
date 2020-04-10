@@ -4,7 +4,7 @@ const { ApolloError, UserInputError } = require('apollo-server-express');
 const crypto = require('crypto');
 
 // const Plan = require('../models/plan');
-const { ProjectToWorkspace } = require('../models/project.js');
+const ProjectToWorkspace = require('../models/projectToWorkspace');
 const Validator = require('../utils/validator');
 const emailProvider = require('../email');
 const { names: emailTemplatesNames } = require('../email/templates');
