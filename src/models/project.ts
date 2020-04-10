@@ -368,7 +368,9 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
     try {
       result = await this.collection.findOneAndUpdate(
         { _id: new ObjectId(this._id) },
-        projectData,
+        {
+          $set: projectData,
+        },
         { returnOriginal: false }
       );
     } catch (e) {
