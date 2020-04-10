@@ -119,6 +119,11 @@ type EventPayload {
   Custom data provided by project users
   """
   addons: JSONObject
+
+  """
+  Event type: TypeError, ReferenceError etc.
+  """
+  type: String
 }
 
 """
