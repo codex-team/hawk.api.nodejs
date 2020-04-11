@@ -180,7 +180,6 @@ module.exports = {
       return factory.findRecent(limit, skip);
     },
 
-
     /**
      * Returns events that occured after a certain timestamp
      *
@@ -191,6 +190,7 @@ module.exports = {
      */
     async chartData(project, { minTimestamp }) {
       const factory = new EventsFactory(project._id);
+
       return factory.findChartData(minTimestamp);
     },
   },

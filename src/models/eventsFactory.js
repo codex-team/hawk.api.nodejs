@@ -184,13 +184,15 @@ class EventsFactory extends Factory {
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).find(
       {
-        groupingTimestamp: { 
-          $gte: minTimestamp 
-        }
+        groupingTimestamp: {
+          $gte: minTimestamp,
+        },
       }
     );
 
-    return await cursor.toArray();
+    const result = await cursor.toArray();
+
+    return result;
   }
 
   /**
