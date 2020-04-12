@@ -6,8 +6,6 @@ import { errorCodes } from '../errors';
 import emailProvider from '../email';
 import { names as emailTemplatesNames } from '../email/templates';
 import Validator from '../utils/validator';
-import { save } from '../utils/files';
-import { FileUpload } from 'graphql-upload';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
