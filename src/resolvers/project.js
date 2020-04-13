@@ -172,5 +172,19 @@ module.exports = {
 
       return factory.findRecent(limit, skip);
     },
+
+    /**
+     * Returns events that occured after a certain timestamp
+     *
+     * @param {ProjectDBScheme} project - result of parent resolver
+     * @param {Number} minTimestamp - certain timestamp
+     *
+     * @return {Promise<DailyEventInfo[]>}
+     */
+    async chartData(project, { minTimestamp }) {
+      const factory = new EventsFactory(project._id);
+
+      return factory.findChartData(minTimestamp);
+    },
   },
 };

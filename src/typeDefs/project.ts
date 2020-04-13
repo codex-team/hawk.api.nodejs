@@ -71,7 +71,15 @@ type Project {
     "Certain number of documents to skip"
     skip: Int! = 0
   ): RecentEvents @requireAuth
-
+  """
+  Return events that occured after a certain timestamp
+  """
+  chartData(
+    """
+    Timestamp with which we will count events
+    """
+    minTimestamp: Int! = 0
+  ): [DailyEventInfo] @requireAuth
   """
   Returns number of unread events
   """
