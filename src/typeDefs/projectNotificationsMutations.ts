@@ -116,11 +116,10 @@ export default gql`
     channels: NotificationsChannelsInput!
   }
 
-
   """
-  Input type deleting project notifications rule
+  Input type for specifying project notifications rule
   """
-  input DeleteProjectNotificationsRuleInput {
+  input ProjectNotificationRulePointer {
     """
     Project id which owns the rule
     """
@@ -145,6 +144,7 @@ export default gql`
     Updates existing notifications rule
     """
     updateProjectNotificationsRule(
+      "Data for updating"
       input: UpdateProjectNotificationsRuleInput!
     ): ProjectNotificationsRule @requireAdmin
 
@@ -152,7 +152,16 @@ export default gql`
     Removes notifications rule from project
     """
     deleteProjectNotificationsRule(
-      input: DeleteProjectNotificationsRuleInput!
+      "Data for deleting"
+      input: ProjectNotificationRulePointer!
+    ): ProjectNotificationsRule @requireAdmin
+
+    """
+    Toggles isEnabled field in in project notifications rule
+    """
+    toggleProjectNotificationsRuleEnabledState(
+      "Data for toggling"
+      input: ProjectNotificationRulePointer
     ): ProjectNotificationsRule @requireAdmin
   }
 `;
