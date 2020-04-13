@@ -71,6 +71,11 @@ type EventPayload {
   title: String!
 
   """
+  Event type: TypeError, ReferenceError etc.
+  """
+  type: String
+
+  """
   Event timestamp
   """
   timestamp: Float!
