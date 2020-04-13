@@ -173,6 +173,29 @@ class EventsFactory extends Factory {
   }
 
   /**
+   * Returns events that occurred after this timestamp
+   *
+   * @param {Number} limit - events count limitations
+   * @param {Number} skip - certain number of documents to skip
+   * @return {DailyEventInfo[]}
+   */
+  async findChartData(minTimestamp = 1586545200) {
+    // minTimestamp = this.validateTimestamp(minTimestamp);
+
+    const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).find(
+      {
+        groupingTimestamp: {
+          $gt: minTimestamp,
+        },
+      }
+    );
+
+    const result = await cursor.toArray();
+
+    return result;
+  }
+
+  /**
    * Returns number of documents that occurred after the last visit time
    *
    * @param {Number} lastVisit - user's last visit time on project
