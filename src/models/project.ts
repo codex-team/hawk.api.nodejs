@@ -392,4 +392,29 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
 
     return result.value?.notifications.find(doc => doc._id.toString() === ruleId) || null;
   }
+
+  /**
+   * Updates project data in DataBase
+   * @param projectData - projectData to save
+   */
+  public async updateProject(projectData: ProjectDBScheme): Promise<ProjectDBScheme> {
+    let result;
+
+    try {
+      result = await this.collection.findOneAndUpdate(
+        { _id: new ObjectId(this._id) },
+        {
+          $set: projectData,
+        },
+        { returnOriginal: false }
+      );
+    } catch (e) {
+      throw new Error('Can\'t update project');
+    }
+    if (!result.value) {
+      throw new Error('There is no project with provided id');
+    }
+
+    return result.value;
+  }
 }

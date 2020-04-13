@@ -3,7 +3,7 @@ import {
   ProjectNotificationsRuleDBScheme,
   ReceiveTypes,
   NotificationsChannelSettingsDBScheme
-} from '../models/newProjectModel';
+} from '../models/project';
 import { ResolverContextWithUser } from '../types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
 
