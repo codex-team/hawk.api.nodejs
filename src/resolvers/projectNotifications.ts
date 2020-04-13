@@ -55,7 +55,7 @@ interface UpdateProjectNotificationsRuleMutationPayload extends CreateProjectNot
 /**
  * Mutation payload for deleting project notifications rule
  */
-interface DeleteProjectNotificationsRuleMutationPayload {
+interface ProjectNotificationsRulePointer {
   /**
    * Project id which owns the rule
    */
@@ -147,7 +147,7 @@ export default {
      */
     async deleteProjectNotificationsRule(
       _obj: undefined,
-      { input }: { input: DeleteProjectNotificationsRuleMutationPayload },
+      { input }: { input: ProjectNotificationsRulePointer },
       { user, factories }: ResolverContextWithUser
     ): Promise<ProjectNotificationsRuleDBScheme | null> {
       const project = await factories.projectsFactory.findById(input.projectId);
@@ -157,6 +157,27 @@ export default {
       }
 
       return project.deleteNotificationsRule(input.ruleId);
+    },
+
+    /**
+     * Toggles isEnabled field in in project notifications rule
+     * @param _obj - parent object
+     * @param user - current authorized user {@see ../index.js}
+     * @param factories - factories for working with models
+     * @param input - input data for toggling
+     */
+    async toggleProjectNotificationsRuleEnabledState(
+      _obj: undefined,
+      { input }: { input: ProjectNotificationsRulePointer },
+      { user, factories }: ResolverContextWithUser
+    ): Promise<ProjectNotificationsRuleDBScheme | null> {
+      const project = await factories.projectsFactory.findById(input.projectId);
+
+      if (!project) {
+        throw new ApolloError('No project with such id');
+      }
+
+      return project.toggleNotificationsRuleEnabledState(input.ruleId);
     },
   },
 };
