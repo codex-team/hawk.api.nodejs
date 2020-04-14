@@ -222,5 +222,16 @@ export default gql`
       """
       userEmail: String
     ): Boolean! @requireAdmin
+
+    """
+    Mutation in order to leave workspace
+    Returns true if operation is successful
+    """
+    leaveWorkspace(
+      """
+      Workspace ID
+      """
+      workspaceId: ID!
+    ): Boolean! @requireAuth
   }
 `;
