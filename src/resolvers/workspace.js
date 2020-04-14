@@ -294,6 +294,8 @@ module.exports = {
         }
       }
       await workspaceModel.removeMember(userModel);
+
+      return true;
     },
   },
   Workspace: {
