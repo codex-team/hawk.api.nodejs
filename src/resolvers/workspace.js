@@ -1,6 +1,6 @@
 import WorkspaceModel from '../models/workspace';
 
-const { ApolloError, UserInputError } = require('apollo-server-express');
+const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
 
 // const Plan = require('../models/plan');
@@ -261,6 +261,39 @@ module.exports = {
       } else {
         await workspace.removeMemberByEmail(userEmail);
       }
+
+      return true;
+    },
+
+    /**
+     * Mutation in order to leave workspace
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
+     * @param {string} workspaceId - id of the workspace where the user should be removed
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     * @return {Promise<boolean>} - true if operation is successful
+     */
+    async leaveWorkspace(_obj, { workspaceId }, { user, factories }) {
+      const userModel = await factories.usersFactory.findById(user.id);
+      const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
+
+      if (!workspaceModel) {
+        throw new UserInputError('There is no workspace with provided id');
+      }
+
+      const memberInfo = await workspaceModel.getMemberInfo(user.id);
+
+      if (memberInfo.isAdmin) {
+        const membersInfo = (await workspaceModel.getMembers());
+        const isThereOtherAdmins = !!membersInfo.find(
+          member => member.isAdmin && member.userId.toString() !== user.id
+        );
+
+        if (!isThereOtherAdmins) {
+          throw new ForbiddenError('You can\'t leave this workspace because you are the last admin');
+        }
+      }
+      await workspaceModel.removeMember(userModel);
 
       return true;
     },
