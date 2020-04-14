@@ -290,7 +290,7 @@ module.exports = {
         );
 
         if (!isThereOtherAdmins) {
-          throw new ForbiddenError('You can\'t leave this workspace because you is the last admin');
+          throw new ForbiddenError('You can\'t leave this workspace because you are the last admin');
         }
       }
       await workspaceModel.removeMember(userModel);
