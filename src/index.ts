@@ -2,7 +2,7 @@ import { ApolloServer } from 'apollo-server-express';
 import express from 'express';
 import * as mongo from './mongo';
 import * as rabbitmq from './rabbitmq';
-import jwt from 'jsonwebtoken';
+import jwt, { Secret } from 'jsonwebtoken';
 import http from 'http';
 import billing from './billing/index';
 import { initializeStrategies } from './passport';
@@ -134,10 +134,6 @@ class HawkAPI {
     let userId: string | undefined;
     let isAccessTokenExpired = false;
 
-    /*
-     * @todo deny access by refresh tokens
-     * @todo block used refresh token
-     */
     const authorizationHeader = connection
       ? connection.context.headers.authorization
       : req.headers.authorization;
@@ -151,7 +147,7 @@ class HawkAPI {
       const accessToken = authorizationHeader.slice(7);
 
       try {
-        const data = await jwt.verify(accessToken, process.env.JWT_SECRET_AUTH || 'secret') as UserJWTData;
+        const data = await jwt.verify(accessToken, process.env.JWT_SECRET_ACCESS_TOKEN as Secret) as UserJWTData;
 
         userId = data.userId;
       } catch (err) {
