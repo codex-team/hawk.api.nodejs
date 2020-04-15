@@ -1,6 +1,5 @@
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
-const { Project, ProjectToWorkspace } = require('../models/project.js');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 
@@ -46,10 +45,7 @@ module.exports = {
         image,
       };
 
-      const project = await Project.create(options);
-
-      // Create Project to Workspace relationship
-      new ProjectToWorkspace(workspaceId).add({ projectId: project.id });
+      const project = await factories.projectsFactory.create(options);
 
       return project;
     },
@@ -76,7 +72,7 @@ module.exports = {
         throw new UserInputError('Invalid description length');
       }
 
-      const project = await Project.findById(id);
+      const project = await factories.projectsFactory.findById(id);
 
       if (!project) {
         throw new ApolloError('There is no project with that id');
@@ -91,14 +87,11 @@ module.exports = {
         if (image) {
           options.image = image;
         }
-        await Project.updateProject(project.id, options);
+
+        return project.updateProject(options);
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
-
-      const updatedProject = await Project.findById(id);
-
-      return updatedProject;
     },
 
     /**

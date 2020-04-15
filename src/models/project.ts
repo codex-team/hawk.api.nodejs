@@ -58,7 +58,7 @@ export interface ProjectNotificationsRuleDBScheme {
   /**
    * Allows to disable rule without removing
    */
-  isEnabled: true;
+  isEnabled: boolean;
 
   /**
    * Creator of the rule
@@ -270,7 +270,7 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
   }
 
   /**
-   * Creates new notification rule
+   * Creates new notification rule and add it to start of the array of notifications rules
    * @param payload - rule data to save
    */
   public async createNotificationsRule(payload: CreateProjectNotificationsRulePayload): Promise<ProjectNotificationsRuleDBScheme> {
@@ -289,7 +289,10 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
     },
     {
       $push: {
-        notifications: rule,
+        notifications: {
+          $each: [ rule ],
+          $position: 0,
+        },
       },
     });
 
@@ -353,5 +356,65 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
       });
 
     return result.value?.notifications.find(doc => doc._id.toString() === ruleId) || null;
+  }
+
+  /**
+   * Toggles enabled state of the notifications rule
+   * @param ruleId - rule id to update
+   */
+  public async toggleNotificationsRuleEnabledState(ruleId: string): Promise<ProjectNotificationsRuleDBScheme | null> {
+    const rule = this.notifications.find(_rule => _rule._id.toString() === ruleId);
+
+    if (!rule) {
+      return null;
+    }
+
+    rule.isEnabled = !rule.isEnabled;
+
+    const result = await this.collection.findOneAndUpdate(
+      {
+        _id: this._id,
+        notifications: {
+          $elemMatch: {
+            _id: new ObjectId(ruleId),
+          },
+        },
+      },
+      {
+        $set: {
+          'notifications.$': rule,
+        },
+      },
+      {
+        returnOriginal: false,
+      }
+    );
+
+    return result.value?.notifications.find(doc => doc._id.toString() === ruleId) || null;
+  }
+
+  /**
+   * Updates project data in DataBase
+   * @param projectData - projectData to save
+   */
+  public async updateProject(projectData: ProjectDBScheme): Promise<ProjectDBScheme> {
+    let result;
+
+    try {
+      result = await this.collection.findOneAndUpdate(
+        { _id: new ObjectId(this._id) },
+        {
+          $set: projectData,
+        },
+        { returnOriginal: false }
+      );
+    } catch (e) {
+      throw new Error('Can\'t update project');
+    }
+    if (!result.value) {
+      throw new Error('There is no project with provided id');
+    }
+
+    return result.value;
   }
 }

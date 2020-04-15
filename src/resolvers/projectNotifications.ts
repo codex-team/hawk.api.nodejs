@@ -3,7 +3,7 @@ import {
   ProjectNotificationsRuleDBScheme,
   ReceiveTypes,
   NotificationsChannelSettingsDBScheme
-} from '../models/newProjectModel';
+} from '../models/project';
 import { ResolverContextWithUser } from '../types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
 
@@ -55,7 +55,7 @@ interface UpdateProjectNotificationsRuleMutationPayload extends CreateProjectNot
 /**
  * Mutation payload for deleting project notifications rule
  */
-interface DeleteProjectNotificationsRuleMutationPayload {
+interface ProjectNotificationsRulePointer {
   /**
    * Project id which owns the rule
    */
@@ -86,7 +86,7 @@ function isChannelsEmpty(channels: NotificationsChannelsDBScheme): boolean {
 export default {
   Mutation: {
     /**
-     * Creates new rule for project notifications settings
+     * Creates new notification rule and add it to start of the array of notifications rules
      * @param _obj - parent object
      * @param user - current authorized user {@see ../index.js}
      * @param factories - factories for working with models
@@ -147,7 +147,7 @@ export default {
      */
     async deleteProjectNotificationsRule(
       _obj: undefined,
-      { input }: { input: DeleteProjectNotificationsRuleMutationPayload },
+      { input }: { input: ProjectNotificationsRulePointer },
       { user, factories }: ResolverContextWithUser
     ): Promise<ProjectNotificationsRuleDBScheme | null> {
       const project = await factories.projectsFactory.findById(input.projectId);
@@ -157,6 +157,27 @@ export default {
       }
 
       return project.deleteNotificationsRule(input.ruleId);
+    },
+
+    /**
+     * Toggles isEnabled field in in project notifications rule
+     * @param _obj - parent object
+     * @param user - current authorized user {@see ../index.js}
+     * @param factories - factories for working with models
+     * @param input - input data for toggling
+     */
+    async toggleProjectNotificationsRuleEnabledState(
+      _obj: undefined,
+      { input }: { input: ProjectNotificationsRulePointer },
+      { user, factories }: ResolverContextWithUser
+    ): Promise<ProjectNotificationsRuleDBScheme | null> {
+      const project = await factories.projectsFactory.findById(input.projectId);
+
+      if (!project) {
+        throw new ApolloError('No project with such id');
+      }
+
+      return project.toggleNotificationsRuleEnabledState(input.ruleId);
     },
   },
 };

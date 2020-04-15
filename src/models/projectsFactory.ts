@@ -1,7 +1,9 @@
 import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
 import DataLoaders from '../dataLoaders';
-import ProjectModel, { ProjectDBScheme } from './newProjectModel';
+import ProjectModel, { ProjectDBScheme } from './project';
+import jwt from 'jsonwebtoken';
+import ProjectToWorkspace from './projectToWorkspace';
 
 /**
  * Users factory to work with User Model
@@ -50,5 +52,32 @@ export default class ProjectsFactory extends AbstractModelFactory<ProjectDBSchem
     return (await this.dataLoaders.projectById.loadMany(ids))
       .map((data) => !data || data instanceof Error ? null : new ProjectModel(data))
       .filter(Boolean) as ProjectModel[];
+  }
+
+  /**
+   * Creates new project in DataBase
+   * @param projectData - project data for creation
+   */
+  public async create(projectData: ProjectDBScheme): Promise<ProjectModel> {
+    const projectId = (await this.collection.insertOne(projectData)).insertedId;
+
+    const token = await jwt.sign({ projectId }, process.env.JWT_SECRET_PROJECT_TOKEN as string);
+
+    const result = await this.collection.findOneAndUpdate(
+      { _id: projectId },
+      { $set: { token } },
+      { returnOriginal: false }
+    );
+
+    if (!result.value) {
+      throw new Error('Can\'t create project due to unknown error');
+    }
+
+    // Create Project to Workspace relationship
+    await new ProjectToWorkspace(projectData.workspaceId).add({
+      projectId: projectId,
+    });
+
+    return new ProjectModel(result.value);
   }
 }
