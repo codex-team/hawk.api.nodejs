@@ -1,7 +1,8 @@
-const { ApolloError, UserInputError } = require('apollo-server-express');
+const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
+const ProjectToWorkspace = require('../models/projectToWorkspace');
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -92,6 +93,48 @@ module.exports = {
       } catch (err) {
         throw new ApolloError('Something went wrong');
       }
+    },
+
+    /**
+     * Remove project
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} projectId - id of the updated project
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Promise<boolean>}
+     */
+    async removeProject(_obj, { id }, { user, factories }) {
+      const project = await factories.projectsFactory.findById(id);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id');
+      }
+
+      const workspaceModel = await factories.workspacesFactory.findById(project.workspaceId.toString());
+      const memberInfo = await workspaceModel.getMemberInfo(user.id);
+
+      if (!memberInfo.isAdmin) {
+        throw new ForbiddenError('You can\'t remove this project because you aren\'t admin');
+      }
+
+      /**
+       * Remove project events
+       */
+      await new EventsFactory(id).remove();
+
+      /**
+       * Remove project from workspace
+       */
+      await new ProjectToWorkspace(workspaceModel._id).remove(id);
+
+      /**
+       * Remove project
+       */
+      await factories.projectsFactory.removeById(id);
+
+      return true;
     },
 
     /**

@@ -324,6 +324,17 @@ class EventsFactory extends Factory {
 
     return collection.updateOne(query, update);
   }
+
+  /**
+   * Remove all project events
+   *
+   * @return {Promise<void>}
+   */
+  async remove() {
+    await this.getCollection(this.TYPES.EVENTS).drop();
+    await this.getCollection(this.TYPES.DAILY_EVENTS).drop();
+    await this.getCollection(this.TYPES.REPETITIONS).drop();
+  }
 }
 
 module.exports = EventsFactory;
