@@ -127,7 +127,7 @@ module.exports = {
       /**
        * Remove project from workspace
        */
-      await new ProjectToWorkspace(workspaceModel._id).remove(id);
+      await new ProjectToWorkspace(workspaceModel._id.toString()).remove(id);
 
       /**
        * Remove project

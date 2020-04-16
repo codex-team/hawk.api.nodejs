@@ -4,7 +4,6 @@ import DataLoaders from '../dataLoaders';
 import ProjectModel, { ProjectDBScheme } from './project';
 import jwt from 'jsonwebtoken';
 import ProjectToWorkspace from './projectToWorkspace';
-import EventsFactory from './eventsFactory';
 
 /**
  * Users factory to work with User Model
