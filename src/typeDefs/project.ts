@@ -126,7 +126,7 @@ extend type Mutation {
   """
   removeProject(
     "What project to remove"
-    id: ID!
+    projectId: ID!
   ): Boolean! @requireAdmin
 
   """
