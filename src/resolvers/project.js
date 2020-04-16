@@ -1,4 +1,4 @@
-const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
+const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
@@ -113,11 +113,6 @@ module.exports = {
       }
 
       const workspaceModel = await factories.workspacesFactory.findById(project.workspaceId.toString());
-      const memberInfo = await workspaceModel.getMemberInfo(user.id);
-
-      if (!memberInfo.isAdmin) {
-        throw new ForbiddenError('You can\'t remove this project because you aren\'t admin');
-      }
 
       /**
        * Remove project events
