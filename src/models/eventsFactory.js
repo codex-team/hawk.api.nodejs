@@ -347,6 +347,33 @@ class EventsFactory extends Factory {
 
     return collection.updateOne(query, update);
   }
+
+  /**
+   * Remove all project events
+   *
+   * @return {Promise<void>}
+   */
+  async remove() {
+    const eventsCollection = await this.getCollection(this.TYPES.EVENTS);
+    const dailyEventsCollection = await this.getCollection(this.TYPES.DAILY_EVENTS);
+    const repetitionCollection = await this.getCollection(this.TYPES.REPETITIONS);
+
+    /**
+     * Check if collection is existing
+     * Drop collection only when it's existing
+     */
+    if (await eventsCollection.findOne()) {
+      await eventsCollection.drop();
+    }
+
+    if (await dailyEventsCollection.findOne()) {
+      await dailyEventsCollection.drop();
+    }
+
+    if (await repetitionCollection.findOne()) {
+      await repetitionCollection.drop();
+    }
+  }
 }
 
 module.exports = EventsFactory;

@@ -1,5 +1,5 @@
 import AbstractModelFactory from './abstactModelFactory';
-import { Collection, Db } from 'mongodb';
+import { Collection, Db, ObjectID } from 'mongodb';
 import DataLoaders from '../dataLoaders';
 import ProjectModel, { ProjectDBScheme } from './project';
 import jwt from 'jsonwebtoken';
@@ -79,5 +79,13 @@ export default class ProjectsFactory extends AbstractModelFactory<ProjectDBSchem
     });
 
     return new ProjectModel(result.value);
+  }
+
+  /**
+   * Remove project data by its id
+   * @param id - project id
+   */
+  public async removeById(id: ObjectID): Promise<void> {
+    await this.collection.deleteOne({ _id: id });
   }
 }
