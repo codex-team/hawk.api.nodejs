@@ -85,12 +85,12 @@ class ProjectToWorkspace {
   /**
    * Remove project from workspace
    *
-   * @param {string} projectId - project Id for removing
+   * @param {ObjectID} projectId - project Id for removing
    *
    * @return {Promise<void>}
    */
   async remove(projectId) {
-    await this.collection.deleteOne({ projectId: new ObjectID(projectId) });
+    await this.collection.deleteOne({ projectId: projectId });
   }
 
   /**

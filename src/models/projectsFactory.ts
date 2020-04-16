@@ -85,7 +85,7 @@ export default class ProjectsFactory extends AbstractModelFactory<ProjectDBSchem
    * Remove project data by its id
    * @param id - project id
    */
-  public async removeById(id: string): Promise<void> {
-    await this.collection.deleteOne({ _id: new ObjectID(id) });
+  public async removeById(id: ObjectID): Promise<void> {
+    await this.collection.deleteOne({ _id: id });
   }
 }

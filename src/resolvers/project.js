@@ -105,8 +105,8 @@ module.exports = {
      *
      * @returns {Promise<boolean>}
      */
-    async removeProject(_obj, { id }, { user, factories }) {
-      const project = await factories.projectsFactory.findById(id);
+    async removeProject(_obj, { projectId }, { user, factories }) {
+      const project = await factories.projectsFactory.findById(projectId);
 
       if (!project) {
         throw new ApolloError('There is no project with that id');
@@ -117,17 +117,17 @@ module.exports = {
       /**
        * Remove project events
        */
-      await new EventsFactory(id).remove();
+      await new EventsFactory(project._id).remove();
 
       /**
        * Remove project from workspace
        */
-      await new ProjectToWorkspace(workspaceModel._id.toString()).remove(id);
+      await new ProjectToWorkspace(workspaceModel._id.toString()).remove(project._id);
 
       /**
        * Remove project
        */
-      await factories.projectsFactory.removeById(id);
+      await factories.projectsFactory.removeById(project._id);
 
       return true;
     },
