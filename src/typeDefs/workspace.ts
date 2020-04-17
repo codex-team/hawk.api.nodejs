@@ -84,7 +84,7 @@ export default gql`
     """
     Workspace name
     """
-    name: String @notEmpty
+    name: String
 
     """
     Workspace description
