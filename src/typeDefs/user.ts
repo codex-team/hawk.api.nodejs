@@ -27,12 +27,12 @@ export default gql`
     """
     User's email
     """
-    email: String @notEmpty
+    email: String
 
     """
     User's name
     """
-    name: String @notEmpty
+    name: String
 
     """
     User's image
