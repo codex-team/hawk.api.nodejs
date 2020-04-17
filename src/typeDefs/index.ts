@@ -39,7 +39,11 @@ const rootSchema = gql`
   Directive for automatically image uploading
   """
   directive @uploadImage on ARGUMENT_DEFINITION
-
+  
+  """
+  Directive for checking a field for empty space
+  """
+  directive @notEmpty on FIELD_DEFINITION
 
   """
   Type for date and time representation
