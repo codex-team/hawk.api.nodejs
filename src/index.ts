@@ -20,6 +20,7 @@ import UploadImageDirective from './directives/uploadImageDirective';
 import RequireAuthDirective from './directives/requireAuthDirective';
 import RequireAdminDirective from './directives/requireAdminDirective';
 import DefaultValueDirective from './directives/defaultValue';
+import NotEmptyDirective from './directives/notEmpty';
 import ProjectsFactory from './models/projectsFactory';
 
 /**
@@ -81,6 +82,7 @@ class HawkAPI {
         uploadImage: UploadImageDirective,
         requireAdmin: RequireAdminDirective,
         default: DefaultValueDirective,
+        notEmpty: NotEmptyDirective,
       },
       subscriptions: {
         path: '/subscriptions',

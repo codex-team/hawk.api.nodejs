@@ -18,7 +18,7 @@ type Project {
   """
   Project name
   """
-  name: String!
+  name: String! @notEmpty
 
   """
   Project description
