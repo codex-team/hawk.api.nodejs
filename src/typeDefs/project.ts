@@ -112,7 +112,7 @@ extend type Mutation {
     id: ID!
 
     "Project name"
-    name: String!
+    name: String! @validate(notEmpty: true)
 
     "Project description"
     description: String

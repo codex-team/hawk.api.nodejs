@@ -82,10 +82,10 @@ export default gql`
     """
     updateProfile(
       "User name"
-      name: String!
+      name: String! @validate(notEmpty: true)
 
       "User email"
-      email: String!
+      email: String! @validate(isEmail: true)
 
       "User image file"
       image: Upload @uploadImage
