@@ -160,7 +160,7 @@ export default gql`
       workspaceId: ID!
 
       "Workspace name"
-      name: String!
+      name: String! @validate(notEmpty: true)
 
       "Workspace description"
       description: String
