@@ -30,7 +30,7 @@ export default class ValidateDirective extends SchemaDirectiveVisitor {
       } 
       
       if (notEmpty) {
-        if (args[argument.name] && args[argument.name].replace(/\s/g, '').length == 0) {
+        if (args[argument.name] !== undefined && args[argument.name].replace(/\s/g, '').length == 0) {
           throw new UserInputError('The value must not be empty');
         }
       }
