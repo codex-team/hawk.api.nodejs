@@ -1,27 +1,29 @@
 import { SchemaDirectiveVisitor, UserInputError } from 'apollo-server-express';
-import { UnknownGraphQLField } from '../types/graphql';
-import { defaultFieldResolver } from 'graphql';
+import { defaultFieldResolver, GraphQLArgument, GraphQLField, GraphQLObjectType, GraphQLInterfaceType } from 'graphql';
 
 /**
- * Check if the string is empty
+ * Check if the argument is empty
  * Throws an error if it is
  */
 export default class NotEmptyDirective extends SchemaDirectiveVisitor {
   /**
-   * Function to call on visiting field definition
-   * @param field - field to access
+   * Function to call on visiting argument definition
+   * @param argument - information about argument
+   * @param details - details about field to resolve
    */
-  public visitFieldDefinition(field: UnknownGraphQLField): void {
-    const { resolve = defaultFieldResolver } = field;
+  public visitArgumentDefinition(argument: GraphQLArgument, details: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      field: GraphQLField<any, any>;
+      objectType: GraphQLObjectType | GraphQLInterfaceType;
+  }): void {
+    const { resolve = defaultFieldResolver } = details.field;
 
-    field.resolve = async function (...args): Promise<string> {
-      const result: string = await resolve.apply(this, args);
-
-      if (result.replace(/\s/g, '').length === 0) {
+    details.field.resolve = async (object, args, context, info): Promise<void> => {
+      if (args[argument.name] && args[argument.name].replace(/\s/g, '').length == 0) {
         throw new UserInputError('The value must not be empty');
       }
 
-      return result;
+      return resolve.call(this, object, args, context, info);
     };
   }
 }

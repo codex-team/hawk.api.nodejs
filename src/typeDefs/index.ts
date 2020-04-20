@@ -43,7 +43,7 @@ const rootSchema = gql`
   """
   Directive for checking a field for empty space
   """
-  directive @notEmpty on FIELD_DEFINITION
+  directive @notEmpty on ARGUMENT_DEFINITION
 
   """
   Type for date and time representation
