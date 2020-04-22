@@ -98,7 +98,7 @@ extend type Mutation {
     "Workspace ID"
     workspaceId: ID!
     "Project name"
-    name: String!
+    name: String! @validate(notEmpty: true)
 
     "Project image"
     image: Upload @uploadImage
