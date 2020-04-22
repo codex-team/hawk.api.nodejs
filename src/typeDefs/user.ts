@@ -51,43 +51,65 @@ export default gql`
     """
     Register user with provided email. Returns true if registred
     """
-    signUp("Registration email" email: String!): Boolean!
+    signUp(
+      """
+      Registration email
+      """
+      email: String! @validate(isEmail: true)
+    ): Boolean!
 
     """
     Login user with provided email and password
     """
     login(
-      "User email"
-      email: String!
+      """
+      User email
+      """
+      email: String! @validate(isEmail: true)
 
-      "User password"
-      password: String!
+      """
+      User password
+      """
+      password: String! @validate(notEmpty: true)
     ): Tokens!
 
     """
     Update user's tokens pair
     """
     refreshTokens(
-      "Refresh token for getting new token pair"
+      """
+      Refresh token for getting new token pair
+      """
       refreshToken: String!
     ): Tokens!
 
     """
     Reset user's password
     """
-    resetPassword("User email" email: String!): Boolean!
+    resetPassword(
+      """
+      User email
+      """ 
+      email: String! @validate(isEmail: true)
+    ): Boolean!
 
     """
     Update user's profile
     """
     updateProfile(
-      "User name"
+      """
+      User name
+      """
       name: String! @validate(notEmpty: true)
 
-      "User email"
+      """
+      User email
+      """
       email: String! @validate(isEmail: true)
 
-      "User image file"
+      """
+      User image file
+      """
       image: Upload @uploadImage
     ): Boolean! @requireAuth
 
@@ -98,12 +120,12 @@ export default gql`
       """
       Current user password
       """
-      oldPassword: String!
+      oldPassword: String! @validate(notEmpty: true)
 
       """
       New user password
       """
-      newPassword: String!
+      newPassword: String! @validate(notEmpty: true)
     ): Boolean! @requireAuth
   }
 `;

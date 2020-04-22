@@ -103,12 +103,18 @@ extend type Mutation {
   Create project in given workspace
   """
   createProject(
-    "Workspace ID"
+    """
+    Workspace ID
+    """
     workspaceId: ID!
-    "Project name"
+    """
+    Project name
+    """
     name: String! @validate(notEmpty: true)
 
-    "Project image"
+    """
+    Project image
+    """
     image: Upload @uploadImage
   ): Project! @requireAdmin
 
@@ -116,16 +122,24 @@ extend type Mutation {
   Update project settings
   """
   updateProject(
-    "What project to update"
+    """
+    What project to update
+    """
     id: ID!
 
-    "Project name"
+    """
+    Project name
+    """
     name: String! @validate(notEmpty: true)
 
-    "Project description"
+    """
+    Project description
+    """
     description: String
 
-    "Project image"
+    """
+    Project image
+    """
     image: Upload @uploadImage
   ): Project! @requireAuth
 
@@ -141,7 +155,9 @@ extend type Mutation {
   Updates user's visit time on project
   """
   updateLastProjectVisit(
-    "project ID"
+    """
+    project ID
+    """
     projectId: ID!
   ): DateTime! @requireAuth
 }
