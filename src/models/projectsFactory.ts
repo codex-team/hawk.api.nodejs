@@ -2,7 +2,7 @@ import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
 import DataLoaders from '../dataLoaders';
 import ProjectModel, { ProjectDBScheme } from './project';
-import jwt from 'jsonwebtoken';
+import jwt, { Secret } from 'jsonwebtoken';
 import ProjectToWorkspace from './projectToWorkspace';
 
 /**
@@ -61,7 +61,7 @@ export default class ProjectsFactory extends AbstractModelFactory<ProjectDBSchem
   public async create(projectData: ProjectDBScheme): Promise<ProjectModel> {
     const projectId = (await this.collection.insertOne(projectData)).insertedId;
 
-    const token = await jwt.sign({ projectId }, process.env.JWT_SECRET_PROJECT_TOKEN as string);
+    const token = await jwt.sign({ projectId }, process.env.JWT_SECRET_PROJECT_TOKEN as Secret);
 
     const result = await this.collection.findOneAndUpdate(
       { _id: projectId },
