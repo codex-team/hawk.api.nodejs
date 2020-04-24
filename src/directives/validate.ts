@@ -4,9 +4,9 @@ import { defaultFieldResolver, GraphQLArgument, GraphQLField, GraphQLObjectType,
 /**
  * Validate arguments using various functions
  * Throws an error if it doesn't pass validation
- * 
+ *
  * Usage example
- * 
+ *
  * extend type Mutation {
  *   updateProfile(
  *     email: String! @validate(isEmail: true)
