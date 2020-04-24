@@ -2,8 +2,17 @@ import { SchemaDirectiveVisitor, UserInputError } from 'apollo-server-express';
 import { defaultFieldResolver, GraphQLArgument, GraphQLField, GraphQLObjectType, GraphQLInterfaceType } from 'graphql';
 
 /**
- * Check if the argument is empty
- * Throws an error if it is
+ * Validate arguments using various functions
+ * Throws an error if it doesn't pass validation
+ * 
+ * Usage example
+ * 
+ * extend type Mutation {
+ *   updateProfile(
+ *     email: String! @validate(isEmail: true)
+ *     username: String! @validate(notEmpty: true)
+ *   )
+ * }
  */
 export default class ValidateDirective extends SchemaDirectiveVisitor {
   /**
@@ -12,7 +21,7 @@ export default class ValidateDirective extends SchemaDirectiveVisitor {
    */
   private static checkEmail(email: string): void {
     // eslint-disable-next-line no-useless-escape
-    const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/g;
+    const emailRegex = /^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$/g;
 
     if (email.match(emailRegex) === null) {
       throw new UserInputError('Wrong email format');
@@ -35,8 +44,7 @@ export default class ValidateDirective extends SchemaDirectiveVisitor {
    * @param details - details about field to resolve
    */
   public visitArgumentDefinition(argument: GraphQLArgument, details: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      field: GraphQLField<any, any>;
+      field: GraphQLField<unknown, unknown>;
       objectType: GraphQLObjectType | GraphQLInterfaceType;
   }): void {
     const { resolve = defaultFieldResolver } = details.field;
