@@ -180,8 +180,6 @@ class EventsFactory extends Factory {
    * @return {DailyEventInfo[]}
    */
   async findChartData(since) {
-    // since = this.validateTimestamp(since);
-
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).find(
       {
         groupingTimestamp: {
@@ -247,16 +245,12 @@ class EventsFactory extends Factory {
   insertDaysWithoutErrors(groupedData, since) {
     const day = 24 * 60 * 60 * 1000;
     const now = Date.now();
-    const firstMidnight = new Date(since * 1000).setUTCHours(24, 0, 0, 0);
+    const firstMidnight = (new Date(since * 1000)).setUTCHours(24, 0, 0, 0);
     const data = [];
 
     for (let time = firstMidnight, index = 0; time < now; time += day) {
       // Checks whether there is a date. If not, it means that the event is not there either
-      const notOutOfRange = index < groupedData.length;
-      const dayWithErrors = notOutOfRange ? new Date(groupedData[index].timestamp * 1000 + day).getDate() : 0;
-      const currentDay = new Date(time).getDate();
-
-      if (dayWithErrors == currentDay) {
+      if (groupedData[index] && new Date(groupedData[index].timestamp * 1000 + day).getDate() == new Date(time).getDate()) {
         data.push({
           timestamp: Math.floor(time / 1000),
           totalCount: groupedData[index].totalCount,
