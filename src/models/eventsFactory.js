@@ -249,14 +249,12 @@ class EventsFactory extends Factory {
     const now = Date.now();
     const firstMidnight = new Date(since * 1000).setUTCHours(24, 0, 0, 0);
     const data = [];
-    console.log(groupedData);
 
     for (let time = firstMidnight, index = 0; time < now; time += day) {
       // Checks whether there is a date. If not, it means that the event is not there either
       const isThereDate = index < groupedData.length && new Date(groupedData[index].timestamp * 1000 + day).getDate() == new Date(time).getDate();
 
       if (isThereDate) {
-        console.log(groupedData[index].timestamp, new Date(groupedData[index].timestamp * 1000).getDate(),  new Date(time));
         data.push({
           timestamp: Math.floor(time / 1000),
           totalCount: groupedData[index].totalCount,
