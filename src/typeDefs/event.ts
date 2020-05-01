@@ -299,7 +299,7 @@ type DailyEventInfo {
   lastRepetitionTime: Float!
 }
 
-type ChartDataModel {
+type ChartDataItem {
   """
   Events timestamp
   """

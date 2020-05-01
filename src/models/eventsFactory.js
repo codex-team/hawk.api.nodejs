@@ -252,9 +252,11 @@ class EventsFactory extends Factory {
 
     for (let time = firstMidnight, index = 0; time < now; time += day) {
       // Checks whether there is a date. If not, it means that the event is not there either
-      const isThereDate = index < groupedData.length && new Date(groupedData[index].timestamp * 1000 + day).getDate() == new Date(time).getDate();
+      const notOutOfRange = index < groupedData.length;
+      const dayWithErrors = notOutOfRange ? new Date(groupedData[index].timestamp * 1000 + day).getDate() : 0;
+      const currentDay = new Date(time).getDate();
 
-      if (isThereDate) {
+      if (dayWithErrors == currentDay) {
         data.push({
           timestamp: Math.floor(time / 1000),
           totalCount: groupedData[index].totalCount,
