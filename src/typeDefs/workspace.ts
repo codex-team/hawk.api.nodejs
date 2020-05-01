@@ -114,7 +114,12 @@ export default gql`
     """
     Workspace projects array
     """
-    projects("Project(s) id(s)" ids: [ID!] = []): [Project!] @requireAuth
+    projects(
+      """
+      Project(s) id(s)
+      """ 
+      ids: [ID!] = []
+    ): [Project!] @requireAuth
   }
 
   extend type Query {

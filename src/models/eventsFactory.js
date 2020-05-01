@@ -179,13 +179,13 @@ class EventsFactory extends Factory {
    * @param {Number} skip - certain number of documents to skip
    * @return {DailyEventInfo[]}
    */
-  async findChartData(minTimestamp = 1586545200) {
-    // minTimestamp = this.validateTimestamp(minTimestamp);
+  async findChartData(since) {
+    // since = this.validateTimestamp(since);
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).find(
       {
         groupingTimestamp: {
-          $gt: minTimestamp,
+          $gt: since,
         },
       }
     );
