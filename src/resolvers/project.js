@@ -215,14 +215,14 @@ module.exports = {
      * Returns events that occured after a certain timestamp
      *
      * @param {ProjectDBScheme} project - result of parent resolver
-     * @param {Number} minTimestamp - certain timestamp
+     * @param {Number} since - certain timestamp
      *
      * @return {Promise<DailyEventInfo[]>}
      */
-    async chartData(project, { minTimestamp }) {
+    async chartData(project, { since }) {
       const factory = new EventsFactory(project._id);
 
-      return factory.findChartData(minTimestamp);
+      return factory.findChartData(since);
     },
   },
 };

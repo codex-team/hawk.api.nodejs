@@ -78,7 +78,7 @@ type Project {
     """
     Timestamp with which we will count events
     """
-    minTimestamp: Int! = 0
+    since: Int! = 0
   ): [DailyEventInfo] @requireAuth
   """
   Returns number of unread events
