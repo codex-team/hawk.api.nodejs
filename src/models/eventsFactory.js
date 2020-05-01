@@ -173,10 +173,10 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Returns events that occurred after this timestamp
+   * Fetch timestamps and total count of errors
+   * for each day since
    *
-   * @param {Number} limit - events count limitations
-   * @param {Number} skip - certain number of documents to skip
+   * @param {Number} since - timestamp from which we start taking errors
    * @return {DailyEventInfo[]}
    */
   async findChartData(since) {
@@ -190,9 +190,88 @@ class EventsFactory extends Factory {
       }
     );
 
-    const result = await cursor.toArray();
+    const chartData = await cursor.toArray();
+    const groupedData = this.groupChartData(chartData);
+    const completedData = this.insertDaysWithoutErrors(groupedData, since);
 
-    return result;
+    return completedData;
+  }
+
+  /**
+   * Group data by groupingTimestamp
+   *
+   * @param {DailyEventInfo[]} chartData - ungrouped events
+   * @return {ChartData[]}
+   */
+  groupChartData(chartData) {
+    /**
+     * @param {{[key: string]: DailyEventInfo}} objectsByKeyValue
+     * @param {DailyEventInfo} obj
+     */
+    let groupedData = chartData.reduce((objectsByKeyValue, obj) => {
+      const groupingKey = 'groupByTimestamp:' + obj.groupingTimestamp;
+
+      objectsByKeyValue[groupingKey] = (objectsByKeyValue[groupingKey] || []).concat(obj);
+
+      return objectsByKeyValue;
+    }, {});
+
+    /**
+     * Turning it into a ChartData format
+     *
+     * @param {Array<{groupingTimestamp: number; count: number}[]>} values
+     * @param {ChartData[]} groupedData
+     * @param {ChartData[]} acc
+     * @param {Array<{groupingTimestamp: number; count: number}>} val
+     */
+    groupedData = Object.values(groupedData).reduce((acc, val) => {
+      acc.push({
+        timestamp: val[0].groupingTimestamp,
+        totalCount: val.reduce((sum, value) => sum + value.count, 0),
+      });
+
+      return acc;
+    }, [])
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    return groupedData;
+  }
+
+  /**
+   * Inserts days that don't contain errors
+   *
+   * @param {ChartData[]} groupedData - grouped events by timestamp
+   * @param {Number} since - timestamp from which we start taking errors
+   * @return {ChartData[]}
+   */
+  insertDaysWithoutErrors(groupedData, since) {
+    const day = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const firstMidnight = new Date(since * 1000).setUTCHours(24, 0, 0, 0);
+    const data = [];
+    console.log(groupedData);
+
+    for (let time = firstMidnight, index = 0; time < now; time += day) {
+      // Checks whether there is a date. If not, it means that the event is not there either
+      const isThereDate = index < groupedData.length && new Date(groupedData[index].timestamp * 1000 + day).getDate() == new Date(time).getDate();
+
+      if (isThereDate) {
+        console.log(groupedData[index].timestamp, new Date(groupedData[index].timestamp * 1000).getDate(),  new Date(time));
+        data.push({
+          timestamp: Math.floor(time / 1000),
+          totalCount: groupedData[index].totalCount,
+        });
+
+        index++;
+      } else {
+        data.push({
+          timestamp: Math.floor(time / 1000),
+          totalCount: 0,
+        });
+      }
+    }
+
+    return data;
   }
 
   /**

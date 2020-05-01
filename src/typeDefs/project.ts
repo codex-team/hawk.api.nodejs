@@ -79,7 +79,7 @@ type Project {
     Timestamp with which we will count events
     """
     since: Int! = 0
-  ): [DailyEventInfo] @requireAuth
+  ): [ChartDataModel] @requireAuth
   """
   Returns number of unread events
   """
