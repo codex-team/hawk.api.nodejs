@@ -18,6 +18,12 @@ const { ObjectID } = require('mongodb');
  */
 
 /**
+ * @typedef {Object} ChartData
+ * @property {Number} timestamp - time of midnight
+ * @property {String} totalCount - number of errors for this day
+ */
+
+/**
  * EventsFactory
  *
  * Factory Class for Event's Model
