@@ -14,7 +14,12 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build docker image
+        if: endsWith(github.ref, '/stage')
         run: docker build -t $DOCKER_IMAGE_NAME -f docker/Dockerfile.dev .
+
+      - name: Build docker image
+        if: endsWith(github.ref, '/prod')
+        run: docker build -t $DOCKER_IMAGE_NAME -f docker/Dockerfile.prod .
 
       - name: Get branch name
         uses: nelonoel/branch-name@v1
