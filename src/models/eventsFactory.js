@@ -249,7 +249,7 @@ class EventsFactory extends Factory {
     const data = [];
 
     for (let time = firstMidnight, index = 0; time < now; time += day) {
-      // Checks whether there is a date. If not, it means that the event is not there either
+      // Сhecks the existence of the day
       if (groupedData[index] && new Date(groupedData[index].timestamp * 1000 + day).getDate() == new Date(time).getDate()) {
         data.push({
           timestamp: Math.floor(time / 1000),
