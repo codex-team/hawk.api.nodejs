@@ -417,4 +417,16 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
 
     return result.value;
   }
+
+  /**
+   * Remove project data
+   */
+  public async remove(): Promise<void> {
+    await this.collection.deleteOne({ _id: this._id });
+
+    /**
+     * Remove users in project collection
+     */
+    await this.dbConnection.collection('users-in-project:' + this._id).drop();
+  }
 }

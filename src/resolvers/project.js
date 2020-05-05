@@ -127,7 +127,7 @@ module.exports = {
       /**
        * Remove project
        */
-      await factories.projectsFactory.removeById(project._id);
+      await project.remove();
 
       return true;
     },
