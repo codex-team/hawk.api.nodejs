@@ -136,6 +136,14 @@ extend type Mutation {
   ): Project! @requireAuth
 
   """
+  Remove project
+  """
+  removeProject(
+    "What project to remove"
+    projectId: ID!
+  ): Boolean! @requireAdmin
+
+  """
   Updates user's visit time on project
   """
   updateLastProjectVisit(
