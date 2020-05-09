@@ -86,7 +86,7 @@ export interface UserDBScheme {
   /**
    * User notifications settings
    */
-  notifications: UserNotificationsDBScheme;
+  notifications?: UserNotificationsDBScheme;
 }
 
 /**
