@@ -206,6 +206,28 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   }
 
   /**
+   * Compose default notifications settings for new users.
+   *
+   * @param email - user email from the sign-up form will be used as email-channel endpoint
+   */
+  public static generateDefaultNotificationsSettings(email: string): UserNotificationsDBScheme {
+    return {
+      channels: {
+        email: {
+          endpoint: email,
+          isEnabled: true,
+          minPeriod: 0,
+        },
+      },
+      whatToReceive: {
+        IssueAssigning: true,
+        WeeklyDigest: true,
+        SystemMessages: true,
+      },
+    };
+  }
+
+  /**
    * Hash password
    * @param password - password to hash
    */
