@@ -9,6 +9,20 @@ export default gql`
     WeeklyDigest: Boolean
   }
 
+  """
+  This object will be returned to the changeUserNotificationsChannel mutation
+  """
+  type changeUserNotificationsChannelResponse {
+    notifications: UserNotificationsSettings
+  }
+
+  """
+  This object will be returned to the changeUserNotificationsReceiveType mutation
+  """
+  type changeUserNotificationsReceiveTypeResponse {
+    notifications: UserNotificationsSettings
+  }
+
   extend type Mutation {
     """
     Change user notifications channel settings
@@ -18,7 +32,7 @@ export default gql`
       Channel data to update
       """
       input: NotificationsChannelsInput!
-    ): Boolean! @requireAuth
+    ): changeUserNotificationsChannelResponse! @requireAuth
 
     """
     Toggle user notifications receive type active status
@@ -28,6 +42,6 @@ export default gql`
       Receive type with its new is-enabled value
       """
       input: ChangeUserNotificationsReceiveTypeInput!
-    ): Boolean! @requireAuth
+    ): changeUserNotificationsReceiveTypeResponse! @requireAuth
   }
 `;

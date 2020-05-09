@@ -243,6 +243,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       name: true,
       email: true,
       image: true,
+      notifications: true,
     })) {
       throw new Error('User object has invalid properties');
     }

@@ -1,6 +1,6 @@
 import { ResolverContextWithUser } from '../types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
-import { UserNotificationType } from '../models/user';
+import { UserDBScheme, UserNotificationsDBScheme, UserNotificationType } from '../models/user';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
 
 /**
@@ -23,6 +23,13 @@ interface ChangeUserNotificationsReceiveTypePayload {
   input: {[key in UserNotificationType]: boolean};
 }
 
+/**
+ * This response will be sent on changeUserNotificationsChannel and changeUserNotificationsReceiveType mutations
+ */
+interface ChangeNotificationsResponse {
+  notifications: UserNotificationsDBScheme;
+}
+
 export default {
   Mutation: {
     /**
@@ -37,10 +44,23 @@ export default {
       _obj: undefined,
       { input }: ChangeUserNotificationsChannelPayload,
       { user, factories }: ResolverContextWithUser
-    ): Promise<boolean> {
-      console.log('changeUserNotificationsChannel input >>', input);
+    ): Promise<ChangeNotificationsResponse> {
+      const currentUser = await factories.usersFactory.findById(user.id);
+      const currentNotifySet = currentUser?.notifications || {} as UserNotificationsDBScheme;
+      const oldChannels = currentNotifySet.channels || {};
+      const newChannels = Object.assign(oldChannels, input);
+      const newNotifySet = Object.assign(currentNotifySet, {
+        channels: newChannels,
+      });
 
-      return true;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      await currentUser!.updateProfile({
+        notifications: newNotifySet,
+      } as Pick<UserDBScheme, 'notifications'>);
+
+      return {
+        notifications: newNotifySet,
+      };
     },
 
     /**
@@ -55,10 +75,23 @@ export default {
       _obj: undefined,
       { input }: ChangeUserNotificationsReceiveTypePayload,
       { user, factories }: ResolverContextWithUser
-    ): Promise<boolean> {
-      console.log('changeUserNotificationsReceiveType input >>', input);
+    ): Promise<ChangeNotificationsResponse> {
+      const currentUser = await factories.usersFactory.findById(user.id);
+      const currentNotifySet = currentUser?.notifications || {} as UserNotificationsDBScheme;
+      const oldReceiveTypes = currentNotifySet.whatToReceive || {};
+      const newReceiveTypes = Object.assign(oldReceiveTypes, input);
+      const newNotifySet = Object.assign(currentNotifySet, {
+        whatToReceive: newReceiveTypes,
+      });
 
-      return true;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      await currentUser!.updateProfile({
+        notifications: newNotifySet,
+      } as Pick<UserDBScheme, 'notifications'>);
+
+      return {
+        notifications: newNotifySet,
+      };
     },
   },
 };
