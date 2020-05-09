@@ -2,10 +2,14 @@ import { gql, concatenateTypeDefs } from 'apollo-server-express';
 
 import billing from './billing';
 import event from './event';
+import notifications from './notifications';
+import notificationsInput from './notificationsInput';
 import projectNotifications from './projectNotifications';
 import projectNotificationsMutations from './projectNotificationsMutations';
 import project from './project';
 import user from './user';
+import userNotifications from './userNotifications';
+import userNotificationsMutations from './userNotificationsMutations';
 import workspace from './workspace';
 
 const rootSchema = gql`
@@ -90,10 +94,14 @@ export default concatenateTypeDefs(
     rootSchema,
     billing,
     event,
+    notifications,
+    notificationsInput,
     projectNotifications,
     projectNotificationsMutations,
     project,
     user,
+    userNotifications,
+    userNotificationsMutations,
     workspace,
   ]
 );
