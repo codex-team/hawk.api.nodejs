@@ -1,5 +1,4 @@
 import { ResolverContextWithUser } from '../types/graphql';
-import { ApolloError, UserInputError } from 'apollo-server-express';
 import { UserDBScheme, UserNotificationsDBScheme, UserNotificationType } from '../models/user';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
 
