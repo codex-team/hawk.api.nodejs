@@ -5,6 +5,7 @@ import { OptionalId } from '../mongo';
 import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
+import { NotificationsChannelsDBScheme } from '../types/notification-channels';
 
 /**
  * Tokens pair for User authentication.
@@ -81,6 +82,46 @@ export interface UserDBScheme {
    * Using to send password to user after registration
    */
   generatedPassword?: string;
+
+  /**
+   * User notifications settings
+   */
+  notifications?: UserNotificationsDBScheme;
+}
+
+/**
+ * This structure represents how user notifications are stored at the DB (in 'users' collection)
+ */
+export interface UserNotificationsDBScheme {
+  /**
+   * Channels with their settings
+   */
+  channels: NotificationsChannelsDBScheme;
+
+  /**
+   * Types of notifications to receive
+   */
+  whatToReceive: {[key in UserNotificationType]: boolean};
+}
+
+/**
+ * Available options of 'What to receive'
+ */
+export enum UserNotificationType {
+  /**
+   * When user is assigned to the issue (event)
+   */
+  IssueAssigning = 'IssueAssigning',
+
+  /**
+   * Regular digest of what happened on the project for the week
+   */
+  WeeklyDigest = 'WeeklyDigest',
+
+  /**
+   * Only important messages from Hawk team
+   */
+  SystemMessages = 'SystemMessages',
 }
 
 /**
@@ -124,6 +165,11 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   public generatedPassword?: string;
 
   /**
+   * User notifications settings
+   */
+  public notifications!: UserNotificationsDBScheme;
+
+  /**
    * Model's collection
    */
   protected collection: Collection<UserDBScheme>;
@@ -157,6 +203,28 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
         resolve(buff.toString('hex'));
       });
     });
+  }
+
+  /**
+   * Compose default notifications settings for new users.
+   *
+   * @param email - user email from the sign-up form will be used as email-channel endpoint
+   */
+  public static generateDefaultNotificationsSettings(email: string): UserNotificationsDBScheme {
+    return {
+      channels: {
+        email: {
+          endpoint: email,
+          isEnabled: true,
+          minPeriod: 0,
+        },
+      },
+      whatToReceive: {
+        IssueAssigning: true,
+        WeeklyDigest: true,
+        SystemMessages: true,
+      },
+    };
   }
 
   /**
@@ -197,6 +265,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       name: true,
       email: true,
       image: true,
+      notifications: true,
     })) {
       throw new Error('User object has invalid properties');
     }
