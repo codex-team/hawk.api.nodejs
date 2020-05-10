@@ -2,13 +2,11 @@ version: "3.4"
 
 services:
   api:
-    build:
-      dockerfile: "docker/Dockerfile.prod"
-      context: .
+    image: codexteamuser/hawk-api:prod
     network_mode: host
     ports:
-      - ${PORT}:${PORT}
+      - 127.0.0.1:4000:4000
     volumes:
       - ./.env:/usr/src/app/.env
       - ./uploads:/usr/src/app/uploads
-      - /usr/src/app/node_modules
+    restart: unless-stopped
