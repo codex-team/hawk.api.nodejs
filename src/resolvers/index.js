@@ -6,6 +6,7 @@ const workspace = require('./workspace');
 const project = require('./project');
 const event = require('./event');
 const projectNotifications = require('./projectNotifications').default;
+const userNotifications = require('./userNotifications').default;
 
 /**
  * @typedef ResolverObj
@@ -42,4 +43,4 @@ const indexResolver = {
   JSONObject: GraphQLJSONObject,
 };
 
-module.exports = merge(indexResolver, user, workspace, project, event, projectNotifications);
+module.exports = merge(indexResolver, user, workspace, project, event, projectNotifications, userNotifications);

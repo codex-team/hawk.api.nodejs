@@ -67,6 +67,7 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
     const userData = {
       email,
       password: hashedPassword,
+      notifications: UserModel.generateDefaultNotificationsSettings(email),
     };
     const userId = (await this.collection.insertOne(userData)).insertedId;
 

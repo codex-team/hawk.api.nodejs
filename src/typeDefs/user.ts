@@ -38,6 +38,11 @@ export default gql`
     User's image
     """
     image: String
+
+    """
+    User notifications settings
+    """
+    notifications: UserNotificationsSettings
   }
 
   extend type Query {

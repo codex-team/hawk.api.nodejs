@@ -1,5 +1,6 @@
 import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
+import { NotificationsChannelsDBScheme } from '../types/notification-channels';
 
 /**
  * Structure represents a Project in DataBase
@@ -99,46 +100,6 @@ export enum ReceiveTypes {
    * Only first occurrence
    */
   ONLY_NEW = 'ONLY_NEW',
-}
-
-/**
- * Available channels ("where to receive")
- */
-export interface NotificationsChannelsDBScheme {
-  /**
-   * Alerts on email
-   */
-  email?: NotificationsChannelSettingsDBScheme;
-
-  /**
-   * Alerts through the Slack
-   */
-  slack?: NotificationsChannelSettingsDBScheme;
-
-  /**
-   * Alerts through the Telegram
-   */
-  telegram?: NotificationsChannelSettingsDBScheme;
-}
-
-/**
- * Setting of a channel
- */
-export interface NotificationsChannelSettingsDBScheme {
-  /**
-   * Allows to disable channel without removing endpoint
-   */
-  isEnabled: boolean;
-
-  /**
-   * Endpoint: email, slack webhook, telegram bot webhook
-   */
-  endpoint: string;
-
-  /**
-   * Minimal pause between second notification, in seconds
-   */
-  minPeriod: number;
 }
 
 /**
@@ -416,5 +377,17 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
     }
 
     return result.value;
+  }
+
+  /**
+   * Remove project data
+   */
+  public async remove(): Promise<void> {
+    await this.collection.deleteOne({ _id: this._id });
+
+    /**
+     * Remove users in project collection
+     */
+    await this.dbConnection.collection('users-in-project:' + this._id).drop();
   }
 }
