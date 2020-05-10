@@ -71,6 +71,17 @@ class EventsFactory extends Factory {
   }
 
   /**
+   * Is collection of events exists
+   *
+   * @param {String} type - type of collection to check
+   *
+   * @return {Promise<boolean>}
+   */
+  isCollectionExists(type) {
+    return mongo.databases.events.listCollections({ name: type + ':' + this.projectId }).hasNext();
+  }
+
+  /**
    * Finds events by passed query
    *
    * @param {object} [query={}] - query
@@ -425,6 +436,29 @@ class EventsFactory extends Factory {
     }
 
     return collection.updateOne(query, update);
+  }
+
+  /**
+   * Remove all project events
+   *
+   * @return {Promise<void>}
+   */
+  async remove() {
+    /**
+     * Check if collection is existing
+     * Drop collection only when it's existing
+     */
+    if (await this.isCollectionExists(this.TYPES.EVENTS)) {
+      await this.getCollection(this.TYPES.EVENTS).drop();
+    }
+
+    if (await this.isCollectionExists(this.TYPES.DAILY_EVENTS)) {
+      await this.getCollection(this.TYPES.DAILY_EVENTS).drop();
+    }
+
+    if (await this.isCollectionExists(this.TYPES.REPETITIONS)) {
+      await this.getCollection(this.TYPES.REPETITIONS).drop();
+    }
   }
 }
 
