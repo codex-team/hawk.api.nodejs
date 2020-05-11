@@ -299,18 +299,6 @@ type DailyEventInfo {
   lastRepetitionTime: Float!
 }
 
-type ChartDataItem {
-  """
-  Events timestamp
-  """
-  timestamp: Int
-
-  """
-  Amount of events
-  """
-  totalCount: Int
-}
-
 type Subscription {
   """
   Sends new events from all user projects

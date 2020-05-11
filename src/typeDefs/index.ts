@@ -11,6 +11,7 @@ import user from './user';
 import userNotifications from './userNotifications';
 import userNotificationsMutations from './userNotificationsMutations';
 import workspace from './workspace';
+import chart from './chart';
 
 const rootSchema = gql`
   """
@@ -103,5 +104,6 @@ export default concatenateTypeDefs(
     userNotifications,
     userNotificationsMutations,
     workspace,
+    chart,
   ]
 );
