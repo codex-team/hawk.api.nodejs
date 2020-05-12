@@ -55,9 +55,24 @@ type EventBacktraceFrame {
 Event user representation
 """
 type EventUser {
+  """
+  Internal user's identifier inside an app
+  """
   id: ID!
+
+  """
+  User public name
+  """
   name: String
+
+  """
+  URL for user's details page
+  """
   url: String
+
+  """
+  User's public picture
+  """
   photo: String
 }
 
