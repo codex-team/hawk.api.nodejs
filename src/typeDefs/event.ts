@@ -56,7 +56,7 @@ Event user representation
 """
 type EventUser {
   id: ID!
-  name: String!
+  name: String
   url: String
   photo: String
 }
@@ -267,6 +267,11 @@ type Event {
   Event label for current user
   """
   marks: EventMarks! @default(value: "{}")
+
+  """
+  How many users catch this error
+  """
+  usersAffected: Int
 }
 
 """
