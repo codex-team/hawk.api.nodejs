@@ -130,13 +130,19 @@ export default gql`
     Create new workspace
     """
     createWorkspace(
-      "New workspace name"
-      name: String!
+      """
+      New workspace name
+      """
+      name: String! @validate(notEmpty: true)
 
-      "New workspace description"
+      """
+      New workspace description
+      """
       description: String
 
-      "New workspace image"
+      """
+      New workspace image
+      """
       image: Upload @uploadImage
     ): Workspace! @requireAuth
 
@@ -145,10 +151,14 @@ export default gql`
     Returns true if operation is successful
     """
     inviteToWorkspace(
-      "Email of the user to invite"
-      userEmail: String!
+      """
+      Email of the user to invite
+      """
+      userEmail: String! @validate(isEmail: true)
 
-      "id of the workspace to which the user is invited"
+      """
+      id of the workspace to which the user is invited
+      """
       workspaceId: ID!
     ): Boolean! @requireAuth
 
@@ -156,16 +166,24 @@ export default gql`
     Update workspace settings
     """
     updateWorkspace(
-      "What workspace to update"
+      """
+      What workspace to update
+      """
       workspaceId: ID!
 
-      "Workspace name"
-      name: String!
+      """
+      Workspace name
+      """
+      name: String! @validate(notEmpty: true)
 
-      "Workspace description"
+      """
+      Workspace description
+      """
       description: String
 
-      "Workspace image"
+      """
+      Workspace image
+      """
       image: Upload @uploadImage
     ): Boolean! @requireAdmin
 
@@ -174,7 +192,9 @@ export default gql`
     Returns true if operation is successful
     """
     confirmInvitation(
-      "Hash from invitation link"
+      """
+      Hash from invitation link
+      """
       inviteHash: String
 
       "Id of the workspace to which the user was invited"
