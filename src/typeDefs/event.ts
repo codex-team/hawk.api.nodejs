@@ -55,9 +55,24 @@ type EventBacktraceFrame {
 Event user representation
 """
 type EventUser {
+  """
+  Internal user's identifier inside an app
+  """
   id: ID!
-  name: String!
+
+  """
+  User public name
+  """
+  name: String
+
+  """
+  URL for user's details page
+  """
   url: String
+
+  """
+  User's public picture
+  """
   photo: String
 }
 
@@ -267,6 +282,11 @@ type Event {
   Event label for current user
   """
   marks: EventMarks! @default(value: "{}")
+
+  """
+  How many users catch this error
+  """
+  usersAffected: Int
 }
 
 """

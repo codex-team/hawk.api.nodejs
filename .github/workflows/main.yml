@@ -15,7 +15,7 @@ jobs:
 
       - name: Build docker image
         if: endsWith(github.ref, '/stage')
-        run: docker build -t $DOCKER_IMAGE_NAME -f docker/Dockerfile.dev .
+        run: docker build -t $DOCKER_IMAGE_NAME -f docker/Dockerfile.prod .
 
       - name: Build docker image
         if: endsWith(github.ref, '/prod')

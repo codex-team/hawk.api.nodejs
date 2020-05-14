@@ -21,7 +21,7 @@ export default class ValidateDirective extends SchemaDirectiveVisitor {
    */
   private static checkEmail(email: string): void {
     // eslint-disable-next-line no-useless-escape
-    const emailRegex = /^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$/g;
+    const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/g;
 
     if (email.match(emailRegex) === null) {
       throw new UserInputError('Wrong email format');
