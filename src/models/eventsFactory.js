@@ -133,36 +133,99 @@ class EventsFactory extends Factory {
    *
    * @param {Number} limit - events count limitations
    * @param {Number} skip - certain number of documents to skip
+   * @param {'lastRepetitionTime' | 'count'} sort - events sort order
+   * @param {object} filters - marks by which events should be filtered
+   *
    * @return {RecentEventSchema[]}
    */
-  async findRecent(limit = 10, skip = 0) {
+  async findRecent(
+    limit = 10,
+    skip = 0,
+    sort = 'lastRepetitionTime',
+    filters = {
+      starred: true,
+      resolved: true,
+      hidden: true,
+    }
+  ) {
     limit = this.validateLimit(limit);
 
-    const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate([
+    const pipeline = [
       {
         $sort: {
           groupingTimestamp: -1,
-          lastRepetitionTime: -1,
+          [sort]: -1,
         },
       },
-      { $skip: skip },
-      { $limit: limit },
-      {
-        $group: {
-          _id: null,
-          groupHash: { $addToSet: '$groupHash' },
-          dailyInfo: { $push: '$$ROOT' },
+    ];
+
+    /**
+     * If some events should be omitted, use alternative pipeline
+     */
+    if (Object.values(filters).some(filter => !filter)) {
+      pipeline.push(
+        /**
+         * Lookup events object for each daily event
+         */
+        {
+          $lookup: {
+            from: 'events:' + this.projectId,
+            localField: 'groupHash',
+            foreignField: 'groupHash',
+            as: 'event',
+          },
         },
-      },
-      {
-        $lookup: {
-          from: 'events:' + this.projectId,
-          localField: 'groupHash',
-          foreignField: 'groupHash',
-          as: 'events',
+        {
+          $unwind: '$event',
         },
-      },
-    ]);
+        /**
+         * Match filters
+         */
+        {
+          $match: {
+            ...Object.fromEntries(
+              Object
+                .entries(filters)
+                .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
+            ),
+          },
+        },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $group: {
+            _id: null,
+            dailyInfo: { $push: '$$ROOT' },
+            events: { $push: '$event' },
+          },
+        },
+        {
+          $unset: 'dailyInfo.event',
+        }
+      );
+    } else {
+      pipeline.push(
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $group: {
+            _id: null,
+            groupHash: { $addToSet: '$groupHash' },
+            dailyInfo: { $push: '$$ROOT' },
+          },
+        },
+        {
+          $lookup: {
+            from: 'events:' + this.projectId,
+            localField: 'groupHash',
+            foreignField: 'groupHash',
+            as: 'events',
+          },
+        }
+      );
+    }
+
+    const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
 
     const result = (await cursor.toArray()).shift();
 

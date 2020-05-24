@@ -202,13 +202,15 @@ module.exports = {
      * @param {ProjectDBScheme} project - result of parent resolver
      * @param {Number} limit - limit for events count
      * @param {Number} skip - certain number of documents to skip
+     * @param {'lastRepetitionTime' | 'count'} sort - events sort order
+     * @param {object} filters - marks by which events should be filtered
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async recentEvents(project, { limit, skip }) {
+    async recentEvents(project, { limit, skip, sort, filters }) {
       const factory = new EventsFactory(project._id);
 
-      return factory.findRecent(limit, skip);
+      return factory.findRecent(limit, skip, sort, filters);
     },
   },
 };

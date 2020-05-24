@@ -1,6 +1,24 @@
 import { gql } from 'apollo-server-express';
 
 export default gql`
+
+"""
+Possible events order
+"""
+enum EventsSortOrder {
+  lastRepititionTime
+  count
+}
+
+"""
+Events filters input type
+"""
+input EventsFiltersInput {
+  resolved: Boolean!
+  hidden: Boolean!
+  ignored: Boolean!
+}
+
 """
 Project representation
 """
@@ -70,6 +88,12 @@ type Project {
 
     "Certain number of documents to skip"
     skip: Int! = 0
+
+    "Events sort order"
+    sort: EventsSortOrder = lastRepititionTime
+
+    "Event marks by which events should be sorted"
+    filters: EventsFiltersInput
   ): RecentEvents @requireAuth
 
   """
