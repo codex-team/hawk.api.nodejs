@@ -358,6 +358,23 @@ class EventsFactory extends Factory {
       await this.getCollection(this.TYPES.REPETITIONS).drop();
     }
   }
+
+  /**
+   * Set assigner to selected event
+   *
+   * @param {string} eventId - event id
+   * @param {string} assigner - assigner id for this event
+   * @return {Promise<void>}
+   */
+  async setAssigner(eventId, assigner) {
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const query = { _id: new ObjectID(eventId) };
+    const update = {
+      $set: { assigner: assigner },
+    };
+
+    return collection.updateOne(query, update);
+  }
 }
 
 module.exports = EventsFactory;
