@@ -1,3 +1,6 @@
+import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
+import { groupBy } from '../utils/grouper';
+
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
@@ -15,12 +18,6 @@ const { ObjectID } = require('mongodb');
  * @property {String} _id — repetition's identifier
  * @property {String} groupHash - event's hash. Generates according to the rule described in EventSchema
  * @property {EventPayload} payload - repetition's payload
- */
-
-/**
- * @typedef {Object} ChartData
- * @property {Number} timestamp - time of midnight
- * @property {String} totalCount - number of errors for this day
  */
 
 /**
@@ -193,96 +190,60 @@ class EventsFactory extends Factory {
    * Fetch timestamps and total count of errors
    * for each day since
    *
-   * @param {Number} since - timestamp from which we start taking errors
-   * @return {DailyEventInfo[]}
+   * @param {number} days - how many days we need to fetch for displaying in a chart
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @return {ProjectChartItem[]}
    */
-  async findChartData(since) {
-    const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).find(
-      {
+  async findChartData(days, timezoneOffset = 0) {
+    const today = new Date();
+    const since = today.setDate(today.getDate() - days) / 1000;
+
+    let dailyEvents = await this.getCollection(this.TYPES.DAILY_EVENTS)
+      .find({
         groupingTimestamp: {
           $gt: since,
         },
-      }
-    );
-
-    const chartData = await cursor.toArray();
-    const groupedData = this.groupChartData(chartData);
-    const completedData = this.insertDaysWithoutErrors(groupedData, since);
-
-    return completedData;
-  }
-
-  /**
-   * Group data by groupingTimestamp
-   *
-   * @param {DailyEventInfo[]} chartData - ungrouped events
-   * @return {ChartData[]}
-   */
-  groupChartData(chartData) {
-    /**
-     * @param {{[key: string]: DailyEventInfo}} objectsByKeyValue
-     * @param {DailyEventInfo} obj
-     */
-    let groupedData = chartData.reduce((objectsByKeyValue, obj) => {
-      const groupingKey = 'groupByTimestamp:' + obj.groupingTimestamp;
-
-      objectsByKeyValue[groupingKey] = (objectsByKeyValue[groupingKey] || []).concat(obj);
-
-      return objectsByKeyValue;
-    }, {});
+      })
+      .toArray();
 
     /**
-     * Turning it into a ChartData format
-     *
-     * @param {Array<{groupingTimestamp: number; count: number}[]>} values
-     * @param {ChartData[]} groupedData
-     * @param {ChartData[]} acc
-     * @param {Array<{groupingTimestamp: number; count: number}>} val
+     * Convert UTC midnight to midnights in user's timezone
      */
-    groupedData = Object.values(groupedData).reduce((acc, val) => {
-      acc.push({
-        timestamp: val[0].groupingTimestamp,
-        totalCount: val.reduce((sum, value) => sum + value.count, 0),
+    dailyEvents = dailyEvents.map((item) => {
+      return Object.assign({}, item, {
+        groupingTimestamp: getMidnightWithTimezoneOffset(item.lastRepetitionTime, item.groupingTimestamp, timezoneOffset),
       });
+    });
 
-      return acc;
-    }, [])
-      .sort((a, b) => a.timestamp - b.timestamp);
+    /**
+     * Group events using 'groupByTimestamp:NNNNNNNN' key
+     * @type {ProjectChartItem[]}
+     */
+    const groupedData = groupBy('groupingTimestamp')(dailyEvents);
 
-    return groupedData;
-  }
+    /**
+     * Now fill all requested days
+     */
+    let result = [];
 
-  /**
-   * Inserts days that don't contain errors
-   *
-   * @param {ChartData[]} groupedData - grouped events by timestamp
-   * @param {Number} since - timestamp from which we start taking errors
-   * @return {ChartData[]}
-   */
-  insertDaysWithoutErrors(groupedData, since) {
-    const day = 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const firstMidnight = (new Date(since * 1000)).setUTCHours(24, 0, 0, 0);
-    const data = [];
+    for (let i = 0; i < days; i++) {
+      const now = new Date();
+      const day = new Date(now.setDate(now.getDate() - i));
+      const dayMidnight = getUTCMidnight(day) / 1000;
+      const groupedEvents = groupedData[`groupingTimestamp:${dayMidnight}`];
 
-    for (let time = firstMidnight, index = 0; time < now; time += day) {
-      // Сhecks the existence of the day
-      if (groupedData[index] && new Date(groupedData[index].timestamp * 1000 + day).getDate() == new Date(time).getDate()) {
-        data.push({
-          timestamp: Math.floor(time / 1000),
-          totalCount: groupedData[index].totalCount,
-        });
-
-        index++;
-      } else {
-        data.push({
-          timestamp: Math.floor(time / 1000),
-          totalCount: 0,
-        });
-      }
+      result.push({
+        timestamp: dayMidnight,
+        count: groupedEvents ? groupedEvents.reduce((sum, value) => sum + value.count, 0) : 0,
+      });
     }
 
-    return data;
+    /**
+     * Order by time ascendance
+     */
+    result = result.sort((a, b) => a.timestamp - b.timestamp);
+
+    return result;
   }
 
   /**
