@@ -1,3 +1,6 @@
+import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
+import { groupBy } from '../utils/grouper';
+
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
@@ -15,12 +18,6 @@ const { ObjectID } = require('mongodb');
  * @property {String} _id — repetition's identifier
  * @property {String} groupHash - event's hash. Generates according to the rule described in EventSchema
  * @property {EventPayload} payload - repetition's payload
- */
-
-/**
- * @typedef {Object} ChartData
- * @property {Number} timestamp - time of midnight
- * @property {String} totalCount - number of errors for this day
  */
 
 /**
@@ -193,314 +190,60 @@ class EventsFactory extends Factory {
    * Fetch timestamps and total count of errors
    * for each day since
    *
-   * @param {Number} since - timestamp from which we start taking errors
-   * @return {DailyEventInfo[]}
+   * @param {number} days - how many days we need to fetch for displaying in a chart
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @return {ProjectChartItem[]}
    */
-  async findChartData(since) {
-    /* eslint-disable */
+  async findChartData(days, timezoneOffset = 0) {
+    const today = new Date();
+    const since = today.setDate(today.getDate() - days) / 1000;
 
-    console.log('since', since);
-
-
-    const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).find(
-      {
+    let dailyEvents = await this.getCollection(this.TYPES.DAILY_EVENTS)
+      .find({
         groupingTimestamp: {
           $gt: since,
         },
-      }
-    );
-
-    const events = await this.getCollection(this.TYPES.EVENTS).find(
-      {
-        'payload.timestamp': {
-          $gt: since,
-        },
-      }
-    ).toArray();
-
-    const chartData = await cursor.toArray();
-
-    console.log('daily events', chartData);
-
-    events.forEach(event => {
-
-      const eventDate = new Date(event.payload.timestamp * 1000);
-
-      eventDate.setHours(0, 0, 0, 0); // get midnight
-      const midnight = eventDate.getTime() / 1000;
-
-      console.log(`${event.payload.timestamp} ${event.groupHash} - ${event.totalCount} - ${midnight}`);
-    });
-
-    console.log('\n\n');
-
-    const groupedData = this.groupChartData(chartData);
-
-    console.log('groupedData:\n');
-    console.log(groupedData);
-    let may2found = groupedData[0].timestamp;
-
-
-
-    let ddd = new Date(may2found * 1000);
-    console.log('\nday in db -->', ddd , ' in _U_T_C_ --> ', ddd.toUTCString());
-
-    const arr = [];
-    const days = 14;
-    const now = new Date();
-
-    console.log('\n');
-    console.log('Now: ', now,);
-    console.log('Now [UTC]: ', now.toUTCString(), '\n');
-
-
-    // const nowMid      = (new Date(now.getTime())).setHours(0, 0, 0, 0);
-    // const nowMidUTC   = (new Date(now.getTime())).setUTCHours(0, 0, 0, 0)
-    // const nowMidUTC24 = (new Date(now.getTime())).setUTCHours(24, 0, 0, 0)
-    // const nowMid9     = (new Date(now.getTime())).setHours(21, 0, 0, 0)
-
-    function convert(ts){
-      let d = new Date(ts * 1000);
-
-      d.setHours(24, 0,0,0);
-
-      return d.getTime() / 1000;
-    }
-
-    function convert2(ts){
-      let d = new Date(ts * 1000);
-
-      d.setUTCHours(24, 0,0,0);
-
-      return d.getTime() / 1000;
-    }
-
-    let tsShouldBe = groupedData.map(item => {
-      return convert(item.timestamp)
-    });
-
-    console.log('\nTimestamps converted:\n');
-    groupedData.forEach(({timestamp}) => {
-      console.log(`${timestamp} --> ${convert(timestamp)} =? ${convert2(timestamp)}: ${
-        convert(timestamp) === convert2(timestamp)
-          ? wrapInColor('yes!', consoleColors.fgGreen)
-          : wrapInColor('naa', consoleColors.fgRed)
-      }`);
-    });
-    console.log('\n');
-
-
-
-    function isFound(ts) {
-      return groupedData.find(item => item.timestamp === ts);
-    }
-
-    function isFoundInShouldBe(ts) {
-      return tsShouldBe.includes(ts);
-    }
-
-
-    function getDay(todayMid, offset = 0) {
-      const oDay = new Date(todayMid);
-      const day = oDay.setDate(now.getDate() - offset);
-      const dayMid = (new Date(day)) / 1000;
-
-      return dayMid;
-    }
-
-    function checkDate(mid, label) {
-      let arr = [];
-
-      for (let i = 0; i < days; i++) {
-        let dayMid = getDay(mid, i);
-
-        arr.push(dayMid);
-      }
-
-      return arr;
-    }
-
-    var set = [
-      ['00:00 locl', (new Date(now.getTime())).setHours(0, 0, 0, 0)],
-      ['00:00 UTC ', (new Date(now.getTime())).setUTCHours(0, 0, 0, 0)],
-      ['24:00 UTC ', (new Date(now.getTime())).setUTCHours(24, 0, 0, 0)],
-      ['21:00 locl', (new Date(now.getTime())).setHours(21, 0, 0, 0)]
-    ]
-
-    let table = [];
-
-    set.forEach(([label, mid]) => {
-      table.push(checkDate(mid, label));
-    })
-
-    /**
-     * Table Header
-     */
-    let th = 'date  | ';
-
-    set.forEach(([label, _]) => {
-      th += label + ' | '
-    })
-
-    console.log(th);
-
-    /**
-     * Table header delimiter
-     */
-    let thd = '----- | ';
-
-    set.forEach(([label, _]) => {
-      thd += '---------- | '
-    })
-
-    console.log(thd);
-
-    for (let i = 0; i < days; i++) {
-      let log = '';
-
-      table.forEach((ts, j) => {
-
-        if (j === 0){
-          let d = new Date(ts[i] * 1000);
-          log += `${d.getDate() > 9 ? d.getDate() : '0' + d.getDate()}/0${d.getMonth() + 1}` + ' | '
-        }
-
-        if (isFound(ts[i])) {
-          log += wrapInColor(ts[i], consoleColors.fgGreen) + ' | ';
-        } else if (isFoundInShouldBe(ts[i])){
-          log += wrapInColor(ts[i], consoleColors.fgRed) + ' | ' ;
-        } else {
-          log += ts[i] + ' | '
-        }
       })
-
-      console.log(log);
-    }
-
-
-    /*
-    for (let i = 0; i < days; i++) {
-      const dayMid = getDay(nowMid, i);
-      const dayMidUtc = getDay(nowMidUTC, i);
-      const dayMidUtc24 = getDay(nowMidUTC24, i);
-      const dayMid9 = getDay(nowMid9, i);
-
-
-      const dayExist = groupedData.find(item => item.timestamp === dayMid9);
-
-      if (dayExist){
-        arr.push(dayExist);
-      } else {
-        arr.push({
-          timestamp: dayMid9,
-          totalCount: 0
-        })
-      }
-
-
-      if (dayMid === may2found){
-        console.log('found! dayMid', may2found);
-      }
-
-      if (dayMidUtc === may2found){
-        console.log('found! dayMidUtc', may2found);
-      }
-
-      if (dayMidUtc24 === may2found){
-        console.log('found! dayMidUtc24', may2found);
-      }
-
-      if (dayMid9 === may2found){
-        console.log('found! dayMid9', may2found);
-      }
-
-      console.log(dayMid, ' | ', dayMidUtc, ' | ', dayMidUtc24, ' | ', dayMid9);
-    }
-
-    console.log('arr', arr);
-
-     */
-
-
-
-    const completedData = this.insertDaysWithoutErrors(groupedData, since);
-
-    // console.log('\ncompletedData', completedData);
-
-    return completedData;
-  }
-
-  /**
-   * Group data by groupingTimestamp
-   *
-   * @param {DailyEventInfo[]} chartData - ungrouped events
-   * @return {ChartData[]}
-   */
-  groupChartData(chartData) {
-    /**
-     * @param {{[key: string]: DailyEventInfo}} objectsByKeyValue
-     * @param {DailyEventInfo} obj
-     */
-    let groupedData = chartData.reduce((objectsByKeyValue, obj) => {
-      const groupingKey = 'groupByTimestamp:' + obj.groupingTimestamp;
-
-      objectsByKeyValue[groupingKey] = (objectsByKeyValue[groupingKey] || []).concat(obj);
-
-      return objectsByKeyValue;
-    }, {});
+      .toArray();
 
     /**
-     * Turning it into a ChartData format
-     *
-     * @param {Array<{groupingTimestamp: number; count: number}[]>} values
-     * @param {ChartData[]} groupedData
-     * @param {ChartData[]} acc
-     * @param {Array<{groupingTimestamp: number; count: number}>} val
+     * Convert UTC midnight to midnights in user's timezone
      */
-    groupedData = Object.values(groupedData).reduce((acc, val) => {
-      acc.push({
-        timestamp: val[0].groupingTimestamp,
-        totalCount: val.reduce((sum, value) => sum + value.count, 0),
+    dailyEvents = dailyEvents.map((item) => {
+      return Object.assign({}, item, {
+        groupingTimestamp: getMidnightWithTimezoneOffset(item.lastRepetitionTime, item.groupingTimestamp, timezoneOffset),
       });
+    });
 
-      return acc;
-    }, [])
-      .sort((a, b) => a.timestamp - b.timestamp);
+    /**
+     * Group events using 'groupByTimestamp:NNNNNNNN' key
+     * @type {ProjectChartItem[]}
+     */
+    const groupedData = groupBy('groupingTimestamp')(dailyEvents);
 
-    return groupedData;
-  }
+    /**
+     * Now fill all requested days
+     */
+    let result = [];
 
-  /**
-   * Inserts days that don't contain errors
-   *
-   * @param {ChartData[]} groupedData - grouped events by timestamp
-   * @param {Number} since - timestamp from which we start taking errors
-   * @return {ChartData[]}
-   */
-  insertDaysWithoutErrors(groupedData, since) {
-    const day = 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const firstMidnight = (new Date(since * 1000)).setUTCHours(24, 0, 0, 0);
-    const data = [];
+    for (let i = 0; i < days; i++) {
+      const now = new Date();
+      const day = new Date(now.setDate(now.getDate() - i));
+      const dayMidnight = getUTCMidnight(day) / 1000;
+      const groupedEvents = groupedData[`groupingTimestamp:${dayMidnight}`];
 
-    for (let time = firstMidnight, index = 0; time < now; time += day) {
-      // Сhecks the existence of the day
-      if (groupedData[index] && new Date(groupedData[index].timestamp * 1000 + day).getDate() == new Date(time).getDate()) {
-        data.push({
-          timestamp: Math.floor(time / 1000),
-          totalCount: groupedData[index].totalCount,
-        });
-
-        index++;
-      } else {
-        data.push({
-          timestamp: Math.floor(time / 1000),
-          totalCount: 0,
-        });
-      }
+      result.push({
+        timestamp: dayMidnight,
+        count: groupedEvents ? groupedEvents.reduce((sum, value) => sum + value.count, 0) : 0,
+      });
     }
 
-    return data;
+    /**
+     * Order by time ascendance
+     */
+    result = result.sort((a, b) => a.timestamp - b.timestamp);
+
+    return result;
   }
 
   /**
@@ -681,25 +424,3 @@ class EventsFactory extends Factory {
 }
 
 module.exports = EventsFactory;
-
-
-
-/**
- * Terminal output colors
- */
-const consoleColors = {
-  fgCyan: 36,
-  fgRed: 31,
-  fgGreen: 32,
-};
-
-/**
- * Set a terminal color to the message
- *
- * @param {string} msg - text to wrap
- * @param {string} color - color
- * @returns {string}
- */
-function wrapInColor(msg, color) {
-  return '\x1b[' + color + 'm' + msg + '\x1b[0m';
-}

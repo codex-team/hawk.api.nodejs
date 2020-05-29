@@ -10,6 +10,6 @@ export default gql`
     """
     Amount of events
     """
-    totalCount: Int
+    count: Int
   }
 `;
