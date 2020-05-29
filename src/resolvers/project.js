@@ -212,7 +212,7 @@ module.exports = {
     },
 
     /**
-     * Returns events that occurred after a certain timestamp
+     * Returns data about how many events accepted at each of passed N days
      *
      * @param {ProjectDBScheme} project - result of parent resolver
      * @param {Number} days - how many days we need to fetch for displaying in a charts
