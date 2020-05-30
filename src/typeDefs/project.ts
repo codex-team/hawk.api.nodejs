@@ -72,14 +72,19 @@ type Project {
     skip: Int! = 0
   ): RecentEvents @requireAuth
   """
-  Return events that occured after a certain timestamp
+  Return events that occurred after a certain timestamp
   """
   chartData(
     """
-    Timestamp with which we will count events
+    How many days we need to fetch for displaying in a chart
     """
-    since: Int! = 0
-  ): [DailyEventInfo] @requireAuth
+    days: Int! = 0
+
+    """
+    User's local timezone offset in minutes
+    """
+    timezoneOffset: Int! = 0
+  ): [ChartDataItem] @requireAuth
   """
   Returns number of unread events
   """
