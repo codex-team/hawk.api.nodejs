@@ -382,7 +382,7 @@ extend type Mutation {
     """
     ID of project event is related to
     """
-    project: ID!,
+    projectId: ID!,
 
     """
     EvenID of the event to set the mark
