@@ -423,17 +423,17 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Set assigner to selected event
+   * Set assignee to selected event
    *
    * @param {string} eventId - event id
-   * @param {string} assigner - assigner id for this event
+   * @param {string} assignee - assignee id for this event
    * @return {Promise<void>}
    */
-  async setAssigner(eventId, assigner) {
+  async setAssignee(eventId, assignee) {
     const collection = this.getCollection(this.TYPES.EVENTS);
     const query = { _id: new ObjectID(eventId) };
     const update = {
-      $set: { assigner: assigner },
+      $set: { assignee: assignee },
     };
 
     return collection.updateOne(query, update);

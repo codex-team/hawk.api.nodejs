@@ -259,9 +259,9 @@ type Event {
   totalCount: Int!
 
   """
-  Assigner id
+  assignee id
   """
-  assigner: String
+  assignee: String
 
   """
   Event payload
@@ -376,9 +376,9 @@ extend type Mutation {
   ): Boolean! @requireAuth
 
   """
-  Set assigner for selected event
+  Set assignee for selected event
   """
-  setAssigner(
+  setAssignee(
     """
     ID of project event is related to
     """
@@ -390,9 +390,9 @@ extend type Mutation {
     eventId: ID!,
 
     """
-    Assigner id to set
+    Assignee id to set
     """
-    assigner: String!,
+    assignee: String!,
   ): Boolean! @requireAuth
 }
 `;

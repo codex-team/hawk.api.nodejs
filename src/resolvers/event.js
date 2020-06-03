@@ -155,18 +155,18 @@ module.exports = {
     },
 
     /**
-     * Set assigner to selected event
+     * Set assignee to selected event
      *
      * @param {ResolverObj} _obj - resolver context
      * @param {string} project - project id
      * @param {string} eventId - event id
-     * @param {string} assigner - assigner id for this event
+     * @param {string} assignee - assignee id for this event
      * @return {Promise<boolean>}
      */
-    async setAssigner(_obj, { project, eventId, assigner }) {
+    async setAssignee(_obj, { project, eventId, assignee }) {
       const factory = new EventsFactory(project);
 
-      const { result } = await factory.setAssigner(eventId, assigner);
+      const { result } = await factory.setAssignee(eventId, assignee);
 
       return !!result.ok;
     },
