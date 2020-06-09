@@ -95,7 +95,20 @@ type Project {
     "Event marks by which events should be sorted"
     filters: EventsFiltersInput
   ): RecentEvents @requireAuth
+  """
+  Return events that occurred after a certain timestamp
+  """
+  chartData(
+    """
+    How many days we need to fetch for displaying in a chart
+    """
+    days: Int! = 0
 
+    """
+    User's local timezone offset in minutes
+    """
+    timezoneOffset: Int! = 0
+  ): [ChartDataItem] @requireAuth
   """
   Returns number of unread events
   """

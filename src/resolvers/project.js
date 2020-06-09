@@ -212,5 +212,20 @@ module.exports = {
 
       return factory.findRecent(limit, skip, sort, filters);
     },
+
+    /**
+     * Returns data about how many events accepted at each of passed N days
+     *
+     * @param {ProjectDBScheme} project - result of parent resolver
+     * @param {Number} days - how many days we need to fetch for displaying in a charts
+     * @param {number} timezoneOffset - user's local timezone offset in minutes
+     *
+     * @return {Promise<ProjectChartItem[]>}
+     */
+    async chartData(project, { days, timezoneOffset }) {
+      const factory = new EventsFactory(project._id);
+
+      return factory.findChartData(days, timezoneOffset);
+    },
   },
 };

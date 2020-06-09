@@ -1,3 +1,6 @@
+import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
+import { groupBy } from '../utils/grouper';
+
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
@@ -242,6 +245,66 @@ class EventsFactory extends Factory {
         event.projectId = this.projectId;
       });
     }
+
+    return result;
+  }
+
+  /**
+   * Fetch timestamps and total count of errors
+   * for each day since
+   *
+   * @param {number} days - how many days we need to fetch for displaying in a chart
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @return {ProjectChartItem[]}
+   */
+  async findChartData(days, timezoneOffset = 0) {
+    const today = new Date();
+    const since = today.setDate(today.getDate() - days) / 1000;
+
+    let dailyEvents = await this.getCollection(this.TYPES.DAILY_EVENTS)
+      .find({
+        groupingTimestamp: {
+          $gt: since,
+        },
+      })
+      .toArray();
+
+    /**
+     * Convert UTC midnight to midnights in user's timezone
+     */
+    dailyEvents = dailyEvents.map((item) => {
+      return Object.assign({}, item, {
+        groupingTimestamp: getMidnightWithTimezoneOffset(item.lastRepetitionTime, item.groupingTimestamp, timezoneOffset),
+      });
+    });
+
+    /**
+     * Group events using 'groupByTimestamp:NNNNNNNN' key
+     * @type {ProjectChartItem[]}
+     */
+    const groupedData = groupBy('groupingTimestamp')(dailyEvents);
+
+    /**
+     * Now fill all requested days
+     */
+    let result = [];
+
+    for (let i = 0; i < days; i++) {
+      const now = new Date();
+      const day = new Date(now.setDate(now.getDate() - i));
+      const dayMidnight = getUTCMidnight(day) / 1000;
+      const groupedEvents = groupedData[`groupingTimestamp:${dayMidnight}`];
+
+      result.push({
+        timestamp: dayMidnight,
+        count: groupedEvents ? groupedEvents.reduce((sum, value) => sum + value.count, 0) : 0,
+      });
+    }
+
+    /**
+     * Order by time ascendance
+     */
+    result = result.sort((a, b) => a.timestamp - b.timestamp);
 
     return result;
   }
