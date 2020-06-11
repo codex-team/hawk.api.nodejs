@@ -151,10 +151,10 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
-"@hawk.so/nodejs@^2.0.5":
-  version "2.0.5"
-  resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-2.0.5.tgz#12395d97394a8068076f04d32c7d58198976b128"
-  integrity sha512-UHd2Fw9mMPS206mE3Z/VnXqMxu4KmTMjHMkELIvmZJbAiRdULNuEHjOb5s9gSFkjhaL4qZjO7AMOXbW1rbdGGA==
+"@hawk.so/nodejs@^2.0.6":
+  version "2.0.6"
+  resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-2.0.6.tgz#414696d61044c6b9f8ba9726a9994beeee0e7d42"
+  integrity sha512-8IaO1/6qBVnppQcqX2QYfviF9DQM12OEHIniVEYuJZo2J/483vsEqb53GMDfnpJrDu0nxkZMI5V4usyl2oIpKA==
   dependencies:
     axios "^0.19.2"
     stack-trace "^0.0.10"
