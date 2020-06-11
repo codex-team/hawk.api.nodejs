@@ -15,6 +15,7 @@ import UsersFactory from './models/usersFactory';
 import { GraphQLError } from 'graphql';
 import WorkspacesFactory from './models/workspacesFactory';
 import DataLoaders from './dataLoaders';
+import HawkCatcher from '@hawk.so/nodejs';
 
 import UploadImageDirective from './directives/uploadImageDirective';
 import RequireAuthDirective from './directives/requireAuthDirective';
@@ -93,6 +94,10 @@ class HawkAPI {
       context: (req: ExpressContext): Promise<ResolverContextBase> => HawkAPI.createContext(req),
       formatError: (error): GraphQLError => {
         console.error(error.originalError);
+
+        if (error.originalError instanceof Error) {
+          HawkCatcher.send(error.originalError);
+        }
 
         return error;
       },
