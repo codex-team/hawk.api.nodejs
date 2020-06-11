@@ -1,3 +1,5 @@
+import HawkCatcher from '@hawk.so/nodejs';
+
 const nodemailer = require('nodemailer');
 const EmailProvider = require('./EmailProvider');
 
@@ -55,6 +57,7 @@ class SMTPProvider extends EmailProvider {
     try {
       await this.transporter.sendMail(mailOptions);
     } catch (e) {
+      HawkCatcher.send(e);
       console.error(
         'Error sending letter. Try to check the environment settings (in .env file).'
       );
