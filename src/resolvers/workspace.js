@@ -306,7 +306,7 @@ module.exports = {
      * @returns {Promise<Project[]>}
      */
     async projects(workspace, { ids }) {
-      const projectToWorkspace = new ProjectToWorkspace(workspace.id);
+      const projectToWorkspace = new ProjectToWorkspace(workspace._id);
 
       return projectToWorkspace.getProjects(ids);
     },

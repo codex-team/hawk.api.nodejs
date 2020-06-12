@@ -1,5 +1,6 @@
 import amqplib, { AmqpConnectionManager, ChannelWrapper } from 'amqp-connection-manager';
 import debug from 'debug';
+import HawkCatcher from '@hawk.so/nodejs';
 
 const rabbitMQURL = process.env.AMQP_URL;
 let channel: ChannelWrapper;
@@ -21,6 +22,10 @@ export async function setupConnections(): Promise<void> {
         });
       }
     });
+    connection.on('error', (error) => {
+      HawkCatcher.send(error);
+      console.error(error);
+    });
     connection.on('disconnect', () => console.log('💥AMQP disconnected. Trying to reconnect...'));
   }
 }
@@ -36,6 +41,7 @@ export async function publish(exchange: string, route: string, message: string):
     await channel.publish(exchange, route, Buffer.from(message));
     debug(`Message sent: ${message}`);
   } catch (err) {
+    HawkCatcher.send(err);
     console.log('Message was rejected:', err.stack);
   }
 }
