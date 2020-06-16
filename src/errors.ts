@@ -1,4 +1,4 @@
-import { ApolloError, AuthenticationError } from 'apollo-server-express';
+import { ApolloError } from 'apollo-server-express';
 
 /**
  * Hawk API error codes
@@ -16,7 +16,7 @@ export const errorCodes = {
 };
 
 /**
- * Class for non critical errors
+ * Class for non critical errors (expected errors that we don't want to log)
  * Events inherited from this class won't be send to hawk
  */
 export class NonCriticalError extends ApolloError {}
