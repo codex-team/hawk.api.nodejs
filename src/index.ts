@@ -23,6 +23,7 @@ import RequireAdminDirective from './directives/requireAdminDirective';
 import DefaultValueDirective from './directives/defaultValue';
 import ValidateDirective from './directives/validate';
 import ProjectsFactory from './models/projectsFactory';
+import { NonCriticalError } from './errors';
 
 /**
  * Option to enable playground
@@ -93,6 +94,9 @@ class HawkAPI {
       },
       context: (req: ExpressContext): Promise<ResolverContextBase> => HawkAPI.createContext(req),
       formatError: (error): GraphQLError => {
+        if (error.originalError instanceof NonCriticalError) {
+          return error;
+        }
         console.error(error.originalError);
 
         if (error.originalError instanceof Error) {
