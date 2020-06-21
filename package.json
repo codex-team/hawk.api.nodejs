@@ -44,7 +44,7 @@
     "@types/jsonwebtoken": "^8.3.5",
     "@types/mime-types": "^2.1.0",
     "@types/mongodb": "^3.3.13",
-    "@types/node": "^12.12.19",
+    "@types/node": "^14.0.13",
     "@types/node-fetch": "^2.5.4",
     "@types/uuid": "^3.4.6",
     "amqp-connection-manager": "^3.1.0",
