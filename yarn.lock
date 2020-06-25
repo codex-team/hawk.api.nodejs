@@ -275,7 +275,7 @@
   dependencies:
     "@f/map-obj" "^1.2.2"
 
-"@hawk.so/nodejs@^2.0.6":
+"@hawk.so/nodejs@^2.0.7":
   version "2.0.7"
   resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-2.0.7.tgz#766ff475984be338376a283ea9d6f567b31c27fa"
   integrity sha512-2tTAQfczIk2GDwFLewF+OvGKlg5RVP0d5Kn3HXCBe51C06oVhIE3es83Zbm2SDSmy9rKKkF845V++0UcnXSlOw==
