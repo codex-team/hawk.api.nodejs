@@ -1,4 +1,5 @@
 import { Db, MongoClient, MongoClientOptions } from 'mongodb';
+import HawkCatcher from '@hawk.so/nodejs';
 
 const hawkDBUrl = process.env.MONGO_HAWK_DB_URL || 'mongodb://localhost:27017/hawk';
 const eventsDBUrl = process.env.MONGO_EVENTS_DB_URL || 'mongodb://localhost:27017/events';
@@ -32,22 +33,25 @@ export const databases: Databases = {
 const connectionConfig: MongoClientOptions = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  reconnectTries: +(process.env.MONGO_RECONNECT_TRIES || 60),
-  reconnectInterval: +(process.env.MONGO_RECONNECT_INTERVAL || 1000),
-  autoReconnect: true,
 };
 
 /**
  * Setups connections to the databases (hawk api and events databases)
  */
 export async function setupConnections(): Promise<void> {
-  const [hawkDB, eventsDB] = (await Promise.all([
-    MongoClient.connect(hawkDBUrl, connectionConfig),
-    MongoClient.connect(eventsDBUrl, connectionConfig),
-  ])).map(client => client.db());
+  try {
+    const [hawkDB, eventsDB] = (await Promise.all([
+      MongoClient.connect(hawkDBUrl, connectionConfig),
+      MongoClient.connect(eventsDBUrl, connectionConfig),
+    ])).map(client => client.db());
 
-  databases.hawk = hawkDB;
-  databases.events = eventsDB;
+    databases.hawk = hawkDB;
+    databases.events = eventsDB;
+  } catch (e) {
+    /** Catch start Mongo errors  */
+    HawkCatcher.send(e);
+    throw e;
+  }
 }
 
 /**
