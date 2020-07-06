@@ -378,7 +378,7 @@ extend type Mutation {
   """
   Set assignee for selected event
   """
-  setAssignee(
+  updateAssignee(
     """
     ID of project event is related to
     """
