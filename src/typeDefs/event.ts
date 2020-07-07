@@ -259,9 +259,9 @@ type Event {
   totalCount: Int!
 
   """
-  assignee id
+  User assigneed to the event
   """
-  assignee: String
+  assignee: User
 
   """
   Event payload

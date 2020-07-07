@@ -71,6 +71,22 @@ module.exports = {
 
       return visitedBy.map(userId => factories.usersFactory.findById(userId));
     },
+
+    /**
+     * Returns the user assigneed to the event
+     *
+     * @param {string} assignee - user id
+     * @param _args - query args (empty)
+     * @param factories - factories for working with models
+     * @return {Promise<UserModel> | null}
+     */
+    async assignee({ assignee }, _args, { factories }) {
+      if (!assignee || !assignee.length) {
+        return null;
+      }
+
+      return factories.usersFactory.findById(assignee);
+    },
   },
   Subscription: {
     eventOccurred: {
