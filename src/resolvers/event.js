@@ -153,5 +153,22 @@ module.exports = {
 
       return !!result.ok;
     },
+
+    /**
+     * Update assignee to selected event
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} projectId - project id
+     * @param {string} eventId - event id
+     * @param {string} assignee - assignee id for this event
+     * @return {Promise<boolean>}
+     */
+    async updateAssignee(_obj, { projectId, eventId, assignee }) {
+      const factory = new EventsFactory(projectId);
+
+      const { result } = await factory.updateAssignee(eventId, assignee);
+
+      return !!result.ok;
+    },
   },
 };

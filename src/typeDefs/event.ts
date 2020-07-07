@@ -259,6 +259,11 @@ type Event {
   totalCount: Int!
 
   """
+  assignee id
+  """
+  assignee: String
+
+  """
   Event payload
   """
   payload: EventPayload!
@@ -368,6 +373,26 @@ extend type Mutation {
     Mark to set
     """
     mark: EventMark!
+  ): Boolean! @requireAuth
+
+  """
+  Set assignee for selected event
+  """
+  updateAssignee(
+    """
+    ID of project event is related to
+    """
+    projectId: ID!,
+
+    """
+    EvenID of the event to set the mark
+    """
+    eventId: ID!,
+
+    """
+    Assignee id to set
+    """
+    assignee: String!,
   ): Boolean! @requireAuth
 }
 `;
