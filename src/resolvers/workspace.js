@@ -1,4 +1,5 @@
 import WorkspaceModel from '../models/workspace';
+import { AccountType, Currency } from '../accounting';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -38,10 +39,11 @@ module.exports = {
      * @param {string} image - workspace image
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
+     * @param {Accounting} accounting - SDK for creating account for new workspace
      *
      * @return {String} created workspace id
      */
-    async createWorkspace(_obj, { name, description, image }, { user, factories }) {
+    async createWorkspace(_obj, { name, description, image }, { user, factories, accounting }) {
       try {
         /**
          * @since 2019-12-11 - Remove default Plan saving to fix workspace creation with empty DB
@@ -56,6 +58,11 @@ module.exports = {
          *   name: defaultPlan.name
          * };
          */
+        accounting.createAccount({
+          name: 'Workspace',
+          type: AccountType.LIABILITY,
+          currency: Currency.USD,
+        });
 
         /**
          * @type {WorkspaceDBScheme}
