@@ -1,4 +1,4 @@
-import { SchemaDirectiveVisitor, ForbiddenError, AuthenticationError } from 'apollo-server-express';
+import { SchemaDirectiveVisitor, ForbiddenError } from 'apollo-server-express';
 import { defaultFieldResolver } from 'graphql';
 import { ResolverContextBase, UnknownGraphQLField, UnknownGraphQLResolverResult } from '../types/graphql';
 

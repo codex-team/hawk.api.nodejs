@@ -177,10 +177,25 @@ module.exports = {
      * @param {string} projectId - project id
      * @param {string} eventId - event id
      * @param {string} assignee - assignee id for this event
+     * @param factories - factories for working with models
      * @return {Promise<boolean>}
      */
-    async updateAssignee(_obj, { projectId, eventId, assignee }) {
+    async updateAssignee(_obj, { projectId, eventId, assignee }, { factories }) {
       const factory = new EventsFactory(projectId);
+      const userExists = await factories.usersFactory.findById(assignee);
+
+      if (!userExists) {
+        return false;
+      }
+
+      const project = await factories.projectsFactory.findById(projectId);
+      const workspaceId = project.workspaceId;
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
+      const assigneeExistsInWorkspace = await workspace.getMemberInfo(assignee);
+
+      if (!assigneeExistsInWorkspace) {
+        return false;
+      }
 
       const { result } = await factory.updateAssignee(eventId, assignee);
 
