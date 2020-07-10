@@ -1,5 +1,6 @@
 import WorkspaceModel from '../models/workspace';
-import { AccountType, Currency } from '../accounting';
+import { AccountType } from '../types/accounting/accountType';
+import { Currency } from '../types/accounting/currency';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');

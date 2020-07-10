@@ -1,41 +1,4 @@
-/**
- * Available account types
- * See: https://www.principlesofaccounting.com/account-types/
- */
-export enum AccountType {
-  LIABILITY = 'Liability',
-  ASSET = 'Asset',
-  REVENUE = 'Revenue',
-  EXPENSE = 'Expense'
-}
-
-/**
- * Available currencies
- */
-export enum Currency {
-  USD = 'USD'
-}
-
-/**
- * Account creation mutation input
- */
-interface AccountInput {
-  /**
-   * String that describes account purpose
-   */
-  name: string;
-
-  /**
-   * Account type according to the balance sheet
-   * See: https://www.principlesofaccounting.com/account-types/
-   */
-  type: AccountType;
-
-  /**
-   * Account currency
-   */
-  currency: Currency;
-}
+import { AccountInput } from './types/accounting/accountInput';
 
 /**
  * Class for communicating with CodeX Accounting API
