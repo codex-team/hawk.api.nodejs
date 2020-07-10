@@ -393,6 +393,6 @@ extend type Mutation {
     Assignee id to set
     """
     assignee: String!,
-  ): Boolean! @requireAuth
+  ): Boolean! @requireAuth @requireUserInWorkspace
 }
 `;

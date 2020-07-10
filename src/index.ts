@@ -23,6 +23,7 @@ import RequireAuthDirective from './directives/requireAuthDirective';
 import RequireAdminDirective from './directives/requireAdminDirective';
 import DefaultValueDirective from './directives/defaultValue';
 import ValidateDirective from './directives/validate';
+import RequireUserInWorkspaceDirective from './directives/requireUserInWorkspace';
 import ProjectsFactory from './models/projectsFactory';
 import { NonCriticalError } from './errors';
 
@@ -88,6 +89,7 @@ class HawkAPI {
         requireAdmin: RequireAdminDirective,
         default: DefaultValueDirective,
         validate: ValidateDirective,
+        requireUserInWorkspace: RequireUserInWorkspaceDirective,
       },
       subscriptions: {
         path: '/subscriptions',
