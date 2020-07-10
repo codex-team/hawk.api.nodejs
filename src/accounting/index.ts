@@ -1,4 +1,4 @@
-import { AccountInput } from './types/accounting/accountInput';
+import { AccountInput } from './types/accountInput';
 
 /**
  * Class for communicating with CodeX Accounting API
