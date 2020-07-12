@@ -1,6 +1,7 @@
-import { AccountInput } from './types';
+import { AccountInput, CreateAccountResponse } from './types';
 import axios, { AxiosInstance } from 'axios';
 import https from 'https';
+import { MUTATION_CREATE_ACCOUNT } from './queries';
 
 /**
  * Class for communicating with CodeX Accounting API
@@ -37,13 +38,12 @@ export default class Accounting {
    *
    * @param accountInput - Account creation mutation input
    */
-  public createAccount(accountInput: AccountInput): void {
+  public async createAccount(accountInput: AccountInput): Promise<CreateAccountResponse> {
     console.log('Create account for new workspace');
     console.log('Accounting URL: ' + this.accountingURL);
     console.log(accountInput);
-    /*
-     * this.accountingApiInstance.post('url', 'data');
-     */
+
+    return (await this.call(MUTATION_CREATE_ACCOUNT, accountInput)).AccountCreateMutation;
   }
 
   /**
@@ -51,5 +51,24 @@ export default class Accounting {
    */
   private get accountingURL(): string {
     return this.accountingApiInstance.defaults.baseURL || '';
+  }
+
+  /**
+   * Calls Accounting service and returns response
+   *
+   * @param query - request to send
+   * @param variables - request variables
+   */
+  private async call(
+    query: string,
+    variables?: object
+    // eslint-disable-next-line
+  ): Promise<any> {
+    const response = await this.accountingApiInstance.post(this.accountingURL, {
+      query,
+      variables,
+    });
+
+    return response;
   }
 }

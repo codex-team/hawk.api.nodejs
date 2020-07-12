@@ -1,3 +1,3 @@
 export { AccountType } from './accountType';
-export { AccountInput } from './accountInput';
+export { AccountInput, CreateAccountResponse } from './accountMutations';
 export { Currency } from './currency';
