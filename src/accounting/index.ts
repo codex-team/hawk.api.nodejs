@@ -2,6 +2,7 @@ import { AccountInput, CreateAccountResponse } from './types';
 import axios, { AxiosInstance } from 'axios';
 import https from 'https';
 import { MUTATION_CREATE_ACCOUNT } from './queries';
+import fs from 'fs';
 
 /**
  * Class for communicating with CodeX Accounting API
@@ -19,11 +20,10 @@ export default class Accounting {
    */
   constructor(accountingURL: string) {
     const httpsAgent = new https.Agent({
-      /*
-       * ca: file,
-       * cert: file,
-       * key: file,
-       */
+      rejectUnauthorized: false,
+      ca: fs.readFileSync(`${__dirname}/ca.pem`),
+      cert: fs.readFileSync(`${__dirname}/client.pem`),
+      key: fs.readFileSync(`${__dirname}/client-key.pem`),
     });
 
     this.accountingApiInstance = axios.create({
