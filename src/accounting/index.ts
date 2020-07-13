@@ -20,7 +20,6 @@ export default class Accounting {
    */
   constructor(accountingURL: string) {
     const httpsAgent = new https.Agent({
-      rejectUnauthorized: false,
       ca: fs.readFileSync(`${__dirname}/ca.pem`),
       cert: fs.readFileSync(`${__dirname}/client.pem`),
       key: fs.readFileSync(`${__dirname}/client-key.pem`),
