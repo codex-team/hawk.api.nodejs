@@ -183,21 +183,26 @@ module.exports = {
     async updateAssignee(_obj, { projectId, eventId, assignee }, { factories }) {
       const factory = new EventsFactory(projectId);
 
-      if (assignee != '') {
-        const userExists = await factories.usersFactory.findById(assignee);
+      // Remove the assignee
+      if (assignee == '') {
+        const { result } = await factory.updateAssignee(eventId, assignee);
 
-        if (!userExists) {
-          return false;
-        }
+        return !!result.ok;
+      }
 
-        const project = await factories.projectsFactory.findById(projectId);
-        const workspaceId = project.workspaceId;
-        const workspace = await factories.workspacesFactory.findById(workspaceId);
-        const assigneeExistsInWorkspace = await workspace.getMemberInfo(assignee);
+      const userExists = await factories.usersFactory.findById(assignee);
 
-        if (!assigneeExistsInWorkspace) {
-          return false;
-        }
+      if (!userExists) {
+        return false;
+      }
+
+      const project = await factories.projectsFactory.findById(projectId);
+      const workspaceId = project.workspaceId;
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
+      const assigneeExistsInWorkspace = await workspace.getMemberInfo(assignee);
+
+      if (!assigneeExistsInWorkspace) {
+        return false;
       }
 
       const { result } = await factory.updateAssignee(eventId, assignee);
