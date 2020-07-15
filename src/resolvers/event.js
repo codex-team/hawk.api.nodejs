@@ -85,7 +85,7 @@ module.exports = {
         return null;
       }
 
-      return factories.usersFactory.findById(assignee);
+      return factories.usersFactory.dataLoaders.userById.load(assignee);
     },
   },
   Subscription: {
