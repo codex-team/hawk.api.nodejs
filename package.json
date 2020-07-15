@@ -10,9 +10,8 @@
     "lint-test": "eslint -c ./.eslintrc.js src/ --ext .ts,.js",
     "dev:up": "docker-compose -f docker-compose.dev.yml up -d",
     "dev:down": "docker-compose -f docker-compose.dev.yml down",
-    "build": "tsc && yarn copy-email-templates && yarn copy-accounting-certs",
+    "build": "tsc && yarn copy-email-templates",
     "copy-email-templates": "copyfiles src/email/templates/*/*.txt build",
-    "copy-accounting-certs": "copyfiles src/accounting/*.pem build",
     "migrations:up": "docker-compose exec api yarn migrate-mongo up",
     "migrations:down": "docker-compose exec api yarn migrate-mongo down"
   },
