@@ -82,6 +82,10 @@ export default class RequireUserInWorkspaceDirective extends SchemaDirectiveVisi
         await RequireUserInWorkspaceDirective.checkUserInWorkspaceByWorkspaceId(context, args.workspaceId);
       } else if (args.projectId) {
         await RequireUserInWorkspaceDirective.checkUserInWorkspaceByProjectId(context, args.projectId);
+      } else if (args.input?.projectId) {
+        await RequireUserInWorkspaceDirective.checkUserInWorkspaceByProjectId(context, args.input.projectId);
+      } else if (args.input?.workspaceId) {
+        await RequireUserInWorkspaceDirective.checkUserInWorkspaceByWorkspaceId(context, args.input.workspaceId);
       }
 
       return resolve.apply(this, resolverArgs);

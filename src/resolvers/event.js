@@ -170,6 +170,9 @@ module.exports = {
       return !!result.ok;
     },
 
+    events: () => ({}),
+  },
+  EventsMutations: {
     /**
      * Update assignee to selected event
      *
@@ -180,20 +183,25 @@ module.exports = {
      * @param factories - factories for working with models
      * @return {Promise<boolean>}
      */
-    async updateAssignee(_obj, { projectId, eventId, assignee }, { factories }) {
+    async updateAssignee(_obj, { input }, { factories }) {
+      const { projectId, eventId, assignee } = input;
       const factory = new EventsFactory(projectId);
 
       // Remove the assignee
       if (assignee == '') {
         const { result } = await factory.updateAssignee(eventId, assignee);
 
-        return !!result.ok;
+        return {
+          success: !!result.ok,
+        };
       }
 
       const userExists = await factories.usersFactory.findById(assignee);
 
       if (!userExists) {
-        return false;
+        return {
+          success: false,
+        };
       }
 
       const project = await factories.projectsFactory.findById(projectId);
@@ -202,12 +210,19 @@ module.exports = {
       const assigneeExistsInWorkspace = await workspace.getMemberInfo(assignee);
 
       if (!assigneeExistsInWorkspace) {
-        return false;
+        return {
+          success: false,
+        };
       }
 
       const { result } = await factory.updateAssignee(eventId, assignee);
 
-      return !!result.ok;
+      const assigneeData = factories.usersFactory.dataLoaders.userById.load(assignee);
+
+      return {
+        success: !!result.ok,
+        assignee: assigneeData,
+      };
     },
   },
 };

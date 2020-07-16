@@ -346,6 +346,44 @@ type RecentEvents {
   dailyInfo: [DailyEventInfo]
 }
 
+input AssigneeInput {
+  """
+  ID of project event is related to
+  """
+  projectId: ID!,
+
+  """
+  ID of the selected event
+  """
+  eventId: ID!,
+
+  """
+  Assignee id to set or empty string to remove
+  """
+  assignee: String!
+}
+
+type UpdateAssigneeResponse {
+  """
+  Response status
+  """
+  success: Boolean!
+
+  """
+  User assigned to the event
+  """
+  assignee: User
+}
+
+type EventsMutations {
+  """
+  Set or remove an assignee for the selected event
+  """
+  updateAssignee(
+    input: AssigneeInput!
+  ): UpdateAssigneeResponse! @requireAuth @requireUserInWorkspace
+}
+
 extend type Mutation {
   """
   Mutation marks event as visited for current user
@@ -376,23 +414,8 @@ extend type Mutation {
   ): Boolean! @requireAuth
 
   """
-  Set assignee for selected event
+  Namespace that contains only mutations related to the events
   """
-  updateAssignee(
-    """
-    ID of project event is related to
-    """
-    projectId: ID!,
-
-    """
-    EvenID of the event to set the mark
-    """
-    eventId: ID!,
-
-    """
-    Assignee id to set
-    """
-    assignee: String!,
-  ): Boolean! @requireAuth @requireUserInWorkspace
+  events: EventsMutations!
 }
 `;
