@@ -22,5 +22,29 @@ accounting.createAccount({
 });
 ```
 
+## Using with TLS verification
+
+- Create `tls` folder here
+
+- Add cert files to this folder like this:
+```text
+accounting/
+└── tls/
+    ├── ca.pem
+    ├── client.pem
+    └── client-key.pem
+```
+
+- Check paths to files in `.env` file and enable `TLS_VERIFY`
+```dotenv
+# Enable or disable tls verify
+TLS_VERIFY=true
+
+# Files with certs
+TLS_CA_CERT=/app/tls/ca.pem
+TLS_CERT=/app/tls/client.pem
+TLS_KEY=/app/tls/client-key.pem
+```
+
 ## TODO
 - [ ] Move this module to individual repository
