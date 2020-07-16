@@ -12,4 +12,6 @@ services:
       - ./.env:/usr/src/app/.env
       - ./uploads:/usr/src/app/uploads
       - /usr/src/app/node_modules
-      - ${ACCOUNTING_CERTS_FOLDER}:/usr/src/app/src/accounting
+      - ${TLS_CA_CERT}:${TLS_CA_CERT}
+      - ${TLS_CERT}:${TLS_CERT}
+      - ${TLS_KEY}:${TLS_KEY}

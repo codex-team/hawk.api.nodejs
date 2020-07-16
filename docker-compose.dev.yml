@@ -11,7 +11,9 @@ services:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
       - ./.env:/usr/src/app/.env
-      - ${ACCOUNTING_CERTS_FOLDER}:/usr/src/app/src/accounting
+      - ${TLS_CA_CERT}:${TLS_CA_CERT}
+      - ${TLS_CERT}:${TLS_CERT}
+      - ${TLS_KEY}:${TLS_KEY}
     ports:
       - ${PORT}:${PORT}
     depends_on:

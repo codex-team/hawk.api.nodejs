@@ -1,4 +1,4 @@
-import https from 'https';
+import https, { Agent } from 'https';
 import fs from 'fs';
 import axios, { AxiosInstance } from 'axios';
 
@@ -17,11 +17,15 @@ export default class Client {
    * @param connectionURL - URL for connecting
    */
   constructor(connectionURL: string) {
-    const httpsAgent = new https.Agent({
-      ca: fs.readFileSync(`${__dirname}/ca.pem`),
-      cert: fs.readFileSync(`${__dirname}/client.pem`),
-      key: fs.readFileSync(`${__dirname}/client-key.pem`),
-    });
+    let httpsAgent: Agent | null = null;
+
+    if (process.env.TLS_VERIFY === 'true') {
+      httpsAgent = new https.Agent({
+        ca: fs.readFileSync(`${process.env.TLS_CA_CERT}`),
+        cert: fs.readFileSync(`${process.env.TLS_CERT}`),
+        key: fs.readFileSync(`${process.env.TLS_KEY}`),
+      });
+    }
 
     this.apiInstance = axios.create({
       baseURL: connectionURL,
