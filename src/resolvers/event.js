@@ -170,6 +170,11 @@ module.exports = {
       return !!result.ok;
     },
 
+    /**
+     * Mutations namespace
+     *
+     * @return {Function()}
+     */
     events: () => ({}),
   },
   EventsMutations: {
@@ -177,9 +182,7 @@ module.exports = {
      * Update assignee to selected event
      *
      * @param {ResolverObj} _obj - resolver context
-     * @param {string} projectId - project id
-     * @param {string} eventId - event id
-     * @param {string} assignee - assignee id for this event
+     * @param {AssigneeInput} input - object of arguments
      * @param factories - factories for working with models
      * @return {Promise<boolean>}
      */
