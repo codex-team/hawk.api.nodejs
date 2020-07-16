@@ -12,4 +12,4 @@ services:
       - ./.env:/usr/src/app/.env
       - ./uploads:/usr/src/app/uploads
       - /usr/src/app/node_modules
-      - ./src/accounting:/usr/src/app/src/accounting
+      - ${ACCOUNTING_CERTS_FOLDER}:/usr/src/app/src/accounting

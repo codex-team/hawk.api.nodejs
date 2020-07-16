@@ -11,7 +11,7 @@ services:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
       - ./.env:/usr/src/app/.env
-      - ./src/accounting:/usr/src/app/src/accounting
+      - ${ACCOUNTING_CERTS_FOLDER}:/usr/src/app/src/accounting
     ports:
       - ${PORT}:${PORT}
     depends_on:
