@@ -1,4 +1,4 @@
-import { AccountInput, CreateAccountResponse } from './types';
+import {AccountInput, CreateAccountResponse, Settings} from './types';
 import { MUTATION_CREATE_ACCOUNT } from './queries';
 import Client from './client';
 
@@ -14,10 +14,10 @@ export default class Accounting {
   /**
    * Default constructor
    *
-   * @param accountingURL - URL of accounting service for connection
+   * @param settings - settings for client module
    */
-  constructor(accountingURL: string) {
-    this.client = new Client(accountingURL);
+  constructor(settings: Settings) {
+    this.client = new Client(settings);
   }
 
   /**

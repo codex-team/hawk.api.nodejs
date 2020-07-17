@@ -1,6 +1,8 @@
 import https, { Agent } from 'https';
 import fs from 'fs';
 import axios, { AxiosInstance } from 'axios';
+import {Settings} from "./types";
+import set = Reflect.set;
 
 /**
  * Represent client for sending queries to remote service
@@ -14,21 +16,21 @@ export default class Client {
   /**
    * Create axios instance with https agent
    *
-   * @param connectionURL - URL for connecting
+   * @param settings - settings for client module
    */
-  constructor(connectionURL: string) {
+  constructor(settings: Settings) {
     let httpsAgent: Agent | null = null;
 
-    if (process.env.TLS_VERIFY === 'true') {
+    if (settings.tlsVerify) {
       httpsAgent = new https.Agent({
-        ca: fs.readFileSync(`${process.env.TLS_CA_CERT}`),
-        cert: fs.readFileSync(`${process.env.TLS_CERT}`),
-        key: fs.readFileSync(`${process.env.TLS_KEY}`),
+        ca: fs.readFileSync(settings.tlsCaCertPath || ''),
+        cert: fs.readFileSync(settings.tlsCertPath || ''),
+        key: fs.readFileSync(settings.tlsKeyPath || ''),
       });
     }
 
     this.apiInstance = axios.create({
-      baseURL: connectionURL,
+      baseURL: settings.baseURL,
       timeout: 1000,
       httpsAgent: httpsAgent,
     });
