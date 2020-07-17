@@ -1,5 +1,4 @@
-import { AccountType } from './accountType';
-import { Currency } from './currency';
+import { AccountType, Currency } from './index';
 
 /**
  * Account creation mutation input
@@ -20,4 +19,14 @@ export interface AccountInput {
    * Account currency
    */
   currency: Currency;
+}
+
+/**
+ * Response of creating new account
+ */
+export interface CreateAccountResponse {
+  /**
+   * Created account identifier
+   */
+  recordId: string;
 }

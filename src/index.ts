@@ -174,7 +174,13 @@ class HawkAPI {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const dataLoader = new DataLoaders(mongo.databases.hawk!);
 
-    const accounting = new Accounting(process.env.CODEX_ACCOUNTING_URL as string);
+    const accounting = new Accounting({
+      baseURL: `${process.env.CODEX_ACCOUNTING_URL}`,
+      tlsVerify: process.env.TLS_VERIFY === 'true',
+      tlsCaCertPath: `${process.env.TLS_CA_CERT}`,
+      tlsCertPath: `${process.env.TLS_CERT}`,
+      tlsKeyPath: `${process.env.TLS_KEY}`,
+    });
 
     return {
       factories: HawkAPI.setupFactories(dataLoader),

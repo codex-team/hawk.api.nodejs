@@ -1,21 +1,23 @@
-import { AccountInput } from './types';
+import { AccountInput, CreateAccountResponse, Settings } from './types';
+import { MUTATION_CREATE_ACCOUNT } from './queries';
+import Client from './client';
 
 /**
  * Class for communicating with CodeX Accounting API
  */
 export default class Accounting {
   /**
-   * Accounting service URL
+   * Client for sending queries to CodeX Accounting API
    */
-  private readonly accountingURL: string;
+  private readonly client: Client;
 
   /**
    * Default constructor
    *
-   * @param accountingURL - URL of accounting service for connection
+   * @param settings - settings for client module
    */
-  constructor(accountingURL: string) {
-    this.accountingURL = accountingURL;
+  constructor(settings: Settings) {
+    this.client = new Client(settings);
   }
 
   /**
@@ -23,10 +25,10 @@ export default class Accounting {
    *
    * @param accountInput - Account creation mutation input
    */
-  public createAccount(accountInput: AccountInput): void {
+  public async createAccount(accountInput: AccountInput): Promise<CreateAccountResponse> {
     console.log('Create account for new workspace');
-    console.log('Accounting URL: ' + this.accountingURL);
     console.log(accountInput);
-    // account { create } mutation call
+
+    return (await this.client.call(MUTATION_CREATE_ACCOUNT, accountInput)).AccountCreateMutation;
   }
 }
