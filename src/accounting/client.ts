@@ -1,8 +1,7 @@
 import https, { Agent } from 'https';
 import fs from 'fs';
 import axios, { AxiosInstance } from 'axios';
-import {Settings} from "./types";
-import set = Reflect.set;
+import { Settings } from './types';
 
 /**
  * Represent client for sending queries to remote service

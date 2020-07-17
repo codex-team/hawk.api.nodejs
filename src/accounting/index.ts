@@ -1,4 +1,4 @@
-import {AccountInput, CreateAccountResponse, Settings} from './types';
+import { AccountInput, CreateAccountResponse, Settings } from './types';
 import { MUTATION_CREATE_ACCOUNT } from './queries';
 import Client from './client';
 
