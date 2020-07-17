@@ -41,9 +41,9 @@ accounting/
 TLS_VERIFY=true
 
 # Files with certs
-TLS_CA_CERT=/app/tls/ca.pem
-TLS_CERT=/app/tls/client.pem
-TLS_KEY=/app/tls/client-key.pem
+TLS_CA_CERT=/usr/src/app/src/accounting/tls/ca.pem
+TLS_CERT=/usr/src/app/src/accounting/tls/client.pem
+TLS_KEY=/usr/src/app/src/accounting/tls/client-key.pem
 ```
 
 ## TODO
