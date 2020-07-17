@@ -182,7 +182,7 @@ module.exports = {
      * Update assignee to selected event
      *
      * @param {ResolverObj} _obj - resolver context
-     * @param {AssigneeInput} input - object of arguments
+     * @param {UpdateAssigneeInput} input - object of arguments
      * @param factories - factories for working with models
      * @return {Promise<boolean>}
      */
@@ -224,7 +224,7 @@ module.exports = {
 
       return {
         success: !!result.ok,
-        assignee: assigneeData,
+        record: assigneeData,
       };
     },
   },
