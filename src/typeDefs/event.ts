@@ -358,9 +358,9 @@ input UpdateAssigneeInput {
   eventId: ID!
 
   """
-  Assignee id to set or empty string to remove
+  Assignee id to set
   """
-  assignee: String!
+  assignee: ID!
 }
 
 type UpdateAssigneeResponse {
@@ -370,18 +370,44 @@ type UpdateAssigneeResponse {
   success: Boolean!
 
   """
-  User assigned to the event or null
+  User assigned to the event
   """
-  record: User
+  record: User!
+}
+
+input RemoveAssigneeInput {
+  """
+  ID of project event is related to
+  """
+  projectId: ID!
+
+  """
+  ID of the selected event
+  """
+  eventId: ID!
+}
+
+type RemoveAssigneeResponse {
+  """
+  Response status
+  """
+  success: Boolean!
 }
 
 type EventsMutations {
   """
-  Set or remove an assignee for the selected event
+  Set an assignee for the selected event
   """
   updateAssignee(
     input: UpdateAssigneeInput!
   ): UpdateAssigneeResponse! @requireAuth @requireUserInWorkspace
+
+  """
+  Remove an assignee from the selected event
+  """
+  removeAssignee(
+    input: RemoveAssigneeInput!
+  ): RemoveAssigneeResponse! @requireAuth @requireUserInWorkspace
 }
 
 extend type Mutation {

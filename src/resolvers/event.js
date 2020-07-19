@@ -190,15 +190,6 @@ module.exports = {
       const { projectId, eventId, assignee } = input;
       const factory = new EventsFactory(projectId);
 
-      // Remove the assignee
-      if (assignee == '') {
-        const { result } = await factory.updateAssignee(eventId, assignee);
-
-        return {
-          success: !!result.ok,
-        };
-      }
-
       const userExists = await factories.usersFactory.findById(assignee);
 
       if (!userExists) {
@@ -225,6 +216,25 @@ module.exports = {
       return {
         success: !!result.ok,
         record: assigneeData,
+      };
+    },
+    
+    /**
+     * Remove an assignee from the selected event
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {RemveAssigneeInput} input - object of arguments
+     * @param factories - factories for working with models
+     * @return {Promise<boolean>}
+     */
+    async removeAssignee(_obj, { input }) {
+      const { projectId, eventId } = input;
+      const factory = new EventsFactory(projectId);
+
+      const { result } = await factory.updateAssignee(eventId, "");
+
+      return {
+        success: !!result.ok
       };
     },
   },
