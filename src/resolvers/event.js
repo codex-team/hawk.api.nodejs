@@ -218,7 +218,7 @@ module.exports = {
         record: assigneeData,
       };
     },
-    
+
     /**
      * Remove an assignee from the selected event
      *
@@ -231,10 +231,10 @@ module.exports = {
       const { projectId, eventId } = input;
       const factory = new EventsFactory(projectId);
 
-      const { result } = await factory.updateAssignee(eventId, "");
+      const { result } = await factory.updateAssignee(eventId, '');
 
       return {
-        success: !!result.ok
+        success: !!result.ok,
       };
     },
   },
