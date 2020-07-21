@@ -71,6 +71,22 @@ module.exports = {
 
       return visitedBy.map(userId => factories.usersFactory.findById(userId));
     },
+
+    /**
+     * Returns the user assigneed to the event
+     *
+     * @param {string} assignee - user id
+     * @param _args - query args (empty)
+     * @param factories - factories for working with models
+     * @return {Promise<UserModel> | null}
+     */
+    async assignee({ assignee }, _args, { factories }) {
+      if (!assignee || !assignee.length) {
+        return null;
+      }
+
+      return factories.usersFactory.dataLoaders.userById.load(assignee);
+    },
   },
   Subscription: {
     eventOccurred: {
@@ -152,6 +168,74 @@ module.exports = {
       const { result } = await factory.toggleEventMark(eventId, mark);
 
       return !!result.ok;
+    },
+
+    /**
+     * Mutations namespace
+     *
+     * @return {Function()}
+     */
+    events: () => ({}),
+  },
+  EventsMutations: {
+    /**
+     * Update assignee to selected event
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {UpdateAssigneeInput} input - object of arguments
+     * @param factories - factories for working with models
+     * @return {Promise<boolean>}
+     */
+    async updateAssignee(_obj, { input }, { factories }) {
+      const { projectId, eventId, assignee } = input;
+      const factory = new EventsFactory(projectId);
+
+      const userExists = await factories.usersFactory.findById(assignee);
+
+      if (!userExists) {
+        return {
+          success: false,
+        };
+      }
+
+      const project = await factories.projectsFactory.findById(projectId);
+      const workspaceId = project.workspaceId;
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
+      const assigneeExistsInWorkspace = await workspace.getMemberInfo(assignee);
+
+      if (!assigneeExistsInWorkspace) {
+        return {
+          success: false,
+        };
+      }
+
+      const { result } = await factory.updateAssignee(eventId, assignee);
+
+      const assigneeData = factories.usersFactory.dataLoaders.userById.load(assignee);
+
+      return {
+        success: !!result.ok,
+        record: assigneeData,
+      };
+    },
+
+    /**
+     * Remove an assignee from the selected event
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {RemveAssigneeInput} input - object of arguments
+     * @param factories - factories for working with models
+     * @return {Promise<boolean>}
+     */
+    async removeAssignee(_obj, { input }) {
+      const { projectId, eventId } = input;
+      const factory = new EventsFactory(projectId);
+
+      const { result } = await factory.updateAssignee(eventId, '');
+
+      return {
+        success: !!result.ok,
+      };
     },
   },
 };
