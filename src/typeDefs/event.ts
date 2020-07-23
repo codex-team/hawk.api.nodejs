@@ -346,21 +346,21 @@ type RecentEvents {
   dailyInfo: [DailyEventInfo]
 }
 
-input AssigneeInput {
+input UpdateAssigneeInput {
   """
   ID of project event is related to
   """
-  projectId: ID!,
+  projectId: ID!
 
   """
   ID of the selected event
   """
-  eventId: ID!,
+  eventId: ID!
 
   """
-  Assignee id to set or empty string to remove
+  Assignee id to set
   """
-  assignee: String!
+  assignee: ID!
 }
 
 type UpdateAssigneeResponse {
@@ -372,16 +372,42 @@ type UpdateAssigneeResponse {
   """
   User assigned to the event
   """
-  assignee: User
+  record: User!
+}
+
+input RemoveAssigneeInput {
+  """
+  ID of project event is related to
+  """
+  projectId: ID!
+
+  """
+  ID of the selected event
+  """
+  eventId: ID!
+}
+
+type RemoveAssigneeResponse {
+  """
+  Response status
+  """
+  success: Boolean!
 }
 
 type EventsMutations {
   """
-  Set or remove an assignee for the selected event
+  Set an assignee for the selected event
   """
   updateAssignee(
-    input: AssigneeInput!
+    input: UpdateAssigneeInput!
   ): UpdateAssigneeResponse! @requireAuth @requireUserInWorkspace
+
+  """
+  Remove an assignee from the selected event
+  """
+  removeAssignee(
+    input: RemoveAssigneeInput!
+  ): RemoveAssigneeResponse! @requireAuth @requireUserInWorkspace
 }
 
 extend type Mutation {
@@ -389,7 +415,7 @@ extend type Mutation {
   Mutation marks event as visited for current user
   """
   visitEvent(
-    project: ID!,
+    project: ID!
     id: ID!
   ): Boolean! @requireAuth
 
@@ -400,12 +426,12 @@ extend type Mutation {
     """
     ID of project event is related to
     """
-    project: ID!,
+    project: ID!
 
     """
     EvenID of the event to set the mark
     """
-    eventId: ID!,
+    eventId: ID!
 
     """
     Mark to set
