@@ -148,7 +148,7 @@ class EventsFactory extends Factory {
     filters = {
       starred: true,
       resolved: true,
-      hidden: true,
+      ignored: true,
     }
   ) {
     limit = this.validateLimit(limit);
@@ -166,6 +166,10 @@ class EventsFactory extends Factory {
      * If some events should be omitted, use alternative pipeline
      */
     if (Object.values(filters).some(filter => !filter)) {
+      const defaultEvents = filters.default;
+
+      delete filters.default;
+
       pipeline.push(
         /**
          * Lookup events object for each daily event
@@ -189,7 +193,14 @@ class EventsFactory extends Factory {
             ...Object.fromEntries(
               Object
                 .entries(filters)
-                .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
+                .map(([mark, exists]) => {
+                  if (defaultEvents && exists) {
+                    return null;
+                  }
+
+                  return [`event.marks.${mark}`, { $exists: exists } ];
+                })
+                .filter(value => value !== null)
             ),
           },
         },

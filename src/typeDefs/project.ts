@@ -6,7 +6,7 @@ export default gql`
 Possible events order
 """
 enum EventsSortOrder {
-  lastRepititionTime
+  lastRepetitionTime
   count
 }
 
@@ -14,8 +14,9 @@ enum EventsSortOrder {
 Events filters input type
 """
 input EventsFiltersInput {
+  default: Boolean!
   resolved: Boolean!
-  hidden: Boolean!
+  starred: Boolean!
   ignored: Boolean!
 }
 
@@ -90,7 +91,7 @@ type Project {
     skip: Int! = 0
 
     "Events sort order"
-    sort: EventsSortOrder = lastRepititionTime
+    sort: EventsSortOrder = lastRepetitionTime
 
     "Event marks by which events should be sorted"
     filters: EventsFiltersInput
