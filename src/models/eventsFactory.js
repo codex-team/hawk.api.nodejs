@@ -22,10 +22,9 @@ const { ObjectID } = require('mongodb');
 
 /**
  * @typedef {Object} EventsFilters
- * @property {boolean} noMarks - if true, events without marks should be included to the output
- * @property {boolean} starred - if true, events with 'starred' mark should be included to the output
- * @property {boolean} resolved - if true, events with 'resolved' should be included to the output
- * @property {boolean} ignored - if true, events with 'ignored' mark should be included to the output
+ * @property {boolean} [starred] - if true, events with 'starred' mark should be included to the output
+ * @property {boolean} [resolved] - if true, events with 'resolved' should be included to the output
+ * @property {boolean} [ignored] - if true, events with 'ignored' mark should be included to the output
  */
 
 /**
@@ -153,12 +152,7 @@ class EventsFactory extends Factory {
     limit = 10,
     skip = 0,
     sort = 'lastRepetitionTime',
-    filters = {
-      noMarks: true,
-      starred: true,
-      resolved: true,
-      ignored: true,
-    }
+    filters = {}
   ) {
     limit = this.validateLimit(limit);
 
@@ -174,11 +168,7 @@ class EventsFactory extends Factory {
     /**
      * If some events should be omitted, use alternative pipeline
      */
-    if (Object.values(filters).some(filter => !filter)) {
-      const shouldIncludeEventsWithoutMarks = filters.noMarks;
-
-      delete filters.noMarks;
-
+    if (Object.values(filters).length > 0) {
       pipeline.push(
         /**
          * Lookup events object for each daily event
@@ -202,17 +192,7 @@ class EventsFactory extends Factory {
             ...Object.fromEntries(
               Object
                 .entries(filters)
-                .map(([mark, exists]) => {
-                  /**
-                   * If noMarks=true, we should include all events except ones where marks is not exist
-                   */
-                  if (shouldIncludeEventsWithoutMarks && exists) {
-                    return null;
-                  }
-
-                  return [`event.marks.${mark}`, { $exists: exists } ];
-                })
-                .filter(value => value !== null)
+                .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
             ),
           },
         },
