@@ -239,7 +239,7 @@ module.exports = {
      * @param {Number} limit - limit for events count
      * @param {Number} skip - certain number of documents to skip
      * @param {'lastRepetitionTime' | 'count'} sort - events sort order
-     * @param {object} filters - marks by which events should be filtered
+     * @param {EventsFilters} filters - marks by which events should be filtered
      *
      * @return {Promise<RecentEventSchema[]>}
      */
