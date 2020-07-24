@@ -14,9 +14,21 @@ enum EventsSortOrder {
 Events filters input type
 """
 input EventsFiltersInput {
-  default: Boolean!
+  """
+  If True, includes events without marks to the output
+  """
+  noMarks: Boolean!
+  """
+  If True, includes events with resolved mark to the output
+  """
   resolved: Boolean!
+  """
+  If True, includes events with starred mark to the output
+  """
   starred: Boolean!
+  """
+  If True, includes events with ignored mark to the output
+  """
   ignored: Boolean!
 }
 

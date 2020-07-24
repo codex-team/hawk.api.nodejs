@@ -21,6 +21,14 @@ const { ObjectID } = require('mongodb');
  */
 
 /**
+ * @typedef {Object} EventsFilters
+ * @property {boolean} noMarks - if true, events without marks should be included to the output
+ * @property {boolean} starred - if true, events with 'starred' mark should be included to the output
+ * @property {boolean} resolved - if true, events with 'resolved' should be included to the output
+ * @property {boolean} ignored - if true, events with 'ignored' mark should be included to the output
+ */
+
+/**
  * EventsFactory
  *
  * Factory Class for Event's Model
@@ -137,7 +145,7 @@ class EventsFactory extends Factory {
    * @param {Number} limit - events count limitations
    * @param {Number} skip - certain number of documents to skip
    * @param {'lastRepetitionTime' | 'count'} sort - events sort order
-   * @param {object} filters - marks by which events should be filtered
+   * @param {EventsFilters} filters - marks by which events should be filtered
    *
    * @return {RecentEventSchema[]}
    */
@@ -146,6 +154,7 @@ class EventsFactory extends Factory {
     skip = 0,
     sort = 'lastRepetitionTime',
     filters = {
+      noMarks: true,
       starred: true,
       resolved: true,
       ignored: true,
@@ -166,9 +175,9 @@ class EventsFactory extends Factory {
      * If some events should be omitted, use alternative pipeline
      */
     if (Object.values(filters).some(filter => !filter)) {
-      const defaultEvents = filters.default;
+      const shouldIncludeEventsWithoutMarks = filters.noMarks;
 
-      delete filters.default;
+      delete filters.noMarks;
 
       pipeline.push(
         /**
@@ -194,7 +203,10 @@ class EventsFactory extends Factory {
               Object
                 .entries(filters)
                 .map(([mark, exists]) => {
-                  if (defaultEvents && exists) {
+                  /**
+                   * If noMarks=true, we should include all events except ones where marks is not exist
+                   */
+                  if (shouldIncludeEventsWithoutMarks && exists) {
                     return null;
                   }
 
