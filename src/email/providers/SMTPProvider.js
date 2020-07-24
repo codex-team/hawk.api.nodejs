@@ -1,3 +1,5 @@
+import HawkCatcher from '@hawk.so/nodejs';
+
 const nodemailer = require('nodemailer');
 const EmailProvider = require('./EmailProvider');
 
@@ -17,8 +19,8 @@ class SMTPProvider extends EmailProvider {
       secure: true,
       auth: {
         user: process.env.SMTP_USERNAME,
-        pass: process.env.SMTP_PASSWORD
-      }
+        pass: process.env.SMTP_PASSWORD,
+      },
     };
 
     /**
@@ -45,7 +47,7 @@ class SMTPProvider extends EmailProvider {
         process.env.SMTP_SENDER_ADDRESS
       }>`, // sender address
       to,
-      ...emailContent
+      ...emailContent,
     };
 
     if (process.env.NODE_ENV === 'development') {
@@ -55,6 +57,7 @@ class SMTPProvider extends EmailProvider {
     try {
       await this.transporter.sendMail(mailOptions);
     } catch (e) {
+      HawkCatcher.send(e);
       console.error(
         'Error sending letter. Try to check the environment settings (in .env file).'
       );

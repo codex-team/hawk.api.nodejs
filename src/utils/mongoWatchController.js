@@ -6,13 +6,13 @@ const AsyncIteratorForEmitter = require('./asyncIteratorForEmitter');
  */
 const pipeline = [
   {
-    $match: { operationType: 'insert' }
+    $match: { operationType: 'insert' },
   },
   {
     $addFields: {
-      'fullDocument.id': '$fullDocument._id'
-    }
-  }
+      'fullDocument.id': '$fullDocument._id',
+    },
+  },
 ];
 
 /**
@@ -26,6 +26,7 @@ class MongoWatchController {
    * @return {AsyncIterator<EventSchema>}
    */
   getAsyncIteratorForCollectionChangesEvents(collectionsResolver) {
+    // eslint-disable-next-line no-async-promise-executor
     const emitterPromise = new Promise(async resolve => {
       const collection = await collectionsResolver;
 

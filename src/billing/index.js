@@ -12,7 +12,7 @@ class Billing {
    * Callback action for Tinkoff payment notification {@link https://oplata.tinkoff.ru/landing/develop/notifications/parametres}
    * @param req
    * @param res
-   * @return {Promise<*>}
+   * @return {Promise<void>}
    */
   static async notifyCallback(req, res) {
     const body = req.body;
@@ -21,6 +21,7 @@ class Billing {
 
     if (token !== body.Token) {
       console.error(`Token mismatched ${token} and ${JSON.stringify(body)}`);
+
       return res.send('ERROR');
     }
 
@@ -30,6 +31,7 @@ class Billing {
     if (body.Status === PAYMENT_AUTHORIZED) {
       body.Timestamp = parseInt((Date.now() / 1000).toFixed(0));
       await rabbitmq.publish('merchant', 'merchant/authorized', JSON.stringify(body));
+
       return res.send('OK');
     }
 

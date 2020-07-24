@@ -21,3 +21,11 @@ If the playground is turned on, you can access it via `/graphql` route.
 
 To execute the request, enter it in the input field on the left and click on the request execution button.
 On the right side you will see the result of the query.
+
+## GraphQL Voyager
+You can view API Schema visualization in `/voyager` page in your browser. To see current production schema go to [here](https://api.beta.hawk.so/voyager)
+
+## Migrations
+
+Run `yarn migrations:up` command to apply migration revisions or
+`yarn migrations:down` to rollback the last revision.

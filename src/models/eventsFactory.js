@@ -1,7 +1,10 @@
+import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
+import { groupBy } from '../utils/grouper';
+
+const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
-const _ = require('lodash');
 
 /**
  * @typedef {Object} RecentEventSchema
@@ -11,12 +14,20 @@ const _ = require('lodash');
  */
 
 /**
+ * @typedef {Object} EventRepetitionSchema
+ * @property {String} _id — repetition's identifier
+ * @property {String} groupHash - event's hash. Generates according to the rule described in EventSchema
+ * @property {EventPayload} payload - repetition's payload
+ */
+
+/**
  * EventsFactory
  *
- * Creational Class for Event's Model
+ * Factory Class for Event's Model
  */
-class EventsFactory {
+class EventsFactory extends Factory {
   /**
+   * Event types with collections where they stored
    * @return {{EVENTS: string, DAILY_EVENTS: string, REPETITIONS: string}}
    * @constructor
    */
@@ -24,19 +35,22 @@ class EventsFactory {
     return {
       EVENTS: 'events',
       REPETITIONS: 'repetitions',
-      DAILY_EVENTS: 'dailyEvents'
+      DAILY_EVENTS: 'dailyEvents',
     };
   }
 
   /**
    * Creates Event instance
-   * @param {string|ObjectID} projectId - project ID
+   * @param {ObjectId} projectId - project ID
    */
   constructor(projectId) {
+    super();
+
     if (!projectId) {
       throw new Error('Can not construct Event model, because projectId is not provided');
     }
-    this.projectId = new ObjectID(projectId);
+
+    this.projectId = projectId;
   }
 
   /**
@@ -51,6 +65,17 @@ class EventsFactory {
     return mongo.databases.events.collection(
       type + ':' + this.projectId
     );
+  }
+
+  /**
+   * Is collection of events exists
+   *
+   * @param {String} type - type of collection to check
+   *
+   * @return {Promise<boolean>}
+   */
+  isCollectionExists(type) {
+    return mongo.databases.events.listCollections({ name: type + ':' + this.projectId }).hasNext();
   }
 
   /**
@@ -73,8 +98,8 @@ class EventsFactory {
 
     const result = await cursor.toArray();
 
-    return result.map(data => {
-      return new Event(data);
+    return result.map(eventSchema => {
+      return new Event(eventSchema);
     });
   }
 
@@ -87,7 +112,7 @@ class EventsFactory {
   async findById(id) {
     const searchResult = await this.getCollection(this.TYPES.EVENTS)
       .findOne({
-        _id: new ObjectID(id)
+        _id: new ObjectID(id),
       });
 
     return new Event(searchResult);
@@ -110,95 +135,308 @@ class EventsFactory {
    * Returns events that grouped by day
    *
    * @param {Number} limit - events count limitations
+   * @param {Number} skip - certain number of documents to skip
    * @return {RecentEventSchema[]}
    */
-  async findRecent(limit = 10) {
+  async findRecent(limit = 10, skip = 0) {
     limit = this.validateLimit(limit);
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate([
-      { $sort: { timestamp: -1 } },
+      {
+        $sort: {
+          groupingTimestamp: -1,
+          lastRepetitionTime: -1,
+        },
+      },
+      { $skip: skip },
       { $limit: limit },
       {
         $group: {
           _id: null,
           groupHash: { $addToSet: '$groupHash' },
-          dailyInfo: { $push: '$$ROOT' }
-        }
+          dailyInfo: { $push: '$$ROOT' },
+        },
       },
       {
         $lookup: {
           from: 'events:' + this.projectId,
           localField: 'groupHash',
           foreignField: 'groupHash',
-          as: 'events'
-        }
-      }
+          as: 'events',
+        },
+      },
     ]);
 
-    return cursor.toArray();
+    const result = (await cursor.toArray()).shift();
+
+    /**
+     * aggregation can return empty array so that
+     * result can be undefined
+     *
+     * for that we check result existence
+     *
+     * extra field `projectId` needs to satisfy GraphQL query
+     */
+    if (result && result.events) {
+      result.events.forEach(event => {
+        event.projectId = this.projectId;
+      });
+    }
+
+    return result;
   }
 
   /**
-   * Returns Event's repetitions
+   * Fetch timestamps and total count of errors
+   * for each day since
+   *
+   * @param {number} days - how many days we need to fetch for displaying in a chart
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @return {ProjectChartItem[]}
+   */
+  async findChartData(days, timezoneOffset = 0) {
+    const today = new Date();
+    const since = today.setDate(today.getDate() - days) / 1000;
+
+    let dailyEvents = await this.getCollection(this.TYPES.DAILY_EVENTS)
+      .find({
+        groupingTimestamp: {
+          $gt: since,
+        },
+      })
+      .toArray();
+
+    /**
+     * Convert UTC midnight to midnights in user's timezone
+     */
+    dailyEvents = dailyEvents.map((item) => {
+      return Object.assign({}, item, {
+        groupingTimestamp: getMidnightWithTimezoneOffset(item.lastRepetitionTime, item.groupingTimestamp, timezoneOffset),
+      });
+    });
+
+    /**
+     * Group events using 'groupByTimestamp:NNNNNNNN' key
+     * @type {ProjectChartItem[]}
+     */
+    const groupedData = groupBy('groupingTimestamp')(dailyEvents);
+
+    /**
+     * Now fill all requested days
+     */
+    let result = [];
+
+    for (let i = 0; i < days; i++) {
+      const now = new Date();
+      const day = new Date(now.setDate(now.getDate() - i));
+      const dayMidnight = getUTCMidnight(day) / 1000;
+      const groupedEvents = groupedData[`groupingTimestamp:${dayMidnight}`];
+
+      result.push({
+        timestamp: dayMidnight,
+        count: groupedEvents ? groupedEvents.reduce((sum, value) => sum + value.count, 0) : 0,
+      });
+    }
+
+    /**
+     * Order by time ascendance
+     */
+    result = result.sort((a, b) => a.timestamp - b.timestamp);
+
+    return result;
+  }
+
+  /**
+   * Returns number of documents that occurred after the last visit time
+   *
+   * @param {Number} lastVisit - user's last visit time on project
+   *
+   * @return {Promise<Number>}
+   *
+   * @todo move to Project model
+   */
+  async getUnreadCount(lastVisit) {
+    const query = {
+      'payload.timestamp': {
+        $gt: lastVisit,
+      },
+    };
+
+    return this.getCollection(this.TYPES.EVENTS)
+      .countDocuments(query);
+  }
+
+  /**
+   * Returns Event repetitions
    *
    * @param {string|ObjectID} eventId - Event's id
    * @param {Number} limit - count limitations
    * @param {Number} skip - selection offset
    *
-   * @return {Event}
+   * @return {EventRepetitionSchema[]}
+   *
+   * @todo move to Repetitions(?) model
    */
-  async getRepetitions(eventId, limit = 10, skip = 0) {
+  async getEventRepetitions(eventId, limit = 10, skip = 0) {
     limit = this.validateLimit(limit);
     skip = this.validateSkip(skip);
 
+    /**
+     * Get original event
+     * @type {EventSchema}
+     */
     const eventOriginal = await this.findById(eventId);
-    const cursor = this.getCollection(this.TYPES.REPETITIONS)
+
+    /**
+     * Collect repetitions
+     * @type {EventRepetitionSchema[]}
+     */
+    const repetitions = await this.getCollection(this.TYPES.REPETITIONS)
       .find({
-        groupHash: eventOriginal.groupHash
+        groupHash: eventOriginal.groupHash,
       })
-      .sort([ ['_id', -1] ])
+      .sort({ _id: -1 })
       .limit(limit)
-      .skip(skip);
+      .skip(skip)
+      .toArray();
 
-    const result = await cursor.toArray();
+    const isLastPortion = repetitions.length < limit && skip === 0;
 
-    return result.map(data => {
-      delete data._id;
-      delete data.groupHash;
+    /**
+     * For last portion:
+     * add original event to the end of repetitions list
+     */
+    if (isLastPortion) {
+      /**
+       * Get only 'repetitions' fields from event to fit Repetition scheme
+       * @type {EventRepetitionSchema}
+       */
+      const firstRepetition = {
+        _id: eventOriginal._id,
+        payload: eventOriginal.payload,
+        groupHash: eventOriginal.groupHash,
+      };
 
-      eventOriginal.payload = _.merge({}, eventOriginal.payload, data);
-      return new Event(eventOriginal);
-    });
+      repetitions.push(firstRepetition);
+    }
+
+    return repetitions;
   }
 
   /**
-   * Validates limit value
-   * @param limit
-   * @return {Number}
+   * Returns Event concrete repetition
+   *
+   * @param {String} repetitionId - id of Repetition to find
+   * @return {EventRepetitionSchema|null}
+   *
+   * @todo move to Repetitions(?) model
    */
-  validateLimit(limit) {
-    limit = Math.max(0, limit);
-
-    if (limit > 100) {
-      throw Error('Invalid limit value');
-    }
-
-    return limit;
+  async getEventRepetition(repetitionId) {
+    return this.getCollection(this.TYPES.REPETITIONS)
+      .findOne({
+        _id: ObjectID(repetitionId),
+      });
   }
 
   /**
-   * Validate skip value
-   * @param skip
-   * @return {Number}
+   * Return last occurrence of event
+   * @param {string} eventId - id of event to find repetition
+   * @return {EventRepetitionSchema|null}
    */
-  validateSkip(skip) {
-    skip = Math.max(0, skip);
+  async getEventLastRepetition(eventId) {
+    const repetitions = await this.getEventRepetitions(eventId, 1);
 
-    if (skip > 100) {
-      throw Error('Invalid skip value');
+    if (repetitions.length === 0) {
+      return null;
     }
 
-    return skip;
+    return repetitions.shift();
+  }
+
+  /**
+   * Mark event as visited for passed user
+   *
+   * @param {string|ObjectId} eventId
+   * @param {string|ObjectId} userId
+   *
+   * @return {Promise<void>}
+   */
+  async visitEvent(eventId, userId) {
+    return this.getCollection(this.TYPES.EVENTS)
+      .updateOne(
+        { _id: new ObjectID(eventId) },
+        { $addToSet: { visitedBy: new ObjectID(userId) } }
+      );
+  }
+
+  /**
+   * Mark or unmark event as Resolved, Ignored or Starred
+   *
+   * @param {string|ObjectId} eventId - event to mark
+   * @param {string} mark - mark label
+   *
+   * @return {Promise<void>}
+   */
+  async toggleEventMark(eventId, mark) {
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const query = { _id: new ObjectID(eventId) };
+
+    const event = await collection.findOne(query);
+    const markKey = `marks.${mark}`;
+
+    let update;
+
+    if (event.marks && event.marks[mark]) {
+      update = {
+        $unset: { [markKey]: '' },
+      };
+    } else {
+      update = {
+        $set: { [markKey]: Math.floor(Date.now() / 1000) },
+      };
+    }
+
+    return collection.updateOne(query, update);
+  }
+
+  /**
+   * Remove all project events
+   *
+   * @return {Promise<void>}
+   */
+  async remove() {
+    /**
+     * Check if collection is existing
+     * Drop collection only when it's existing
+     */
+    if (await this.isCollectionExists(this.TYPES.EVENTS)) {
+      await this.getCollection(this.TYPES.EVENTS).drop();
+    }
+
+    if (await this.isCollectionExists(this.TYPES.DAILY_EVENTS)) {
+      await this.getCollection(this.TYPES.DAILY_EVENTS).drop();
+    }
+
+    if (await this.isCollectionExists(this.TYPES.REPETITIONS)) {
+      await this.getCollection(this.TYPES.REPETITIONS).drop();
+    }
+  }
+
+  /**
+   * Update assignee to selected event
+   *
+   * @param {string} eventId - event id
+   * @param {string} assignee - assignee id for this event
+   * @return {Promise<void>}
+   */
+  async updateAssignee(eventId, assignee) {
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const query = { _id: new ObjectID(eventId) };
+    const update = {
+      $set: { assignee: assignee },
+    };
+
+    return collection.updateOne(query, update);
   }
 }
 

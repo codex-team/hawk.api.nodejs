@@ -1,8 +1,13 @@
-const { ValidationError } = require('apollo-server-express');
-const { ObjectID } = require('mongodb');
-const Membership = require('../models/membership');
-const { Project, ProjectToWorkspace } = require('../models/project');
-const eventResolvers = require('./event');
+const mongo = require('../mongo');
+const { ApolloError, UserInputError } = require('apollo-server-express');
+const Validator = require('../utils/validator');
+const UserInProject = require('../models/userInProject');
+const EventsFactory = require('../models/eventsFactory');
+const ProjectToWorkspace = require('../models/projectToWorkspace');
+
+const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
+const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
+const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -13,11 +18,12 @@ module.exports = {
      * Returns project's Model
      * @param {ResolverObj} _obj
      * @param {String} id - project id
-     * @return {Promise<ProjectSchema>}
+     * @param {ContextFactories} factories - factories for working with models
+     * @return {Promise<ProjectDBScheme>}
      */
-    async project(_obj, { id }) {
-      return Project.findById(id);
-    }
+    async project(_obj, { id }, { factories }) {
+      return factories.projectsFactory.findById(id);
+    },
   },
   Mutation: {
     /**
@@ -26,57 +32,234 @@ module.exports = {
      * @param {ResolverObj} _obj
      * @param {string} workspaceId - workspace ID
      * @param {string} name - project name
-     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @param {string} image - project logo
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
      * @return {Project[]}
      */
-    async createProject(_obj, { workspaceId, name }, { user }) {
-      // Check workspace ID
-      const workspace = await new Membership(user.id).getWorkspaces([
-        workspaceId
-      ]);
+    async createProject(_obj, { workspaceId, name, image }, { user, factories }) {
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
 
       if (!workspace) {
-        throw new ValidationError('No such workspace');
+        throw new UserInputError('No such workspace');
       }
 
-      const project = await Project.create({
+      const options = {
         name,
-        uidAdded: new ObjectID(user.id)
+        workspaceId,
+        uidAdded: user.id,
+        image,
+      };
+
+      const project = await factories.projectsFactory.create(options);
+
+      /**
+       * Create collections for storing events and setup indexes
+       */
+      const projectEventsCollection = await mongo.databases.events.createCollection('events:' + project._id);
+
+      const projectRepetitionsEventsCollection = await mongo.databases.events.createCollection('repetitions:' + project._id);
+
+      await mongo.databases.events.createCollection('dailyEvents:' + project._id);
+
+      await projectEventsCollection.createIndex({
+        groupHash: 1,
+      },
+      {
+        unique: true,
+        name: EVENTS_GROUP_HASH_INDEX_NAME,
       });
 
-      // Create Project to Workspace relationship
-      new ProjectToWorkspace(workspaceId).add({ projectId: project.id });
+      await projectRepetitionsEventsCollection.createIndex({
+        groupHash: 'hashed',
+      },
+      {
+        name: REPETITIONS_GROUP_HASH_INDEX_NAME,
+      });
+
+      await projectRepetitionsEventsCollection.createIndex({
+        'payload.user.id': 1,
+      }, {
+        name: REPETITIONS_USER_ID_INDEX_NAME,
+        sparse: true,
+      });
 
       return project;
-    }
+    },
+
+    /**
+     * Update project settings
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} projectId - id of the updated project
+     * @param {string} name - project name
+     * @param {string} description - project description
+     * @param {string} - project logo
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Project}
+     */
+    async updateProject(_obj, { id, name, description, image }, { user, factories }) {
+      if (!Validator.string(name)) {
+        throw new UserInputError('Invalid name length');
+      }
+
+      if (!Validator.string(description, 0)) {
+        throw new UserInputError('Invalid description length');
+      }
+
+      const project = await factories.projectsFactory.findById(id);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id');
+      }
+
+      try {
+        const options = {
+          name,
+          description,
+        };
+
+        if (image) {
+          options.image = image;
+        }
+
+        return project.updateProject(options);
+      } catch (err) {
+        throw new ApolloError('Something went wrong');
+      }
+    },
+
+    /**
+     * Remove project
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} projectId - id of the updated project
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Promise<boolean>}
+     */
+    async removeProject(_obj, { projectId }, { user, factories }) {
+      const project = await factories.projectsFactory.findById(projectId);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id');
+      }
+
+      const workspaceModel = await factories.workspacesFactory.findById(project.workspaceId.toString());
+
+      /**
+       * Remove project events
+       */
+      await new EventsFactory(project._id).remove();
+
+      /**
+       * Remove project from workspace
+       */
+      await new ProjectToWorkspace(workspaceModel._id.toString()).remove(project._id);
+
+      /**
+       * Remove project
+       */
+      await project.remove();
+
+      return true;
+    },
+
+    /**
+     * Updates user visit time on project and returns it
+     *
+     * @param {ResolverObj} _obj
+     * @param {String} projectId - project ID
+     * @param {Context.user} user - current authorized user {@see ../index.js}
+     * @return {Promise<Number>}
+     */
+    async updateLastProjectVisit(_obj, { projectId }, { user }) {
+      const userInProject = new UserInProject(user.id, projectId);
+
+      return userInProject.updateLastVisit();
+    },
   },
   Project: {
     /**
+     * Find project's event
+     *
+     * @param {ProjectDBScheme} project - result of parent resolver
+     * @param {String} eventId - event's identifier
+     *
+     * @returns {Event}
+     */
+    async event(project, { id: eventId }) {
+      const factory = new EventsFactory(project._id);
+      const event = await factory.findById(eventId);
+
+      event.projectId = project._id;
+
+      return event;
+    },
+
+    /**
      * Find project events
      *
-     * @param {String} id  - id of project (root resolver)
+     * @param {ProjectDBScheme} project - result of parent resolver
      * @param {number} limit - query limit
      * @param {number} skip - query skip
      * @param {Context.user} user - current authorized user {@see ../index.js}
-     * @returns {Promise<EventSchema[]>}
+     * @returns {Event[]}
      */
-    async events({ id }, { limit, skip }) {
-      return eventResolvers.Query.events({}, { projectId: id, limit, skip });
+    async events(project, { limit, skip }) {
+      const factory = new EventsFactory(project._id);
+
+      return factory.find({}, limit, skip);
+    },
+
+    /**
+     * Returns events count that wasn't seen on project
+     *
+     * @param {ProjectDBScheme} project - result of parent resolver
+     * @param {Object} data - additional data. In this case it is empty
+     * @param {User} user - authorized user
+     *
+     * @return {Promise<number>}
+     */
+    async unreadCount(project, data, { user }) {
+      const eventsFactory = new EventsFactory(project._id);
+      const userInProject = new UserInProject(user.id, project._id);
+      const lastVisit = await userInProject.getLastVisit();
+
+      return eventsFactory.getUnreadCount(lastVisit);
     },
 
     /**
      * Returns recent Events grouped by day
      *
-     * @param {ResolverObj} _obj
+     * @param {ProjectDBScheme} project - result of parent resolver
      * @param {Number} limit - limit for events count
+     * @param {Number} skip - certain number of documents to skip
      *
-     * @return {RecentEvent[]}
+     * @return {Promise<RecentEventSchema[]>}
      */
-    async recentEvents({ id }, { limit }) {
-      // @makeAnIssue remove aliases to event resolvers in project resolvers
-      const result = await eventResolvers.Query.recent({}, { projectId: id, limit });
+    async recentEvents(project, { limit, skip }) {
+      const factory = new EventsFactory(project._id);
 
-      return result.shift();
-    }
-  }
+      return factory.findRecent(limit, skip);
+    },
+
+    /**
+     * Returns data about how many events accepted at each of passed N days
+     *
+     * @param {ProjectDBScheme} project - result of parent resolver
+     * @param {Number} days - how many days we need to fetch for displaying in a charts
+     * @param {number} timezoneOffset - user's local timezone offset in minutes
+     *
+     * @return {Promise<ProjectChartItem[]>}
+     */
+    async chartData(project, { days, timezoneOffset }) {
+      const factory = new EventsFactory(project._id);
+
+      return factory.findChartData(days, timezoneOffset);
+    },
+  },
 };

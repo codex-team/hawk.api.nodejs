@@ -1,20 +1,17 @@
-version: "3.2"
+version: "3.4"
+
 services:
-  hawk:
+  api:
     build:
       dockerfile: "docker/Dockerfile.prod"
       context: .
-    env_file:
-      - .env
+    network_mode: host
     ports:
       - ${PORT}:${PORT}
-    depends_on:
-      - mongodb
-
-  mongodb:
-    image: mongo
     volumes:
-      - mongodata:/data/db
-
-volumes:
-  mongodata:
+      - ./.env:/usr/src/app/.env
+      - ./uploads:/usr/src/app/uploads
+      - /usr/src/app/node_modules
+      - ./src/accounting/tls/ca.pem:${TLS_CA_CERT}
+      - ./src/accounting/tls/client.pem:${TLS_CERT}
+      - ./src/accounting/tls/client-key.pem:${TLS_KEY}

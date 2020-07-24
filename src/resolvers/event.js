@@ -1,9 +1,8 @@
 const MongoWatchController = require('../utils/mongoWatchController');
-const Membership = require('../models/membership');
-const { ProjectToWorkspace } = require('../models/project');
-const EventsFactory = require('../models/eventsFactory');
+const ProjectToWorkspace = require('../models/projectToWorkspace');
 const asyncForEach = require('../utils/asyncForEach');
 const mongo = require('../mongo');
+const EventsFactory = require('../models/eventsFactory');
 
 const watchController = new MongoWatchController();
 
@@ -11,74 +10,83 @@ const watchController = new MongoWatchController();
  * See all types and fields here {@see ../typeDefs/event.graphql}
  */
 module.exports = {
-  Event: {
-    id: parent => parent._id // rename MongoDB _id to id
+  EventMarks: {
+    starred(marks) {
+      return 'starred' in marks;
+    },
+    ignored(marks) {
+      return 'ignored' in marks;
+    },
+    resolved(marks) {
+      return 'resolved' in marks;
+    },
   },
-  Query: {
+  Event: {
     /**
-     * Returns Events list ordered by timestamp
+     * Returns Event with concrete repetition
      *
-     * @param {ResolverObj} _obj
-     * @param {String} projectId
-     * @param {Number} limit
-     * @param {Number} skip
-     *
-     * @return {Event[]}
+     * @param {string} eventId - id of Event of which repetition requested
+     * @param {string} projectId - projectId of Event of which repetition requested
+     * @param {string|null} [repetitionId] - if not specified, last repetition will returned
+     * @return {Promise<EventRepetitionSchema>}
      */
-    async events(_obj, { projectId, limit, skip }) {
-      const service = new EventsFactory(projectId);
-      const events = await service.find({}, limit, skip);
+    async repetition({ id: eventId, projectId }, { id: repetitionId }) {
+      const factory = new EventsFactory(projectId);
 
-      return events;
-    },
+      if (!repetitionId) {
+        return factory.getEventLastRepetition(eventId);
+      }
 
-    /**
-     * Returns recent Events grouped by day
-     *
-     * @param {ResolverObj} _obj
-     * @param {String} projectId
-     * @param {Number} limit
-     *
-     * @return {RecentEvent[]}
-     */
-    async recent(_obj, { projectId, limit = 50 }) {
-      const service = new EventsFactory(projectId);
-
-      return service.findRecent(limit);
-    },
-
-    /**
-     * Returns event information in the project
-     *
-     * @param {ResolverObj} _obj
-     * @param {String} projectId
-     * @param {String} eventId
-     *
-     * @return {Event}
-     */
-    async event(_obj, { projectId, eventId }) {
-      const service = new EventsFactory(projectId);
-      const event = await service.findById(eventId);
-
-      return event;
+      return factory.getEventRepetition(repetitionId);
     },
 
     /**
      * Returns repetitions list of the event
      *
      * @param {ResolverObj} _obj
-     * @param {String} projectId
      * @param {String} eventId
+     * @param {String} projectId
      * @param {Number} limit
      * @param {Number} skip
-     * @return {Event[]}
+     *
+     * @return {EventRepetitionSchema[]}
      */
-    async repetitions(_obj, { projectId, eventId, limit, skip }) {
-      const service = new EventsFactory(projectId);
-      const events = await service.getRepetitions(eventId, limit, skip);
+    async repetitions({ _id: eventId, projectId }, { limit, skip }) {
+      const factory = new EventsFactory(projectId);
 
-      return events;
-    }
+      return factory.getEventRepetitions(eventId, limit, skip);
+    },
+
+    /**
+     * Returns users who visited event
+     * @param {string[]} visitedBy - id's users who visited event
+     * @param _args - query args (empty)
+     * @param factories - factories for working with models
+     * @return {Promise<UserModel[]> | null}
+     */
+    async visitedBy({ visitedBy }, _args, { factories }) {
+      if (!visitedBy || !visitedBy.length) {
+        return [];
+      }
+
+      return visitedBy.map(userId => factories.usersFactory.findById(userId));
+    },
+
+    /**
+     * Returns the user assigneed to the event
+     *
+     * @param {string} assignee - user id
+     * @param _args - query args (empty)
+     * @param factories - factories for working with models
+     * @return {Promise<UserModel> | null}
+     */
+    async assignee({ assignee }, _args, { factories }) {
+      if (!assignee || !assignee.length) {
+        return null;
+      }
+
+      return factories.usersFactory.dataLoaders.userById.load(assignee);
+    },
   },
   Subscription: {
     eventOccurred: {
@@ -86,21 +94,24 @@ module.exports = {
        * Subscribes user to events from his projects
        * @param {ResolverObj} _obj
        * @param {Object} _args - request variables (not used)
-       * @param {Context} context
+       * @param {UserInContext} user - current authorized user {@see ../index.js}
+       * @param {ContextFactories} factories - factories for working with models
        * @return {AsyncIterator<EventSchema>}
        */
-      subscribe: (_obj, _args, context) => {
-        const userId = context.user.id;
+      subscribe: async (_obj, _args, { user, factories }) => {
+        const userId = user.id;
+        const userModel = await factories.usersFactory.findById(userId);
+        // eslint-disable-next-line no-async-promise-executor
         const eventsCollections = new Promise(async resolve => {
           // @todo optimize query for getting all user's projects
 
           // Find all user's workspaces
-          const allWorkspaces = await (new Membership(userId)).getWorkspaces();
+          const allWorkspacesIds = await userModel.getWorkspacesIds();
           const allProjects = [];
 
           // Find all user's projects
-          await asyncForEach(allWorkspaces, async workspace => {
-            const allProjectsInWorkspace = await new ProjectToWorkspace(workspace.id).getProjects();
+          await asyncForEach(allWorkspacesIds, async workspaceId => {
+            const allProjectsInWorkspace = await new ProjectToWorkspace(workspaceId).getProjects();
 
             allProjects.push(...allProjectsInWorkspace);
           });
@@ -121,7 +132,110 @@ module.exports = {
        */
       resolve: (payload) => {
         return payload.fullDocument;
+      },
+    },
+  },
+  Mutation: {
+    /**
+     * Mark event as visited for current user
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} project - project id
+     * @param {string} id - event id
+     * @param {UserInContext} user - user context
+     * @return {Promise<boolean>}
+     */
+    async visitEvent(_obj, { project, id }, { user }) {
+      const factory = new EventsFactory(project);
+
+      const { result } = await factory.visitEvent(id, user.id);
+
+      return !!result.ok;
+    },
+
+    /**
+     * Mark event with one of the event marks
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} project - project id
+     * @param {string} id - event id
+     * @param {string} mark - mark to set
+     * @return {Promise<boolean>}
+     */
+    async toggleEventMark(_obj, { project, eventId, mark }) {
+      const factory = new EventsFactory(project);
+
+      const { result } = await factory.toggleEventMark(eventId, mark);
+
+      return !!result.ok;
+    },
+
+    /**
+     * Mutations namespace
+     *
+     * @return {Function()}
+     */
+    events: () => ({}),
+  },
+  EventsMutations: {
+    /**
+     * Update assignee to selected event
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {UpdateAssigneeInput} input - object of arguments
+     * @param factories - factories for working with models
+     * @return {Promise<boolean>}
+     */
+    async updateAssignee(_obj, { input }, { factories }) {
+      const { projectId, eventId, assignee } = input;
+      const factory = new EventsFactory(projectId);
+
+      const userExists = await factories.usersFactory.findById(assignee);
+
+      if (!userExists) {
+        return {
+          success: false,
+        };
       }
-    }
-  }
+
+      const project = await factories.projectsFactory.findById(projectId);
+      const workspaceId = project.workspaceId;
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
+      const assigneeExistsInWorkspace = await workspace.getMemberInfo(assignee);
+
+      if (!assigneeExistsInWorkspace) {
+        return {
+          success: false,
+        };
+      }
+
+      const { result } = await factory.updateAssignee(eventId, assignee);
+
+      const assigneeData = factories.usersFactory.dataLoaders.userById.load(assignee);
+
+      return {
+        success: !!result.ok,
+        record: assigneeData,
+      };
+    },
+
+    /**
+     * Remove an assignee from the selected event
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {RemveAssigneeInput} input - object of arguments
+     * @param factories - factories for working with models
+     * @return {Promise<boolean>}
+     */
+    async removeAssignee(_obj, { input }) {
+      const { projectId, eventId } = input;
+      const factory = new EventsFactory(projectId);
+
+      const { result } = await factory.updateAssignee(eventId, '');
+
+      return {
+        success: !!result.ok,
+      };
+    },
+  },
 };

@@ -1,42 +1,79 @@
 {
   "name": "hawk.api",
   "version": "1.0.0",
-  "main": "app.js",
+  "main": "index.ts",
   "license": "UNLICENSED",
   "scripts": {
-    "dev": "nodemon app.js",
-    "start": "node app.js",
-    "lint": "eslint . --ext .js --fix",
+    "dev": "ts-node-dev --no-notify index.ts",
+    "start": "node index.ts",
+    "lint": "eslint -c ./.eslintrc.js src/ --ext .ts,.js --fix",
+    "lint-test": "eslint -c ./.eslintrc.js src/ --ext .ts,.js",
     "dev:up": "docker-compose -f docker-compose.dev.yml up -d",
-    "dev:down": "docker-compose -f docker-compose.dev.yml down"
+    "dev:down": "docker-compose -f docker-compose.dev.yml down",
+    "build": "tsc && yarn copy-email-templates",
+    "copy-email-templates": "copyfiles src/email/templates/*/*.txt build",
+    "migrations:up": "docker-compose exec api yarn migrate-mongo up",
+    "migrations:down": "docker-compose exec api yarn migrate-mongo down"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "yarn lint",
+      "git add"
+    ]
   },
   "devDependencies": {
-    "eslint": "^5.16.0",
-    "eslint-config-codex": "github:codex-team/eslint-config",
-    "eslint-plugin-import": "^2.18.2",
-    "husky": "^2.3.0",
-    "lint-staged": "^8.1.7",
-    "nodemon": "^1.19.1"
+    "eslint": "^6.7.2",
+    "eslint-config-codex": "1.2.4",
+    "eslint-plugin-import": "^2.19.1",
+    "husky": "^3.1.0",
+    "jest": "^24.9.0",
+    "lint-staged": "^9.5.0",
+    "nodemon": "^2.0.2",
+    "ts-node": "^8.6.2",
+    "typescript": "^3.7.5"
   },
   "dependencies": {
+    "@hawk.so/nodejs": "^2.0.7",
+    "@types/amqp-connection-manager": "^2.0.4",
+    "@types/debug": "^4.1.5",
+    "@types/jsonwebtoken": "^8.3.5",
+    "@types/mime-types": "^2.1.0",
+    "@types/mongodb": "^3.3.13",
+    "@types/node": "^14.0.13",
+    "@types/node-fetch": "^2.5.4",
+    "@types/uuid": "^3.4.6",
+    "amqp-connection-manager": "^3.1.0",
     "amqplib": "^0.5.5",
-    "apollo-server-express": "^2.9.0",
-    "argon2": "^0.22.0",
-    "dotenv": "^7.0.0",
+    "apollo-server-express": "^2.14.2",
+    "argon2": "^0.26.2",
+    "axios": "^0.19.2",
+    "copyfiles": "^2.1.1",
+    "dataloader": "^2.0.0",
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
-    "graphql": "^14.5.3",
+    "graphql": "^14.5.8",
     "graphql-iso-date": "^3.6.1",
     "graphql-list-fields": "^2.0.2",
     "graphql-type-json": "^0.3.0",
+    "graphql-upload": "^9.0.0",
+    "graphql-voyager": "^1.0.0-rc.31",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.15",
-    "mongodb": "^3.2.7",
+    "migrate-mongo": "^7.0.1",
+    "mime-types": "^2.1.25",
+    "mongodb": "^3.4.0",
     "mustache": "^3.0.1",
-    "nodemailer": "^6.2.1",
-    "passport": "^0.4.0",
+    "nodemailer": "^6.4.2",
+    "passport": "^0.4.1",
     "passport-github": "^1.1.0",
     "passport-jwt": "^4.0.0",
-    "tinkoff-api": "git+https://github.com/codex-team/tinkoff-api.git",
+    "tinkoff-api": "github:codex-team/tinkoff-api.git",
+    "ts-node-dev": "^1.0.0-pre.44",
     "uuid": "^3.3.3"
   }
 }
