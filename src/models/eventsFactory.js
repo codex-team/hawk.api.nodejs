@@ -143,7 +143,7 @@ class EventsFactory extends Factory {
    *
    * @param {Number} limit - events count limitations
    * @param {Number} skip - certain number of documents to skip
-   * @param {'lastRepetitionTime' | 'count'} sort - events sort order
+   * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
    * @param {EventsFilters} filters - marks by which events should be filtered
    *
    * @return {RecentEventSchema[]}
@@ -151,10 +151,11 @@ class EventsFactory extends Factory {
   async findRecent(
     limit = 10,
     skip = 0,
-    sort = 'lastRepetitionTime',
+    sort = 'BY_DATE',
     filters = {}
   ) {
     limit = this.validateLimit(limit);
+    sort = sort === 'BY_COUNT' ? 'count' : 'lastRepetitionTime';
 
     const pipeline = [
       {

@@ -6,8 +6,8 @@ export default gql`
 Possible events order
 """
 enum EventsSortOrder {
-  lastRepetitionTime
-  count
+  BY_DATE
+  BY_COUNT
 }
 
 """

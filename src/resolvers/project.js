@@ -238,7 +238,7 @@ module.exports = {
      * @param {ProjectDBScheme} project - result of parent resolver
      * @param {Number} limit - limit for events count
      * @param {Number} skip - certain number of documents to skip
-     * @param {'lastRepetitionTime' | 'count'} sort - events sort order
+     * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
      * @param {EventsFilters} filters - marks by which events should be filtered
      *
      * @return {Promise<RecentEventSchema[]>}
