@@ -2,13 +2,33 @@ import AbstractModel from '../abstractModel';
 import { Collection, ObjectId } from 'mongodb';
 
 /**
+ * Transaction statuses
+ */
+export enum TransactionStatus {
+  /**
+   * Transaction is pending
+   */
+  PENDING='PENDING',
+
+  /**
+   * Transaction is confirmed
+   */
+  CONFIRMED='CONFIRMED',
+
+  /**
+   * Transaction is rejected
+   */
+  REJECTED='REJECTED'
+}
+
+/**
  * Structure represents a Transaction in DataBase
  */
 export interface TransactionDBScheme {
   /**
    * Transaction ID
    */
-  _id: ObjectId;
+  _id?: ObjectId;
 
   /**
    * Workspace ID to which the payment is credited
@@ -28,7 +48,7 @@ export interface TransactionDBScheme {
   /**
    * Transaction status
    */
-  status: string;
+  status: TransactionStatus;
 
   /**
    * ID of the user who made the payment
@@ -68,7 +88,7 @@ export default class TransactionModel extends AbstractModel<TransactionDBScheme>
   /**
    * Transaction status
    */
-  public status!: string;
+  public status!: TransactionStatus;
 
   /**
    * ID of the user who made the payment
