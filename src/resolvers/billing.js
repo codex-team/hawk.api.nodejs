@@ -1,6 +1,5 @@
 const PaymentRequest = require('../models/paymentRequest');
 const UserCard = require('../models/userCard');
-const TinkoffAPI = require('tinkoff-api');
 const rabbitmq = require('../rabbitmq');
 const PaymentTransaction = require('../models/paymentTransaction');
 const Membership = require('../models/membership');
@@ -20,12 +19,6 @@ const Transaction = require('../models/transaction');
  * @property {string} success - if the payment is successfull
  * @property {string} paymentURL - URL to the payment page
  */
-
-/**
- * Tinkoff bank API
- * @type {TinkoffAPI}
- */
-const bankApi = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
 
 /**
  * See all types and fields here {@link ../typeDefs/billing.graphql}
@@ -142,18 +135,23 @@ module.exports = {
         orderId,
       });
 
-      // Charge payment with bank API
-      const chargeResult = await bankApi.charge({
-        PaymentId: result.PaymentId,
-        RebillId: card.rebillId,
-      });
+      /*
+       * Charge payment with bank API
+       * const chargeResult = await bankApi.charge({
+       *   PaymentId: result.PaymentId,
+       *   RebillId: card.rebillId,
+       * });
+       */
 
-      console.log(`Got result for charge: ${JSON.stringify(chargeResult)}`);
-      if (!process.env.BILLING_DEBUG) {
-        if (!chargeResult.Success) {
-          throw Error(`Merchant API error: ${chargeResult.Message}`);
-        }
-      }
+      /*
+       * console.log(`Got result for charge: ${JSON.stringify(chargeResult)}`);
+       * if (!process.env.BILLING_DEBUG) {
+       *   if (!chargeResult.Success) {
+       *     throw Error(`Merchant API error: ${chargeResult.Message}`);
+       *   }
+       * }
+       */
+
       const transaction = await PaymentTransaction.create({
         userId: user.id,
         workspaceId,
