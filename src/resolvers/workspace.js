@@ -24,10 +24,18 @@ module.exports = {
      * @param {ContextFactories} factories - factories for working with models
      * @return {Workspace[]}
      */
-    async workspaces(_obj, { ids }, { user, factories }) {
+    async workspaces(_obj, { ids }, { user, factories, accounting }) {
       const authenticatedUser = await factories.usersFactory.findById(user.id);
 
-      return factories.workspacesFactory.findManyByIds(await authenticatedUser.getWorkspacesIds(ids));
+      const userWorkspaces = await factories.workspacesFactory.findManyByIds(await authenticatedUser.getWorkspacesIds(ids));
+
+      // get workspace balance and assign with userWorkspace
+      const firstWorkspaceId = userWorkspaces[0]._id;
+
+      accounting.getAccount(firstWorkspaceId);
+      // ...
+
+      return userWorkspaces;
     },
   },
   Mutation: {

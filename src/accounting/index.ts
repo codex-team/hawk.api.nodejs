@@ -1,5 +1,5 @@
-import { AccountInput, CreateAccountResponse, Settings } from './types';
-import { MUTATION_CREATE_ACCOUNT } from './queries';
+import { AccountInput, CreateAccountResponse, Settings, Account } from './types';
+import { MUTATION_CREATE_ACCOUNT, QUERY_GET_ACCOUNT } from './queries';
 import Client from './client';
 
 /**
@@ -30,5 +30,16 @@ export default class Accounting {
     console.log(accountInput);
 
     return (await this.client.call(MUTATION_CREATE_ACCOUNT, accountInput)).AccountCreateMutation;
+  }
+
+  /**
+   * Get workspace account
+   *
+   * @param workspaceId - workspace id
+   */
+  public async getAccount(workspaceId: string): Promise<Account> {
+    console.log('Try to get an acoount', workspaceId);
+
+    return (await this.client.call(QUERY_GET_ACCOUNT, workspaceId)).GetAccount;
   }
 }

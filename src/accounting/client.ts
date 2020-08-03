@@ -43,7 +43,7 @@ export default class Client {
    */
   public async call(
     query: string,
-    variables?: object
+    variables?: object|string
     // eslint-disable-next-line
   ): Promise<any> {
     const response = await this.apiInstance.post(this.baseURL, {
