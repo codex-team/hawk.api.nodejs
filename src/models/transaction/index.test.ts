@@ -2,7 +2,7 @@ import TransactionModel, { TransactionStatus } from './transaction';
 import { ObjectId } from 'mongodb';
 
 describe('Transaction model', () => {
-  test('should create Transaction model', () => {
+  test('should create instance', () => {
     const data = {
       workspaceId: new ObjectId('5edd36fbb596d4759beb89f6'),
       amount: 100,
