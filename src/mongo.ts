@@ -28,6 +28,29 @@ export const databases: Databases = {
 };
 
 /**
+ * Mongo clients for Hawk database
+ */
+interface MongoClients {
+  /**
+   * Mongo client for Hawk database for users, workspaces, project, etc
+   */
+  hawk: MongoClient | null;
+
+  /**
+   * Mongo client for events database
+   */
+  events: MongoClient | null;
+}
+
+/**
+ * Export mongo clients
+ */
+export const mongoClients: MongoClients = {
+  hawk: null,
+  events: null,
+};
+
+/**
  * Common params for all connections
  */
 const connectionConfig: MongoClientOptions = {
@@ -40,13 +63,16 @@ const connectionConfig: MongoClientOptions = {
  */
 export async function setupConnections(): Promise<void> {
   try {
-    const [hawkDB, eventsDB] = (await Promise.all([
+    const [hawkMongoClient, eventsMongoClient] = await Promise.all([
       MongoClient.connect(hawkDBUrl, connectionConfig),
       MongoClient.connect(eventsDBUrl, connectionConfig),
-    ])).map(client => client.db());
+    ]);
 
-    databases.hawk = hawkDB;
-    databases.events = eventsDB;
+    mongoClients.hawk = hawkMongoClient;
+    mongoClients.events = eventsMongoClient;
+
+    databases.hawk = hawkMongoClient.db();
+    databases.events = eventsMongoClient.db();
   } catch (e) {
     /** Catch start Mongo errors  */
     HawkCatcher.send(e);
