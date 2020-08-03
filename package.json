@@ -14,7 +14,7 @@
     "copy-email-templates": "copyfiles src/email/templates/*/*.txt build",
     "migrations:up": "docker-compose exec api yarn migrate-mongo up",
     "migrations:down": "docker-compose exec api yarn migrate-mongo down",
-    "test": "jest --coverage --detectOpenHandles"
+    "test": "jest --coverage"
   },
   "husky": {
     "hooks": {

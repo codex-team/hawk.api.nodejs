@@ -1,7 +1,7 @@
-import AbstractModelFactory from '../abstactModelFactory';
+import AbstractModelFactory from './abstactModelFactory';
 import TransactionModel, { TransactionDBScheme } from './transaction';
-import { Collection, Db } from 'mongodb';
-import DataLoaders from '../../dataLoaders';
+import { Collection, Db, ObjectId } from 'mongodb';
+import DataLoaders from '../dataLoaders';
 
 /**
  * Transactions factory to work with Transaction model
@@ -39,5 +39,16 @@ export default class TransactionsFactory extends AbstractModelFactory<Transactio
     });
 
     return transaction;
+  }
+
+  /**
+   * Return transactions for passed workspaces
+   *
+   * @param {string[]} workspaceIds - ids of workspaces
+   */
+  public async getWorkspacesTransactions(workspaceIds: string[]): Promise<TransactionModel[]> {
+    const docs = await this.collection.find({ workspaceId: { $in: workspaceIds.map(id => new ObjectId(id)) } }).toArray();
+
+    return docs.map(doc => new TransactionModel(doc));
   }
 }
