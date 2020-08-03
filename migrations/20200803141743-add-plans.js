@@ -43,6 +43,11 @@ module.exports = {
         await db.collection('plans').insertMany(plans);
 
         /**
+         * Set up sort index by the field isDefault from true to false
+         */
+        await db.collection('plans').createIndex({ isDefault: -1 })
+
+        /**
          * Get default plan data
          * @type {PlanDBScheme}
          */
