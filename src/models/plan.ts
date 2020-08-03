@@ -16,7 +16,7 @@ export interface PlanDBScheme {
   name: string;
 
   /**
-   * Monthly charge for plan
+   * Monthly charge for plan in dollars
    */
   monthlyCharge: number;
 
@@ -46,7 +46,7 @@ export default class PlanModel extends AbstractModel<PlanDBScheme> implements Pl
   public name!: string;
 
   /**
-   * monthly charge for plan
+   * Monthly charge for plan in dollars
    */
   public monthlyCharge!: number;
 

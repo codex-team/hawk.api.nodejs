@@ -28,7 +28,7 @@ export interface WorkspaceDBScheme {
   image?: string;
 
   /**
-   * Workspace's plan
+   * Id of the Workspace's plan
    */
   plan: string;
 }
@@ -98,7 +98,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   public image?: string;
 
   /**
-   * Workspace's plan
+   * Id of the Workspace's plan
    */
   public plan!: string;
 
