@@ -65,6 +65,10 @@ export default class PlanModel extends AbstractModel<PlanDBScheme> implements Pl
    */
   protected collection: Collection<PlanDBScheme>;
 
+  /**
+   * Create Plan instance
+   * @param planData - plan's data
+   */
   constructor(planData: PlanDBScheme) {
     super(planData);
     this.collection = this.dbConnection.collection<PlanDBScheme>('plans');
