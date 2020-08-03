@@ -26,6 +26,11 @@ export interface WorkspaceDBScheme {
    * Workspace's image URL
    */
   image?: string;
+
+  /**
+   * Workspace's plan
+   */
+  plan: string;
 }
 
 /**
@@ -91,6 +96,11 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Workspace's image URL
    */
   public image?: string;
+
+  /**
+   * Workspace's plan
+   */
+  public plan!: string;
 
   /**
    * Model's collection
@@ -266,5 +276,20 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
     return this.teamCollection.findOne({
       userId: new ObjectId(memberId),
     });
+  }
+
+  /**
+   * Change plan for current workspace
+   * @param planId - id of plan to be enabled
+   */
+  public async changePlan(planId: string): Promise<number> {
+    return (await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id)
+      },
+      {
+        $set: { plan: planId }
+      }
+    )).modifiedCount;
   }
 }

@@ -42,12 +42,19 @@ export default class PlansFactory extends AbstractModelFactory<PlanDBScheme, Pla
   }
 
   /**
-   * Find plan to be used by default
+   * Get plan to be used by default
    */
-  public async findDefault(): Promise<PlanModel | null> {
+  public async getDefaultPlan(): Promise<PlanModel> {
     const planData = await this.collection.findOne({
       isDefault: true
     });
+
+    /**
+     * If no plan with flag 'default' was found then throw an error
+     */
+    if (!planData) {
+      throw new Error('Default plan is missing!');
+    }
 
     return new PlanModel(planData);
   }
@@ -55,14 +62,17 @@ export default class PlansFactory extends AbstractModelFactory<PlanDBScheme, Pla
   /**
    * Creates new plan in DataBase
    */
-  public async create(planData: PlanDBScheme): Promise<PlanModel> {
+  public async create(planData: PlanDBScheme): Promise<PlanModel | null> {
     const planId = (await this.collection.insertOne(planData)).insertedId;
 
-    const result = await this.collection.findOne(
-      { _id: planId },
-      { returnOriginal: false }
-    );
+    const result = await this.collection.findOne({
+      _id: planId
+    });
 
-    return new PlanModel(result.value);
+    if (!result) {
+      throw new Error('Can\'t create plan due to unknown error');
+    }
+
+    return new PlanModel(result);
   }
 }

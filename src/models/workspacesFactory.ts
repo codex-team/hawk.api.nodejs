@@ -3,6 +3,8 @@ import { Collection, Db } from 'mongodb';
 import WorkspaceModel, { WorkspaceDBScheme } from './workspace';
 import DataLoaders from '../dataLoaders';
 import UserModel from './user';
+import PlansFactory from './plansFactory';
+import PlanModel from './plan';
 
 /**
  * Workspaces factory to work with WorkspaceModel
@@ -59,6 +61,7 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
     await workspaceModel.addMember(ownerModel._id.toString());
     await workspaceModel.grantAdmin(ownerModel._id.toString());
     await ownerModel.addWorkspace(workspaceModel._id.toString());
+    await workspaceModel.changePlan((await this.getDefaultPlan())._id.toString());
 
     return workspaceModel;
   }
@@ -71,5 +74,15 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
     return (await this.dataLoaders.workspaceById.loadMany(ids))
       .map((data) => !data || data instanceof Error ? null : new WorkspaceModel(data))
       .filter(Boolean) as WorkspaceModel[];
+  }
+
+  /**
+   * @private
+   * Get default plan to be used for new projects
+   */
+  private async getDefaultPlan(): Promise<PlanModel> {
+    const plansFactory = new PlansFactory(this.dbConnection, this.dataLoaders);
+
+    return plansFactory.getDefaultPlan();
   }
 }

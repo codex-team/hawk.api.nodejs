@@ -73,16 +73,16 @@ export default class PlanModel extends AbstractModel<PlanDBScheme> implements Pl
   /**
    * Find plan by id
    */
-  public async find(planId: string): Promise<PlanDBScheme[]> {
+  public async find(planId: string): Promise<PlanDBScheme | null> {
     return this.collection.findOne({
-      _id: ObjectId(planId)
+      _id: new ObjectId(planId)
     });
   }
 
   /**
    * Find default tariff plan
    */
-  public async getDefaultPlan(): Promise<PlanDBScheme> {
+  public async getDefaultPlan(): Promise<PlanDBScheme | null> {
     return this.collection.findOne({
       isDefault: true
     });
