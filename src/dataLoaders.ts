@@ -3,7 +3,7 @@ import { Db, ObjectId } from 'mongodb';
 import { WorkspaceDBScheme } from './models/workspace';
 import { UserDBScheme } from './models/user';
 import { ProjectDBScheme } from './models/project';
-import { PlanDBScheme } from "./models/plan";
+import { PlanDBScheme } from './models/plan';
 
 /**
  * Class for setting up data loaders

@@ -285,10 +285,10 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   public async changePlan(planId: string): Promise<number> {
     return (await this.collection.updateOne(
       {
-        _id: new ObjectId(this._id)
+        _id: new ObjectId(this._id),
       },
       {
-        $set: { plan: planId }
+        $set: { plan: planId },
       }
     )).modifiedCount;
   }

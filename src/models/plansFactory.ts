@@ -1,6 +1,6 @@
 import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
-import PlanModel, { PlanDBScheme } from "./plan";
+import PlanModel, { PlanDBScheme } from './plan';
 import DataLoaders from '../dataLoaders';
 
 /**
@@ -46,7 +46,7 @@ export default class PlansFactory extends AbstractModelFactory<PlanDBScheme, Pla
    */
   public async getDefaultPlan(): Promise<PlanModel> {
     const planData = await this.collection.findOne({
-      isDefault: true
+      isDefault: true,
     });
 
     /**
@@ -66,7 +66,7 @@ export default class PlansFactory extends AbstractModelFactory<PlanDBScheme, Pla
     const planId = (await this.collection.insertOne(planData)).insertedId;
 
     const result = await this.collection.findOne({
-      _id: planId
+      _id: planId,
     });
 
     if (!result) {
