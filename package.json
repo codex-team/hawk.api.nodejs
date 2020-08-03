@@ -13,7 +13,8 @@
     "build": "tsc && yarn copy-email-templates",
     "copy-email-templates": "copyfiles src/email/templates/*/*.txt build",
     "migrations:up": "docker-compose exec api yarn migrate-mongo up",
-    "migrations:down": "docker-compose exec api yarn migrate-mongo down"
+    "migrations:down": "docker-compose exec api yarn migrate-mongo down",
+    "test": "jest --coverage --detectOpenHandles"
   },
   "husky": {
     "hooks": {
@@ -30,6 +31,7 @@
     "@babel/core": "^7.11.0",
     "@babel/preset-env": "^7.11.0",
     "@babel/preset-typescript": "^7.10.4",
+    "@shelf/jest-mongodb": "^1.1.5",
     "@types/jest": "^26.0.8",
     "babel-jest": "^26.2.2",
     "eslint": "^6.7.2",
@@ -38,6 +40,7 @@
     "husky": "^3.1.0",
     "jest": "^26.2.2",
     "lint-staged": "^9.5.0",
+    "mongodb-memory-server": "^6.6.3",
     "nodemon": "^2.0.2",
     "ts-jest": "^26.1.4",
     "ts-node": "^8.6.2",

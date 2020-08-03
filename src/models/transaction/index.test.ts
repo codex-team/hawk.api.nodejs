@@ -1,8 +1,14 @@
 import TransactionModel, { TransactionStatus } from './transaction';
-import { ObjectId } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
+import * as mongo from '../../mongo';
+import '../../env-test';
+
+beforeAll(async () => {
+  await mongo.setupConnections();
+});
 
 describe('Transaction model', () => {
-  test('should create instance', () => {
+  it('should create instance', () => {
     const data = {
       workspaceId: new ObjectId('5edd36fbb596d4759beb89f6'),
       amount: 100,
@@ -25,4 +31,9 @@ describe('Transaction model', () => {
     expect(transaction.userId).toEqual(data.userId);
     expect(transaction.cardPan).toEqual(data.cardPan);
   });
+});
+
+afterAll(async done => {
+  // Closing the DB connection allows Jest to exit successfully.
+  done();
 });
