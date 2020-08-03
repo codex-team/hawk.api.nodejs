@@ -12,6 +12,7 @@
     "dev:down": "docker-compose -f docker-compose.dev.yml down",
     "build": "tsc && yarn copy-email-templates",
     "copy-email-templates": "copyfiles src/email/templates/*/*.txt build",
+    "migrations:create": "docker-compose exec api yarn migrate-mongo create",
     "migrations:up": "docker-compose exec api yarn migrate-mongo up",
     "migrations:down": "docker-compose exec api yarn migrate-mongo down"
   },
