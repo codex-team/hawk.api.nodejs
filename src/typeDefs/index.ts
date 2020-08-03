@@ -51,6 +51,11 @@ const rootSchema = gql`
   directive @validate(notEmpty: Boolean, isEmail: Boolean) on ARGUMENT_DEFINITION
 
   """
+  Directive for checking user in workspace
+  """
+  directive @requireUserInWorkspace on FIELD_DEFINITION
+
+  """
   Type for date and time representation
   """
   scalar DateTime

@@ -54,8 +54,8 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
     const workspaceId = (await this.collection.insertOne(workspaceData)).insertedId;
 
     const workspaceModel = new WorkspaceModel({
-      _id: workspaceId,
       ...workspaceData,
+      _id: workspaceId,
     });
 
     await workspaceModel.addMember(ownerModel._id.toString());

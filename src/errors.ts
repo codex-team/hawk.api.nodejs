@@ -1,9 +1,9 @@
-const { ApolloError } = require('apollo-server-express');
+import { ApolloError } from 'apollo-server-express';
 
 /**
  * Hawk API error codes
  */
-const errorCodes = {
+export const errorCodes = {
   /**
    * Auth-related error codes
    */
@@ -16,9 +16,15 @@ const errorCodes = {
 };
 
 /**
+ * Class for non-critical errors (when the app works fine, but we need to send the error to the user, for example, auth-errors and others)
+ * Events inherited from this class won't be send to hawk
+ */
+export class NonCriticalError extends ApolloError {}
+
+/**
  * Error throws when user send expired access token and tries to access private resources
  */
-class AccessTokenExpiredError extends ApolloError {
+export class AccessTokenExpiredError extends NonCriticalError {
   /**
    * Error constructor
    */
@@ -26,8 +32,3 @@ class AccessTokenExpiredError extends ApolloError {
     super('You need to refresh your tokens', errorCodes.AUTH_ACCESS_TOKEN_EXPIRED_ERROR);
   }
 }
-
-module.exports = {
-  errorCodes,
-  AccessTokenExpiredError,
-};

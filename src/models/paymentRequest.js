@@ -1,12 +1,10 @@
 const crypto = require('crypto');
 const User = require('../models/user').default;
-const TinkoffAPI = require('tinkoff-api');
 
 const EmailCompany = process.env.BILLING_COMPANY_EMAIL;
 const OSNTaxation = 'osn';
 const TaxNone = 'none';
 const PaymentDescription = 'Card check payment. It will be refunded.';
-const bankApi = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
 
 /**
  * PaymentRequest model
@@ -73,8 +71,8 @@ class PaymentRequest {
    * @return {Object} - payment response object from bank
    */
   static async apiInitPayment(userId, paymentInitQuery) {
-    const paymentRequest = await PaymentRequest.create(userId, paymentInitQuery);
-    const result = await bankApi.initPayment(paymentRequest);
+    // const paymentRequest = await PaymentRequest.create(userId, paymentInitQuery);
+    const result = {}; // Init payment request to API
 
     console.log(`Got result for Init payment: ${JSON.stringify(result)}`);
     if (!result.Success) {
