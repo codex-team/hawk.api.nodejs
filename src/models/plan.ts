@@ -16,7 +16,7 @@ export interface PlanDBScheme {
   name: string;
 
   /**
-   * monthly charge for plan
+   * Monthly charge for plan
    */
   monthlyCharge: number;
 
