@@ -29,11 +29,15 @@ module.exports = {
 
       const userWorkspaces = await factories.workspacesFactory.findManyByIds(await authenticatedUser.getWorkspacesIds(ids));
 
-      // get workspace balance and assign with userWorkspace
-      const firstWorkspaceId = userWorkspaces[0]._id;
+      // For each workspace, get a workspace account and set its balance
+      for (let i = 0; i < userWorkspaces.length; i++) {
+        const workspace = userWorkspaces[i];
+        const accountId = userWorkspaces[i].accountId;
+        const account = await accounting.getAccount(accountId);
 
-      accounting.getAccount(firstWorkspaceId);
-      // ...
+        workspace.balance = account.balance;
+        userWorkspaces[i] = workspace;
+      }
 
       return userWorkspaces;
     },
@@ -66,20 +70,24 @@ module.exports = {
          *   name: defaultPlan.name
          * };
          */
-        accounting.createAccount({
-          name: 'Workspace',
+
+        // Create workspace account and set account id to workspace
+        const accountResponse = await accounting.createAccount({
+          name: name,
           type: AccountType.LIABILITY,
           currency: Currency.USD,
         });
+
+        const accountId = accountResponse.recordId;
 
         /**
          * @type {WorkspaceDBScheme}
          */
         const options = {
           name,
-          // balance: 0,
           description,
           image,
+          accountId,
           // plan
         };
 

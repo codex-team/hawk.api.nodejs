@@ -3,12 +3,13 @@
  * Query to get account by id
  */
 export const QUERY_GET_ACCOUNT = `
-  query GetAccount($workspaceId: ID!) {
-    getAccount(id: $workspaceId) {
-      id
-      name
-    }
+query getAccount($id: ID!) {
+  getAccount(id: $id) {
+    id
+    name
+    currency
   }
+}
 `;
 
 // language=GraphQL
