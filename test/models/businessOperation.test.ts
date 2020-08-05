@@ -4,6 +4,7 @@ import BusinessOperationModel, {
 } from '../../src/models/businessOperation';
 import { ObjectId } from 'mongodb';
 import * as mongo from '../../src/mongo';
+import '../../src/env-test';
 
 beforeAll(async () => {
   await mongo.setupConnections();
