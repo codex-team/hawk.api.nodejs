@@ -76,6 +76,9 @@ export interface PayloadOfWorkspacePlanPurchase {
   amount: number;
 }
 
+/**
+ * Type of business operation payload, it depends of type field
+ */
 type BusinessOperationPayloadType = PayloadOfDepositByUser | PayloadOfWorkspacePlanPurchase;
 
 /**
