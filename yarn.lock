@@ -694,7 +694,7 @@
   dependencies:
     any-observable "^0.3.0"
 
-"@shelf/jest-mongodb@^1.1.5":
+"@shelf/jest-mongodb@^1.2.1":
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/@shelf/jest-mongodb/-/jest-mongodb-1.2.1.tgz#dd449e1c90cc54a586c50152ccdcf7429db07571"
   integrity sha512-hvgqSBZT1F4/dCzcKEPEIgi0KY4Sa8MkOzycGIJnltztqYliszHkTcwk6K0y9aBF9uVWMlhhwwXgMS2JokfMKA==

@@ -1,7 +1,7 @@
 module.exports = {
   mongodbMemoryServerOptions: {
     instance: {
-      port: 57340,
+      port: 55011,
       dbName: 'hawk',
     },
     binary: {
