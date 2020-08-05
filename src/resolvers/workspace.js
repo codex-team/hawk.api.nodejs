@@ -30,14 +30,14 @@ module.exports = {
       const userWorkspaces = await factories.workspacesFactory.findManyByIds(await authenticatedUser.getWorkspacesIds(ids));
 
       // For each workspace, get a workspace account and set its balance
-      let userWorkspacesWithBalance = await Promise.all(userWorkspaces.map(async (workspace) => {
+      const userWorkspacesWithBalance = await Promise.all(userWorkspaces.map(async (workspace) => {
         const accountId = workspace.accountId;
         const account = await accounting.getAccount(accountId);
 
         return {
           ...workspace,
-          balance: account.balance
-        }
+          balance: account.balance,
+        };
       }));
 
       return userWorkspacesWithBalance;
