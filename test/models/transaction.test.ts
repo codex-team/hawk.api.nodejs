@@ -1,4 +1,4 @@
-import TransactionModel, { TransactionStatus } from '../../src/models/transaction';
+import BusinessOperationModel, { BusinessOperationStatus } from '../../src/models/businessOperation';
 import { ObjectId } from 'mongodb';
 import * as mongo from '../../src/mongo';
 
@@ -12,12 +12,12 @@ describe('Transaction model', () => {
       workspaceId: new ObjectId('5edd36fbb596d4759beb89f6'),
       amount: 100,
       dtCreated: Date.now(),
-      status: TransactionStatus.CONFIRMED,
+      status: BusinessOperationStatus.CONFIRMED,
       userId: new ObjectId('5eb9034a1ccc4421e2623dc2'),
       cardPan: '4455',
     };
 
-    const transaction = new TransactionModel(data);
+    const transaction = new BusinessOperationModel(data);
 
     /**
      * Undefined because it was not created in the database
