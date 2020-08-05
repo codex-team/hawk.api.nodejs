@@ -9,8 +9,6 @@ import DataLoaders from '../dataLoaders';
 export default class BusinessOperationsFactory extends AbstractModelFactory<BusinessOperationDBScheme, BusinessOperationModel> {
   /**
    * DataBase collection to work with
-   *
-   * @protected
    */
   protected collection: Collection<BusinessOperationDBScheme>;
 

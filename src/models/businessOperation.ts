@@ -139,8 +139,6 @@ export default class BusinessOperationModel extends AbstractModel<BusinessOperat
 
   /**
    * Model's collection
-   *
-   * @protected
    */
   protected collection: Collection<BusinessOperationDBScheme>;
 
