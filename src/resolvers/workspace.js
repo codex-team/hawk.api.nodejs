@@ -24,10 +24,22 @@ module.exports = {
      * @param {ContextFactories} factories - factories for working with models
      * @return {Workspace[]}
      */
-    async workspaces(_obj, { ids }, { user, factories }) {
+    async workspaces(_obj, { ids }, { user, factories, accounting }) {
       const authenticatedUser = await factories.usersFactory.findById(user.id);
 
-      return factories.workspacesFactory.findManyByIds(await authenticatedUser.getWorkspacesIds(ids));
+      const userWorkspaces = await factories.workspacesFactory.findManyByIds(await authenticatedUser.getWorkspacesIds(ids));
+
+      // For each workspace, get a workspace account and set its balance
+      for (let i = 0; i < userWorkspaces.length; i++) {
+        const workspace = userWorkspaces[i];
+        const accountId = userWorkspaces[i].accountId;
+        const account = await accounting.getAccount(accountId);
+
+        workspace.balance = account.balance;
+        userWorkspaces[i] = workspace;
+      }
+
+      return userWorkspaces;
     },
   },
   Mutation: {
@@ -58,20 +70,24 @@ module.exports = {
          *   name: defaultPlan.name
          * };
          */
-        accounting.createAccount({
-          name: 'Workspace',
+
+        // Create workspace account and set account id to workspace
+        const accountResponse = await accounting.createAccount({
+          name: name,
           type: AccountType.LIABILITY,
           currency: Currency.USD,
         });
+
+        const accountId = accountResponse.recordId;
 
         /**
          * @type {WorkspaceDBScheme}
          */
         const options = {
           name,
-          // balance: 0,
           description,
           image,
+          accountId,
           // plan
         };
 
