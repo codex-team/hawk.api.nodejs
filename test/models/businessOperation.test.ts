@@ -27,17 +27,7 @@ describe('Transaction model', () => {
 
     const businessOperation = new BusinessOperationModel<PayloadOfDepositByUser>(data);
 
-    /**
-     * Undefined because it was not created in the database
-     */
-    expect(businessOperation._id).toBe(undefined);
-    expect(businessOperation.transactionId).toEqual(data.transactionId);
-    expect(businessOperation.status).toEqual(data.status);
-    expect(businessOperation.type).toEqual(data.type);
-    expect(businessOperation.payload.workspaceId).toEqual(payloadTopUpByUser.workspaceId);
-    expect(businessOperation.payload.amount).toEqual(payloadTopUpByUser.amount);
-    expect(businessOperation.payload.userId).toEqual(payloadTopUpByUser.userId);
-    expect(businessOperation.payload.cardPan).toEqual(payloadTopUpByUser.cardPan);
+    expect(businessOperation).toMatchObject(data);
   });
 
   it('should create instance for write-off by payment worker', () => {
@@ -55,15 +45,7 @@ describe('Transaction model', () => {
 
     const businessOperation = new BusinessOperationModel<PayloadOfWorkspacePlanPurchase>(data);
 
-    /**
-     * Undefined because it was not created in the database
-     */
-    expect(businessOperation._id).toBe(undefined);
-    expect(businessOperation.transactionId).toEqual(data.transactionId);
-    expect(businessOperation.status).toEqual(data.status);
-    expect(businessOperation.type).toEqual(data.type);
-    expect(businessOperation.payload.workspaceId).toEqual(payloadWriteOff.workspaceId);
-    expect(businessOperation.payload.amount).toEqual(payloadWriteOff.amount);
+    expect(businessOperation).toMatchObject(data);
   });
 });
 
