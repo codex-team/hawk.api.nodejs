@@ -349,44 +349,6 @@
   dependencies:
     "@f/map-obj" "^1.2.2"
 
-"@hawk.so/nodejs@^2.0.6":
-  version "2.0.7"
-  resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-2.0.7.tgz#766ff475984be338376a283ea9d6f567b31c27fa"
-  integrity sha512-2tTAQfczIk2GDwFLewF+OvGKlg5RVP0d5Kn3HXCBe51C06oVhIE3es83Zbm2SDSmy9rKKkF845V++0UcnXSlOw==
-  dependencies:
-    "@f/elapsed-time" "^1.0.0"
-    "@f/raf" "^1.0.0"
-    "@f/tween" "^1.0.0"
-
-"@f/elapsed-time@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@f/elapsed-time/-/elapsed-time-1.0.0.tgz#6a079a6104a87278bf5b4080444ef02d1b595449"
-  integrity sha1-ageaYQSocni/W0CARE7wLRtZVEk=
-  dependencies:
-    "@f/timestamp" "^1.0.0"
-
-"@f/map-obj@^1.2.2":
-  version "1.2.2"
-  resolved "https://registry.yarnpkg.com/@f/map-obj/-/map-obj-1.2.2.tgz#d9a9f8bd76caa2ae11b633dda24d9c6cccc1e60d"
-  integrity sha1-2an4vXbKoq4RtjPdok2cbMzB5g0=
-
-"@f/raf@^1.0.0":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@f/raf/-/raf-1.0.3.tgz#32ddca37de345b20c8c3843018cc51b8f897914d"
-  integrity sha1-Mt3KN940WyDIw4QwGMxRuPiXkU0=
-
-"@f/timestamp@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@f/timestamp/-/timestamp-1.0.0.tgz#32a9166e2516e5ccb9b0fcfdc89223819710e88c"
-  integrity sha1-MqkWbiUW5cy5sPz9yJIjgZcQ6Iw=
-
-"@f/tween@^1.0.0":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@f/tween/-/tween-1.0.1.tgz#18aef79c4975e54415adf326e4b5e0d053d207f0"
-  integrity sha1-GK73nEl15UQVrfMm5LXg0FPSB/A=
-  dependencies:
-    "@f/map-obj" "^1.2.2"
-
 "@hawk.so/nodejs@^2.0.7":
   version "2.0.7"
   resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-2.0.7.tgz#766ff475984be338376a283ea9d6f567b31c27fa"
@@ -5761,7 +5723,7 @@ mongodb-memory-server@6.6.1:
   dependencies:
     mongodb-memory-server-core "6.6.1"
 
-mongodb-memory-server@^6.6.3:
+mongodb-memory-server@^6.6.1:
   version "6.6.3"
   resolved "https://registry.yarnpkg.com/mongodb-memory-server/-/mongodb-memory-server-6.6.3.tgz#e1e18c805fa233b7efe49cbe2866d052e533a1ed"
   integrity sha512-zx91SQQUBafVfBX8IJjfZa0lIMzdDYs/UB1vnr33e5bSPBwSai+mVV6gW3osF4paLFxOkcvOwx758G9F9HytgA==
