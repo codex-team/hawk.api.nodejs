@@ -1,10 +1,10 @@
+import '../../src/env-test';
 import BusinessOperationModel, {
   BusinessOperationStatus,
   BusinessOperationType, PayloadOfDepositByUser, PayloadOfWorkspacePlanPurchase
 } from '../../src/models/businessOperation';
 import { ObjectId } from 'mongodb';
 import * as mongo from '../../src/mongo';
-import '../../src/env-test';
 
 beforeAll(async () => {
   await mongo.setupConnections();
@@ -12,7 +12,6 @@ beforeAll(async () => {
 
 describe('Transaction model', () => {
   it('should create instance for deposit balance by user', () => {
-    console.log(process.env.MONGO_HAWK_DB_URL);
     const payloadDepositByUser = {
       workspaceId: new ObjectId('5edd36fbb596d4759beb89f6'),
       amount: 100,
