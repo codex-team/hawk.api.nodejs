@@ -10,8 +10,8 @@ beforeAll(async () => {
 });
 
 describe('Transaction model', () => {
-  it('should create instance for top-up balance by user', () => {
-    const payloadTopUpByUser = {
+  it('should create instance for deposit balance by user', () => {
+    const payloadDepositByUser = {
       workspaceId: new ObjectId('5edd36fbb596d4759beb89f6'),
       amount: 100,
       userId: new ObjectId('5eb9034a1ccc4421e2623dc2'),
@@ -20,9 +20,9 @@ describe('Transaction model', () => {
 
     const data = {
       transactionId: 'Transaction ID',
-      type: BusinessOperationType.DEPOSIT_BY_USER,
-      status: BusinessOperationStatus.CONFIRMED,
-      payload: payloadTopUpByUser,
+      type: BusinessOperationType.DepositByUser,
+      status: BusinessOperationStatus.Confirmed,
+      payload: payloadDepositByUser,
     };
 
     const businessOperation = new BusinessOperationModel<PayloadOfDepositByUser>(data);
@@ -30,17 +30,17 @@ describe('Transaction model', () => {
     expect(businessOperation).toMatchObject(data);
   });
 
-  it('should create instance for write-off by payment worker', () => {
-    const payloadWriteOff = {
+  it('should create instance for workspace plan purchase by payment worker', () => {
+    const payloadWorkspacePlanPurchase = {
       workspaceId: new ObjectId('5edd36fbb596d4759beb89f6'),
       amount: 100,
     };
 
     const data = {
       transactionId: 'Transaction ID',
-      type: BusinessOperationType.WORKSPACE_PLAN_PURCHASE,
-      status: BusinessOperationStatus.CONFIRMED,
-      payload: payloadWriteOff,
+      type: BusinessOperationType.WorkspacePlanPurchase,
+      status: BusinessOperationStatus.Confirmed,
+      payload: payloadWorkspacePlanPurchase,
     };
 
     const businessOperation = new BusinessOperationModel<PayloadOfWorkspacePlanPurchase>(data);

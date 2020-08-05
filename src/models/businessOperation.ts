@@ -8,17 +8,17 @@ export enum BusinessOperationStatus {
   /**
    * Business operation is pending
    */
-  PENDING='PENDING',
+  Pending,
 
   /**
    * Business operation is confirmed
    */
-  CONFIRMED='CONFIRMED',
+  Confirmed,
 
   /**
    * Business operation is rejected
    */
-  REJECTED='REJECTED'
+  Rejected
 }
 
 /**
@@ -26,18 +26,18 @@ export enum BusinessOperationStatus {
  */
 export enum BusinessOperationType {
   /**
-   * Write-off money from workspace by payment worker
+   * Workspace plan purchase by payment worker
    */
-  WORKSPACE_PLAN_PURCHASE='WORKSPACE_PLAN_PURCHASE',
+  WorkspacePlanPurchase,
 
   /**
-   * Workspace top-up balance by user
+   * Workspace deposit balance by user
    */
-  DEPOSIT_BY_USER='DEPOSIT_BY_USER'
+  DepositByUser
 }
 
 /**
- * Business operation payload type for `DEPOSIT_BY_USER` operation type
+ * Business operation payload type for `DepositByUser` operation type
  */
 export interface PayloadOfDepositByUser {
   /**
@@ -62,7 +62,7 @@ export interface PayloadOfDepositByUser {
 }
 
 /**
- * Business operation payload type for `WORKSPACE_PLAN_PURCHASE` operation type
+ * Business operation payload type for `WorkspacePlanPurchase` operation type
  */
 export interface PayloadOfWorkspacePlanPurchase {
   /**
