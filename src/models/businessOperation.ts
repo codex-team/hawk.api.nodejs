@@ -28,18 +28,18 @@ export enum BusinessOperationType {
   /**
    * Write-off money from workspace by payment worker
    */
-  PAYMENT_WORKER_WRITE_OFF='PAYMENT_WORKER_WRITE_OFF',
+  PURCHASE_BY_PAYMENT_WORKER='PURCHASE_BY_PAYMENT_WORKER',
 
   /**
-   * Workspace top up balance by user
+   * Workspace top-up balance by user
    */
-  TOP_UP_BALANCE_BY_USER='TOP_UP_BALANCE_BY_USER'
+  DEPOSIT_BY_USER='DEPOSIT_BY_USER'
 }
 
 /**
- * Business operation payload type for `TOP_UP_BALANCE_BY_USER` operation type
+ * Business operation payload type for `DEPOSIT_BY_USER` operation type
  */
-export interface PayloadOfTopUpBalanceByUser {
+export interface PayloadOfDepositByUser {
   /**
    * Workspace ID to which the payment is credited
    */
@@ -62,9 +62,9 @@ export interface PayloadOfTopUpBalanceByUser {
 }
 
 /**
- * Business operation payload type for `PAYMENT_WORKER_WRITE_OFF` operation type
+ * Business operation payload type for `PURCHASE_BY_PAYMENT_WORKER` operation type
  */
-export interface PayloadOfPaymentWorkerWriteOff {
+export interface PayloadOfPurchaseByPaymentWorker {
   /**
    * Workspace ID to which the payment is debited
    */
@@ -76,7 +76,7 @@ export interface PayloadOfPaymentWorkerWriteOff {
   amount: number;
 }
 
-type BusinessOperationPayloadType = PayloadOfTopUpBalanceByUser | PayloadOfPaymentWorkerWriteOff;
+type BusinessOperationPayloadType = PayloadOfDepositByUser | PayloadOfPurchaseByPaymentWorker;
 
 /**
  * Structure represents a Business operation in DataBase

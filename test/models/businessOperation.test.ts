@@ -20,7 +20,7 @@ describe('Transaction model', () => {
 
     const data = {
       transactionId: 'Transaction ID',
-      type: BusinessOperationType.TOP_UP_BALANCE_BY_USER,
+      type: BusinessOperationType.DEPOSIT_BY_USER,
       status: BusinessOperationStatus.CONFIRMED,
       payload: payloadTopUpByUser,
     };
@@ -52,7 +52,7 @@ describe('Transaction model', () => {
 
     const data = {
       transactionId: 'Transaction ID',
-      type: BusinessOperationType.PAYMENT_WORKER_WRITE_OFF,
+      type: BusinessOperationType.PURCHASE_BY_PAYMENT_WORKER,
       status: BusinessOperationStatus.CONFIRMED,
       payload: payloadWriteOff,
     };
