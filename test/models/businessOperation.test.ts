@@ -1,6 +1,6 @@
 import BusinessOperationModel, {
   BusinessOperationStatus,
-  BusinessOperationType, PayloadOfDepositByUser, PayloadOfPurchaseByPaymentWorker
+  BusinessOperationType, PayloadOfDepositByUser, PayloadOfWorkspacePlanPurchase
 } from '../../src/models/businessOperation';
 import { ObjectId } from 'mongodb';
 import * as mongo from '../../src/mongo';
@@ -48,12 +48,12 @@ describe('Transaction model', () => {
 
     const data = {
       transactionId: 'Transaction ID',
-      type: BusinessOperationType.PURCHASE_BY_PAYMENT_WORKER,
+      type: BusinessOperationType.WORKSPACE_PLAN_PURCHASE,
       status: BusinessOperationStatus.CONFIRMED,
       payload: payloadWriteOff,
     };
 
-    const businessOperation = new BusinessOperationModel<PayloadOfPurchaseByPaymentWorker>(data);
+    const businessOperation = new BusinessOperationModel<PayloadOfWorkspacePlanPurchase>(data);
 
     /**
      * Undefined because it was not created in the database
