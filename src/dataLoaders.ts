@@ -30,7 +30,7 @@ export default class DataLoaders {
    */
   public planById = new DataLoader<string, PlanDBScheme | null>(
     (planIds) => this.batchByIds<PlanDBScheme>('plans', planIds),
-    { cache: false }
+    { cache: true }
   );
 
   /**
