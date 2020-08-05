@@ -27,16 +27,17 @@ module.exports = {
         acc.push({
           updateOne: {
             filter: {
-              _id: new ObjectID(projectId)
+              _id: new ObjectID(projectId),
             },
             update: {
               $set: {
-                workspaceId: new ObjectID(workspaceId)
-              }
-            }
-          }
+                workspaceId: new ObjectID(workspaceId),
+              },
+            },
+          },
         });
       });
+
       return acc;
     }, []);
 
@@ -45,5 +46,5 @@ module.exports = {
 
   async down(db) {
     return db.collection('projects').updateMany({}, { $unset: { workspaceId: '' } });
-  }
+  },
 };
