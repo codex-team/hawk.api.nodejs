@@ -81,7 +81,7 @@ type BusinessOperationPayloadType = PayloadOfDepositByUser | PayloadOfPurchaseBy
 /**
  * Structure represents a Business operation in DataBase
  */
-export interface BusinessOperationDBScheme {
+export interface BusinessOperationDBScheme<T extends BusinessOperationPayloadType> {
   /**
    * Business operation ID
    */
@@ -105,13 +105,13 @@ export interface BusinessOperationDBScheme {
   /**
    * Business operation payload
    */
-  payload: BusinessOperationPayloadType;
+  payload: T;
 }
 
 /**
  * Model representing business operation object
  */
-export default class BusinessOperationModel extends AbstractModel<BusinessOperationDBScheme> implements BusinessOperationDBScheme {
+export default class BusinessOperationModel<T extends BusinessOperationPayloadType> extends AbstractModel<BusinessOperationDBScheme<T>> implements BusinessOperationDBScheme<T> {
   /**
    * Business operation ID
    */
@@ -135,20 +135,20 @@ export default class BusinessOperationModel extends AbstractModel<BusinessOperat
   /**
    * Business operation payload
    */
-  public payload!: BusinessOperationPayloadType;
+  public payload!: T;
 
   /**
    * Model's collection
    */
-  protected collection: Collection<BusinessOperationDBScheme>;
+  protected collection: Collection<BusinessOperationDBScheme<T>>;
 
   /**
    * Create Business operation instance
    *
    * @param businessOperationData - business operation data
    */
-  constructor(businessOperationData: BusinessOperationDBScheme) {
+  constructor(businessOperationData: BusinessOperationDBScheme<T>) {
     super(businessOperationData);
-    this.collection = this.dbConnection.collection<BusinessOperationDBScheme>('businessOperations');
+    this.collection = this.dbConnection.collection<BusinessOperationDBScheme<T>>('businessOperations');
   }
 }

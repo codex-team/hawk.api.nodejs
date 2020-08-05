@@ -1,6 +1,6 @@
 import BusinessOperationModel, {
   BusinessOperationStatus,
-  BusinessOperationType
+  BusinessOperationType, PayloadOfDepositByUser, PayloadOfPurchaseByPaymentWorker
 } from '../../src/models/businessOperation';
 import { ObjectId } from 'mongodb';
 import * as mongo from '../../src/mongo';
@@ -25,7 +25,7 @@ describe('Transaction model', () => {
       payload: payloadTopUpByUser,
     };
 
-    const businessOperation = new BusinessOperationModel(data);
+    const businessOperation = new BusinessOperationModel<PayloadOfDepositByUser>(data);
 
     /**
      * Undefined because it was not created in the database
@@ -36,12 +36,8 @@ describe('Transaction model', () => {
     expect(businessOperation.type).toEqual(data.type);
     expect(businessOperation.payload.workspaceId).toEqual(payloadTopUpByUser.workspaceId);
     expect(businessOperation.payload.amount).toEqual(payloadTopUpByUser.amount);
-    if ('userId' in businessOperation.payload) {
-      expect(businessOperation.payload.userId).toEqual(payloadTopUpByUser.userId);
-    }
-    if ('cardPan' in businessOperation.payload) {
-      expect(businessOperation.payload.cardPan).toEqual(payloadTopUpByUser.cardPan);
-    }
+    expect(businessOperation.payload.userId).toEqual(payloadTopUpByUser.userId);
+    expect(businessOperation.payload.cardPan).toEqual(payloadTopUpByUser.cardPan);
   });
 
   it('should create instance for write-off by payment worker', () => {
@@ -57,7 +53,7 @@ describe('Transaction model', () => {
       payload: payloadWriteOff,
     };
 
-    const businessOperation = new BusinessOperationModel(data);
+    const businessOperation = new BusinessOperationModel<PayloadOfPurchaseByPaymentWorker>(data);
 
     /**
      * Undefined because it was not created in the database
