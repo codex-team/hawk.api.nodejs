@@ -51,11 +51,6 @@ export interface PayloadOfTopUpBalanceByUser {
   amount: number;
 
   /**
-   * Business operation status
-   */
-  status: BusinessOperationStatus;
-
-  /**
    * ID of the user who made the payment
    */
   userId: ObjectId;
@@ -79,11 +74,6 @@ export interface PayloadOfPaymentWorkerWriteOff {
    * Amount of payment
    */
   amount: number;
-
-  /**
-   * Business operation status
-   */
-  status: BusinessOperationStatus;
 }
 
 type BusinessOperationPayloadType = PayloadOfTopUpBalanceByUser | PayloadOfPaymentWorkerWriteOff;
@@ -105,7 +95,12 @@ export interface BusinessOperationDBScheme {
   /**
    * Business operation type
    */
-  businessOperationType: BusinessOperationType;
+  type: BusinessOperationType;
+
+  /**
+   * Business operation status
+   */
+  status: BusinessOperationStatus;
 
   /**
    * Business operation payload
@@ -130,7 +125,12 @@ export default class BusinessOperationModel extends AbstractModel<BusinessOperat
   /**
    * Business operation type
    */
-  public businessOperationType!: BusinessOperationType;
+  public type!: BusinessOperationType;
+
+  /**
+   * Business operation status
+   */
+  public status!: BusinessOperationStatus;
 
   /**
    * Business operation payload
