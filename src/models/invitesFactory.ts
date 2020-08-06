@@ -98,4 +98,24 @@ export default class InvitesFactory extends AbstractModelFactory<InviteDBScheme,
       .map((data) => !data || data instanceof Error ? null : new InviteModel(data))
       .filter(Boolean) as InviteModel[];
   }
+
+  /**
+   * Get valid invite by their workspaces id
+   * @param workspaceId - workspace id to fetch
+   */
+  public async findValidByWorkspaceId(workspaceId: string): Promise<InviteModel | null> {
+    const invites = (await this.dataLoaders.inviteByHash.loadMany(workspaceId))
+      .map((data) => !data || data instanceof Error || data.isRevoked ? null : new InviteModel(data))
+      .filter(Boolean) as InviteModel[];
+
+    if (!invites) {
+      return null;
+    }
+
+    if (invites.length > 1) {
+      console.error(`${workspaceId} has ${invites.length} general links`);
+    }
+
+    return invites[0];
+  }
 }

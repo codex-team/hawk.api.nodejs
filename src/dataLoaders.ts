@@ -42,7 +42,6 @@ export default class DataLoaders {
     { cache: false }
   );
 
-
   /**
    * Loader for fetching invites by ids
    */

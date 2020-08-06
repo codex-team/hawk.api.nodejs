@@ -125,7 +125,7 @@ module.exports = {
 
       const invites = await factories.invitesFactory.findManyByWorkspaceIds([ i.workspaceId.toString() ]);
 
-      for (let i of invites) {
+      for (const i of invites) {
         await i.update({}, { isRevoked: true });
       }
 
