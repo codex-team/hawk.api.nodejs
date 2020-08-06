@@ -1,6 +1,7 @@
 import DataLoader from 'dataloader';
 import { Db, ObjectId } from 'mongodb';
 import { WorkspaceDBScheme } from './models/workspace';
+import { InviteDBScheme } from './models/invite';
 import { UserDBScheme } from './models/user';
 import { ProjectDBScheme } from './models/project';
 
@@ -38,6 +39,33 @@ export default class DataLoaders {
   public userByEmail = new DataLoader<string, UserDBScheme | null>(
     (userEmails) =>
       this.batchByField<UserDBScheme, string>('users', userEmails, 'email'),
+    { cache: false }
+  );
+
+
+  /**
+   * Loader for fetching invites by ids
+   */
+  public inviteById = new DataLoader<string, InviteDBScheme | null>(
+    (inviteIds) => this.batchByIds<InviteDBScheme>('invites', inviteIds),
+    { cache: false }
+  );
+
+  /**
+   * Loader for fetching invites by their hashes
+   */
+  public inviteByHash = new DataLoader<string, InviteDBScheme | null>(
+    (hashes) =>
+      this.batchByField<InviteDBScheme, string>('invites', hashes, 'hash'),
+    { cache: false }
+  );
+
+  /**
+   * Loader for fetching invites by their hashes
+   */
+  public inviteByWorkspaceId = new DataLoader<string, InviteDBScheme | null>(
+    (hashes) =>
+      this.batchByField<InviteDBScheme, string>('invites', hashes, 'workspaceId'),
     { cache: false }
   );
 

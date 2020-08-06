@@ -267,4 +267,14 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
       userId: new ObjectId(memberId),
     });
   }
+
+  /**
+   * Get member description for certain workspace by id
+   * @param memberId - id of the member to get info
+   */
+  public getMemberInfoById(memberId: string): Promise<MemberDBScheme | null> {
+    return this.teamCollection.findOne({
+      _id: new ObjectId(memberId),
+    });
+  }
 }

@@ -117,7 +117,7 @@ export default gql`
     projects(
       """
       Project(s) id(s)
-      """ 
+      """
       ids: [ID!] = []
     ): [Project!] @requireAuth
   }
@@ -201,9 +201,6 @@ export default gql`
       Hash from invitation link
       """
       inviteHash: String
-
-      "Id of the workspace to which the user was invited"
-      workspaceId: ID!
     ): Boolean! @requireAuth
 
     """
