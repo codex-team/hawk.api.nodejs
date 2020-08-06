@@ -3,7 +3,7 @@ const UserCard = require('../models/userCard');
 const rabbitmq = require('../rabbitmq');
 const PaymentTransaction = require('../models/paymentTransaction');
 const Membership = require('../models/membership');
-const Transaction = require('../models/transaction');
+// const BusinessOperation = require('../models/businessOperation');
 
 /**
  * @typedef {Object} PaymentQuery
@@ -41,10 +41,13 @@ module.exports = {
      * @param _obj
      * @param {string[]} ids - ids of workspaces for which transactions have been requested
      * @param {User} user - current authorized user
-     * @returns {Promise<Transaction>}
+     * @returns {Promise<BusinessOperation>}
      */
     async transactions(_obj, { ids }, { user }) {
-      // @todo check if user has permissions to get transactions
+      /*
+       * @todo check if user has permissions to get transactions
+       * @todo refactor resolver for new business operation model and factory
+       */
 
       const membership = new Membership(user.id);
 
@@ -56,7 +59,7 @@ module.exports = {
         ids = ids.filter(id => allowedIds.includes(id));
       }
 
-      return Transaction.getWorkspacesTransactions(ids);
+      return [];
     },
   },
   Mutation: {
