@@ -51,39 +51,61 @@ type CardInfo {
   expDate: String!
 }
 
+
+"""
+Types of business operations
+"""
+enum BusinessOperationType {
+  """
+  Workspace plan purchase by payment worker
+  """
+  WORKSPACE_PLAN_PURCHASE
+
+  """
+  Workspace deposit balance by user
+  """
+  DEPOSIT_BY_USER
+}
+
+
+"""
+Business operations statuses
+"""
+enum BusinessOperationStatus {
+  """
+  Business operation is pending
+  """
+  PENDING
+
+  """
+  Business operation is confirmed
+  """
+  CONFIRMED
+
+  """
+  Business operation is rejected
+  """
+  REJECTED
+}
+
 """
 Transaction object
 """
-type Transaction {
+type BusinessOperation {
   """
-  Transaction type
+  Id of operation
   """
-  type: String!
+  id: String!
 
   """
-  Workspace for which transaction has been made
+  Business operation type
   """
-  workspace: Workspace!
+  type: BusinessOperationType!
 
   """
-  Transaction amount
+  Indicates current state of the operation
   """
-  amount: Int!
-
-  """
-  Transaction date
-  """
-  date: DateTime!
-
-  """
-  User by whom transaction has been made (income transactions only)
-  """
-  user: User
-
-  """
-  PAN of card by which transaction has been made
-  """
-  cardPan: Int!
+  status: BusinessOperationStatus!
 }
 
 """
@@ -106,6 +128,7 @@ input PayOnceInput {
   language: SupportedBillingLanguages = RU
 }
 
+
 extend type Query {
   """
   Get attached cards
@@ -113,9 +136,9 @@ extend type Query {
   cardList: [CardInfo!]! @requireAuth
 
   """
-  Get workspace transactions
+  Get workspace billing history
   """
-  transactions("Workspaces IDs" ids: [ID!] = []): [Transaction!]! @requireAuth
+  businessOperations("Workspaces IDs" ids: [ID!] = []): [BusinessOperation!]! @requireAuth
 }
 
 extend type Mutation {
