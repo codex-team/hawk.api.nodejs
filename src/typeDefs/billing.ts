@@ -93,9 +93,9 @@ Business operation payload type for 'DepositByUser' operation type
 """
 type PayloadOfDepositByUser {
   """
-  Workspace ID to which the payment is credited
+  Workspace to which the payment is credited
   """
-  workspaceId: Workspace!
+  workspace: Workspace!
 
   """
   Amount of payment
@@ -103,7 +103,7 @@ type PayloadOfDepositByUser {
   amount: Int!
 
   """
-  ID of the user who made the payment
+  User who made the payment
   """
   user: User!
 
@@ -118,7 +118,7 @@ Business operation payload type for 'WorkspacePlanPurchase' operation type
 """
 type PayloadOfWorkspacePlanPurchase {
   """
-  Workspace ID to which the payment is debited
+  Workspace to which the payment is debited
   """
   workspace: Workspace!
 
