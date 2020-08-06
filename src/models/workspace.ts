@@ -20,7 +20,7 @@ export interface WorkspaceDBScheme {
   /**
    * Workspace account uuid in accounting microservice
    */
-  accountId?: string;
+  accountId: string;
 
   /**
    * Workspace's description
@@ -105,7 +105,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Workspace account uuid in accounting microservice
    */
-  public accountId?: string;
+  public accountId!: string;
 
   /**
    * Id of the Workspace's plan
