@@ -45,10 +45,9 @@ export default class BusinessOperationsFactory extends AbstractModelFactory<Busi
    * @param {string[]} workspaceIds - ids of workspaces
    */
   public async getWorkspacesBusinessOperations(workspaceIds: string[]): Promise<BusinessOperationModel[]> {
+    const workspaceObjectIds = workspaceIds.map((id: string): ObjectId => new ObjectId(id));
     const docs = await this.collection.find({
-      payload: {
-        workspaceId: { $in: workspaceIds.map((id: string): ObjectId => new ObjectId(id)) },
-      },
+      'payload.workspaceId': { $in: workspaceObjectIds },
     }).toArray();
 
     return docs.map((doc: BusinessOperationDBScheme): BusinessOperationModel => new BusinessOperationModel(doc));

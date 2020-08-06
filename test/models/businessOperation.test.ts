@@ -10,7 +10,7 @@ beforeAll(async () => {
   await mongo.setupConnections();
 });
 
-describe('Transaction model', () => {
+describe('Business operation model', () => {
   it('should create instance for deposit balance by user', () => {
     const payloadDepositByUser = {
       workspaceId: new ObjectId('5edd36fbb596d4759beb89f6'),
