@@ -1,5 +1,5 @@
 import AbstractModelFactory from './abstactModelFactory';
-import BusinessOperationModel, { BusinessOperationDBScheme } from './businessOperation';
+import BusinessOperationModel, { BusinessOperationDBScheme, BusinessOperationPayloadType } from './businessOperation';
 import { Collection, Db, ObjectId } from 'mongodb';
 import DataLoaders from '../dataLoaders';
 
@@ -28,10 +28,10 @@ export default class BusinessOperationsFactory extends AbstractModelFactory<Busi
    *
    * @param businessOperationData - business operation data for creating
    */
-  public async create(businessOperationData: BusinessOperationDBScheme): Promise<BusinessOperationModel> {
+  public async create<T extends BusinessOperationPayloadType = BusinessOperationPayloadType>(businessOperationData: BusinessOperationDBScheme<T>): Promise<BusinessOperationModel<T>> {
     const businessOperationId = (await this.collection.insertOne(businessOperationData)).insertedId;
 
-    const businessOperation = new BusinessOperationModel({
+    const businessOperation = new BusinessOperationModel<T>({
       _id: businessOperationId,
       ...businessOperationData,
     });

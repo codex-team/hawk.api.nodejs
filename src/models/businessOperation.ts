@@ -79,12 +79,12 @@ export interface PayloadOfWorkspacePlanPurchase {
 /**
  * Type of business operation payload, it depends of type field
  */
-type BusinessOperationPayloadType = PayloadOfDepositByUser | PayloadOfWorkspacePlanPurchase;
+export type BusinessOperationPayloadType = PayloadOfDepositByUser | PayloadOfWorkspacePlanPurchase;
 
 /**
  * Structure represents a Business operation in DataBase
  */
-export interface BusinessOperationDBScheme<T extends BusinessOperationPayloadType> {
+export interface BusinessOperationDBScheme<T extends BusinessOperationPayloadType = BusinessOperationPayloadType> {
   /**
    * Business operation ID
    */
@@ -114,7 +114,7 @@ export interface BusinessOperationDBScheme<T extends BusinessOperationPayloadTyp
 /**
  * Model representing business operation object
  */
-export default class BusinessOperationModel<T extends BusinessOperationPayloadType> extends AbstractModel<BusinessOperationDBScheme<T>> implements BusinessOperationDBScheme<T> {
+export default class BusinessOperationModel<T extends BusinessOperationPayloadType = BusinessOperationPayloadType> extends AbstractModel<BusinessOperationDBScheme<T>> implements BusinessOperationDBScheme<T> {
   /**
    * Business operation ID
    */
