@@ -58,20 +58,24 @@ module.exports = {
          *   name: defaultPlan.name
          * };
          */
-        accounting.createAccount({
-          name: 'Workspace',
+
+        // Create workspace account and set account id to workspace
+        const accountResponse = await accounting.createAccount({
+          name: name,
           type: AccountType.LIABILITY,
           currency: Currency.USD,
         });
+
+        const accountId = accountResponse.recordId;
 
         /**
          * @type {WorkspaceDBScheme}
          */
         const options = {
           name,
-          // balance: 0,
           description,
           image,
+          accountId,
           // plan
         };
 
@@ -329,6 +333,20 @@ module.exports = {
       const workspaceModel = await factories.workspacesFactory.findById(workspaceData._id.toString());
 
       return workspaceModel.getMembers();
+    },
+
+    /**
+     * Returs workspace balance
+     * @param {WorkspaceDBScheme} workspace - result from resolver above
+     * @param _args - empty list of args
+     * @param {string} accounting - accounting microservice
+     * @returns {Promise<number>}
+     */
+    async balance(workspace, _args, { accounting }) {
+      const accountId = workspace.accountId;
+      const account = await accounting.getAccount(accountId);
+
+      return account.balance;
     },
   },
 
