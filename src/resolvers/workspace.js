@@ -24,22 +24,10 @@ module.exports = {
      * @param {ContextFactories} factories - factories for working with models
      * @return {Workspace[]}
      */
-    async workspaces(_obj, { ids }, { user, factories, accounting }) {
+    async workspaces(_obj, { ids }, { user, factories }) {
       const authenticatedUser = await factories.usersFactory.findById(user.id);
 
-      const userWorkspaces = await factories.workspacesFactory.findManyByIds(await authenticatedUser.getWorkspacesIds(ids));
-
-      // For each workspace, get a workspace account and set its balance
-      for (let i = 0; i < userWorkspaces.length; i++) {
-        const workspace = userWorkspaces[i];
-        const accountId = userWorkspaces[i].accountId;
-        const account = await accounting.getAccount(accountId);
-
-        workspace.balance = account.balance;
-        userWorkspaces[i] = workspace;
-      }
-
-      return userWorkspaces;
+      return factories.workspacesFactory.findManyByIds(await authenticatedUser.getWorkspacesIds(ids));
     },
   },
   Mutation: {
@@ -345,6 +333,20 @@ module.exports = {
       const workspaceModel = await factories.workspacesFactory.findById(workspaceData._id.toString());
 
       return workspaceModel.getMembers();
+    },
+
+    /**
+     * Returs workspace balance
+     * @param {WorkspaceDBScheme} workspace - result from resolver above
+     * @param _args - empty list of args
+     * @param {string} accounting - accounting microservice
+     * @returns {Promise<number>}
+     */
+    async balance(workspace, _args, { accounting }) {
+      const accountId = workspace.accountId;
+      const account = await accounting.getAccount(accountId);
+
+      return account.balance;
     },
   },
 
