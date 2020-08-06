@@ -89,6 +89,51 @@ enum BusinessOperationStatus {
 }
 
 """
+Business operation payload type for 'DepositByUser' operation type
+"""
+type PayloadOfDepositByUser {
+  """
+  Workspace ID to which the payment is credited
+  """
+  workspaceId: Workspace!
+
+  """
+  Amount of payment
+  """
+  amount: Int!
+
+  """
+  ID of the user who made the payment
+  """
+  user: User!
+
+  """
+  PAN of card which user made the payment
+  """
+  cardPan: String
+}
+
+"""
+Business operation payload type for 'WorkspacePlanPurchase' operation type
+"""
+type PayloadOfWorkspacePlanPurchase {
+  """
+  Workspace ID to which the payment is debited
+  """
+  workspace: Workspace!
+
+  """
+  Amount of payment
+  """
+  amount: Int!
+}
+
+"""
+All available payload types for different types of operations
+"""
+union BusinessOperationPayload = PayloadOfDepositByUser | PayloadOfWorkspacePlanPurchase
+
+"""
 Transaction object
 """
 type BusinessOperation {
@@ -106,6 +151,11 @@ type BusinessOperation {
   Indicates current state of the operation
   """
   status: BusinessOperationStatus!
+
+  """
+  Metadata related to the operation type
+  """
+  payload: BusinessOperationPayload!
 }
 
 """
@@ -138,7 +188,7 @@ extend type Query {
   """
   Get workspace billing history
   """
-  businessOperations("Workspaces IDs" ids: [ID!] = []): [BusinessOperation!]! @requireAuth
+  businessOperations("Workspaces IDs" ids: [ID!] = []): [BusinessOperation!]! @requireAuth @requireAdmin
 }
 
 extend type Mutation {

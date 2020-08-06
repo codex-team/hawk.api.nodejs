@@ -3,6 +3,7 @@ import WorkspacesFactory from '../models/workspacesFactory';
 import { GraphQLField } from 'graphql';
 import ProjectsFactory from '../models/projectsFactory';
 import Accounting from '../accounting';
+import BusinessOperationsFactory from '../models/businessOperationsFactory';
 
 /**
  * Resolver's Context argument
@@ -67,6 +68,11 @@ export interface ContextFactories {
    * Projects factory for working with projects
    */
   projectsFactory: ProjectsFactory;
+
+  /**
+   * Allows to work with the Business Operations models
+   */
+  businessOperationsFactory: BusinessOperationsFactory;
 }
 
 /**
