@@ -41,43 +41,6 @@ export default gql`
   """
   union Member = ConfirmedMember | PendingMember
 
-
-  """
-  Workspace tariff plan
-  @todo Adjust when paymaster worker is ready
-  """
-  type WorkspacePlan {
-    """
-    Plan id
-    """
-    id: ID! @renameFrom(name: "_id")
-
-    """
-    Plan name
-    """
-    name: String!
-
-    """
-    Subscription date
-    """
-    subscriptionDate: DateTime
-
-    """
-    Lsat charge date
-    """
-    lastChargeDate: DateTime
-
-    """
-    Monthly charge for plan
-    """
-    monthlyCharge: Float!
-
-    """
-    Events limit for plan
-    """
-    eventsLimit: Int!
-  }
-
   """
   Represent Workspace info
   """
@@ -115,7 +78,7 @@ export default gql`
     """
     Workspace tariff plan
     """
-    plan: WorkspacePlan
+    plan: Plan
 
     """
     Workspace projects array
