@@ -1,3 +1,6 @@
+/**
+ * The base unit of an accounting system
+ */
 export interface Account {
     /**
      * Account id
