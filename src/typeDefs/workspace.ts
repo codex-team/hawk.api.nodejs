@@ -44,12 +44,18 @@ export default gql`
 
   """
   Workspace tariff plan
+  @todo Adjust when paymaster worker is ready
   """
-  type Plan {
+  type WorkspacePlan {
+    """
+    Plan id
+    """
+    id: ID! @renameFrom(name: "_id")
+
     """
     Plan name
     """
-    name: String
+    name: String!
 
     """
     Subscription date
@@ -64,12 +70,12 @@ export default gql`
     """
     Monthly charge for plan
     """
-    monthlyCharge: Int
+    monthlyCharge: Float!
 
     """
     Events limit for plan
     """
-    eventsLimit: Int
+    eventsLimit: Int!
   }
 
   """
@@ -109,7 +115,7 @@ export default gql`
     """
     Workspace tariff plan
     """
-    plan: Plan
+    plan: WorkspacePlan
 
     """
     Workspace projects array
@@ -117,7 +123,7 @@ export default gql`
     projects(
       """
       Project(s) id(s)
-      """ 
+      """
       ids: [ID!] = []
     ): [Project!] @requireAuth
   }
@@ -258,5 +264,21 @@ export default gql`
       """
       workspaceId: ID!
     ): Boolean! @requireAuth
+
+    """
+    Mutation in order to switch workspace tariff plan
+    Returns true if operation is successful
+    """
+    changeWorkspacePlan(
+      """
+      Workspace ID
+      """
+      workspaceId: ID!
+
+      """
+      Tariff plan ID
+      """
+      planId: ID!
+    ): Boolean! @requireAdmin
   }
 `;
