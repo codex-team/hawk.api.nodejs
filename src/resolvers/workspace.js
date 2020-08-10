@@ -1,6 +1,5 @@
 import WorkspaceModel from '../models/workspace';
 import { AccountType, Currency } from '../accounting/types';
-import InviteDBScheme from '../models/invite';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -104,44 +103,55 @@ module.exports = {
      * @param {string} workspaceId - id of the workspace to which the user is invited
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
-     * @return {Promise<string>} - true if operation is successful
+     * @return {Promise<string>} - new workspace invite
      */
-    async generateNewInvite(_obj, { workspaceId }, { user, factories }) {
-      const workspace = await factories.workspacesFactory.findById(workspaceId);
+    async generateWorkspaceInvite(_obj, { workspaceId }, { user, factories }) {
+      try {
+        const workspace = await factories.workspacesFactory.findById(workspaceId);
 
-      if (!workspace) {
-        throw new ApolloError('Workspace not found');
+        if (!workspace) {
+          // noinspection ExceptionCaughtLocallyJS
+          throw new ApolloError('Workspace not found');
+        }
+
+        const member = await workspace.getMemberInfo(user.id);
+
+        if (!member) {
+          // noinspection ExceptionCaughtLocallyJS
+          throw new ApolloError('You are not member of this workspace');
+        }
+
+        if (!member.isAdmin) {
+          // noinspection ExceptionCaughtLocallyJS
+          throw new ApolloError('Only admin can regenerate invite link');
+        }
+
+        await factories.invitesFactory.update(
+          {
+            workspaceId: workspaceId,
+            memberId: null,
+            isRevoked: { $ne: false },
+          },
+          { isRevoked: true }
+        );
+
+        const newInviteHash = this.generateInviteHash(workspaceId);
+
+        /**
+         * @type {InviteDBScheme}
+         */
+        const options = {
+          workspaceId: workspaceId,
+          hash: newInviteHash,
+        };
+
+        await factories.invitesFactory.create(options);
+
+        return `${process.env.GARAGE_URL}/join/${newInviteHash}`;
+      } catch (err) {
+        console.log('\nლ(´ڡ`ლ) Error [resolvers:workspace:generateWorkspaceInvite]: \n\n', err, '\n\n');
+        throw new ApolloError('Something went wrong');
       }
-
-      const member = await workspace.getMemberInfo(user.id);
-
-      if (!member) {
-        throw new ApolloError('You are not member of this workspace');
-      }
-
-      if (!member.isAdmin) {
-        throw new ApolloError('Only admin can regenerate invite link');
-      }
-
-      const invites = await factories.invitesFactory.findManyByWorkspaceIds([ i.workspaceId.toString() ]);
-
-      for (const i of invites) {
-        await i.update({}, { isRevoked: true });
-      }
-
-      const newInviteHash = this.generateInviteHash(workspaceId);
-
-      /**
-       * @type {InviteDBScheme}
-       */
-      const options = {
-        workspaceId: workspaceId,
-        hash: newInviteHash,
-      };
-
-      await factories.invitesFactory.create(options);
-
-      return `${process.env.GARAGE_URL}/join/${newInviteHash}`;
     },
 
     /**
@@ -243,8 +253,8 @@ module.exports = {
         }
 
         if (
-          member.userId && member.userId.toString() !== user.id ||
-          member.userEmail && member.userEmail !== currentUser.email
+          (member.userId && member.userId.toString() !== user.id) ||
+          (member.userEmail && member.userEmail !== currentUser.email)
         ) {
           throw new ApolloError('It looks like the invitation is not for you');
         }

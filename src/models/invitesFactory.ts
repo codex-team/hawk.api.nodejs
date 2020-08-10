@@ -118,4 +118,14 @@ export default class InvitesFactory extends AbstractModelFactory<InviteDBScheme,
 
     return invites[0];
   }
+
+  /**
+   * Update invites data
+   * @param query - query to match
+   * @param data - update data
+   * @return number of documents modified
+   */
+  public async update(query: object, data: object): Promise<number> {
+    return (await this.collection.updateOne(query, { $set: data })).modifiedCount;
+  }
 }

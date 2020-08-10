@@ -152,6 +152,16 @@ export default gql`
     ): Workspace! @requireAuth
 
     """
+    Create new workspace
+    """
+    generateWorkspaceInvite(
+      """
+      id of the workspace to which the user is invited
+      """
+      workspaceId: ID!
+    ): String! @requireAuth
+
+    """
     Invite user to workspace
     Returns true if operation is successful
     """
