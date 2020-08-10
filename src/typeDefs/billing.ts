@@ -134,7 +134,7 @@ All available payload types for different types of operations
 union BusinessOperationPayload = PayloadOfDepositByUser | PayloadOfWorkspacePlanPurchase
 
 """
-Transaction object
+Business operation object
 """
 type BusinessOperation {
   """
