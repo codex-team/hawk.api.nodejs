@@ -11,6 +11,7 @@ import user from './user';
 import userNotifications from './userNotifications';
 import userNotificationsMutations from './userNotificationsMutations';
 import workspace from './workspace';
+import workspaceMutations from './workspaceMutations';
 import chart from './chart';
 import plans from './plans';
 
@@ -114,6 +115,7 @@ export default concatenateTypeDefs(
     userNotifications,
     userNotificationsMutations,
     workspace,
+    workspaceMutations,
     chart,
     plans,
   ]

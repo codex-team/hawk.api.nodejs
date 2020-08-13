@@ -13,22 +13,22 @@ export default gql`
     """
     Plan name
     """
-    name: String
+    name: String!
 
     """
     Monthly charge for plan
     """
-    monthlyCharge: Int
+    monthlyCharge: Int!
 
     """
     Events limit for plan
     """
-    eventsLimit: Int
+    eventsLimit: Int!
 
     """
     True if plan is default one
     """
-    isDefault: Boolean
+    isDefault: Boolean!
   }
 
   extend type Query {
