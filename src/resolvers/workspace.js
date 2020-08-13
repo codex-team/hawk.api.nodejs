@@ -301,20 +301,25 @@ module.exports = {
      * @param {string} workspaceId - id of workspace to change plan
      * @param {string} planId - plan to set
      * @param {ContextFactories} factories - factories to work with models
-     * @returns {Promise<boolean>}
      */
-    async changeWorkspacePlan(_obj, { workspaceId, planId }, { factories }) {
+    async changeWorkspacePlan(
+      _obj,
+      {
+        input: { workspaceId, planId },
+      },
+      { factories }
+    ) {
       const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
 
       if (!workspaceModel) {
         throw new UserInputError('There is no workspace with provided id');
       }
 
-      if (workspaceModel.planId === planId) {
+      if (workspaceModel.plan === planId) {
         throw new UserInputError('Plan with given ID is already used for the workspace');
       }
 
-      const planModel = factories.plansFactory.findById(planId);
+      const planModel = await factories.plansFactory.findById(planId);
 
       if (!planModel) {
         throw new UserInputError('Plan with passed ID doesn\'t exists');
@@ -322,7 +327,10 @@ module.exports = {
 
       await workspaceModel.changePlan(planModel._id);
 
-      return true;
+      return {
+        recordId: workspaceModel._id,
+        record: workspaceModel,
+      };
     },
   },
   Workspace: {

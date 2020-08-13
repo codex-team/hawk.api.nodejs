@@ -227,21 +227,5 @@ export default gql`
       """
       workspaceId: ID!
     ): Boolean! @requireAuth
-
-    """
-    Mutation in order to switch workspace tariff plan
-    Returns true if operation is successful
-    """
-    changeWorkspacePlan(
-      """
-      Workspace ID
-      """
-      workspaceId: ID!
-
-      """
-      Tariff plan ID
-      """
-      planId: ID!
-    ): Boolean! @requireAdmin
   }
 `;
