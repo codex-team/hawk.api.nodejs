@@ -89,6 +89,11 @@ module.exports = {
           })
             .then(response => {
               return response.data;
+            })
+            .catch(response => {
+              console.error(response);
+
+              return Promise.reject(response);
             });
 
           const recordId = response.data.account.create.recordId;
