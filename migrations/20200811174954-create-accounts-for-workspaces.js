@@ -81,7 +81,7 @@ module.exports = {
             query: MUTATION_CREATE_ACCOUNT,
             variables: {
               input: {
-                name: workspace.name,
+                name: `WORKSPACE:${workspace.name}`,
                 type: 'Liability',
                 currency: 'USD',
               }
