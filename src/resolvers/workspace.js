@@ -1,6 +1,7 @@
 import WorkspaceModel from '../models/workspace';
 import { AccountType, Currency } from '../accounting/types';
 import PlanModel from '../models/plan';
+import telegram from '../utils/telegram';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -307,7 +308,7 @@ module.exports = {
       {
         input: { workspaceId, planId },
       },
-      { factories }
+      { factories, accounting, user }
     ) {
       const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
 
@@ -320,12 +321,44 @@ module.exports = {
       }
 
       const planModel = await factories.plansFactory.findById(planId);
+      const oldPlanModel = await factories.plansFactory.findById(workspaceModel.plan);
+      const userModel = await factories.usersFactory.findById(user.id);
 
       if (!planModel) {
         throw new UserInputError('Plan with passed ID doesn\'t exists');
       }
 
+      // Charge money for new plan
+      const charge = await accounting.purchase({
+        accountId: workspaceModel.accountId,
+        amount: planModel.monthlyCharge,
+        description: 'Monthly charge',
+      });
+
+      console.log(charge);
+
+      // Push old plan to plan history
+      await workspaceModel.updatePlanHistory(workspaceModel.plan);
+
+      // Update workspace last charge date
+      await workspaceModel.updateLastChargeDate(Date.now());
+
+      // create a business operation
+      /**
+       * const businessOperation = await factories.businessOperationsFactory.create({
+       *   workspaceId,
+       *   amount: planModel.monthlyCharge
+       * });
+       */
+
+      // console.log('BUSINESS', businessOperation);
+
       await workspaceModel.changePlan(planModel._id);
+
+      // Send a message of a succesfully plan changed to the telegram bot
+      const message = `User ${userModel.name || userModel.email} have changed the plan of ${workspaceModel.name} from the <i>${oldPlanModel.name}</i> for the <i>${planModel.name}</i>`;
+
+      telegram.sendMessage(message);
 
       return {
         recordId: workspaceModel._id,

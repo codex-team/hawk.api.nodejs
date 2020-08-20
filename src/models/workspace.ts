@@ -302,4 +302,39 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
       }
     )).modifiedCount;
   }
+
+  /**
+   * Push old plan to plan history
+   * @param oldPlanId - id of old plan
+   */
+  public async updatePlanHistory(oldPlanId: string): Promise<number> {
+    return (await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
+      {
+        $push: {
+          plansHistory: oldPlanId,
+        },
+      }
+    )).modifiedCount;
+  }
+
+  /**
+   *
+   */
+  public async updateLastChargeDate(date: number): Promise<number> {
+    date = Math.floor(date / 1000);
+
+    return (await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
+      {
+        $set: {
+          lastChargeDate: date,
+        },
+      }
+    )).modifiedCount;
+  }
 }

@@ -30,3 +30,23 @@ export interface CreateAccountResponse {
    */
   recordId: string;
 }
+
+/**
+ * Account purchase input
+ */
+export interface PurchaseMutationInput {
+  /**
+   * Account igentifier: Which account should be purchased
+   */
+  accountId: string;
+
+  /**
+   * Purchase amount: the decrease value
+   */
+  amount: number;
+
+  /**
+   * Purchase purpose: short description of operation
+   */
+  description: string;
+}
