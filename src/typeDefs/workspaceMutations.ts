@@ -19,7 +19,7 @@ export default gql`
   """
   Workspace tariff plan change mutation response
   """
-  type ChangeWorkspacePlanRespone {
+  type ChangeWorkspacePlanResponse {
     """
     Modified workspace id
     """
@@ -37,6 +37,6 @@ export default gql`
     """
     changeWorkspacePlan(
         input: ChangeWorkspacePlanInput
-    ): ChangeWorkspacePlanRespone! @requireAdmin
+    ): ChangeWorkspacePlanResponse! @requireAdmin
   }
 `;
