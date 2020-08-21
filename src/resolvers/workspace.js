@@ -361,7 +361,9 @@ module.exports = {
       await workspaceModel.changePlan(planModel._id);
 
       // Send a message of a succesfully plan changed to the telegram bot
-      const message = `User ${userModel.name || userModel.email} have changed the plan of ${workspaceModel.name} from the <i>${oldPlanModel.name}</i> to the <i>${planModel.name}</i>`;
+      const message = `🤑 <b>${userModel.name || userModel.email}</b> changed plan of «<b>${workspaceModel.name}</b>» workspace
+
+⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${planModel.name} $${planModel.monthlyCharge}</b> `;
 
       telegram.sendMessage(message);
 
