@@ -59,7 +59,7 @@ export default class Accounting {
   }
 
   /**
-   * Charge money
+   * Charge money (hardcode)
    */
   public async purchase(input: PurchaseMutationInput): Promise<TransactionData> {
     const response = {

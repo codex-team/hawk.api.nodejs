@@ -2,6 +2,7 @@ import WorkspaceModel from '../models/workspace';
 import { AccountType, Currency } from '../accounting/types';
 import PlanModel from '../models/plan';
 import telegram from '../utils/telegram';
+import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -329,34 +330,38 @@ module.exports = {
       }
 
       // Charge money for new plan
-      const charge = await accounting.purchase({
+      const transaction = await accounting.purchase({
         accountId: workspaceModel.accountId,
         amount: planModel.monthlyCharge,
         description: 'Monthly charge',
       });
 
-      console.log(charge);
-
       // Push old plan to plan history
-      await workspaceModel.updatePlanHistory(workspaceModel.plan);
+      await workspaceModel.updatePlanHistory(workspaceModel.plan, Date.now(), userModel._id);
 
       // Update workspace last charge date
       await workspaceModel.updateLastChargeDate(Date.now());
 
-      // create a business operation
-      /**
-       * const businessOperation = await factories.businessOperationsFactory.create({
-       *   workspaceId,
-       *   amount: planModel.monthlyCharge
-       * });
-       */
+      // Create a business operation
+      const payloadWorkspacePlanPurchase = {
+        workspaceId: workspaceModel._id,
+        amount: planModel.monthlyCharge,
+      };
 
-      // console.log('BUSINESS', businessOperation);
+      const businessOperationData = {
+        transactionId: transaction.id,
+        type: BusinessOperationType.WorkspacePlanPurchase,
+        status: BusinessOperationStatus.Confirmed,
+        payload: payloadWorkspacePlanPurchase,
+      };
 
+      await factories.businessOperationsFactory.create(businessOperationData);
+
+      // Change workspace plan
       await workspaceModel.changePlan(planModel._id);
 
       // Send a message of a succesfully plan changed to the telegram bot
-      const message = `User ${userModel.name || userModel.email} have changed the plan of ${workspaceModel.name} from the <i>${oldPlanModel.name}</i> for the <i>${planModel.name}</i>`;
+      const message = `User ${userModel.name || userModel.email} have changed the plan of ${workspaceModel.name} from the <i>${oldPlanModel.name}</i> to the <i>${planModel.name}</i>`;
 
       telegram.sendMessage(message);
 

@@ -306,15 +306,23 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Push old plan to plan history
    * @param oldPlanId - id of old plan
+   * @param dtChange - date of plan change
+   * @param userId - id of user that changed the plan
    */
-  public async updatePlanHistory(oldPlanId: string): Promise<number> {
+  public async updatePlanHistory(tariffPlanId: string, dtChange: number, userId: string): Promise<number> {
+    dtChange = Math.floor(dtChange / 1000);
+
     return (await this.collection.updateOne(
       {
         _id: new ObjectId(this._id),
       },
       {
         $push: {
-          plansHistory: oldPlanId,
+          plansHistory: {
+            tariffPlanId,
+            dtChange,
+            userId,
+          },
         },
       }
     )).modifiedCount;
