@@ -310,7 +310,6 @@ module.exports = {
         input: { workspaceId, planId },
       },
       { factories, accounting, user }
-      { factories }
     ) {
       const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
 
