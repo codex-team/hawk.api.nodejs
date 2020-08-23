@@ -109,7 +109,7 @@ module.exports = {
      */
     const session = client.startSession();
 
-    console.log('Start to rollback users notifications config updating...');
+    console.log('Start to rollback setting default plans for existing workspaces...');
 
     try {
       await session.withTransaction(async () => {
@@ -134,7 +134,7 @@ module.exports = {
           const workspaceId = workspace._id;
 
           /**
-           * Set up default plan
+           * Remove plan
            */
           const result = await db.collection('workspaces').findOneAndUpdate(
             {

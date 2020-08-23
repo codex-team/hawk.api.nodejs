@@ -310,6 +310,7 @@ module.exports = {
         input: { workspaceId, planId },
       },
       { factories, accounting, user }
+      { factories }
     ) {
       const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
 
@@ -366,6 +367,8 @@ module.exports = {
 ⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${planModel.name} $${planModel.monthlyCharge}</b> `;
 
       telegram.sendMessage(message);
+
+      await workspaceModel.changePlan(planModel._id);
 
       return {
         recordId: workspaceModel._id,
