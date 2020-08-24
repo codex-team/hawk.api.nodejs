@@ -12,28 +12,23 @@
     "dev:down": "docker-compose -f docker-compose.dev.yml down",
     "build": "tsc && yarn copy-email-templates",
     "copy-email-templates": "copyfiles src/email/templates/*/*.txt build",
+    "migrations:create": "docker-compose exec api yarn migrate-mongo create",
     "migrations:up": "docker-compose exec api yarn migrate-mongo up",
-    "migrations:down": "docker-compose exec api yarn migrate-mongo down"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
-  "lint-staged": {
-    "*.{js,ts}": [
-      "yarn lint",
-      "git add"
-    ]
+    "migrations:down": "docker-compose exec api yarn migrate-mongo down",
+    "test": "jest --coverage"
   },
   "devDependencies": {
+    "@shelf/jest-mongodb": "^1.2.2",
+    "@types/jest": "^26.0.8",
     "eslint": "^6.7.2",
     "eslint-config-codex": "1.2.4",
     "eslint-plugin-import": "^2.19.1",
     "husky": "^3.1.0",
-    "jest": "^24.9.0",
+    "jest": "^26.2.2",
     "lint-staged": "^9.5.0",
+    "mongodb-memory-server": "^6.6.1",
     "nodemon": "^2.0.2",
+    "ts-jest": "^26.1.4",
     "ts-node": "^8.6.2",
     "typescript": "^3.7.5"
   },
@@ -72,7 +67,6 @@
     "passport": "^0.4.1",
     "passport-github": "^1.1.0",
     "passport-jwt": "^4.0.0",
-    "tinkoff-api": "github:codex-team/tinkoff-api.git",
     "ts-node-dev": "^1.0.0-pre.44",
     "uuid": "^3.3.3"
   }

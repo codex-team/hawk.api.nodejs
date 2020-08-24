@@ -1,10 +1,10 @@
 import WorkspaceModel from '../models/workspace';
 import { AccountType, Currency } from '../accounting/types';
+import PlanModel from '../models/plan';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
 
-// const Plan = require('../models/plan');
 const ProjectToWorkspace = require('../models/projectToWorkspace');
 const Validator = require('../utils/validator');
 const emailProvider = require('../email');
@@ -45,34 +45,23 @@ module.exports = {
      */
     async createWorkspace(_obj, { name, description, image }, { user, factories, accounting }) {
       try {
-        /**
-         * @since 2019-12-11 - Remove default Plan saving to fix workspace creation with empty DB
-         * @todo check for defaultPlan existence before access defaultPlan.name
-         *       or create default plane on app initialization
-         */
-        /*
-         * const defaultPlan = await Plan.getDefaultPlan();
-         * const plan = {
-         *   subscriptionDate: Date.now() / 1000,
-         *   lastChargeDate: Date.now() / 1000,
-         *   name: defaultPlan.name
-         * };
-         */
-        accounting.createAccount({
-          name: 'Workspace',
+        // Create workspace account and set account id to workspace
+        const accountResponse = await accounting.createAccount({
+          name: name,
           type: AccountType.LIABILITY,
           currency: Currency.USD,
         });
+
+        const accountId = accountResponse.recordId;
 
         /**
          * @type {WorkspaceDBScheme}
          */
         const options = {
           name,
-          // balance: 0,
           description,
           image,
-          // plan
+          accountId,
         };
 
         const ownerModel = await factories.usersFactory.findById(user.id);
@@ -408,6 +397,45 @@ module.exports = {
 
       return true;
     },
+
+    /**
+     * Change workspace plan mutation implementation
+     *
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
+     * @param {string} workspaceId - id of workspace to change plan
+     * @param {string} planId - plan to set
+     * @param {ContextFactories} factories - factories to work with models
+     */
+    async changeWorkspacePlan(
+      _obj,
+      {
+        input: { workspaceId, planId },
+      },
+      { factories }
+    ) {
+      const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
+
+      if (!workspaceModel) {
+        throw new UserInputError('There is no workspace with provided id');
+      }
+
+      if (workspaceModel.plan === planId) {
+        throw new UserInputError('Plan with given ID is already used for the workspace');
+      }
+
+      const planModel = await factories.plansFactory.findById(planId);
+
+      if (!planModel) {
+        throw new UserInputError('Plan with passed ID doesn\'t exists');
+      }
+
+      await workspaceModel.changePlan(planModel._id);
+
+      return {
+        recordId: workspaceModel._id,
+        record: workspaceModel,
+      };
+    },
   },
   Workspace: {
     /**
@@ -433,6 +461,34 @@ module.exports = {
       const workspaceModel = await factories.workspacesFactory.findById(workspaceData._id.toString());
 
       return workspaceModel.getMembers();
+    },
+
+    /**
+     * Returs workspace balance
+     * @param {WorkspaceDBScheme} workspace - result from resolver above
+     * @param _args - empty list of args
+     * @param {string} accounting - accounting microservice
+     * @returns {Promise<number>}
+     */
+    async balance(workspace, _args, { accounting }) {
+      const accountId = workspace.accountId;
+      const account = await accounting.getAccount(accountId);
+
+      return account.balance;
+    },
+
+    /**
+     * Returns workspace plan
+     *
+     * @param {WorkspaceDBScheme} workspace - result from resolver above
+     * @param _args - empty list of arguments
+     * @param {ContextFactories} factories - factories to work with models
+     * @returns {Promise<PlanModel>}
+     */
+    async plan(workspace, _args, { factories }) {
+      const plan = await factories.plansFactory.findById(workspace.plan);
+
+      return new PlanModel(plan);
     },
   },
 
