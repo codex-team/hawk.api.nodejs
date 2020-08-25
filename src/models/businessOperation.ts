@@ -109,6 +109,11 @@ export interface BusinessOperationDBScheme<T extends BusinessOperationPayloadTyp
    * Business operation payload
    */
   payload: T;
+
+  /**
+   * Date when operation was created
+   */
+  dtCreated: number;
 }
 
 /**
@@ -139,6 +144,11 @@ export default class BusinessOperationModel<T extends BusinessOperationPayloadTy
    * Business operation payload
    */
   public payload!: T;
+
+  /**
+   * Date when operation was created
+   */
+  public dtCreated!: number;
 
   /**
    * Model's collection

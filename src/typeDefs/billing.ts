@@ -156,6 +156,11 @@ type BusinessOperation {
   Metadata related to the operation type
   """
   payload: BusinessOperationPayload!
+
+  """
+  When the operation was registered
+  """
+  dtCreated: DateTime!
 }
 
 """
