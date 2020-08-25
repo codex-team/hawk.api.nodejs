@@ -11,7 +11,9 @@ import user from './user';
 import userNotifications from './userNotifications';
 import userNotificationsMutations from './userNotificationsMutations';
 import workspace from './workspace';
+import workspaceMutations from './workspaceMutations';
 import chart from './chart';
+import plans from './plans';
 
 const rootSchema = gql`
   """
@@ -44,7 +46,7 @@ const rootSchema = gql`
   Directive for automatically image uploading
   """
   directive @uploadImage on ARGUMENT_DEFINITION
-  
+
   """
   Directive for checking a field for empty space
   """
@@ -113,6 +115,8 @@ export default concatenateTypeDefs(
     userNotifications,
     userNotificationsMutations,
     workspace,
+    workspaceMutations,
     chart,
+    plans,
   ]
 );

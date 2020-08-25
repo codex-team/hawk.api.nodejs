@@ -41,37 +41,6 @@ export default gql`
   """
   union Member = ConfirmedMember | PendingMember
 
-
-  """
-  Workspace tariff plan
-  """
-  type Plan {
-    """
-    Plan name
-    """
-    name: String
-
-    """
-    Subscription date
-    """
-    subscriptionDate: DateTime
-
-    """
-    Lsat charge date
-    """
-    lastChargeDate: DateTime
-
-    """
-    Monthly charge for plan
-    """
-    monthlyCharge: Int
-
-    """
-    Events limit for plan
-    """
-    eventsLimit: Int
-  }
-
   """
   Represent Workspace info
   """
@@ -117,7 +86,7 @@ export default gql`
     projects(
       """
       Project(s) id(s)
-      """ 
+      """
       ids: [ID!] = []
     ): [Project!] @requireAuth
   }

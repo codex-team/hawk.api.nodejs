@@ -27,6 +27,7 @@ import ValidateDirective from './directives/validate';
 import RequireUserInWorkspaceDirective from './directives/requireUserInWorkspace';
 import ProjectsFactory from './models/projectsFactory';
 import { NonCriticalError } from './errors';
+import PlansFactory from './models/plansFactory';
 import BusinessOperationsFactory from './models/businessOperationsFactory';
 
 /**
@@ -137,12 +138,16 @@ class HawkAPI {
     const projectsFactory = new ProjectsFactory(mongo.databases.hawk!, dataLoaders);
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const plansFactory = new PlansFactory(mongo.databases.hawk!, dataLoaders);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const businessOperationsFactory = new BusinessOperationsFactory(mongo.databases.hawk!, dataLoaders);
 
     return {
       usersFactory,
       workspacesFactory,
       projectsFactory,
+      plansFactory,
       businessOperationsFactory,
     };
   }

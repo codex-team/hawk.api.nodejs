@@ -3,6 +3,7 @@ import WorkspacesFactory from '../models/workspacesFactory';
 import { GraphQLField } from 'graphql';
 import ProjectsFactory from '../models/projectsFactory';
 import Accounting from '../accounting';
+import PlansFactory from '../models/plansFactory';
 import BusinessOperationsFactory from '../models/businessOperationsFactory';
 
 /**
@@ -68,6 +69,11 @@ export interface ContextFactories {
    * Projects factory for working with projects
    */
   projectsFactory: ProjectsFactory;
+
+  /**
+   * Plans factory for working with tariff plans
+   */
+  plansFactory: PlansFactory;
 
   /**
    * Allows to work with the Business Operations models
