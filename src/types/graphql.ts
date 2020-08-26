@@ -4,6 +4,7 @@ import { GraphQLField } from 'graphql';
 import ProjectsFactory from '../models/projectsFactory';
 import Accounting from '../accounting';
 import PlansFactory from '../models/plansFactory';
+import BusinessOperationsFactory from '../models/businessOperationsFactory';
 
 /**
  * Resolver's Context argument
@@ -73,6 +74,11 @@ export interface ContextFactories {
    * Plans factory for working with tariff plans
    */
   plansFactory: PlansFactory;
+
+  /**
+   * Business operations factory to set operations to hawk db
+   */
+  businessOperationsFactory: BusinessOperationsFactory;
 }
 
 /**

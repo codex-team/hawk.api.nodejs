@@ -302,4 +302,47 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
       }
     )).modifiedCount;
   }
+
+  /**
+   * Push old plan to plan history. So that you can trace the history of changing plans
+   * @param oldPlanId - id of old plan
+   * @param dtChange - date of plan change
+   * @param userId - id of user that changed the plan
+   */
+  public async updatePlanHistory(tariffPlanId: string, dtChange: number, userId: string): Promise<number> {
+    dtChange = Math.floor(dtChange / 1000);
+
+    return (await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
+      {
+        $push: {
+          plansHistory: {
+            tariffPlanId,
+            dtChange,
+            userId,
+          },
+        },
+      }
+    )).modifiedCount;
+  }
+
+  /**
+   * Updating the date of the last charge
+   */
+  public async updateLastChargeDate(date: number): Promise<number> {
+    date = Math.floor(date / 1000);
+
+    return (await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
+      {
+        $set: {
+          lastChargeDate: date,
+        },
+      }
+    )).modifiedCount;
+  }
 }
