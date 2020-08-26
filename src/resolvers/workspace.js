@@ -329,36 +329,42 @@ module.exports = {
         throw new UserInputError('Plan with passed ID doesn\'t exists');
       }
 
-      // Charge money for new plan
-      const transaction = await accounting.purchase({
-        accountId: workspaceModel.accountId,
-        amount: planModel.monthlyCharge,
-        description: 'Monthly charge',
-      });
+      try {
+        // Charge money for new plan
+        const transaction = await accounting.purchase({
+          accountId: workspaceModel.accountId,
+          amount: planModel.monthlyCharge,
+          description: 'Monthly charge',
+        });
 
-      // Push old plan to plan history
-      await workspaceModel.updatePlanHistory(workspaceModel.plan, Date.now(), userModel._id);
+        // Push old plan to plan history
+        await workspaceModel.updatePlanHistory(workspaceModel.plan, Date.now(), userModel._id);
 
-      // Update workspace last charge date
-      await workspaceModel.updateLastChargeDate(Date.now());
+        // Update workspace last charge date
+        await workspaceModel.updateLastChargeDate(Date.now());
 
-      // Create a business operation
-      const payloadWorkspacePlanPurchase = {
-        workspaceId: workspaceModel._id,
-        amount: planModel.monthlyCharge,
-      };
+        // Create a business operation
+        const payloadWorkspacePlanPurchase = {
+          workspaceId: workspaceModel._id,
+          amount: planModel.monthlyCharge,
+        };
 
-      const businessOperationData = {
-        transactionId: transaction.id,
-        type: BusinessOperationType.WorkspacePlanPurchase,
-        status: BusinessOperationStatus.Confirmed,
-        payload: payloadWorkspacePlanPurchase,
-      };
+        const businessOperationData = {
+          transactionId: transaction.id,
+          type: BusinessOperationType.WorkspacePlanPurchase,
+          status: BusinessOperationStatus.Confirmed,
+          payload: payloadWorkspacePlanPurchase,
+        };
 
-      await factories.businessOperationsFactory.create(businessOperationData);
+        await factories.businessOperationsFactory.create(businessOperationData);
 
-      // Change workspace plan
-      await workspaceModel.changePlan(planModel._id);
+        // Change workspace plan
+        await workspaceModel.changePlan(planModel._id);
+      } catch (err) {
+        console.log('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
+
+        throw new ApolloError('Something went wrong');
+      }
 
       // Send a message of a succesfully plan changed to the telegram bot
       const message = `🤑 <b>${userModel.name || userModel.email}</b> changed plan of «<b>${workspaceModel.name}</b>» workspace
@@ -366,8 +372,6 @@ module.exports = {
 ⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${planModel.name} $${planModel.monthlyCharge}</b> `;
 
       telegram.sendMessage(message);
-
-      await workspaceModel.changePlan(planModel._id);
 
       return {
         recordId: workspaceModel._id,

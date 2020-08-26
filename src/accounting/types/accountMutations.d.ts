@@ -36,7 +36,7 @@ export interface CreateAccountResponse {
  */
 export interface PurchaseMutationInput {
   /**
-   * Account igentifier: Which account should be purchased
+   * Account ID from which the amount is debited
    */
   accountId: string;
 

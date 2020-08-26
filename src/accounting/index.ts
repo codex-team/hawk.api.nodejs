@@ -60,9 +60,10 @@ export default class Accounting {
 
   /**
    * Charge money (hardcode)
+   * @param input - data for debiting money
    */
   public async purchase(input: PurchaseMutationInput): Promise<TransactionData> {
-    const response = {
+    const response: TransactionData = {
       id: '179fdb48-e61d-4cf6-8029-fe08577f8e5a',
     };
 
