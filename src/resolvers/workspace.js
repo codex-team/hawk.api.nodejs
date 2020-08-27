@@ -3,6 +3,7 @@ import { AccountType, Currency } from '../accounting/types';
 import PlanModel from '../models/plan';
 import telegram from '../utils/telegram';
 import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
+import HawkCatcher from '@hawk.so/nodejs';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -361,7 +362,8 @@ module.exports = {
         // Change workspace plan
         await workspaceModel.changePlan(planModel._id);
       } catch (err) {
-        console.log('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
+        console.error('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
+        HawkCatcher.send(err);
 
         throw new ApolloError('An error occurred while changing the plan');
       }
