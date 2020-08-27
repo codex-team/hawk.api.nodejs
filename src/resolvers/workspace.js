@@ -363,7 +363,7 @@ module.exports = {
       } catch (err) {
         console.log('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
 
-        throw new ApolloError('Something went wrong');
+        throw new ApolloError('An error occurred while changing the plan');
       }
 
       // Send a message of a succesfully plan changed to the telegram bot
