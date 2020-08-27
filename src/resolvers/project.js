@@ -1,8 +1,13 @@
+const mongo = require('../mongo');
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 const ProjectToWorkspace = require('../models/projectToWorkspace');
+
+const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
+const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
+const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -47,6 +52,37 @@ module.exports = {
       };
 
       const project = await factories.projectsFactory.create(options);
+
+      /**
+       * Create collections for storing events and setup indexes
+       */
+      const projectEventsCollection = await mongo.databases.events.createCollection('events:' + project._id);
+
+      const projectRepetitionsEventsCollection = await mongo.databases.events.createCollection('repetitions:' + project._id);
+
+      await mongo.databases.events.createCollection('dailyEvents:' + project._id);
+
+      await projectEventsCollection.createIndex({
+        groupHash: 1,
+      },
+      {
+        unique: true,
+        name: EVENTS_GROUP_HASH_INDEX_NAME,
+      });
+
+      await projectRepetitionsEventsCollection.createIndex({
+        groupHash: 'hashed',
+      },
+      {
+        name: REPETITIONS_GROUP_HASH_INDEX_NAME,
+      });
+
+      await projectRepetitionsEventsCollection.createIndex({
+        'payload.user.id': 1,
+      }, {
+        name: REPETITIONS_USER_ID_INDEX_NAME,
+        sparse: true,
+      });
 
       return project;
     },
@@ -202,13 +238,15 @@ module.exports = {
      * @param {ProjectDBScheme} project - result of parent resolver
      * @param {Number} limit - limit for events count
      * @param {Number} skip - certain number of documents to skip
+     * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
+     * @param {EventsFilters} filters - marks by which events should be filtered
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async recentEvents(project, { limit, skip }) {
+    async recentEvents(project, { limit, skip, sort, filters }) {
       const factory = new EventsFactory(project._id);
 
-      return factory.findRecent(limit, skip);
+      return factory.findRecent(limit, skip, sort, filters);
     },
 
     /**

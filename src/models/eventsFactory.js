@@ -21,6 +21,13 @@ const { ObjectID } = require('mongodb');
  */
 
 /**
+ * @typedef {Object} EventsFilters
+ * @property {boolean} [starred] - if true, events with 'starred' mark should be included to the output
+ * @property {boolean} [resolved] - if true, events with 'resolved' should be included to the output
+ * @property {boolean} [ignored] - if true, events with 'ignored' mark should be included to the output
+ */
+
+/**
  * EventsFactory
  *
  * Factory Class for Event's Model
@@ -136,36 +143,96 @@ class EventsFactory extends Factory {
    *
    * @param {Number} limit - events count limitations
    * @param {Number} skip - certain number of documents to skip
+   * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
+   * @param {EventsFilters} filters - marks by which events should be filtered
+   *
    * @return {RecentEventSchema[]}
    */
-  async findRecent(limit = 10, skip = 0) {
+  async findRecent(
+    limit = 10,
+    skip = 0,
+    sort = 'BY_DATE',
+    filters = {}
+  ) {
     limit = this.validateLimit(limit);
+    sort = sort === 'BY_COUNT' ? 'count' : 'lastRepetitionTime';
 
-    const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate([
+    const pipeline = [
       {
         $sort: {
           groupingTimestamp: -1,
-          lastRepetitionTime: -1,
+          [sort]: -1,
         },
       },
-      { $skip: skip },
-      { $limit: limit },
-      {
-        $group: {
-          _id: null,
-          groupHash: { $addToSet: '$groupHash' },
-          dailyInfo: { $push: '$$ROOT' },
+    ];
+
+    /**
+     * If some events should be omitted, use alternative pipeline
+     */
+    if (Object.values(filters).length > 0) {
+      pipeline.push(
+        /**
+         * Lookup events object for each daily event
+         */
+        {
+          $lookup: {
+            from: 'events:' + this.projectId,
+            localField: 'groupHash',
+            foreignField: 'groupHash',
+            as: 'event',
+          },
         },
-      },
-      {
-        $lookup: {
-          from: 'events:' + this.projectId,
-          localField: 'groupHash',
-          foreignField: 'groupHash',
-          as: 'events',
+        {
+          $unwind: '$event',
         },
-      },
-    ]);
+        /**
+         * Match filters
+         */
+        {
+          $match: {
+            ...Object.fromEntries(
+              Object
+                .entries(filters)
+                .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
+            ),
+          },
+        },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $group: {
+            _id: null,
+            dailyInfo: { $push: '$$ROOT' },
+            events: { $push: '$event' },
+          },
+        },
+        {
+          $unset: 'dailyInfo.event',
+        }
+      );
+    } else {
+      pipeline.push(
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $group: {
+            _id: null,
+            groupHash: { $addToSet: '$groupHash' },
+            dailyInfo: { $push: '$$ROOT' },
+          },
+        },
+        {
+          $lookup: {
+            from: 'events:' + this.projectId,
+            localField: 'groupHash',
+            foreignField: 'groupHash',
+            as: 'events',
+          },
+        }
+      );
+    }
+
+    const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
 
     const result = (await cursor.toArray()).shift();
 
@@ -420,6 +487,23 @@ class EventsFactory extends Factory {
     if (await this.isCollectionExists(this.TYPES.REPETITIONS)) {
       await this.getCollection(this.TYPES.REPETITIONS).drop();
     }
+  }
+
+  /**
+   * Update assignee to selected event
+   *
+   * @param {string} eventId - event id
+   * @param {string} assignee - assignee id for this event
+   * @return {Promise<void>}
+   */
+  async updateAssignee(eventId, assignee) {
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const query = { _id: new ObjectID(eventId) };
+    const update = {
+      $set: { assignee: assignee },
+    };
+
+    return collection.updateOne(query, update);
   }
 }
 

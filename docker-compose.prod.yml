@@ -9,4 +9,7 @@ services:
     volumes:
       - ./.env:/usr/src/app/.env
       - ./uploads:/usr/src/app/uploads
-    restart: unless-stopped
+      - /usr/src/app/node_modules
+      - ./src/accounting/tls/ca.pem:${TLS_CA_CERT}
+      - ./src/accounting/tls/client.pem:${TLS_CERT}
+      - ./src/accounting/tls/client-key.pem:${TLS_KEY}

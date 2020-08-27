@@ -3,6 +3,7 @@ import { Db, ObjectId } from 'mongodb';
 import { WorkspaceDBScheme } from './models/workspace';
 import { UserDBScheme } from './models/user';
 import { ProjectDBScheme } from './models/project';
+import { PlanDBScheme } from './models/plan';
 
 /**
  * Class for setting up data loaders
@@ -22,6 +23,14 @@ export default class DataLoaders {
   public workspaceById = new DataLoader<string, WorkspaceDBScheme | null>(
     (workspaceIds) => this.batchByIds<WorkspaceDBScheme>('workspaces', workspaceIds),
     { cache: false }
+  );
+
+  /**
+   * Loader for fetching plans
+   */
+  public planById = new DataLoader<string, PlanDBScheme | null>(
+    (planIds) => this.batchByIds<PlanDBScheme>('plans', planIds),
+    { cache: true }
   );
 
   /**
