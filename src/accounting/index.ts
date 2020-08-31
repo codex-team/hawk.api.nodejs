@@ -60,12 +60,12 @@ export default class Accounting {
 
   /**
    * Charge money
-   * 
+   *
    * @param input - data for debiting money
    */
   public async purchase(input: PurchaseMutationInput): Promise<TransactionResponse> {
     const transaction: TransactionResponse = (await this.client.call(MUTATION_PURCHASE, {
-      input
+      input,
     })).data.data.purchase;
 
     return transaction;

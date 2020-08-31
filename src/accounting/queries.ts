@@ -35,4 +35,4 @@ export const MUTATION_PURCHASE = `
       recordId
     }
   }
-`
+`;
