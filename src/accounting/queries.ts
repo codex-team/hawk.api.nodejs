@@ -25,3 +25,14 @@ export const MUTATION_CREATE_ACCOUNT = `
     }
   }
 `;
+
+/**
+ * Mutation for purchase
+ */
+export const MUTATION_PURCHASE = `
+  mutation Purchase($input: PurchaseInput!) {
+    purchase(input:$input){
+      recordId
+    }
+  }
+`

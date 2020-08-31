@@ -1,3 +1,5 @@
+import { string } from "../../utils/validator"
+
 /**
  * Available transaction types
  */
@@ -41,4 +43,19 @@ export interface TransactionData {
    * Transaction creation datetime
    */
   dtCreated?: number;
+}
+
+/**
+ * Transaction response
+ */
+export interface TransactionResponse {
+  /**
+   * Transaction id
+   */
+  recordId?: string;
+
+  /**
+   * Full transaction data
+   */
+  record?: TransactionData;
 }

@@ -351,7 +351,7 @@ module.exports = {
         };
 
         const businessOperationData = {
-          transactionId: transaction.id,
+          transactionId: transaction.recordId,
           type: BusinessOperationType.WorkspacePlanPurchase,
           status: BusinessOperationStatus.Confirmed,
           payload: payloadWorkspacePlanPurchase,
