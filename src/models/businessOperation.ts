@@ -112,8 +112,9 @@ export interface BusinessOperationDBScheme<T extends BusinessOperationPayloadTyp
 
   /**
    * Date when operation was created
+   * Example: '2020-09-25T04:45:00Z'
    */
-  dtCreated: number;
+  dtCreated: string;
 }
 
 /**
@@ -147,8 +148,9 @@ export default class BusinessOperationModel<T extends BusinessOperationPayloadTy
 
   /**
    * Date when operation was created
+   * Example: '2020-09-25T04:45:00Z'
    */
-  public dtCreated!: number;
+  public dtCreated!: string;
 
   /**
    * Model's collection
