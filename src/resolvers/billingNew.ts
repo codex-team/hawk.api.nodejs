@@ -22,38 +22,7 @@ export default {
       { ids }: { ids: string[] },
       { user, factories }: ResolverContextWithUser
     ): Promise<BusinessOperationModel[]> {
-      // return factories.businessOperationsFactory.getWorkspacesBusinessOperations(ids);
-
-      /**
-       * Leave for testing, will be removed when Garage-side will be finished
-       */
-      return [
-        {
-          id: '222',
-          type: 'WORKSPACE_PLAN_PURCHASE',
-          status: 'CONFIRMED',
-          transactionId: '123',
-          payload: {
-            workspaceId: new ObjectId('5e5fb6303e3a9d0a1933739a'),
-            amount: 1000,
-          },
-          dtCreated: '2020-08-01T00:00:00Z',
-        } as unknown as BusinessOperationModel,
-
-        {
-          id: 'ad2',
-          type: 'DEPOSIT_BY_USER',
-          status: 'CONFIRMED',
-          transactionId: '124',
-          payload: {
-            workspaceId: new ObjectId('5e5fb6303e3a9d0a1933739a'),
-            amount: 3000,
-            userId: new ObjectId('5e4f053246587414198eabda'),
-            cardPan: '6363',
-          },
-          dtCreated: '2020-09-25T04:45:00Z',
-        } as unknown as BusinessOperationModel,
-      ];
+      return factories.businessOperationsFactory.getWorkspacesBusinessOperations(ids);
     },
   },
   /**
