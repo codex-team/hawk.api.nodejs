@@ -31,7 +31,7 @@ module.exports = {
 
     const accountingApiConfig = {
       baseURL: process.env.CODEX_ACCOUNTING_URL,
-      tlsVerify: process.env.TLS_VERIFY,
+      tlsVerify: process.env.TLS_VERIFY === 'true',
       tlsCaCertPath: process.env.TLS_CA_CERT,
       tlsCertPath: process.env.TLS_CERT,
       tlsKeyPath: process.env.TLS_KEY,
