@@ -3,6 +3,7 @@ const ProjectToWorkspace = require('../models/projectToWorkspace');
 const asyncForEach = require('../utils/asyncForEach');
 const mongo = require('../mongo');
 const EventsFactory = require('../models/eventsFactory');
+const { ObjectID } = require('mongodb');
 
 const watchController = new MongoWatchController();
 
@@ -86,6 +87,22 @@ module.exports = {
       }
 
       return factories.usersFactory.dataLoaders.userById.load(assignee);
+    },
+
+    /**
+     * Return chart data for target event occured in last few days
+     *
+     * @param {string} projectId - event's project
+     * @param {string} groupHash - event's groupHash
+     * @param {Number} days - how many days we need to fetch for displaying in a charts
+     * @param {number} timezoneOffset - user's local timezone offset in minutes
+     * @param factories - factories for working with models
+     * @returns {Promise<ProjectChartItem[]>}
+     */
+    async chartData({ projectId, groupHash }, { days, timezoneOffset }, { factories }) {
+      const factory = new EventsFactory(new ObjectID(projectId));
+
+      return factory.findChartData(days, timezoneOffset, groupHash);
     },
   },
   Subscription: {
