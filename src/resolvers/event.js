@@ -94,12 +94,11 @@ module.exports = {
      *
      * @param {string} projectId - event's project
      * @param {string} groupHash - event's groupHash
-     * @param {Number} days - how many days we need to fetch for displaying in a charts
+     * @param {number} days - how many days we need to fetch for displaying in a charts
      * @param {number} timezoneOffset - user's local timezone offset in minutes
-     * @param factories - factories for working with models
      * @returns {Promise<ProjectChartItem[]>}
      */
-    async chartData({ projectId, groupHash }, { days, timezoneOffset }, { factories }) {
+    async chartData({ projectId, groupHash }, { days, timezoneOffset }) {
       const factory = new EventsFactory(new ObjectID(projectId));
 
       return factory.findChartData(days, timezoneOffset, groupHash);
