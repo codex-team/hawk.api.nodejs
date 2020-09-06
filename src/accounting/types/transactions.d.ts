@@ -1,5 +1,3 @@
-import { string } from '../../utils/validator';
-
 /**
  * Available transaction types
  */
