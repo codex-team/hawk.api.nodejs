@@ -315,7 +315,7 @@ module.exports = {
         throw new UserInputError('There is no workspace with provided id');
       }
 
-      if (workspaceModel.plan === planId) {
+      if (workspaceModel.tariffPlanId === planId) {
         throw new UserInputError('Plan with given ID is already used for the workspace');
       }
 

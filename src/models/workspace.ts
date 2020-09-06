@@ -35,7 +35,7 @@ export interface WorkspaceDBScheme {
   /**
    * Id of the Workspace's plan
    */
-  plan: string;
+  tariffPlanId: string;
 }
 
 /**
@@ -110,7 +110,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Id of the Workspace's plan
    */
-  public plan!: string;
+  public tariffPlanId!: string;
 
   /**
    * Model's collection
@@ -298,7 +298,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
         _id: new ObjectId(this._id),
       },
       {
-        $set: { plan: planId },
+        $set: { tariffPlanId: planId },
       }
     )).modifiedCount;
   }
