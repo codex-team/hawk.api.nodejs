@@ -295,19 +295,19 @@ module.exports = {
     },
 
     /**
-     * Change workspace plan mutation implementation
+     * Depositing balance
      *
      * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {string} workspaceId - id of workspace to change plan
      * @param {string} planId - plan to set
      * @param {ContextFactories} factories - factories to work with models
      */
-    async changeWorkspacePlan(
+    async payOnce(
       _obj,
       {
-        input: { workspaceId, planId },
+        input: { workspaceId, amount },
       },
-      { factories }
+      { factories, accounting }
     ) {
       const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
 
@@ -315,17 +315,33 @@ module.exports = {
         throw new UserInputError('There is no workspace with provided id');
       }
 
-      if (workspaceModel.plan === planId) {
-        throw new UserInputError('Plan with given ID is already used for the workspace');
+      try {
+        const transaction = await accounting.payOnce({
+          accountId: workspaceModel.accountId,
+          amount,
+          description: 'Depositing balance by one-time payment',
+        });
+
+        // Create a business operation
+        const payloadWorkspacePlanPurchase = {
+          workspaceId: workspaceModel._id,
+          amount,
+        };
+
+        const businessOperationData = {
+          transactionId: transaction.recordId,
+          type: BusinessOperationType.DepositByUser,
+          status: BusinessOperationStatus.Confirmed,
+          payload: payloadWorkspacePlanPurchase,
+        };
+
+        await factories.businessOperationsFactory.create(businessOperationData);
+      } catch (err) {
+        console.error('\nლ(´ڡ`ლ) Error [resolvers:workspace:payOnce]: \n\n', err, '\n\n');
+        HawkCatcher.send(err);
+
+        throw new ApolloError('An error occurred while depositing the plan');
       }
-
-      const planModel = await factories.plansFactory.findById(planId);
-
-      if (!planModel) {
-        throw new UserInputError('Plan with passed ID doesn\'t exists');
-      }
-
-      await workspaceModel.changePlan(planModel._id);
 
       return {
         recordId: workspaceModel._id,
