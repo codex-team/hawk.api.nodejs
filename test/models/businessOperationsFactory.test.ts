@@ -8,6 +8,7 @@ import {
   BusinessOperationType,
   PayloadOfDepositByUser
 } from '../../src/models/businessOperation';
+import { getISOStringWithoutMilliseconds } from '../../src/utils/dates';
 
 beforeAll(async () => {
   await mongo.setupConnections();
@@ -34,6 +35,7 @@ describe('Business operation factory', () => {
       transactionId: 'Transaction ID',
       type: BusinessOperationType.DepositByUser,
       status: BusinessOperationStatus.Confirmed,
+      dtCreated: getISOStringWithoutMilliseconds(new Date()),
       payload: payloadDepositByUser,
     };
 
