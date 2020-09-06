@@ -5,6 +5,7 @@ import BusinessOperationModel, {
 } from '../../src/models/businessOperation';
 import { ObjectId } from 'mongodb';
 import * as mongo from '../../src/mongo';
+import { getISOStringWithoutMilliseconds } from '../../src/utils/dates';
 
 beforeAll(async () => {
   await mongo.setupConnections();
@@ -23,6 +24,7 @@ describe('Business operation model', () => {
       transactionId: 'Transaction ID',
       type: BusinessOperationType.DepositByUser,
       status: BusinessOperationStatus.Confirmed,
+      dtCreated: getISOStringWithoutMilliseconds(new Date()),
       payload: payloadDepositByUser,
     };
 
@@ -41,6 +43,7 @@ describe('Business operation model', () => {
       transactionId: 'Transaction ID',
       type: BusinessOperationType.WorkspacePlanPurchase,
       status: BusinessOperationStatus.Confirmed,
+      dtCreated: getISOStringWithoutMilliseconds(new Date()),
       payload: payloadWorkspacePlanPurchase,
     };
 
