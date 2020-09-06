@@ -98,7 +98,7 @@ type PayloadOfDepositByUser {
   workspace: Workspace!
 
   """
-  Amount of payment
+  Amount of payment in US cents
   """
   amount: Int!
 
@@ -123,7 +123,7 @@ type PayloadOfWorkspacePlanPurchase {
   workspace: Workspace!
 
   """
-  Amount of payment
+  Amount of payment in US cents
   """
   amount: Int!
 }
