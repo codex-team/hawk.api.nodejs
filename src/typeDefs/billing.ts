@@ -140,7 +140,7 @@ type BusinessOperation {
   """
   Id of operation
   """
-  id: String!
+  id: String! @renameFrom(name: "_id")
 
   """
   Business operation type
