@@ -4,6 +4,7 @@ import PlanModel from '../models/plan';
 import telegram from '../utils/telegram';
 import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import HawkCatcher from '@hawk.so/nodejs';
+import { getISOStringWithoutMilliseconds } from '../utils/dates';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -354,6 +355,7 @@ module.exports = {
           transactionId: transaction.recordId,
           type: BusinessOperationType.WorkspacePlanPurchase,
           status: BusinessOperationStatus.Confirmed,
+          dtCreated: getISOStringWithoutMilliseconds(new Date()),
           payload: payloadWorkspacePlanPurchase,
         };
 

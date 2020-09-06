@@ -67,3 +67,12 @@ export function getMidnightWithTimezoneOffset(utcOccurrenceTime: number, utcMidn
 
   return localMidnight / milliseconds;
 }
+
+/**
+ * Converts a date to an ISO string without milliseconds
+ *
+ * @returns string in "YYYY-MM-DDThh:mm:ssZ" format
+ */
+export function getISOStringWithoutMilliseconds(date: Date): string {
+  return date.toISOString().slice(0, -5) + 'Z';
+}
