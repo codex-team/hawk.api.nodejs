@@ -28,6 +28,7 @@ import RequireUserInWorkspaceDirective from './directives/requireUserInWorkspace
 import ProjectsFactory from './models/projectsFactory';
 import { NonCriticalError } from './errors';
 import PlansFactory from './models/plansFactory';
+import BusinessOperationsFactory from './models/businessOperationsFactory';
 
 /**
  * Option to enable playground
@@ -139,11 +140,15 @@ class HawkAPI {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const plansFactory = new PlansFactory(mongo.databases.hawk!, dataLoaders);
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const businessOperationsFactory = new BusinessOperationsFactory(mongo.databases.hawk!, dataLoaders);
+
     return {
       usersFactory,
       workspacesFactory,
       projectsFactory,
       plansFactory,
+      businessOperationsFactory,
     };
   }
 

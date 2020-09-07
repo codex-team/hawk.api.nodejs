@@ -35,6 +35,7 @@ describe('Business operation factory', () => {
       type: BusinessOperationType.DepositByUser,
       status: BusinessOperationStatus.Confirmed,
       payload: payloadDepositByUser,
+      dtCreated: '2020-08-01T00:00:00Z',
     };
 
     const businessOperation = await factory.create<PayloadOfDepositByUser>(data);

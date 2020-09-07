@@ -24,6 +24,7 @@ describe('Business operation model', () => {
       type: BusinessOperationType.DepositByUser,
       status: BusinessOperationStatus.Confirmed,
       payload: payloadDepositByUser,
+      dtCreated: '2020-08-01T00:00:00Z',
     };
 
     const businessOperation = new BusinessOperationModel<PayloadOfDepositByUser>(data);
@@ -42,6 +43,7 @@ describe('Business operation model', () => {
       type: BusinessOperationType.WorkspacePlanPurchase,
       status: BusinessOperationStatus.Confirmed,
       payload: payloadWorkspacePlanPurchase,
+      dtCreated: '2020-08-01T00:00:00Z',
     };
 
     const businessOperation = new BusinessOperationModel<PayloadOfWorkspacePlanPurchase>(data);
