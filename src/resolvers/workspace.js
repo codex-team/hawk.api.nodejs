@@ -5,6 +5,7 @@ import telegram from '../utils/telegram';
 import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import HawkCatcher from '@hawk.so/nodejs';
 import { getISOStringWithoutMilliseconds } from '../utils/dates';
+import escapeHTML from 'escape-html';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -371,7 +372,7 @@ module.exports = {
       }
 
       // Send a message of a succesfully plan changed to the telegram bot
-      const message = `🤑 <b>${userModel.name || userModel.email}</b> changed plan of «<b>${workspaceModel.name}</b>» workspace
+      const message = `🤑 <b>${escapeHTML(userModel.name || userModel.email)}</b> changed plan of «<b>${escapeHTML(workspaceModel.name)}</b>» workspace
 
 ⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${planModel.name} $${planModel.monthlyCharge}</b> `;
 
