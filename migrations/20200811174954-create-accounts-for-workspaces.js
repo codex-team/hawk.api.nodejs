@@ -1,8 +1,9 @@
 const https = require('https');
 const axios = require('axios');
+const fs = require('fs');
 
 require('dotenv').config({
-  path: '../.env'
+  path: '../.env',
 });
 
 /**
@@ -30,11 +31,11 @@ module.exports = {
 
     const accountingApiConfig = {
       baseURL: process.env.CODEX_ACCOUNTING_URL,
-      tlsVerify: process.env.TLS_VERIFY,
+      tlsVerify: process.env.TLS_VERIFY === 'true',
       tlsCaCertPath: process.env.TLS_CA_CERT,
       tlsCertPath: process.env.TLS_CERT,
-      tlsKeyPath: process.env.TLS_KEY
-    }
+      tlsKeyPath: process.env.TLS_KEY,
+    };
 
     let httpsAgent = null;
 
@@ -59,7 +60,8 @@ module.exports = {
         /**
          * Get all workspaces
          */
-        const workspaces = await db.collection('workspaces').find().toArray();
+        const workspaces = await db.collection('workspaces').find()
+          .toArray();
 
         /**
          * Each workspace should have a plan
@@ -84,16 +86,16 @@ module.exports = {
                 name: `WORKSPACE:${workspace.name}`,
                 type: 'Liability',
                 currency: 'USD',
-              }
+              },
             },
           })
-            .then(response => {
-              return response.data;
+            .then(resp => {
+              return resp.data;
             })
-            .catch(response => {
-              console.error(response);
+            .catch(resp => {
+              console.error(resp);
 
-              return Promise.reject(response);
+              return Promise.reject(resp);
             });
 
           const recordId = response.data.account.create.recordId;
@@ -107,7 +109,7 @@ module.exports = {
             },
             {
               $set: {
-                accountId: recordId
+                accountId: recordId,
               },
             }
           );
@@ -138,15 +140,15 @@ module.exports = {
 
     try {
       await session.withTransaction(async () => {
-
         /**
          * Find workspaces with a plan
          */
         const workspaces = await db.collection('workspaces').find({
           accountId: {
-            $exists: true
-          }
-        }).toArray();
+            $exists: true,
+          },
+        })
+          .toArray();
 
         /**
          * Remove accountIds from workspaces
@@ -178,5 +180,5 @@ module.exports = {
     } finally {
       await session.endSession();
     }
-  }
+  },
 };

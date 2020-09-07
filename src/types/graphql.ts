@@ -76,7 +76,7 @@ export interface ContextFactories {
   plansFactory: PlansFactory;
 
   /**
-   * Business operations factory to set operations to hawk db
+   * Allows to work with the Business Operations models
    */
   businessOperationsFactory: BusinessOperationsFactory;
 }

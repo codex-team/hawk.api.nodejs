@@ -52,7 +52,7 @@ module.exports = {
       try {
         // Create workspace account and set account id to workspace
         const accountResponse = await accounting.createAccount({
-          name: name,
+          name: 'WORKSPACE:' + name,
           type: AccountType.LIABILITY,
           currency: Currency.USD,
         });

@@ -184,6 +184,13 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * @param modelData - user data
    */
   constructor(modelData: UserDBScheme) {
+    /**
+     * Fallback for name using email
+     */
+    if (modelData.email && !modelData.name) {
+      modelData.name = modelData.email;
+    }
+
     super(modelData);
 
     this.membershipCollection = this.dbConnection.collection('membership:' + this._id);
