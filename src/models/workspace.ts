@@ -318,11 +318,11 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Push old plan to plan history. So that you can trace the history of changing plans
    *
    * @param oldPlanId - id of old plan
-   * @param dtChange - timestamp of plan change in ms
+   * @param dtChange - date of plan change
    * @param userId - id of user that changed the plan
    * @returns whether the document was successfully updated
    */
-  public async updatePlanHistory(tariffPlanId: string, dtChange: number, userId: string): Promise<boolean> {
+  public async updatePlanHistory(tariffPlanId: string, dtChange: Date, userId: string): Promise<boolean> {
     return (await this.collection.updateOne(
       {
         _id: new ObjectId(this._id),
@@ -342,10 +342,10 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Updating the date of the last charge
    *
-   * @param date - timestamp of the last charge in ms
+   * @param date - date of the last charge
    * @returns whether the document was successfully updated
    */
-  public async updateLastChargeDate(date: number): Promise<boolean> {
+  public async updateLastChargeDate(date: Date): Promise<boolean> {
     return (await this.collection.updateOne(
       {
         _id: new ObjectId(this._id),

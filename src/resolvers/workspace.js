@@ -4,7 +4,6 @@ import PlanModel from '../models/plan';
 import telegram from '../utils/telegram';
 import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import HawkCatcher from '@hawk.so/nodejs';
-import { getISOStringWithoutMilliseconds } from '../utils/dates';
 import escapeHTML from 'escape-html';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
@@ -340,11 +339,13 @@ module.exports = {
           description: 'Monthly charge for the new workspace plan',
         });
 
+        const date = new Date();
+
         // Push old plan to plan history
-        await workspaceModel.updatePlanHistory(workspaceModel.plan, Date.now(), userModel._id);
+        await workspaceModel.updatePlanHistory(workspaceModel.plan, date, userModel._id);
 
         // Update workspace last charge date
-        await workspaceModel.updateLastChargeDate(Date.now());
+        await workspaceModel.updateLastChargeDate(date);
 
         // Create a business operation
         const payloadWorkspacePlanPurchase = {
@@ -356,7 +357,7 @@ module.exports = {
           transactionId: transaction.recordId,
           type: BusinessOperationType.WorkspacePlanPurchase,
           status: BusinessOperationStatus.Confirmed,
-          dtCreated: getISOStringWithoutMilliseconds(new Date()),
+          dtCreated: date,
           payload: payloadWorkspacePlanPurchase,
         };
 
