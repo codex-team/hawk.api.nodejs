@@ -11,6 +11,9 @@ import user from './user';
 import userNotifications from './userNotifications';
 import userNotificationsMutations from './userNotificationsMutations';
 import workspace from './workspace';
+import workspaceMutations from './workspaceMutations';
+import chart from './chart';
+import plans from './plans';
 
 const rootSchema = gql`
   """
@@ -44,6 +47,15 @@ const rootSchema = gql`
   """
   directive @uploadImage on ARGUMENT_DEFINITION
 
+  """
+  Directive for checking a field for empty space
+  """
+  directive @validate(notEmpty: Boolean, isEmail: Boolean) on ARGUMENT_DEFINITION
+
+  """
+  Directive for checking user in workspace
+  """
+  directive @requireUserInWorkspace on FIELD_DEFINITION
 
   """
   Type for date and time representation
@@ -103,5 +115,8 @@ export default concatenateTypeDefs(
     userNotifications,
     userNotificationsMutations,
     workspace,
+    workspaceMutations,
+    chart,
+    plans,
   ]
 );

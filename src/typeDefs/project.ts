@@ -1,6 +1,33 @@
 import { gql } from 'apollo-server-express';
 
 export default gql`
+
+"""
+Possible events order
+"""
+enum EventsSortOrder {
+  BY_DATE
+  BY_COUNT
+}
+
+"""
+Events filters input type
+"""
+input EventsFiltersInput {
+  """
+  If True, includes events with resolved mark to the output
+  """
+  resolved: Boolean
+  """
+  If True, includes events with starred mark to the output
+  """
+  starred: Boolean
+  """
+  If True, includes events with ignored mark to the output
+  """
+  ignored: Boolean
+}
+
 """
 Project representation
 """
@@ -70,8 +97,27 @@ type Project {
 
     "Certain number of documents to skip"
     skip: Int! = 0
-  ): RecentEvents @requireAuth
 
+    "Events sort order"
+    sort: EventsSortOrder = lastRepetitionTime
+
+    "Event marks by which events should be sorted"
+    filters: EventsFiltersInput
+  ): RecentEvents @requireAuth
+  """
+  Return events that occurred after a certain timestamp
+  """
+  chartData(
+    """
+    How many days we need to fetch for displaying in a chart
+    """
+    days: Int! = 0
+
+    """
+    User's local timezone offset in minutes
+    """
+    timezoneOffset: Int! = 0
+  ): [ChartDataItem] @requireAuth
   """
   Returns number of unread events
   """
@@ -95,12 +141,18 @@ extend type Mutation {
   Create project in given workspace
   """
   createProject(
-    "Workspace ID"
+    """
+    Workspace ID
+    """
     workspaceId: ID!
-    "Project name"
-    name: String!
+    """
+    Project name
+    """
+    name: String! @validate(notEmpty: true)
 
-    "Project image"
+    """
+    Project image
+    """
     image: Upload @uploadImage
   ): Project! @requireAdmin
 
@@ -108,16 +160,24 @@ extend type Mutation {
   Update project settings
   """
   updateProject(
-    "What project to update"
+    """
+    What project to update
+    """
     id: ID!
 
-    "Project name"
-    name: String!
+    """
+    Project name
+    """
+    name: String! @validate(notEmpty: true)
 
-    "Project description"
+    """
+    Project description
+    """
     description: String
 
-    "Project image"
+    """
+    Project image
+    """
     image: Upload @uploadImage
   ): Project! @requireAuth
 
@@ -133,7 +193,9 @@ extend type Mutation {
   Updates user's visit time on project
   """
   updateLastProjectVisit(
-    "project ID"
+    """
+    project ID
+    """
     projectId: ID!
   ): DateTime! @requireAuth
 }

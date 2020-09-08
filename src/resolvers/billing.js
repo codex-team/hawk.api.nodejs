@@ -1,10 +1,7 @@
 const PaymentRequest = require('../models/paymentRequest');
 const UserCard = require('../models/userCard');
-const TinkoffAPI = require('tinkoff-api');
 const rabbitmq = require('../rabbitmq');
 const PaymentTransaction = require('../models/paymentTransaction');
-const Membership = require('../models/membership');
-const Transaction = require('../models/transaction');
 
 /**
  * @typedef {Object} PaymentQuery
@@ -22,12 +19,6 @@ const Transaction = require('../models/transaction');
  */
 
 /**
- * Tinkoff bank API
- * @type {TinkoffAPI}
- */
-const bankApi = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
-
-/**
  * See all types and fields here {@link ../typeDefs/billing.graphql}
  */
 module.exports = {
@@ -41,29 +32,6 @@ module.exports = {
      */
     async cardList(_obj, { paymentQuery }, { user }) {
       return UserCard.findByUserId(user.id);
-    },
-
-    /**
-     * API Query method for getting all transactions for passed workspaces
-     * @param _obj
-     * @param {string[]} ids - ids of workspaces for which transactions have been requested
-     * @param {User} user - current authorized user
-     * @returns {Promise<Transaction>}
-     */
-    async transactions(_obj, { ids }, { user }) {
-      // @todo check if user has permissions to get transactions
-
-      const membership = new Membership(user.id);
-
-      const allowedIds = await membership.getWorkspacesIds();
-
-      if (ids.length === 0) {
-        ids = allowedIds;
-      } else {
-        ids = ids.filter(id => allowedIds.includes(id));
-      }
-
-      return Transaction.getWorkspacesTransactions(ids);
     },
   },
   Mutation: {
@@ -142,18 +110,23 @@ module.exports = {
         orderId,
       });
 
-      // Charge payment with bank API
-      const chargeResult = await bankApi.charge({
-        PaymentId: result.PaymentId,
-        RebillId: card.rebillId,
-      });
+      /*
+       * Charge payment with bank API
+       * const chargeResult = await bankApi.charge({
+       *   PaymentId: result.PaymentId,
+       *   RebillId: card.rebillId,
+       * });
+       */
 
-      console.log(`Got result for charge: ${JSON.stringify(chargeResult)}`);
-      if (!process.env.BILLING_DEBUG) {
-        if (!chargeResult.Success) {
-          throw Error(`Merchant API error: ${chargeResult.Message}`);
-        }
-      }
+      /*
+       * console.log(`Got result for charge: ${JSON.stringify(chargeResult)}`);
+       * if (!process.env.BILLING_DEBUG) {
+       *   if (!chargeResult.Success) {
+       *     throw Error(`Merchant API error: ${chargeResult.Message}`);
+       *   }
+       * }
+       */
+
       const transaction = await PaymentTransaction.create({
         userId: user.id,
         workspaceId,

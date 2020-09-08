@@ -11,6 +11,9 @@ services:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
       - ./.env:/usr/src/app/.env
+      - ./src/accounting/tls/ca.pem:${TLS_CA_CERT}
+      - ./src/accounting/tls/client.pem:${TLS_CERT}
+      - ./src/accounting/tls/client-key.pem:${TLS_KEY}
     ports:
       - ${PORT}:${PORT}
     depends_on:

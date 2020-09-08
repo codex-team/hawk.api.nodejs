@@ -1,4 +1,5 @@
 import { Db, MongoClient, MongoClientOptions } from 'mongodb';
+import HawkCatcher from '@hawk.so/nodejs';
 
 const hawkDBUrl = process.env.MONGO_HAWK_DB_URL || 'mongodb://localhost:27017/hawk';
 const eventsDBUrl = process.env.MONGO_EVENTS_DB_URL || 'mongodb://localhost:27017/events';
@@ -27,27 +28,56 @@ export const databases: Databases = {
 };
 
 /**
+ * Mongo clients for Hawk database
+ */
+interface MongoClients {
+  /**
+   * Mongo client for Hawk database for users, workspaces, project, etc
+   */
+  hawk: MongoClient | null;
+
+  /**
+   * Mongo client for events database
+   */
+  events: MongoClient | null;
+}
+
+/**
+ * Export mongo clients
+ */
+export const mongoClients: MongoClients = {
+  hawk: null,
+  events: null,
+};
+
+/**
  * Common params for all connections
  */
 const connectionConfig: MongoClientOptions = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  reconnectTries: +(process.env.MONGO_RECONNECT_TRIES || 60),
-  reconnectInterval: +(process.env.MONGO_RECONNECT_INTERVAL || 1000),
-  autoReconnect: true,
 };
 
 /**
  * Setups connections to the databases (hawk api and events databases)
  */
 export async function setupConnections(): Promise<void> {
-  const [hawkDB, eventsDB] = (await Promise.all([
-    MongoClient.connect(hawkDBUrl, connectionConfig),
-    MongoClient.connect(eventsDBUrl, connectionConfig),
-  ])).map(client => client.db());
+  try {
+    const [hawkMongoClient, eventsMongoClient] = await Promise.all([
+      MongoClient.connect(hawkDBUrl, connectionConfig),
+      MongoClient.connect(eventsDBUrl, connectionConfig),
+    ]);
 
-  databases.hawk = hawkDB;
-  databases.events = eventsDB;
+    mongoClients.hawk = hawkMongoClient;
+    mongoClients.events = eventsMongoClient;
+
+    databases.hawk = hawkMongoClient.db();
+    databases.events = eventsMongoClient.db();
+  } catch (e) {
+    /** Catch start Mongo errors  */
+    HawkCatcher.send(e);
+    throw e;
+  }
 }
 
 /**

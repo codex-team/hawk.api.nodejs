@@ -55,9 +55,24 @@ type EventBacktraceFrame {
 Event user representation
 """
 type EventUser {
+  """
+  Internal user's identifier inside an app
+  """
   id: ID!
-  name: String!
+
+  """
+  User public name
+  """
+  name: String
+
+  """
+  URL for user's details page
+  """
   url: String
+
+  """
+  User's public picture
+  """
   photo: String
 }
 
@@ -244,6 +259,11 @@ type Event {
   totalCount: Int!
 
   """
+  User assigneed to the event
+  """
+  assignee: User
+
+  """
   Event payload
   """
   payload: EventPayload!
@@ -267,6 +287,11 @@ type Event {
   Event label for current user
   """
   marks: EventMarks! @default(value: "{}")
+
+  """
+  How many users catch this error
+  """
+  usersAffected: Int
 }
 
 """
@@ -321,12 +346,76 @@ type RecentEvents {
   dailyInfo: [DailyEventInfo]
 }
 
+input UpdateAssigneeInput {
+  """
+  ID of project event is related to
+  """
+  projectId: ID!
+
+  """
+  ID of the selected event
+  """
+  eventId: ID!
+
+  """
+  Assignee id to set
+  """
+  assignee: ID!
+}
+
+type UpdateAssigneeResponse {
+  """
+  Response status
+  """
+  success: Boolean!
+
+  """
+  User assigned to the event
+  """
+  record: User!
+}
+
+input RemoveAssigneeInput {
+  """
+  ID of project event is related to
+  """
+  projectId: ID!
+
+  """
+  ID of the selected event
+  """
+  eventId: ID!
+}
+
+type RemoveAssigneeResponse {
+  """
+  Response status
+  """
+  success: Boolean!
+}
+
+type EventsMutations {
+  """
+  Set an assignee for the selected event
+  """
+  updateAssignee(
+    input: UpdateAssigneeInput!
+  ): UpdateAssigneeResponse! @requireAuth @requireUserInWorkspace
+
+  """
+  Remove an assignee from the selected event
+  """
+  removeAssignee(
+    input: RemoveAssigneeInput!
+  ): RemoveAssigneeResponse! @requireAuth @requireUserInWorkspace
+}
+
 extend type Mutation {
   """
   Mutation marks event as visited for current user
   """
   visitEvent(
-    project: ID!,
+    project: ID!
     id: ID!
   ): Boolean! @requireAuth
 
@@ -337,17 +426,22 @@ extend type Mutation {
     """
     ID of project event is related to
     """
-    project: ID!,
+    project: ID!
 
     """
     EvenID of the event to set the mark
     """
-    eventId: ID!,
+    eventId: ID!
 
     """
     Mark to set
     """
     mark: EventMark!
   ): Boolean! @requireAuth
+
+  """
+  Namespace that contains only mutations related to the events
+  """
+  events: EventsMutations!
 }
 `;

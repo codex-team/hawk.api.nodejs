@@ -1,4 +1,3 @@
-const TinkoffAPI = require('tinkoff-api');
 const rabbitmq = require('../rabbitmq');
 
 const PAYMENT_AUTHORIZED = 'AUTHORIZED';
@@ -16,14 +15,16 @@ class Billing {
    */
   static async notifyCallback(req, res) {
     const body = req.body;
-    const api = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
-    const token = api.generateToken(body);
-
-    if (token !== body.Token) {
-      console.error(`Token mismatched ${token} and ${JSON.stringify(body)}`);
-
-      return res.send('ERROR');
-    }
+    /*
+     * const api = new TinkoffAPI(process.env.TINKOFF_TERMINAL_KEY, process.env.TINKOFF_SECRET_KEY);
+     * const token = api.generateToken(body);
+     *
+     * if (token !== body.Token) {
+     *   console.error(`Token mismatched ${token} and ${JSON.stringify(body)}`);
+     *
+     *   return res.send('ERROR');
+     * }
+     */
 
     console.log('NOTIFICATION FROM BANK => ', body);
 

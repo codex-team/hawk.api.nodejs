@@ -15,12 +15,20 @@ import UsersFactory from './models/usersFactory';
 import { GraphQLError } from 'graphql';
 import WorkspacesFactory from './models/workspacesFactory';
 import DataLoaders from './dataLoaders';
+import HawkCatcher from '@hawk.so/nodejs';
+import { express as voyagerMiddleware } from 'graphql-voyager/middleware';
+import Accounting from './accounting';
 
 import UploadImageDirective from './directives/uploadImageDirective';
 import RequireAuthDirective from './directives/requireAuthDirective';
 import RequireAdminDirective from './directives/requireAdminDirective';
 import DefaultValueDirective from './directives/defaultValue';
+import ValidateDirective from './directives/validate';
+import RequireUserInWorkspaceDirective from './directives/requireUserInWorkspace';
 import ProjectsFactory from './models/projectsFactory';
+import { NonCriticalError } from './errors';
+import PlansFactory from './models/plansFactory';
+import BusinessOperationsFactory from './models/businessOperationsFactory';
 
 /**
  * Option to enable playground
@@ -66,6 +74,7 @@ class HawkAPI {
     this.app.post('/billing', billing.notifyCallback);
     this.app.use('/uploads', express.static(`./${process.env.UPLOADS_DIR || 'uploads'}`));
     this.app.use('/static', express.static(`./static`));
+    this.app.use('/voyager', voyagerMiddleware({ endpointUrl: '/graphql' }));
     this.app.use(authRouter);
 
     initializeStrategies();
@@ -82,6 +91,8 @@ class HawkAPI {
         uploadImage: UploadImageDirective,
         requireAdmin: RequireAdminDirective,
         default: DefaultValueDirective,
+        validate: ValidateDirective,
+        requireUserInWorkspace: RequireUserInWorkspaceDirective,
       },
       subscriptions: {
         path: '/subscriptions',
@@ -90,7 +101,14 @@ class HawkAPI {
       },
       context: (req: ExpressContext): Promise<ResolverContextBase> => HawkAPI.createContext(req),
       formatError: (error): GraphQLError => {
+        if (error.originalError instanceof NonCriticalError) {
+          return error;
+        }
         console.error(error.originalError);
+
+        if (error.originalError instanceof Error) {
+          HawkCatcher.send(error.originalError);
+        }
 
         return error;
       },
@@ -119,10 +137,18 @@ class HawkAPI {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const projectsFactory = new ProjectsFactory(mongo.databases.hawk!, dataLoaders);
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const plansFactory = new PlansFactory(mongo.databases.hawk!, dataLoaders);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const businessOperationsFactory = new BusinessOperationsFactory(mongo.databases.hawk!, dataLoaders);
+
     return {
       usersFactory,
       workspacesFactory,
       projectsFactory,
+      plansFactory,
+      businessOperationsFactory,
     };
   }
 
@@ -160,12 +186,21 @@ class HawkAPI {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const dataLoader = new DataLoaders(mongo.databases.hawk!);
 
+    const accounting = new Accounting({
+      baseURL: `${process.env.CODEX_ACCOUNTING_URL}`,
+      tlsVerify: process.env.TLS_VERIFY === 'true',
+      tlsCaCertPath: `${process.env.TLS_CA_CERT}`,
+      tlsCertPath: `${process.env.TLS_CERT}`,
+      tlsKeyPath: `${process.env.TLS_KEY}`,
+    });
+
     return {
       factories: HawkAPI.setupFactories(dataLoader),
       user: {
         id: userId,
         accessTokenExpired: isAccessTokenExpired,
       },
+      accounting,
     };
   }
 
