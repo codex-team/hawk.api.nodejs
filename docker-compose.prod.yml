@@ -13,3 +13,5 @@ services:
       - ./src/accounting/tls/ca.pem:${TLS_CA_CERT}
       - ./src/accounting/tls/client.pem:${TLS_CERT}
       - ./src/accounting/tls/client-key.pem:${TLS_KEY}
+    restart: unless-stopped
+      

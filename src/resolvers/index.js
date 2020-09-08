@@ -8,6 +8,7 @@ const event = require('./event');
 const plans = require('./plans').default;
 const projectNotifications = require('./projectNotifications').default;
 const userNotifications = require('./userNotifications').default;
+const billing = require('./billingNew').default;
 
 /**
  * @typedef ResolverObj
@@ -52,5 +53,6 @@ module.exports = merge(
   event,
   projectNotifications,
   userNotifications,
-  plans
+  plans,
+  billing
 );
