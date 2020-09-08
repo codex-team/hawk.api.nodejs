@@ -335,7 +335,7 @@ module.exports = {
         // Charge money for new plan
         const transaction = await accounting.purchase({
           accountId: workspaceModel.accountId,
-          amount: planModel.monthlyCharge,
+          amount: planModel.monthlyCharge * 100,
           description: 'Monthly charge for the new workspace plan',
         });
 
@@ -350,7 +350,7 @@ module.exports = {
         // Create a business operation
         const payloadWorkspacePlanPurchase = {
           workspaceId: workspaceModel._id,
-          amount: planModel.monthlyCharge,
+          amount: planModel.monthlyCharge * 100,
         };
 
         const businessOperationData = {
