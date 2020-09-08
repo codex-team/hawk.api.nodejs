@@ -320,8 +320,9 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * @param oldPlanId - id of old plan
    * @param dtChange - timestamp of plan change in ms
    * @param userId - id of user that changed the plan
+   * @returns whether the document was successfully updated
    */
-  public async updatePlanHistory(tariffPlanId: string, dtChange: number, userId: string): Promise<number> {
+  public async updatePlanHistory(tariffPlanId: string, dtChange: number, userId: string): Promise<boolean> {
     return (await this.collection.updateOne(
       {
         _id: new ObjectId(this._id),
@@ -335,15 +336,16 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
           },
         },
       }
-    )).modifiedCount;
+    )).modifiedCount > 0;
   }
 
   /**
    * Updating the date of the last charge
    *
    * @param date - timestamp of the last charge in ms
+   * @returns whether the document was successfully updated
    */
-  public async updateLastChargeDate(date: number): Promise<number> {
+  public async updateLastChargeDate(date: number): Promise<boolean> {
     return (await this.collection.updateOne(
       {
         _id: new ObjectId(this._id),
@@ -353,6 +355,6 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
           lastChargeDate: date,
         },
       }
-    )).modifiedCount;
+    )).modifiedCount > 0;
   }
 }

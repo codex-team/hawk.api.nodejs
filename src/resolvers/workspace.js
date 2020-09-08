@@ -337,7 +337,7 @@ module.exports = {
         const transaction = await accounting.purchase({
           accountId: workspaceModel.accountId,
           amount: planModel.monthlyCharge,
-          description: 'Monthly charge',
+          description: 'Monthly charge for the new workspace plan',
         });
 
         // Push old plan to plan history
