@@ -38,7 +38,7 @@ export interface TransactionData {
   description?: string;
 
   /**
-   * Transaction creation datetime
+   * Transaction creation timestamp in ms
    */
   dtCreated?: number;
 }
