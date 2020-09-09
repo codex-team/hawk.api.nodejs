@@ -133,12 +133,12 @@ type EventPayload {
   """
   Any additional data of Event
   """
-  context: JSONObject
+  context: EncodedJSON
 
   """
   Custom data provided by project users
   """
-  addons: JSONObject
+  addons: EncodedJSON
 }
 
 """
@@ -188,12 +188,12 @@ type RepetitionPayload {
   """
   Any additional data of Event
   """
-  context: JSONObject
+  context: EncodedJSON
 
   """
   Custom data provided by project users
   """
-  addons: JSONObject
+  addons: EncodedJSON
 }
 
 """
