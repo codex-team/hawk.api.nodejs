@@ -6,7 +6,6 @@ import BusinessOperationModel, {
 import { ResolverContextWithUser } from '../types/graphql';
 import WorkspaceModel from '../models/workspace';
 import UserModel from '../models/user';
-import { ObjectId } from 'mongodb';
 
 export default {
   Query: {
