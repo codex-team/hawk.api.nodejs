@@ -12,21 +12,21 @@ module.exports = {
         name: 'Startup',
         monthlyCharge: 0,
         eventsLimit: 10000,
-        isDefault: true
+        isDefault: true,
       },
       {
         name: 'Basic',
         monthlyCharge: 20,
         eventsLimit: 100000,
-        isDefault: false
+        isDefault: false,
       },
       {
         name: 'Big',
         monthlyCharge: 200,
         eventsLimit: 1000000,
-        isDefault: false
-      }
-    ]
+        isDefault: false,
+      },
+    ];
 
     /**
      * Use one transaction for all requests
@@ -45,20 +45,21 @@ module.exports = {
         /**
          * Set up sort index by the field isDefault from true to false
          */
-        await db.collection('plans').createIndex({ isDefault: -1 })
+        await db.collection('plans').createIndex({ isDefault: -1 });
 
         /**
          * Get default plan data
          * @type {PlanDBScheme}
          */
         const defaultPlan = await db.collection('plans').findOne({
-          isDefault: true
+          isDefault: true,
         });
 
         /**
          * Get all workspaces
          */
-        const workspaces = await db.collection('workspaces').find().toArray();
+        const workspaces = await db.collection('workspaces').find()
+          .toArray();
 
         /**
          * Each workspace should have a plan
@@ -123,9 +124,10 @@ module.exports = {
          */
         const workspaces = await db.collection('workspaces').find({
           plan: {
-            $exists: true
-          }
-        }).toArray();
+            $exists: true,
+          },
+        })
+          .toArray();
 
         /**
          * Remove plans from workspaces
@@ -157,5 +159,5 @@ module.exports = {
     } finally {
       await session.endSession();
     }
-  }
+  },
 };
