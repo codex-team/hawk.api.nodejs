@@ -38,7 +38,22 @@ export interface TransactionData {
   description?: string;
 
   /**
-   * Transaction creation datetime
+   * Transaction creation timestamp in ms
    */
   dtCreated?: number;
+}
+
+/**
+ * Transaction response
+ */
+export interface TransactionResponse {
+  /**
+   * Transaction id
+   */
+  recordId?: string;
+
+  /**
+   * Full transaction data
+   */
+  record?: TransactionData;
 }

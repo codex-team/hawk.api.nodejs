@@ -12,7 +12,7 @@ async function sendMessage(message: string): Promise<void> {
     return;
   }
 
-  await axios.post(botUrl, `message=${message}&parse_mode=HTML`);
+  await axios.post(botUrl, `message=${encodeURIComponent(message)}&parse_mode=HTML`);
 }
 
 module.exports = {

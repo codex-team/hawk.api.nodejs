@@ -3,6 +3,8 @@ import { AccountType, Currency } from '../accounting/types';
 import PlanModel from '../models/plan';
 import telegram from '../utils/telegram';
 import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
+import HawkCatcher from '@hawk.so/nodejs';
+import escapeHTML from 'escape-html';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -333,26 +335,29 @@ module.exports = {
         // Charge money for new plan
         const transaction = await accounting.purchase({
           accountId: workspaceModel.accountId,
-          amount: planModel.monthlyCharge,
-          description: 'Monthly charge',
+          amount: planModel.monthlyCharge * 100,
+          description: 'Monthly charge for the new workspace plan',
         });
 
+        const date = new Date();
+
         // Push old plan to plan history
-        await workspaceModel.updatePlanHistory(workspaceModel.plan, Date.now(), userModel._id);
+        await workspaceModel.updatePlanHistory(workspaceModel.plan, date, userModel._id);
 
         // Update workspace last charge date
-        await workspaceModel.updateLastChargeDate(Date.now());
+        await workspaceModel.updateLastChargeDate(date);
 
         // Create a business operation
         const payloadWorkspacePlanPurchase = {
           workspaceId: workspaceModel._id,
-          amount: planModel.monthlyCharge,
+          amount: planModel.monthlyCharge * 100,
         };
 
         const businessOperationData = {
-          transactionId: transaction.id,
+          transactionId: transaction.recordId,
           type: BusinessOperationType.WorkspacePlanPurchase,
           status: BusinessOperationStatus.Confirmed,
+          dtCreated: date,
           payload: payloadWorkspacePlanPurchase,
         };
 
@@ -361,13 +366,14 @@ module.exports = {
         // Change workspace plan
         await workspaceModel.changePlan(planModel._id);
       } catch (err) {
-        console.log('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
+        console.error('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
+        HawkCatcher.send(err);
 
-        throw new ApolloError('Something went wrong');
+        throw new ApolloError('An error occurred while changing the plan');
       }
 
       // Send a message of a succesfully plan changed to the telegram bot
-      const message = `🤑 <b>${userModel.name || userModel.email}</b> changed plan of «<b>${workspaceModel.name}</b>» workspace
+      const message = `🤑 <b>${escapeHTML(userModel.name || userModel.email)}</b> changed plan of «<b>${escapeHTML(workspaceModel.name)}</b>» workspace
 
 ⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${planModel.name} $${planModel.monthlyCharge}</b> `;
 
