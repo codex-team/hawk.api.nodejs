@@ -16,7 +16,7 @@ const FIXTURE = {
     false: false,
     null: null,
   },
-  array: ['string', 3, 3.14, true, false, null],
+  array: ['string', 3, 3.14, true, false, null, 'string.with.dot'],
 };
 
 type RootType = typeof FIXTURE
