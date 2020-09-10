@@ -2,12 +2,10 @@ version: "3.4"
 
 services:
   api:
-    build:
-      dockerfile: "docker/Dockerfile.prod"
-      context: .
+    image: codexteamuser/hawk-api:prod
     network_mode: host
     ports:
-      - ${PORT}:${PORT}
+      - 127.0.0.1:4000:4000
     volumes:
       - ./.env:/usr/src/app/.env
       - ./uploads:/usr/src/app/uploads
@@ -15,3 +13,5 @@ services:
       - ./src/accounting/tls/ca.pem:${TLS_CA_CERT}
       - ./src/accounting/tls/client.pem:${TLS_CERT}
       - ./src/accounting/tls/client-key.pem:${TLS_KEY}
+    restart: unless-stopped
+      
