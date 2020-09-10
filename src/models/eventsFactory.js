@@ -254,23 +254,38 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Fetch timestamps and total count of errors
-   * for each day since
+   * Fetch timestamps and total count of errors (or target error) for each day since
    *
    * @param {number} days - how many days we need to fetch for displaying in a chart
    * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @param {string} groupHash - event's group hash for showing only target event
    * @return {ProjectChartItem[]}
    */
-  async findChartData(days, timezoneOffset = 0) {
+  async findChartData(days, timezoneOffset = 0, groupHash = '') {
     const today = new Date();
     const since = today.setDate(today.getDate() - days) / 1000;
 
+    /**
+     * Compose options for find method
+     * @type {{groupingTimestamp: {$gt: number}}}
+     */
+    const options = {
+      groupingTimestamp: {
+        $gt: since,
+      },
+    };
+
+    /**
+     * Add eq check if groupHash was passed
+     */
+    if (groupHash) {
+      options.groupHash = {
+        $eq: groupHash,
+      };
+    }
+
     let dailyEvents = await this.getCollection(this.TYPES.DAILY_EVENTS)
-      .find({
-        groupingTimestamp: {
-          $gt: since,
-        },
-      })
+      .find(options)
       .toArray();
 
     /**
