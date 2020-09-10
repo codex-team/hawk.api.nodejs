@@ -331,45 +331,47 @@ module.exports = {
         throw new UserInputError('Plan with passed ID doesn\'t exists');
       }
 
-      try {
-        // Charge money for new plan
-        const transaction = await accounting.purchase({
-          accountId: workspaceModel.accountId,
-          amount: planModel.monthlyCharge * 100,
-          description: 'Monthly charge for the new workspace plan',
-        });
+      if (planModel.monthlyCharge > oldPlanModel.monthlyCharge) {
+        try {
+          // Charge money for new plan
+          const transaction = await accounting.purchase({
+            accountId: workspaceModel.accountId,
+            amount: planModel.monthlyCharge * 100,
+            description: 'Monthly charge for the new workspace plan',
+          });
 
-        const date = new Date();
+          const date = new Date();
 
-        // Push old plan to plan history
-        await workspaceModel.updatePlanHistory(workspaceModel.plan, date, userModel._id);
+          // Push old plan to plan history
+          await workspaceModel.updatePlanHistory(workspaceModel.plan, date, userModel._id);
 
-        // Update workspace last charge date
-        await workspaceModel.updateLastChargeDate(date);
+          // Update workspace last charge date
+          await workspaceModel.updateLastChargeDate(date);
 
-        // Create a business operation
-        const payloadWorkspacePlanPurchase = {
-          workspaceId: workspaceModel._id,
-          amount: planModel.monthlyCharge * 100,
-        };
+          // Create a business operation
+          const payloadWorkspacePlanPurchase = {
+            workspaceId: workspaceModel._id,
+            amount: planModel.monthlyCharge * 100,
+          };
 
-        const businessOperationData = {
-          transactionId: transaction.recordId,
-          type: BusinessOperationType.WorkspacePlanPurchase,
-          status: BusinessOperationStatus.Confirmed,
-          dtCreated: date,
-          payload: payloadWorkspacePlanPurchase,
-        };
+          const businessOperationData = {
+            transactionId: transaction.recordId,
+            type: BusinessOperationType.WorkspacePlanPurchase,
+            status: BusinessOperationStatus.Confirmed,
+            dtCreated: date,
+            payload: payloadWorkspacePlanPurchase,
+          };
 
-        await factories.businessOperationsFactory.create(businessOperationData);
+          await factories.businessOperationsFactory.create(businessOperationData);
 
-        // Change workspace plan
-        await workspaceModel.changePlan(planModel._id);
-      } catch (err) {
-        console.error('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
-        HawkCatcher.send(err);
+          // Change workspace plan
+          await workspaceModel.changePlan(planModel._id);
+        } catch (err) {
+          console.error('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
+          HawkCatcher.send(err);
 
-        throw new ApolloError('An error occurred while changing the plan');
+          throw new ApolloError('An error occurred while changing the plan');
+        }
       }
 
       // Send a message of a succesfully plan changed to the telegram bot
