@@ -1,6 +1,8 @@
 /**
  * @file Fix name for workspace property that contains tariff plan id for each workspace
  */
+const { ObjectId } = require('mongodb');
+
 module.exports = {
   async up(db, client) {
     const session = client.startSession();
@@ -20,7 +22,7 @@ module.exports = {
                 _id: workspaceId,
               },
               {
-                $set: { tariffPlanId: workspace.plan },
+                $set: { tariffPlanId: new ObjectId(workspace.plan) },
                 $unset: {
                   plan: '',
                   /**
@@ -65,7 +67,7 @@ module.exports = {
                 _id: workspaceId,
               },
               {
-                $set: { plan: workspace.tariffPlanId },
+                $set: { plan: workspace.tariffPlanId.toString() },
                 $unset: { tariffPlanId: '' },
               }
             );

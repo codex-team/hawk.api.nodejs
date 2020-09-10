@@ -35,7 +35,7 @@ export interface WorkspaceDBScheme {
   /**
    * Id of the Workspace's plan
    */
-  tariffPlanId: string;
+  tariffPlanId: ObjectId;
 }
 
 /**
@@ -110,7 +110,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Id of the Workspace's plan
    */
-  public tariffPlanId!: string;
+  public tariffPlanId!: ObjectId;
 
   /**
    * Model's collection
@@ -292,13 +292,13 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Change plan for current workspace
    * @param planId - id of plan to be enabled
    */
-  public async changePlan(planId: string): Promise<number> {
+  public async changePlan(planId: ObjectId | string): Promise<number> {
     return (await this.collection.updateOne(
       {
         _id: new ObjectId(this._id),
       },
       {
-        $set: { tariffPlanId: planId },
+        $set: { tariffPlanId: new ObjectId(planId) },
       }
     )).modifiedCount;
   }
