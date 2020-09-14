@@ -1,5 +1,9 @@
 import { GraphQLScalarType } from 'graphql';
 
+/**
+ * Custom GraphQL Scalar type
+ * Represents JSON objects encoded (or not) in string format
+ */
 const GraphQLEncodedJSON = new GraphQLScalarType({
   name: 'EncodedJSON',
   description: 'Represents JSON objects encoded (or not) in string format',
