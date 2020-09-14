@@ -324,16 +324,17 @@ module.exports = {
       }
 
       const planModel = await factories.plansFactory.findById(planId);
-      const oldPlanModel = await factories.plansFactory.findById(workspaceModel.plan);
+      const oldPlanModel = await factories.plansFactory.findById(workspaceModel.tariffPlanId);
       const userModel = await factories.usersFactory.findById(user.id);
 
       if (!planModel) {
         throw new UserInputError('Plan with passed ID doesn\'t exists');
       }
 
-      if (planModel.monthlyCharge > oldPlanModel.monthlyCharge) {
+      // We charge money for any change to another plan except the free one
+      if (planModel.monthlyCharge > 0) {
         try {
-          // Charge money for new plan
+          // Charge money for a new plan
           const transaction = await accounting.purchase({
             accountId: workspaceModel.accountId,
             amount: planModel.monthlyCharge * 100,
@@ -343,7 +344,7 @@ module.exports = {
           const date = new Date();
 
           // Push old plan to plan history
-          await workspaceModel.updatePlanHistory(workspaceModel.plan, date, userModel._id);
+          await workspaceModel.updatePlanHistory(workspaceModel.tariffPlanId, date, userModel._id);
 
           // Update workspace last charge date
           await workspaceModel.updateLastChargeDate(date);
@@ -436,7 +437,7 @@ module.exports = {
      * @returns {Promise<PlanModel>}
      */
     async plan(workspace, _args, { factories }) {
-      const plan = await factories.plansFactory.findById(workspace.plan);
+      const plan = await factories.plansFactory.findById(workspace.tariffPlanId);
 
       return new PlanModel(plan);
     },
