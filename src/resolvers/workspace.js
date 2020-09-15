@@ -331,23 +331,17 @@ module.exports = {
         throw new UserInputError('Plan with passed ID doesn\'t exists');
       }
 
-      // We charge money for any change to another plan except the free one
-      if (planModel.monthlyCharge > 0) {
-        try {
+      try {
+        const date = new Date();
+
+        // We charge money for any change to another plan except the free one
+        if (planModel.monthlyCharge > 0) {
           // Charge money for a new plan
           const transaction = await accounting.purchase({
             accountId: workspaceModel.accountId,
             amount: planModel.monthlyCharge * 100,
             description: 'Monthly charge for the new workspace plan',
           });
-
-          const date = new Date();
-
-          // Push old plan to plan history
-          await workspaceModel.updatePlanHistory(workspaceModel.tariffPlanId, date, userModel._id);
-
-          // Update workspace last charge date
-          await workspaceModel.updateLastChargeDate(date);
 
           // Create a business operation
           const payloadWorkspacePlanPurchase = {
@@ -364,15 +358,21 @@ module.exports = {
           };
 
           await factories.businessOperationsFactory.create(businessOperationData);
-
-          // Change workspace plan
-          await workspaceModel.changePlan(planModel._id);
-        } catch (err) {
-          console.error('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
-          HawkCatcher.send(err);
-
-          throw new ApolloError('An error occurred while changing the plan');
         }
+
+        // Push old plan to plan history
+        await workspaceModel.updatePlanHistory(workspaceModel.tariffPlanId, date, userModel._id);
+
+        // Update workspace last charge date
+        await workspaceModel.updateLastChargeDate(date);
+
+        // Change workspace plan
+        await workspaceModel.changePlan(planModel._id);
+      } catch (err) {
+        console.error('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
+        HawkCatcher.send(err);
+
+        throw new ApolloError('An error occurred while changing the plan');
       }
 
       // Send a message of a succesfully plan changed to the telegram bot
