@@ -23,8 +23,8 @@ describe('Business operation model', () => {
       transactionId: 'Transaction ID',
       type: BusinessOperationType.DepositByUser,
       status: BusinessOperationStatus.Confirmed,
+      dtCreated: new Date(),
       payload: payloadDepositByUser,
-      dtCreated: '2020-08-01T00:00:00Z',
     };
 
     const businessOperation = new BusinessOperationModel<PayloadOfDepositByUser>(data);
@@ -42,8 +42,8 @@ describe('Business operation model', () => {
       transactionId: 'Transaction ID',
       type: BusinessOperationType.WorkspacePlanPurchase,
       status: BusinessOperationStatus.Confirmed,
+      dtCreated: new Date(),
       payload: payloadWorkspacePlanPurchase,
-      dtCreated: '2020-08-01T00:00:00Z',
     };
 
     const businessOperation = new BusinessOperationModel<PayloadOfWorkspacePlanPurchase>(data);
