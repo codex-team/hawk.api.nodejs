@@ -1,6 +1,10 @@
 import WorkspaceModel from '../models/workspace';
 import { AccountType, Currency } from '../accounting/types';
 import PlanModel from '../models/plan';
+import telegram from '../utils/telegram';
+import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
+import HawkCatcher from '@hawk.so/nodejs';
+import escapeHTML from 'escape-html';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -295,6 +299,96 @@ module.exports = {
     },
 
     /**
+     * Change workspace plan mutation implementation
+     *
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
+     * @param {string} workspaceId - id of workspace to change plan
+     * @param {string} planId - plan to set
+     * @param {ContextFactories} factories - factories to work with models
+     */
+    async changeWorkspacePlan(
+      _obj,
+      {
+        input: { workspaceId, planId },
+      },
+      { factories, accounting, user }
+    ) {
+      const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
+
+      if (!workspaceModel) {
+        throw new UserInputError('There is no workspace with provided id');
+      }
+
+      if (workspaceModel.tariffPlanId.toString() === planId) {
+        throw new UserInputError('Plan with given ID is already used for the workspace');
+      }
+
+      const planModel = await factories.plansFactory.findById(planId);
+      const oldPlanModel = await factories.plansFactory.findById(workspaceModel.tariffPlanId);
+      const userModel = await factories.usersFactory.findById(user.id);
+
+      if (!planModel) {
+        throw new UserInputError('Plan with passed ID doesn\'t exists');
+      }
+
+      try {
+        const date = new Date();
+
+        // We charge money for any change to another plan except the free one
+        if (planModel.monthlyCharge > 0) {
+          // Charge money for a new plan
+          const transaction = await accounting.purchase({
+            accountId: workspaceModel.accountId,
+            amount: planModel.monthlyCharge * 100,
+            description: 'Monthly charge for the new workspace plan',
+          });
+
+          // Create a business operation
+          const payloadWorkspacePlanPurchase = {
+            workspaceId: workspaceModel._id,
+            amount: planModel.monthlyCharge * 100,
+          };
+
+          const businessOperationData = {
+            transactionId: transaction.recordId,
+            type: BusinessOperationType.WorkspacePlanPurchase,
+            status: BusinessOperationStatus.Confirmed,
+            dtCreated: date,
+            payload: payloadWorkspacePlanPurchase,
+          };
+
+          await factories.businessOperationsFactory.create(businessOperationData);
+        }
+
+        // Push old plan to plan history
+        await workspaceModel.updatePlanHistory(workspaceModel.tariffPlanId, date, userModel._id);
+
+        // Update workspace last charge date
+        await workspaceModel.updateLastChargeDate(date);
+
+        // Change workspace plan
+        await workspaceModel.changePlan(planModel._id);
+      } catch (err) {
+        console.error('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
+        HawkCatcher.send(err);
+
+        throw new ApolloError('An error occurred while changing the plan');
+      }
+
+      // Send a message of a succesfully plan changed to the telegram bot
+      const message = `🤑 <b>${escapeHTML(userModel.name || userModel.email)}</b> changed plan of «<b>${escapeHTML(workspaceModel.name)}</b>» workspace
+
+⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${planModel.name} $${planModel.monthlyCharge}</b> `;
+
+      telegram.sendMessage(message);
+
+      return {
+        recordId: workspaceModel._id,
+        record: workspaceModel,
+      };
+    },
+
+    /**
      * Depositing balance
      *
      * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
@@ -398,7 +492,7 @@ module.exports = {
      * @returns {Promise<PlanModel>}
      */
     async plan(workspace, _args, { factories }) {
-      const plan = await factories.plansFactory.findById(workspace.plan);
+      const plan = await factories.plansFactory.findById(workspace.tariffPlanId);
 
       return new PlanModel(plan);
     },

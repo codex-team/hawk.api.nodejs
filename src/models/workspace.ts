@@ -35,7 +35,7 @@ export interface WorkspaceDBScheme {
   /**
    * Id of the Workspace's plan
    */
-  plan: string;
+  tariffPlanId: ObjectId;
 }
 
 /**
@@ -110,7 +110,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Id of the Workspace's plan
    */
-  public plan!: string;
+  public tariffPlanId!: ObjectId;
 
   /**
    * Model's collection
@@ -124,6 +124,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Creates Workspace instance
+   *
    * @param workspaceData - workspace's data
    */
   constructor(workspaceData: WorkspaceDBScheme) {
@@ -134,6 +135,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Checks is provided document represents pending member
+   *
    * @param doc - doc to check
    */
   public static isPendingMember(doc: MemberDBScheme): doc is PendingMemberDBScheme {
@@ -142,6 +144,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Update workspace data
+   *
    * @param workspaceData – workspace data
    */
   public async updateWorkspace(workspaceData: WorkspaceDBScheme): Promise<void> {
@@ -157,6 +160,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Adds new member to the workspace team
+   *
    * @param {String} memberId - user's id to add
    */
   public async addMember(memberId: string): Promise<ConfirmedMemberDBScheme> {
@@ -174,6 +178,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Grant admin permissions to the member
+   *
    * @param memberId - id of member to grant permissions
    * @param state - state of permissions
    */
@@ -190,6 +195,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Remove member from workspace
+   *
    * @param member - member to remove
    */
   public async removeMember(member: UserModel): Promise<void> {
@@ -201,6 +207,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Remove member from workspace by email
+   *
    * @param memberEmail - email of member to remove
    */
   public async removeMemberByEmail(memberEmail: string): Promise<void> {
@@ -211,6 +218,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Add unregistered member to the workspace
+   *
    * @param memberEmail - invited member`s email
    */
   public async addUnregisteredMember(memberEmail: string): Promise<PendingMemberDBScheme> {
@@ -232,6 +240,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Confirm membership of user
+   *
    * @param member - member for whom confirm membership
    */
   public async confirmMembership(member: UserModel): Promise<boolean> {
@@ -280,6 +289,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Get member description for certain workspace
+   *
    * @param memberId - id of the member to get info
    */
   public getMemberInfo(memberId: string): Promise<MemberDBScheme | null> {
@@ -290,16 +300,61 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Change plan for current workspace
+   *
    * @param planId - id of plan to be enabled
    */
-  public async changePlan(planId: string): Promise<number> {
+  public async changePlan(planId: ObjectId | string): Promise<number> {
     return (await this.collection.updateOne(
       {
         _id: new ObjectId(this._id),
       },
       {
-        $set: { plan: planId },
+        $set: { tariffPlanId: new ObjectId(planId) },
       }
     )).modifiedCount;
+  }
+
+  /**
+   * Push old plan to plan history. So that you can trace the history of changing plans
+   *
+   * @param oldPlanId - id of old plan
+   * @param dtChange - date of plan change
+   * @param userId - id of user that changed the plan
+   * @returns whether the document was successfully updated
+   */
+  public async updatePlanHistory(tariffPlanId: string, dtChange: Date, userId: string): Promise<boolean> {
+    return (await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
+      {
+        $push: {
+          plansHistory: {
+            tariffPlanId,
+            dtChange,
+            userId,
+          },
+        },
+      }
+    )).modifiedCount > 0;
+  }
+
+  /**
+   * Updating the date of the last charge
+   *
+   * @param date - date of the last charge
+   * @returns whether the document was successfully updated
+   */
+  public async updateLastChargeDate(date: Date): Promise<boolean> {
+    return (await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
+      {
+        $set: {
+          lastChargeDate: date,
+        },
+      }
+    )).modifiedCount > 0;
   }
 }
