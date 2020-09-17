@@ -50,10 +50,10 @@ export interface TransactionResponse {
   /**
    * Transaction id
    */
-  recordId?: string;
+  recordId: string;
 
   /**
    * Full transaction data
    */
-  record?: TransactionData;
+  record: TransactionData;
 }

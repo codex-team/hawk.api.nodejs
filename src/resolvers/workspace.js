@@ -1,8 +1,8 @@
 import WorkspaceModel from '../models/workspace';
 import { AccountType, Currency } from '../accounting/types';
+import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import PlanModel from '../models/plan';
 import telegram from '../utils/telegram';
-import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import HawkCatcher from '@hawk.so/nodejs';
 import escapeHTML from 'escape-html';
 

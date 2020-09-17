@@ -42,7 +42,7 @@ export const MUTATION_PURCHASE = `
  */
 export const MUTATION_PAY_ONCE = `
   mutation PayOnce($input: DepositInput!) {
-    deposit(input: $input) {
+    deposit(input:$input){
       recordId
     }
   }
