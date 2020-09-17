@@ -48,7 +48,8 @@ export default class BusinessOperationsFactory extends AbstractModelFactory<Busi
     const workspaceObjectIds = workspaceIds.map((id: string): ObjectId => new ObjectId(id));
     const docs = await this.collection.find({
       'payload.workspaceId': { $in: workspaceObjectIds },
-    }).toArray();
+    }).sort({ dtCreated: -1 })
+      .toArray();
 
     return docs.map((doc: BusinessOperationDBScheme): BusinessOperationModel => new BusinessOperationModel(doc));
   }
