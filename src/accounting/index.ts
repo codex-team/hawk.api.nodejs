@@ -77,12 +77,9 @@ export default class Accounting {
    * @param input - data for depositing money
    */
   public async payOnce(input: DepositMutationInput): Promise<TransactionResponse> {
-    console.log('Call MUTATION_PAY_ONCE');
     const transaction: TransactionResponse = (await this.client.call(MUTATION_PAY_ONCE, {
       input,
     })).data.data;
-
-    console.log('TRANSACTION', transaction);
 
     return transaction;
   }

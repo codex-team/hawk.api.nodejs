@@ -13,10 +13,10 @@ import { ObjectID } from 'mongodb';
 import { ApolloError, UserInputError, ForbiddenError } from 'apollo-server-express';
 
 interface BillingSession {
-  amount: number;
-  status: string;
-  success: boolean;
-  paymentURL: string;
+  Amount: number;
+  Status: string;
+  Success: boolean;
+  PaymentURL: string;
 }
 
 export default {
@@ -106,17 +106,16 @@ export default {
   Mutation: {
     /**
      * Mutation for single payment
+     *
      * @param {ResolverObj} _obj
      * @param {PaymentQuery} paymentQuery
      * @param {Object} user - current user object
-     * @return {Promise<boolean>}
      */
     async payOnce(
       _obj: undefined,
       { input }: { input: PayloadOfWorkspacePlanPurchase },
       { user, factories, accounting }: ResolverContextBase
     ): Promise<BillingSession> {
-      console.log('INPUT', input);
       const { amount, workspaceId } = input;
 
       const workspaceModel = await factories.workspacesFactory.findById(workspaceId.toString());
@@ -135,7 +134,7 @@ export default {
         // Create a business operation
         const payloadOfDepositByUser = {
           workspaceId: workspaceModel._id,
-          amount,
+          amount: amount * 100,
           userId: new ObjectID(user.id),
           cardPan: '5535',
         };
@@ -156,16 +155,14 @@ export default {
         throw new ApolloError('An error occurred while depositing the balance');
       }
 
-      const resp = {
-        amount: 1000,
-        status: 'CONFIRMED',
-        success: true,
-        paymentURL: 'http://codex.so',
+      const billingSession = {
+        Amount: amount,
+        Status: BusinessOperationStatus.Confirmed,
+        Success: true,
+        PaymentURL: 'http://codex.so',
       };
 
-      console.log('NICE BOII', resp);
-
-      return resp;
+      return billingSession;
     },
   },
 };
