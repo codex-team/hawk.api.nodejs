@@ -1,6 +1,6 @@
 import Client from './client';
-import { AccountInput, CreateAccountResponse, Settings, Account, TransactionResponse, DepositMutationInput, DepositMutationParams, PurchaseMutationInput } from './types';
-import { MUTATION_CREATE_ACCOUNT, QUERY_GET_ACCOUNT, MUTATION_PAY_ONCE, MUTATION_PURCHASE } from './queries';
+import { AccountInput, CreateAccountResponse, Settings, Account, TransactionResponse, DepositMutationInput, PurchaseMutationInput } from './types';
+import { MUTATION_CREATE_ACCOUNT, MUTATION_PAY_ONCE, MUTATION_PURCHASE } from './queries';
 
 /**
  * Class for communicating with CodeX Accounting API

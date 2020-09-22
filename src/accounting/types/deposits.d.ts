@@ -17,10 +17,3 @@ export interface DepositMutationInput {
    */
   description: string;
 }
-
-/**
- * Mutation input declaration
- */
-export interface DepositMutationParams {
-  input: DepositMutationInput;
-}
