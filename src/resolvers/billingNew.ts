@@ -3,9 +3,21 @@ import BusinessOperationModel, {
   PayloadOfDepositByUser,
   PayloadOfWorkspacePlanPurchase
 } from '../models/businessOperation';
-import { ResolverContextWithUser } from '../types/graphql';
+import { ResolverContextWithUser, ResolverContextBase } from '../types/graphql';
 import WorkspaceModel from '../models/workspace';
 import UserModel from '../models/user';
+import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
+import HawkCatcher from '@hawk.so/nodejs';
+import { ObjectID } from 'mongodb';
+
+import { ApolloError, UserInputError, ForbiddenError } from 'apollo-server-express';
+
+interface BillingSession {
+  Amount: number;
+  Status: string;
+  Success: boolean;
+  PaymentURL: string;
+}
 
 export default {
   Query: {
@@ -89,6 +101,68 @@ export default {
      */
     async user(payload: PayloadOfDepositByUser, _args: undefined, { factories }: ResolverContextWithUser): Promise<UserModel | null> {
       return factories.usersFactory.findById(payload.userId.toHexString());
+    },
+  },
+  Mutation: {
+    /**
+     * Mutation for single payment
+     *
+     * @param {ResolverObj} _obj
+     * @param {PaymentQuery} paymentQuery
+     * @param {Object} user - current user object
+     */
+    async payOnce(
+      _obj: undefined,
+      { input }: { input: PayloadOfWorkspacePlanPurchase },
+      { user, factories, accounting }: ResolverContextBase
+    ): Promise<BillingSession> {
+      const { amount, workspaceId } = input;
+
+      const workspaceModel = await factories.workspacesFactory.findById(workspaceId.toString());
+
+      if (!workspaceModel) {
+        throw new UserInputError('There is no workspace with provided id');
+      }
+
+      try {
+        const transaction = await accounting.payOnce({
+          accountId: workspaceModel.accountId,
+          amount,
+          description: 'Depositing balance by one-time payment',
+        });
+
+        // Create a business operation
+        const payloadOfDepositByUser = {
+          workspaceId: workspaceModel._id,
+          amount: amount * 100,
+          userId: new ObjectID(user.id),
+          cardPan: '5535',
+        };
+
+        const businessOperationData = {
+          transactionId: transaction.recordId,
+          type: BusinessOperationType.DepositByUser,
+          status: BusinessOperationStatus.Confirmed,
+          dtCreated: new Date(),
+          payload: payloadOfDepositByUser,
+        };
+
+        await factories.businessOperationsFactory.create<PayloadOfDepositByUser>(businessOperationData);
+      } catch (err) {
+        console.error('\nლ(´ڡ`ლ) Error [resolvers:billing:payOnce]: \n\n', err, '\n\n');
+        HawkCatcher.send(err);
+
+        throw new ApolloError('An error occurred while depositing the balance');
+      }
+
+      const billingSession = {
+        Amount: amount,
+        Status: BusinessOperationStatus.Confirmed,
+        Success: true,
+        PaymentURL: 'http://codex.so',
+      };
+
+      return billingSession;
     },
   },
 };

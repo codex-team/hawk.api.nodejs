@@ -141,39 +141,5 @@ module.exports = {
 
       return true;
     },
-
-    /**
-     * Mutation for single payment
-     * @param {ResolverObj} _obj
-     * @param {PaymentQuery} paymentQuery
-     * @param {Object} user - current user object
-     * @return {Promise<boolean>}
-     */
-    async payOnce(_obj, { input }, { user }) {
-      const { amount, language, workspaceId } = input;
-      const orderId = PaymentRequest.generateOrderId();
-      const result = await PaymentRequest.apiInitPayment(user.id, {
-        language: language || 'en',
-        data: {
-          UserId: user.id,
-        },
-        amount,
-        orderId: orderId,
-      });
-
-      const transaction = await PaymentTransaction.create({
-        userId: user.id,
-        workspaceId,
-        amount,
-        orderId,
-        paymentId: result.PaymentId,
-        status: 'SINGLE',
-        timestamp: parseInt((Date.now() / 1000).toFixed(0)),
-      });
-
-      await rabbitmq.publish('merchant', 'merchant/initialized', JSON.stringify(transaction));
-
-      return result;
-    },
   },
 };

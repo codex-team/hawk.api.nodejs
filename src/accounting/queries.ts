@@ -36,3 +36,14 @@ export const MUTATION_PURCHASE = `
     }
   }
 `;
+
+/**
+ * Increase account balance
+ */
+export const MUTATION_PAY_ONCE = `
+  mutation PayOnce($input: DepositInput!) {
+    deposit(input:$input){
+      recordId
+    }
+  }
+`;

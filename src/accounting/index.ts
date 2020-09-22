@@ -1,6 +1,6 @@
-import { AccountInput, CreateAccountResponse, Settings, Account, PurchaseMutationInput, TransactionResponse } from './types';
-import { MUTATION_CREATE_ACCOUNT, QUERY_GET_ACCOUNT, MUTATION_PURCHASE } from './queries';
 import Client from './client';
+import { AccountInput, CreateAccountResponse, Settings, Account, TransactionResponse, DepositMutationInput, PurchaseMutationInput } from './types';
+import { MUTATION_CREATE_ACCOUNT, MUTATION_PAY_ONCE, MUTATION_PURCHASE } from './queries';
 
 /**
  * Class for communicating with CodeX Accounting API
@@ -56,18 +56,5 @@ export default class Accounting {
     };
 
     return response;
-  }
-
-  /**
-   * Charge money
-   *
-   * @param input - data for debiting money
-   */
-  public async purchase(input: PurchaseMutationInput): Promise<TransactionResponse> {
-    const transaction: TransactionResponse = (await this.client.call(MUTATION_PURCHASE, {
-      input,
-    })).data.data.purchase;
-
-    return transaction;
   }
 }
