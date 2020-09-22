@@ -57,30 +57,4 @@ export default class Accounting {
 
     return response;
   }
-
-  /**
-   * Charge money
-   *
-   * @param input - data for debiting money
-   */
-  public async purchase(input: PurchaseMutationInput): Promise<TransactionResponse> {
-    const transaction: TransactionResponse = (await this.client.call(MUTATION_PURCHASE, {
-      input,
-    })).data.data.purchase;
-
-    return transaction;
-  }
-
-  /**
-   * Increase account balance
-   *
-   * @param input - data for depositing money
-   */
-  public async payOnce(input: DepositMutationInput): Promise<TransactionResponse> {
-    const transaction: TransactionResponse = (await this.client.call(MUTATION_PAY_ONCE, {
-      input,
-    })).data.data;
-
-    return transaction;
-  }
 }

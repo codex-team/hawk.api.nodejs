@@ -1,8 +1,8 @@
 import WorkspaceModel from '../models/workspace';
 import { AccountType, Currency } from '../accounting/types';
-import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import PlanModel from '../models/plan';
 import telegram from '../utils/telegram';
+import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import HawkCatcher from '@hawk.so/nodejs';
 import escapeHTML from 'escape-html';
 
@@ -381,61 +381,6 @@ module.exports = {
 ⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${planModel.name} $${planModel.monthlyCharge}</b> `;
 
       telegram.sendMessage(message);
-
-      return {
-        recordId: workspaceModel._id,
-        record: workspaceModel,
-      };
-    },
-
-    /**
-     * Depositing balance
-     *
-     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
-     * @param {string} workspaceId - id of workspace to change plan
-     * @param {string} planId - plan to set
-     * @param {ContextFactories} factories - factories to work with models
-     */
-    async payOnce(
-      _obj,
-      {
-        input: { workspaceId, amount },
-      },
-      { factories, accounting }
-    ) {
-      const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
-
-      if (!workspaceModel) {
-        throw new UserInputError('There is no workspace with provided id');
-      }
-
-      try {
-        const transaction = await accounting.payOnce({
-          accountId: workspaceModel.accountId,
-          amount,
-          description: 'Depositing balance by one-time payment',
-        });
-
-        // Create a business operation
-        const payloadWorkspacePlanPurchase = {
-          workspaceId: workspaceModel._id,
-          amount,
-        };
-
-        const businessOperationData = {
-          transactionId: transaction.recordId,
-          type: BusinessOperationType.DepositByUser,
-          status: BusinessOperationStatus.Confirmed,
-          payload: payloadWorkspacePlanPurchase,
-        };
-
-        await factories.businessOperationsFactory.create(businessOperationData);
-      } catch (err) {
-        console.error('\nლ(´ڡ`ლ) Error [resolvers:workspace:payOnce]: \n\n', err, '\n\n');
-        HawkCatcher.send(err);
-
-        throw new ApolloError('An error occurred while depositing the plan');
-      }
 
       return {
         recordId: workspaceModel._id,
