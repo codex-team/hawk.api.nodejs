@@ -9,8 +9,7 @@ import UserModel from '../models/user';
 import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import HawkCatcher from '@hawk.so/nodejs';
 import { ObjectID } from 'mongodb';
-
-import { ApolloError, UserInputError, ForbiddenError } from 'apollo-server-express';
+import { ApolloError, UserInputError } from 'apollo-server-express';
 
 interface BillingSession {
   Amount: number;
