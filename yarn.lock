@@ -2280,9 +2280,9 @@ code-point-at@^1.0.0:
   resolved "https://registry.yarnpkg.com/code-point-at/-/code-point-at-1.1.0.tgz#0d070b4d043a5bea33a2f1a40e2edb3d9a4ccf77"
   integrity sha1-DQcLTQQ6W+ozovGkDi7bPZpMz3c=
 
-"codex-accounting-sdk@https://github.com/codex-team/codex-accounting-sdk#feature/building":
+"codex-accounting-sdk@https://github.com/codex-team/codex-accounting-sdk":
   version "1.0.0"
-  resolved "https://github.com/codex-team/codex-accounting-sdk#dc570cec9a1fe7030fa795c256bcdb24ee4f29a1"
+  resolved "https://github.com/codex-team/codex-accounting-sdk#40dfc85a1b1c28616da5f55912f37e559000cda9"
   dependencies:
     "@types/node" "^14.6.4"
     axios "^0.20.0"
