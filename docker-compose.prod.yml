@@ -10,8 +10,7 @@ services:
       - ./.env:/usr/src/app/.env
       - ./uploads:/usr/src/app/uploads
       - /usr/src/app/node_modules
-      - ./src/accounting/tls/ca.pem:${TLS_CA_CERT}
-      - ./src/accounting/tls/client.pem:${TLS_CERT}
-      - ./src/accounting/tls/client-key.pem:${TLS_KEY}
+      - ./tls/ca.pem:${TLS_CA_CERT}
+      - ./tls/client.pem:${TLS_CERT}
+      - ./tls/client-key.pem:${TLS_KEY}
     restart: unless-stopped
-      
