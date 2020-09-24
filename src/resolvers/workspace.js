@@ -1,5 +1,5 @@
 import WorkspaceModel from '../models/workspace';
-import { AccountType, Currency } from '../accounting/types';
+import { AccountType, Currency } from 'codex-accounting-sdk';
 import PlanModel from '../models/plan';
 import telegram from '../utils/telegram';
 import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';

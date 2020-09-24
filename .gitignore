@@ -6,3 +6,4 @@ build
 uploads
 globalConfig.json
 coverage
+tls

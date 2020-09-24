@@ -17,7 +17,7 @@ import WorkspacesFactory from './models/workspacesFactory';
 import DataLoaders from './dataLoaders';
 import HawkCatcher from '@hawk.so/nodejs';
 import { express as voyagerMiddleware } from 'graphql-voyager/middleware';
-import Accounting from './accounting';
+import Accounting from 'codex-accounting-sdk';
 
 import UploadImageDirective from './directives/uploadImageDirective';
 import RequireAuthDirective from './directives/requireAuthDirective';
