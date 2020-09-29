@@ -11,10 +11,28 @@ import HawkCatcher from '@hawk.so/nodejs';
 import { ObjectID } from 'mongodb';
 import { ApolloError, UserInputError } from 'apollo-server-express';
 
+/**
+ * Session that is returned when you try to deposit the balance
+ */
 interface BillingSession {
+  /**
+   * Deposit amount in cents
+   */
   Amount: number;
+
+  /**
+   * Deposit status
+   */
   Status: string;
+
+  /**
+   * Success status
+   */
   Success: boolean;
+
+  /**
+   * Redirect URL for payment
+   */
   PaymentURL: string;
 }
 
