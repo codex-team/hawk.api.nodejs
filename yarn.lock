@@ -2281,8 +2281,8 @@ code-point-at@^1.0.0:
   integrity sha1-DQcLTQQ6W+ozovGkDi7bPZpMz3c=
 
 "codex-accounting-sdk@https://github.com/codex-team/codex-accounting-sdk":
-  version "1.1.0"
-  resolved "https://github.com/codex-team/codex-accounting-sdk#6aee52ddbee09cf0ee5b4b0a5181ef1fea0f4ebd"
+  version "1.2.0"
+  resolved "https://github.com/codex-team/codex-accounting-sdk#5e5c9217a14eab307534a34c2f459f9ff2b7a3f2"
   dependencies:
     "@types/node" "^14.6.4"
     axios "^0.20.0"
