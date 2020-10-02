@@ -9,6 +9,7 @@ const plans = require('./plans').default;
 const projectNotifications = require('./projectNotifications').default;
 const userNotifications = require('./userNotifications').default;
 const billing = require('./billingNew').default;
+const EncodedJSON = require('./encodedJSON').default;
 
 /**
  * @typedef ResolverObj
@@ -43,6 +44,8 @@ const indexResolver = {
   JSON: GraphQLJSON,
   // JSON object resolver
   JSONObject: GraphQLJSONObject,
+  // Represents JSON objects encoded (or not) in string format
+  EncodedJSON,
 };
 
 module.exports = merge(
