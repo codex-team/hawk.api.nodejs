@@ -68,6 +68,7 @@
     "graphql": "^14.5.8",
     "graphql-iso-date": "^3.6.1",
     "graphql-list-fields": "^2.0.2",
+    "graphql-scalars": "^1.2.7",
     "graphql-type-json": "^0.3.0",
     "graphql-upload": "^9.0.0",
     "graphql-voyager": "^1.0.0-rc.31",

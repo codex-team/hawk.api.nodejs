@@ -331,6 +331,8 @@ module.exports = {
         throw new UserInputError('Plan with passed ID doesn\'t exists');
       }
 
+      let businessOperation = null;
+
       try {
         const date = new Date();
 
@@ -339,7 +341,7 @@ module.exports = {
           // Charge money for a new plan
           const transaction = await accounting.purchase({
             accountId: workspaceModel.accountId,
-            amount: planModel.monthlyCharge * 100,
+            amount: planModel.monthlyCharge,
             description: 'Monthly charge for the new workspace plan',
           });
 
@@ -357,7 +359,7 @@ module.exports = {
             payload: payloadWorkspacePlanPurchase,
           };
 
-          await factories.businessOperationsFactory.create(businessOperationData);
+          businessOperation = await factories.businessOperationsFactory.create(businessOperationData);
         }
 
         // Push old plan to plan history
@@ -375,6 +377,9 @@ module.exports = {
         throw new ApolloError('An error occurred while changing the plan');
       }
 
+      // Get a workspace account to get balance
+      const workspaceAccount = await accounting.getAccount(workspaceModel.accountId);
+
       // Send a message of a succesfully plan changed to the telegram bot
       const message = `🤑 <b>${escapeHTML(userModel.name || userModel.email)}</b> changed plan of «<b>${escapeHTML(workspaceModel.name)}</b>» workspace
 
@@ -383,8 +388,9 @@ module.exports = {
       telegram.sendMessage(message);
 
       return {
-        recordId: workspaceModel._id,
-        record: workspaceModel,
+        recordId: businessOperation ? businessOperation._id : null,
+        record: businessOperation,
+        balance: workspaceAccount.balance.amount,
       };
     },
   },
@@ -425,7 +431,7 @@ module.exports = {
       const accountId = workspace.accountId;
       const account = await accounting.getAccount(accountId);
 
-      return account.balance;
+      return account.balance.amount;
     },
 
     /**

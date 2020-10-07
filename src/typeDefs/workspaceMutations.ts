@@ -21,13 +21,19 @@ export default gql`
   """
   type ChangeWorkspacePlanResponse {
     """
-    Modified workspace id
+    Business operation id
     """
     recordId: ID
+
     """
     Modified workspace object
     """
-    record: Workspace
+    record: BusinessOperation
+
+    """
+    Workspace balance
+    """
+    balance: Int!
   }
 
   extend type Mutation {
