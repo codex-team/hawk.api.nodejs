@@ -186,13 +186,29 @@ class HawkAPI {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const dataLoader = new DataLoaders(mongo.databases.hawk!);
 
-    const accounting = new Accounting({
-      baseURL: `${process.env.CODEX_ACCOUNTING_URL}`,
-      tlsVerify: {
+    /**
+     * Initializing accounting SDK
+     */
+    let tlsVerify;
+
+    /**
+     * Checking env variables
+     * If at least one path is not transmitted, the variable tlsVerify is undefined
+     */
+    if (!(process.env.TLS_CA_CERT === undefined || process.env.TLS_CA_CERT.length === 0 ||
+      process.env.TLS_CERT === undefined || process.env.TLS_CERT.length === 0 ||
+      process.env.TLS_KEY === undefined || process.env.TLS_KEY.length === 0)
+    ) {
+      tlsVerify = {
         tlsCaCertPath: `${process.env.TLS_CA_CERT}`,
         tlsCertPath: `${process.env.TLS_CERT}`,
         tlsKeyPath: `${process.env.TLS_KEY}`,
-      },
+      };
+    }
+
+    const accounting = new Accounting({
+      baseURL: `${process.env.CODEX_ACCOUNTING_URL}`,
+      tlsVerify,
     });
 
     return {
