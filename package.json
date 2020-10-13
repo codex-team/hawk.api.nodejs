@@ -59,7 +59,7 @@
     "apollo-server-express": "^2.14.2",
     "argon2": "^0.26.2",
     "axios": "^0.19.2",
-    "codex-accounting-sdk": "https://github.com/codex-team/codex-accounting-sdk#fix-get-account",
+    "codex-accounting-sdk": "https://github.com/codex-team/codex-accounting-sdk",
     "copyfiles": "^2.1.1",
     "dataloader": "^2.0.0",
     "dotenv": "^8.2.0",

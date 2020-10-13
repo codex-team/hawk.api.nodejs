@@ -10,6 +10,7 @@ import { BusinessOperationStatus, BusinessOperationType } from '../../src/models
 import HawkCatcher from '@hawk.so/nodejs';
 import { ObjectID } from 'mongodb';
 import { ApolloError, UserInputError } from 'apollo-server-express';
+import { PENNY_MULTIPLIER } from 'codex-accounting-sdk/types/currency';
 
 /**
  * Session that is returned when you try to deposit the balance
@@ -151,7 +152,7 @@ export default {
         // Create a business operation
         const payloadOfDepositByUser = {
           workspaceId: workspaceModel._id,
-          amount: amount * 100,
+          amount: amount * PENNY_MULTIPLIER,
           userId: new ObjectID(user.id),
           cardPan: '5535',
         };

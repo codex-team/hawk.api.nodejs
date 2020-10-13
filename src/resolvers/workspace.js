@@ -5,6 +5,7 @@ import PlanModel from '../models/plan';
 import telegram from '../utils/telegram';
 import HawkCatcher from '@hawk.so/nodejs';
 import escapeHTML from 'escape-html';
+import { PENNY_MULTIPLIER } from 'codex-accounting-sdk/types/currency';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -348,7 +349,7 @@ module.exports = {
           // Create a business operation
           const payloadWorkspacePlanPurchase = {
             workspaceId: workspaceModel._id,
-            amount: planModel.monthlyCharge * 100,
+            amount: planModel.monthlyCharge * PENNY_MULTIPLIER,
           };
 
           const businessOperationData = {
