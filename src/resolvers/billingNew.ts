@@ -10,7 +10,7 @@ import { BusinessOperationStatus, BusinessOperationType } from '../../src/models
 import HawkCatcher from '@hawk.so/nodejs';
 import { ObjectID } from 'mongodb';
 import { ApolloError, UserInputError } from 'apollo-server-express';
-import { PENNY_MULTIPLIER } from 'codex-accounting-sdk/types/currency';
+import { PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 
 /**
  * Session that is returned when you try to deposit the balance

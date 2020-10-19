@@ -5,7 +5,7 @@ import PlanModel from '../models/plan';
 import telegram from '../utils/telegram';
 import HawkCatcher from '@hawk.so/nodejs';
 import escapeHTML from 'escape-html';
-import { PENNY_MULTIPLIER } from 'codex-accounting-sdk/types/currency';
+import { PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
