@@ -195,9 +195,8 @@ class HawkAPI {
      * Checking env variables
      * If at least one path is not transmitted, the variable tlsVerify is undefined
      */
-    if (!(process.env.TLS_CA_CERT === undefined || process.env.TLS_CA_CERT.length === 0 ||
-      process.env.TLS_CERT === undefined || process.env.TLS_CERT.length === 0 ||
-      process.env.TLS_KEY === undefined || process.env.TLS_KEY.length === 0)
+    if (
+      ![process.env.TLS_CA_CERT, process.env.TLS_CERT, process.env.TLS_KEY].some(value => value === undefined || value.length === 0)
     ) {
       tlsVerify = {
         tlsCaCertPath: `${process.env.TLS_CA_CERT}`,
