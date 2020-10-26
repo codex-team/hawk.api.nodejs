@@ -1,10 +1,11 @@
 import WorkspaceModel from '../models/workspace';
-import { AccountType, Currency } from 'codex-accounting-sdk';
+import { AccountType, Currency } from 'codex-accounting-sdk/types';
+import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import PlanModel from '../models/plan';
 import telegram from '../utils/telegram';
-import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import HawkCatcher from '@hawk.so/nodejs';
 import escapeHTML from 'escape-html';
+import { PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -331,6 +332,8 @@ module.exports = {
         throw new UserInputError('Plan with passed ID doesn\'t exists');
       }
 
+      let businessOperation = null;
+
       try {
         const date = new Date();
 
@@ -339,14 +342,14 @@ module.exports = {
           // Charge money for a new plan
           const transaction = await accounting.purchase({
             accountId: workspaceModel.accountId,
-            amount: planModel.monthlyCharge * 100,
+            amount: planModel.monthlyCharge,
             description: 'Monthly charge for the new workspace plan',
           });
 
           // Create a business operation
           const payloadWorkspacePlanPurchase = {
             workspaceId: workspaceModel._id,
-            amount: planModel.monthlyCharge * 100,
+            amount: planModel.monthlyCharge * PENNY_MULTIPLIER,
           };
 
           const businessOperationData = {
@@ -357,7 +360,7 @@ module.exports = {
             payload: payloadWorkspacePlanPurchase,
           };
 
-          await factories.businessOperationsFactory.create(businessOperationData);
+          businessOperation = await factories.businessOperationsFactory.create(businessOperationData);
         }
 
         // Push old plan to plan history
@@ -375,6 +378,9 @@ module.exports = {
         throw new ApolloError('An error occurred while changing the plan');
       }
 
+      // Get a workspace account to get balance
+      const workspaceAccount = await accounting.getAccount(workspaceModel.accountId);
+
       // Send a message of a succesfully plan changed to the telegram bot
       const message = `🤑 <b>${escapeHTML(userModel.name || userModel.email)}</b> changed plan of «<b>${escapeHTML(workspaceModel.name)}</b>» workspace
 
@@ -383,8 +389,9 @@ module.exports = {
       telegram.sendMessage(message);
 
       return {
-        recordId: workspaceModel._id,
-        record: workspaceModel,
+        recordId: businessOperation ? businessOperation._id : null,
+        record: businessOperation,
+        balance: workspaceAccount.balance.amount,
       };
     },
   },
@@ -425,7 +432,7 @@ module.exports = {
       const accountId = workspace.accountId;
       const account = await accounting.getAccount(accountId);
 
-      return account.balance;
+      return account.balance.amount;
     },
 
     /**

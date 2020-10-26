@@ -78,6 +78,11 @@ const rootSchema = gql`
   scalar EncodedJSON
 
   """
+  Only positive numbers
+  """
+  scalar PositiveInt
+
+  """
   Supported languages for data
   """
   enum Languages {

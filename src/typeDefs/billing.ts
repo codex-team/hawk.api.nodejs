@@ -232,7 +232,7 @@ extend type Mutation {
   """
   payOnce(
    input: PayOnceInput!
-  ): BillingSession! @requireAuth
+  ): BillingSession! @requireAuth @requireUserInWorkspace
 
   """
   Returns JSON data with payment link and initiate card attach procedure

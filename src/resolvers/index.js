@@ -1,5 +1,6 @@
 const { merge } = require('lodash');
 const { GraphQLDateTime } = require('graphql-iso-date');
+const { PositiveIntResolver } = require('graphql-scalars');
 const { GraphQLJSON, GraphQLJSONObject } = require('graphql-type-json');
 const user = require('./user').default;
 const workspace = require('./workspace');
@@ -40,12 +41,18 @@ const indexResolver = {
   },
   // DateTime scalar resolver
   DateTime: GraphQLDateTime,
+
   // JSON values resolver
   JSON: GraphQLJSON,
+
   // JSON object resolver
   JSONObject: GraphQLJSONObject,
+
   // Represents JSON objects encoded (or not) in string format
   EncodedJSON,
+
+  // Allow only positive integers
+  PositiveInt: PositiveIntResolver,
 };
 
 module.exports = merge(
