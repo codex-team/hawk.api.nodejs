@@ -33,7 +33,7 @@ export default gql`
     """
     Workspace balance
     """
-    balance: Int!
+    balance: Float!
   }
 
   extend type Mutation {

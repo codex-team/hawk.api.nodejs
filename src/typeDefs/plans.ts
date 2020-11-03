@@ -18,7 +18,7 @@ export default gql`
     """
     Monthly charge for plan
     """
-    monthlyCharge: Int!
+    monthlyCharge: Float!
 
     """
     Events limit for plan
