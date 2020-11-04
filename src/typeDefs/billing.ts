@@ -16,7 +16,7 @@ type BillingSession {
   """
   Total payment amount in kopecs
   """
-  amount: Float! @renameFrom(name: "Amount")
+  amount: Long! @renameFrom(name: "Amount")
 
   """
   Payment status
@@ -100,7 +100,7 @@ type PayloadOfDepositByUser {
   """
   Amount of payment in US cents
   """
-  amount: Float!
+  amount: Long!
 
   """
   User who made the payment
@@ -125,7 +125,7 @@ type PayloadOfWorkspacePlanPurchase {
   """
   Amount of payment in US cents
   """
-  amount: Float!
+  amount: Long!
 }
 
 """
@@ -170,7 +170,7 @@ input PayOnceInput {
   """
   Total payment amount in kopecs
   """
-  amount: Float!
+  amount: Long!
 
   """
   Workspace id for which the payment will be made
@@ -209,7 +209,7 @@ extend type Mutation {
     """
     Total payment amount in kopecs
     """
-    amount: Float!
+    amount: Long!
 
     """
     Workspace id for which the payment will be made

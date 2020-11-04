@@ -73,7 +73,7 @@ export default gql`
     """
     Workspace balance
     """
-    balance: Float
+    balance: Long
 
     """
     Workspace tariff plan
