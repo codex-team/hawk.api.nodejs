@@ -382,26 +382,6 @@ class EventsFactory extends Factory {
       .skip(skip)
       .toArray();
 
-    const isLastPortion = repetitions.length < limit && skip === 0;
-
-    /**
-     * For last portion:
-     * add original event to the end of repetitions list
-     */
-    if (isLastPortion) {
-      /**
-       * Get only 'repetitions' fields from event to fit Repetition scheme
-       * @type {EventRepetitionSchema}
-       */
-      const firstRepetition = {
-        _id: eventOriginal._id,
-        payload: eventOriginal.payload,
-        groupHash: eventOriginal.groupHash,
-      };
-
-      repetitions.push(firstRepetition);
-    }
-
     return repetitions;
   }
 
