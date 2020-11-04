@@ -1,6 +1,6 @@
 const { merge } = require('lodash');
 const { GraphQLDateTime } = require('graphql-iso-date');
-const { PositiveIntResolver } = require('graphql-scalars');
+const { LongResolver, PositiveIntResolver } = require('graphql-scalars');
 const { GraphQLJSON, GraphQLJSONObject } = require('graphql-type-json');
 const user = require('./user').default;
 const workspace = require('./workspace');
@@ -53,6 +53,9 @@ const indexResolver = {
 
   // Allow only positive integers
   PositiveInt: PositiveIntResolver,
+
+  // Allow big int numbers
+  Long: LongResolver,
 };
 
 module.exports = merge(

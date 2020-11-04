@@ -83,6 +83,11 @@ const rootSchema = gql`
   scalar PositiveInt
 
   """
+  Big int numbers
+  """
+  scalar Long
+
+  """
   Supported languages for data
   """
   enum Languages {
