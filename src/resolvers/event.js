@@ -4,6 +4,7 @@ const asyncForEach = require('../utils/asyncForEach');
 const mongo = require('../mongo');
 const EventsFactory = require('../models/eventsFactory');
 const { ObjectID } = require('mongodb');
+const rabbitmq = require('../rabbitmq');
 
 const watchController = new MongoWatchController();
 
@@ -228,6 +229,15 @@ module.exports = {
       const { result } = await factory.updateAssignee(eventId, assignee);
 
       const assigneeData = factories.usersFactory.dataLoaders.userById.load(assignee);
+
+      console.log('Send task to email worker');
+      rabbitmq.publish('', 'sender/email', JSON.stringify({
+        projectId: projectId,
+        assigneeId: assignee,
+        totalCount: 355,
+        repeating: 333,
+        usersAffected: 123,
+      }));
 
       return {
         success: !!result.ok,
