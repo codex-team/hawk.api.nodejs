@@ -203,7 +203,7 @@ module.exports = {
      * @param factories - factories for working with models
      * @return {Promise<boolean>}
      */
-    async updateAssignee(_obj, { input }, { factories }) {
+    async updateAssignee(_obj, { input }, { factories, user }) {
       const { projectId, eventId, assignee } = input;
       const factory = new EventsFactory(projectId);
 
@@ -231,12 +231,12 @@ module.exports = {
       const assigneeData = factories.usersFactory.dataLoaders.userById.load(assignee);
 
       console.log('Send task to email worker');
+
       rabbitmq.publish('', 'sender/email', JSON.stringify({
-        projectId: projectId,
-        assigneeId: assignee,
-        totalCount: 355,
-        repeating: 333,
-        usersAffected: 123,
+        projectId,
+        whoAssignedId: user.id,
+        eventId,
+        ruleId: '5fac1dfea1e1ef00403fcf27',
       }));
 
       return {
