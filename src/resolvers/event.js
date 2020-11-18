@@ -230,8 +230,6 @@ module.exports = {
 
       const assigneeData = factories.usersFactory.dataLoaders.userById.load(assignee);
 
-      console.log('Send task to email worker');
-
       rabbitmq.publish('', 'sender/email', JSON.stringify({
         projectId,
         whoAssignedId: user.id,
@@ -249,7 +247,7 @@ module.exports = {
      * Remove an assignee from the selected event
      *
      * @param {ResolverObj} _obj - resolver context
-     * @param {RemveAssigneeInput} input - object of arguments
+     * @param {RemoveAssigneeInput} input - object of arguments
      * @param factories - factories for working with models
      * @return {Promise<boolean>}
      */
