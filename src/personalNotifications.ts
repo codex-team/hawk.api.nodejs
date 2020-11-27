@@ -8,7 +8,6 @@ import { UserDBScheme } from './models/user';
  * @param payload - data to send
  */
 function sendEmail(payload: string): void {
-  console.log('SASKE');
   bgTasks.enqueue(WorkerTypes.Email, payload);
 }
 

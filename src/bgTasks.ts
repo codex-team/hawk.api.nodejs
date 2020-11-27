@@ -9,7 +9,6 @@ export default {
    * @param payload - anything that we can stringify
    */
   enqueue(workerType: WorkerType, payload: string): void {
-    console.log('PUSH', workerType, payload);
     rabbitmq.publish(workerType.exchange, workerType.queue, payload);
   },
 };
