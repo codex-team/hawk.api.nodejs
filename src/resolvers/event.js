@@ -229,12 +229,12 @@ module.exports = {
 
       const assigneeData = await factories.usersFactory.dataLoaders.userById.load(assignee);
 
-      sendPersonalNotifcations(assigneeData, JSON.stringify({
+      sendPersonalNotifcations(assigneeData, {
         projectId,
         whoAssignedId: user.id,
         eventId,
         ruleId: '5fac1dfea1e1ef00403fcf27',
-      }));
+      });
 
       return {
         success: !!result.ok,

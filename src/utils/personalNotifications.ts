@@ -1,34 +1,19 @@
 import BgTasks from './bgTasks';
-import { WorkerTypes } from '../types/bgTasks';
+import { WorkerTypes, PersonalNotificationPayload, WorkerType } from '../types/bgTasks';
 import { UserDBScheme } from '../models/user';
 
 const bgTasks = new BgTasks();
 
 /**
- * Send personal notification to user email
+ * Send personal notification to current worker
  *
+ * @param workerType - type of worker that will send the notification
  * @param payload - data to send
  */
-function sendEmail(payload: string): void {
-  bgTasks.enqueue(WorkerTypes.Email, payload);
-}
-
-/**
- * Send personal notification to user telegram
- *
- * @param payload - data to send
- */
-function sendToTelegram(payload: string): void {
-  bgTasks.enqueue(WorkerTypes.Telegram, payload);
-}
-
-/**
- * Send personal notification to user slack
- *
- * @param payload - data to send
- */
-function sendToSlack(payload: string): void {
-  bgTasks.enqueue(WorkerTypes.Slack, payload);
+function sendTo(workerType: WorkerType, payload: PersonalNotificationPayload): void {
+  bgTasks.enqueue<PersonalNotificationPayload>(workerType, {
+    payload,
+  });
 }
 
 /**
@@ -37,20 +22,20 @@ function sendToSlack(payload: string): void {
  * @param user - user data
  * @param payload - stringified data to send
  */
-export default function sendNotifications(user: UserDBScheme, payload: string): void {
+export default function sendNotifications(user: UserDBScheme, payload: PersonalNotificationPayload): void {
   if (!user.notifications) {
     return;
   }
 
   if (user.notifications.channels.email?.isEnabled) {
-    sendEmail(payload);
+    sendTo(WorkerTypes.Email, payload);
   }
 
   if (user.notifications.channels.telegram?.isEnabled) {
-    sendToTelegram(payload);
+    sendTo(WorkerTypes.Telegram, payload);
   }
 
   if (user.notifications.channels.slack?.isEnabled) {
-    sendToSlack(payload);
+    sendTo(WorkerTypes.Slack, payload);
   }
 }

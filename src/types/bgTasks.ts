@@ -6,21 +6,21 @@
  * Rabbitmq exchanges
  */
 export enum Exchanges {
-  Errors='errors',
-  Notify='notify',
-  Stash='stash',
-  Merchant='merchant',
-  Empty=''
+  Errors = 'errors',
+  Notify = 'notify',
+  Stash = 'stash',
+  Merchant = 'merchant',
+  Empty = ''
 }
 
 /**
  * Rabbitmq queues
  */
 export enum Queues {
-  Merchant='merchant/initialized',
-  Email='sender/email',
-  Telegram='notify/telegram',
-  Slack='notify/slack'
+  Merchant = 'merchant/initialized',
+  Email = 'sender/email',
+  Telegram = 'notify/telegram',
+  Slack = 'notify/slack'
 }
 
 export interface WorkerType {
@@ -31,7 +31,7 @@ export interface WorkerType {
 /**
  * Worker Type
  */
-export const WorkerTypes: {[key: string]: WorkerType} = {
+export const WorkerTypes: { [key: string]: WorkerType } = {
   Merchant: {
     exchange: Exchanges.Merchant,
     queue: Queues.Merchant,
@@ -49,3 +49,40 @@ export const WorkerTypes: {[key: string]: WorkerType} = {
     queue: Queues.Slack,
   },
 };
+
+/**
+ * Universal interface to type tasks
+ */
+export interface SenderWorkerTask<Payload> {
+  /**
+   * Payload of task
+   */
+  payload: Payload;
+}
+
+export interface PersonalNotificationPayload {
+  /**
+   * Project of the event
+   */
+  projectId: string;
+
+  /**
+   * Use who assigned person to resolve an issue
+   */
+  whoAssignedId: string;
+
+  /**
+   * Id of the event
+   */
+  eventId: string;
+
+  /**
+   * Id of notification rule
+   */
+  ruleId: string;
+}
+
+/**
+ * All task payloads
+ */
+export type AllPayloads = PersonalNotificationPayload
