@@ -62,6 +62,11 @@ export interface SenderWorkerTask<Payload> {
 
 export interface PersonalNotificationPayload {
   /**
+   * ID of the user assigned to this event
+   */
+
+  assigneeId: string;
+  /**
    * Project of the event
    */
   projectId: string;
@@ -75,11 +80,6 @@ export interface PersonalNotificationPayload {
    * Id of the event
    */
   eventId: string;
-
-  /**
-   * Id of notification rule
-   */
-  ruleId: string;
 }
 
 /**
