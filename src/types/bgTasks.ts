@@ -23,27 +23,52 @@ export enum Queues {
   Slack = 'notify/slack'
 }
 
-export interface WorkerType {
+/**
+ * Contains a rabbitmq exchange and a queue for the worker
+ */
+export interface WorkerPath {
+  /**
+   * Rabbitmq exchange
+   */
   exchange: string;
+
+  /**
+   * Rabbitmq queue
+   */
   queue: string;
 }
 
 /**
- * Worker Type
+ * Paths for workers to send events to the queue
  */
-export const WorkerTypes: { [key: string]: WorkerType } = {
+export const WorkerPaths: { [key: string]: WorkerPath } = {
+  /**
+   * Path to merchant worker
+   */
   Merchant: {
     exchange: Exchanges.Merchant,
     queue: Queues.Merchant,
   },
+
+  /**
+   * Path to email worker
+   */
   Email: {
     exchange: Exchanges.Empty,
     queue: Queues.Email,
   },
+
+  /**
+   * Path to telegram worker
+   */
   Telegram: {
     exchange: Exchanges.Notify,
     queue: Queues.Telegram,
   },
+
+  /**
+   * Path to slack worker
+   */
   Slack: {
     exchange: Exchanges.Notify,
     queue: Queues.Slack,
@@ -64,15 +89,15 @@ export interface PersonalNotificationPayload {
   /**
    * ID of the user assigned to this event
    */
-
   assigneeId: string;
+
   /**
    * Project of the event
    */
   projectId: string;
 
   /**
-   * Use who assigned person to resolve an issue
+   * Id of the user who has assigned a person to resolve the issue
    */
   whoAssignedId: string;
 
@@ -85,4 +110,4 @@ export interface PersonalNotificationPayload {
 /**
  * All task payloads
  */
-export type AllPayloads = PersonalNotificationPayload
+export type BgTaskPayload = PersonalNotificationPayload

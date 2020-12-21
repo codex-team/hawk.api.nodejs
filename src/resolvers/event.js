@@ -4,7 +4,7 @@ const asyncForEach = require('../utils/asyncForEach');
 const mongo = require('../mongo');
 const EventsFactory = require('../models/eventsFactory');
 const { ObjectID } = require('mongodb');
-const sendPersonalNotifcations = require('../utils/personalNotifications').default;
+const sendPersonalNotifcation = require('../utils/personalNotifications').default;
 const watchController = new MongoWatchController();
 
 /**
@@ -229,7 +229,7 @@ module.exports = {
 
       const assigneeData = await factories.usersFactory.dataLoaders.userById.load(assignee);
 
-      sendPersonalNotifcations(assigneeData, {
+      sendPersonalNotifcation(assigneeData, {
         assigneeId: assignee,
         projectId,
         whoAssignedId: user.id,

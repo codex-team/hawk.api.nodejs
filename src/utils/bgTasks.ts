@@ -1,4 +1,4 @@
-import { WorkerType, SenderWorkerTask, AllPayloads } from '../types/bgTasks';
+import { WorkerPath, SenderWorkerTask, BgTaskPayload } from '../types/bgTasks';
 import * as rabbitmq from '../rabbitmq';
 
 /**
@@ -8,10 +8,10 @@ export default class BgTasks {
   /**
    * Put a background task into the queue on rabbitmq
    *
-   * @param workerType - worker settings: exchange and queue
+   * @param workerPath - worker rabbitmq path: exchange and queue
    * @param payload - anything that we can stringify
    */
-  public enqueue<T extends AllPayloads>(workerType: WorkerType, task: SenderWorkerTask<T>): void {
-    rabbitmq.publish(workerType.exchange, workerType.queue, JSON.stringify(task.payload));
+  public enqueue<T extends BgTaskPayload>(workerPath: WorkerPath, task: SenderWorkerTask<T>): void {
+    rabbitmq.publish(workerPath.exchange, workerPath.queue, JSON.stringify(task.payload));
   }
 }
