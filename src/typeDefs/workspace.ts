@@ -73,7 +73,12 @@ export default gql`
     """
     Workspace balance
     """
-    balance: Int
+    balance: Long
+
+    """
+    Total number of errors since the last charge date
+    """
+    billingPeriodEventsCount: Int
 
     """
     Workspace tariff plan
