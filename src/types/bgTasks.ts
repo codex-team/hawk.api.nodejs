@@ -105,6 +105,11 @@ export interface PersonalNotificationPayload {
    * Id of the event
    */
   eventId: string;
+
+  /**
+   * Notification endpoint
+   */
+  endpoint?: string;
 }
 
 /**

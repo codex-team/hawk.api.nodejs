@@ -28,14 +28,23 @@ export default function sendNotification(user: UserDBScheme, payload: PersonalNo
   }
 
   if (user.notifications.channels.email?.isEnabled) {
-    sendTo(WorkerPaths.Email, payload);
+    sendTo(WorkerPaths.Email, {
+      ...payload,
+      endpoint: user.notifications.channels.email.endpoint,
+    });
   }
 
   if (user.notifications.channels.telegram?.isEnabled) {
-    sendTo(WorkerPaths.Telegram, payload);
+    sendTo(WorkerPaths.Telegram, {
+      ...payload,
+      endpoint: user.notifications.channels.telegram.endpoint,
+    });
   }
 
   if (user.notifications.channels.slack?.isEnabled) {
-    sendTo(WorkerPaths.Slack, payload);
+    sendTo(WorkerPaths.Slack, {
+      ...payload,
+      endpoint: user.notifications.channels.slack.endpoint,
+    });
   }
 }
