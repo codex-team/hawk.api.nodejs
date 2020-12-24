@@ -80,6 +80,11 @@ export const WorkerPaths: { [key: string]: WorkerPath } = {
  */
 export interface SenderWorkerTask<Payload> {
   /**
+   * Type of task
+   */
+  type: string;
+
+  /**
    * Payload of task
    */
   payload: Payload;
@@ -113,6 +118,14 @@ export interface PersonalNotificationPayload {
 }
 
 /**
+ * Assignee user notification
+ */
+export interface PersonalNotification extends SenderWorkerTask<PersonalNotificationPayload> {
+  type: 'assignee';
+  payload: PersonalNotificationPayload;
+}
+
+/**
  * All task payloads
  */
-export type BgTaskPayload = PersonalNotificationPayload
+export type BgTask = PersonalNotification;

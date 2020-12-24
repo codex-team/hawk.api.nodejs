@@ -1,5 +1,5 @@
 import BgTasks from './bgTasks';
-import { WorkerPaths, PersonalNotificationPayload, WorkerPath } from '../types/bgTasks';
+import { WorkerPaths, PersonalNotificationPayload, PersonalNotification, WorkerPath } from '../types/bgTasks';
 import { UserDBScheme } from '../models/user';
 
 const bgTasks = new BgTasks();
@@ -10,10 +10,8 @@ const bgTasks = new BgTasks();
  * @param workerType - type of worker that will send the notification
  * @param payload - data to send
  */
-function sendTo(workerType: WorkerPath, payload: PersonalNotificationPayload): void {
-  bgTasks.enqueue<PersonalNotificationPayload>(workerType, {
-    payload,
-  });
+function sendTo(workerType: WorkerPath, task: PersonalNotification): void {
+  bgTasks.enqueue<PersonalNotification>(workerType, task);
 }
 
 /**
@@ -29,22 +27,31 @@ export default function sendNotification(user: UserDBScheme, payload: PersonalNo
 
   if (user.notifications.channels.email?.isEnabled) {
     sendTo(WorkerPaths.Email, {
-      ...payload,
-      endpoint: user.notifications.channels.email.endpoint,
-    });
+      type: 'assignee',
+      payload: {
+        ...payload,
+        endpoint: user.notifications.channels.email.endpoint,
+      },
+    } as PersonalNotification);
   }
 
   if (user.notifications.channels.telegram?.isEnabled) {
     sendTo(WorkerPaths.Telegram, {
-      ...payload,
-      endpoint: user.notifications.channels.telegram.endpoint,
-    });
+      type: 'assignee',
+      payload: {
+        ...payload,
+        endpoint: user.notifications.channels.telegram.endpoint,
+      },
+    } as PersonalNotification);
   }
 
   if (user.notifications.channels.slack?.isEnabled) {
     sendTo(WorkerPaths.Slack, {
-      ...payload,
-      endpoint: user.notifications.channels.slack.endpoint,
-    });
+      type: 'assignee',
+      payload: {
+        ...payload,
+        endpoint: user.notifications.channels.slack.endpoint,
+      },
+    } as PersonalNotification);
   }
 }
