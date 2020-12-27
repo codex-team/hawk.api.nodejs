@@ -4,6 +4,7 @@ import * as mongo from './mongo';
 import * as rabbitmq from './rabbitmq';
 import jwt, { Secret } from 'jsonwebtoken';
 import http from 'http';
+import bodyParser from 'body-parser';
 import billing from './billing/index';
 import { initializeStrategies } from './passport';
 import { authRouter } from './auth';
@@ -71,6 +72,9 @@ class HawkAPI {
    */
   constructor() {
     this.app.use(express.json());
+    this.app.use(bodyParser.json());
+    this.app.use(bodyParser.urlencoded({ extended: false }));
+
     this.app.post('/billing', billing.notifyCallback);
     this.app.use('/uploads', express.static(`./${process.env.UPLOADS_DIR || 'uploads'}`));
     this.app.use('/static', express.static(`./static`));
