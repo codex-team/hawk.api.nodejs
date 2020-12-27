@@ -106,7 +106,10 @@ class EventsFactory extends Factory {
     const result = await cursor.toArray();
 
     return result.map(eventSchema => {
-      return new Event(eventSchema);
+      return new Event({
+        ...eventSchema,
+        projectId: this.projectId,
+      });
     });
   }
 
