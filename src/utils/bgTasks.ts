@@ -1,4 +1,4 @@
-import { WorkerPath, SenderWorkerTask, BgTask } from '../types/bgTasks';
+import { WorkerPath, BgTask } from '../types/bgTasks';
 import * as rabbitmq from '../rabbitmq';
 
 /**
