@@ -25,35 +25,33 @@ export default function sendNotification(user: UserDBScheme, task: BgTask): void
     return;
   }
 
-  if (task.type == 'assignee') {
-    if (user.notifications.channels.email?.isEnabled) {
-      sendTo(WorkerPaths.Email, {
-        type: task.type,
-        payload: {
-          ...task.payload,
-          endpoint: user.notifications.channels.email.endpoint,
-        },
-      } as PersonalNotification);
-    }
+  if (user.notifications.channels.email?.isEnabled) {
+    sendTo(WorkerPaths.Email, {
+      type: task.type,
+      payload: {
+        ...task.payload,
+        endpoint: user.notifications.channels.email.endpoint,
+      },
+    } as PersonalNotification);
+  }
 
-    if (user.notifications.channels.telegram?.isEnabled) {
-      sendTo(WorkerPaths.Telegram, {
-        type: task.type,
-        payload: {
-          ...task.payload,
-          endpoint: user.notifications.channels.telegram.endpoint,
-        },
-      } as PersonalNotification);
-    }
+  if (user.notifications.channels.telegram?.isEnabled) {
+    sendTo(WorkerPaths.Telegram, {
+      type: task.type,
+      payload: {
+        ...task.payload,
+        endpoint: user.notifications.channels.telegram.endpoint,
+      },
+    } as PersonalNotification);
+  }
 
-    if (user.notifications.channels.slack?.isEnabled) {
-      sendTo(WorkerPaths.Slack, {
-        type: task.type,
-        payload: {
-          ...task.payload,
-          endpoint: user.notifications.channels.slack.endpoint,
-        },
-      } as PersonalNotification);
-    }
+  if (user.notifications.channels.slack?.isEnabled) {
+    sendTo(WorkerPaths.Slack, {
+      type: task.type,
+      payload: {
+        ...task.payload,
+        endpoint: user.notifications.channels.slack.endpoint,
+      },
+    } as PersonalNotification);
   }
 }
