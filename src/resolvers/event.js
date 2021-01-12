@@ -230,10 +230,13 @@ module.exports = {
       const assigneeData = await factories.usersFactory.dataLoaders.userById.load(assignee);
 
       sendPersonalNotifcation(assigneeData, {
-        assigneeId: assignee,
-        projectId,
-        whoAssignedId: user.id,
-        eventId,
+        type: 'assignee',
+        payload: {
+          assigneeId: assignee,
+          projectId,
+          whoAssignedId: user.id,
+          eventId,
+        },
       });
 
       return {

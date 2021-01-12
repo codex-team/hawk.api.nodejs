@@ -11,7 +11,7 @@ export default class BgTasks {
    * @param workerPath - worker rabbitmq path: exchange and queue
    * @param task - anything that we can stringify
    */
-  public enqueue<T extends BgTask>(workerPath: WorkerPath, task: T): void {
+  public enqueue(workerPath: WorkerPath, task: BgTask): void {
     rabbitmq.publish(workerPath.exchange, workerPath.queue, JSON.stringify(task));
   }
 }
