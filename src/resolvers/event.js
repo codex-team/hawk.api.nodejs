@@ -4,7 +4,7 @@ const asyncForEach = require('../utils/asyncForEach');
 const mongo = require('../mongo');
 const EventsFactory = require('../models/eventsFactory');
 const { ObjectID } = require('mongodb');
-
+const sendPersonalNotifcation = require('../utils/personalNotifications').default;
 const watchController = new MongoWatchController();
 
 /**
@@ -202,7 +202,7 @@ module.exports = {
      * @param factories - factories for working with models
      * @return {Promise<boolean>}
      */
-    async updateAssignee(_obj, { input }, { factories }) {
+    async updateAssignee(_obj, { input }, { factories, user }) {
       const { projectId, eventId, assignee } = input;
       const factory = new EventsFactory(projectId);
 
@@ -227,7 +227,17 @@ module.exports = {
 
       const { result } = await factory.updateAssignee(eventId, assignee);
 
-      const assigneeData = factories.usersFactory.dataLoaders.userById.load(assignee);
+      const assigneeData = await factories.usersFactory.dataLoaders.userById.load(assignee);
+
+      sendPersonalNotifcation(assigneeData, {
+        type: 'assignee',
+        payload: {
+          assigneeId: assignee,
+          projectId,
+          whoAssignedId: user.id,
+          eventId,
+        },
+      });
 
       return {
         success: !!result.ok,
@@ -239,7 +249,7 @@ module.exports = {
      * Remove an assignee from the selected event
      *
      * @param {ResolverObj} _obj - resolver context
-     * @param {RemveAssigneeInput} input - object of arguments
+     * @param {RemoveAssigneeInput} input - object of arguments
      * @param factories - factories for working with models
      * @return {Promise<boolean>}
      */
