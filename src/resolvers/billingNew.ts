@@ -152,7 +152,7 @@ export default {
         // Create a business operation
         const payloadOfDepositByUser = {
           workspaceId: workspaceModel._id,
-          amount: amount * PENNY_MULTIPLIER,
+          amount: Number(amount) * PENNY_MULTIPLIER,
           userId: new ObjectID(user.id),
           cardPan: '5535',
         };
