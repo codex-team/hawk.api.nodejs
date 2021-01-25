@@ -11,6 +11,8 @@ import HawkCatcher from '@hawk.so/nodejs';
 import { ObjectID } from 'mongodb';
 import { ApolloError, UserInputError } from 'apollo-server-express';
 import { PENNY_MULTIPLIER } from 'codex-accounting-sdk';
+import * as telegram from '../utils/telegram';
+import escapeHTML from 'escape-html';
 
 /**
  * Session that is returned when you try to deposit the balance
@@ -152,7 +154,7 @@ export default {
         // Create a business operation
         const payloadOfDepositByUser = {
           workspaceId: workspaceModel._id,
-          amount: amount * PENNY_MULTIPLIER,
+          amount: Number(amount) * PENNY_MULTIPLIER,
           userId: new ObjectID(user.id),
           cardPan: '5535',
         };
@@ -179,6 +181,10 @@ export default {
         Success: true,
         PaymentURL: 'http://codex.so',
       };
+
+      const message = `💰 Balance of «<b>${escapeHTML(workspaceModel.name)}</b>» workspace was replenished by <b>$${amount}</b>`;
+
+      telegram.sendMessage(message);
 
       return billingSession;
     },
