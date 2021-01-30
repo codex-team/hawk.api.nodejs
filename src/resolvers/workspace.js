@@ -1,11 +1,9 @@
 import WorkspaceModel from '../models/workspace';
 import { AccountType, Currency } from 'codex-accounting-sdk/types';
-import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import PlanModel from '../models/plan';
 import telegram from '../utils/telegram';
 import HawkCatcher from '@hawk.so/nodejs';
 import escapeHTML from 'escape-html';
-import { PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -336,32 +334,34 @@ module.exports = {
 
       try {
         const date = new Date();
-
-        // // We charge money for any change to another plan except the free one
-        // if (planModel.monthlyCharge > 0) {
-        //   // Charge money for a new plan
-        //   const transaction = await accounting.purchase({
-        //     accountId: workspaceModel.accountId,
-        //     amount: planModel.monthlyCharge,
-        //     description: 'Monthly charge for the new workspace plan',
-        //   });
-        //
-        //   // Create a business operation
-        //   const payloadWorkspacePlanPurchase = {
-        //     workspaceId: workspaceModel._id,
-        //     amount: planModel.monthlyCharge * PENNY_MULTIPLIER,
-        //   };
-        //
-        //   const businessOperationData = {
-        //     transactionId: transaction.recordId,
-        //     type: BusinessOperationType.WorkspacePlanPurchase,
-        //     status: BusinessOperationStatus.Confirmed,
-        //     dtCreated: date,
-        //     payload: payloadWorkspacePlanPurchase,
-        //   };
-        //
-        //   businessOperation = await factories.businessOperationsFactory.create(businessOperationData);
-        // }
+        /**
+         * // We charge money for any change to another plan except the free one
+         * if (planModel.monthlyCharge > 0) {
+         *   // Charge money for a new plan
+         *   const transaction = await accounting.purchase({
+         *     accountId: workspaceModel.accountId,
+         *     amount: planModel.monthlyCharge,
+         *     description: 'Monthly charge for the new workspace plan',
+         *   });
+         *
+         *   // Create a business operation
+         *   const payloadWorkspacePlanPurchase = {
+         *     workspaceId: workspaceModel._id,
+         *     amount: planModel.monthlyCharge * PENNY_MULTIPLIER,
+         *   };
+         *
+         *   const businessOperationData = {
+         *     transactionId: transaction.recordId,
+         *     type: BusinessOperationType.WorkspacePlanPurchase,
+         *     status: BusinessOperationStatus.Confirmed,
+         *     dtCreated: date,
+         *     payload: payloadWorkspacePlanPurchase,
+         *   };
+         *
+         *   businessOperation = await factories.businessOperationsFactory.create(businessOperationData);
+         * }
+         *
+         */
 
         // Push old plan to plan history
         await workspaceModel.updatePlanHistory(workspaceModel.tariffPlanId, date, userModel._id);
