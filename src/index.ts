@@ -18,6 +18,7 @@ import DataLoaders from './dataLoaders';
 import HawkCatcher from '@hawk.so/nodejs';
 import { express as voyagerMiddleware } from 'graphql-voyager/middleware';
 import Accounting from 'codex-accounting-sdk';
+import cloudpaymentsRouter from './cloudpayments';
 
 import UploadImageDirective from './directives/uploadImageDirective';
 import RequireAuthDirective from './directives/requireAuthDirective';
@@ -75,6 +76,7 @@ class HawkAPI {
     this.app.use('/uploads', express.static(`./${process.env.UPLOADS_DIR || 'uploads'}`));
     this.app.use('/static', express.static(`./static`));
     this.app.use('/voyager', voyagerMiddleware({ endpointUrl: '/graphql' }));
+    this.app.use('/cloudpayments', cloudpaymentsRouter);
     this.app.use(authRouter);
 
     initializeStrategies();
