@@ -8,6 +8,8 @@ import { CheckCodes, CheckResponse, PayCodes, PayResponse, FailCodes, FailRespon
 export default class CloudPaymentsWebhooks {
   /**
    * Get router for payments
+   *
+   * @returns - express router for payments
    */
   public getRouter(): express.Router {
     const router = express.Router();

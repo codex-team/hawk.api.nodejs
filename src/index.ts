@@ -157,6 +157,7 @@ class HawkAPI {
    * Creates request context
    * @param req - Express request
    * @param connection - websocket connection (for subscriptions)
+   * @param billing - hawk billing
    */
   private static async createContext({ req, connection }: ExpressContext, billing: Billing): Promise<ResolverContextBase> {
     let userId: string | undefined;
