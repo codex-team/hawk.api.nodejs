@@ -7,7 +7,7 @@ import { CheckCodes, CheckResponse, PayCodes, PayResponse, FailCodes, FailRespon
  */
 export default class CloudPaymentsWebhooks {
   /**
-   * Get router for payments
+   * Returns router for payments
    *
    * @returns - express router for payments
    */
