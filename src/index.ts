@@ -17,7 +17,7 @@ import DataLoaders from './dataLoaders';
 import HawkCatcher from '@hawk.so/nodejs';
 import { express as voyagerMiddleware } from 'graphql-voyager/middleware';
 import Accounting from 'codex-accounting-sdk';
-import cloudpaymentsRouter from './billing';
+import Billing from './billing';
 
 import UploadImageDirective from './directives/uploadImageDirective';
 import RequireAuthDirective from './directives/requireAuthDirective';
@@ -74,10 +74,11 @@ class HawkAPI {
     this.app.use('/uploads', express.static(`./${process.env.UPLOADS_DIR || 'uploads'}`));
     this.app.use('/static', express.static(`./static`));
     this.app.use('/voyager', voyagerMiddleware({ endpointUrl: '/graphql' }));
-    this.app.use('/cloudpayments', cloudpaymentsRouter);
     this.app.use(authRouter);
 
     initializeStrategies();
+
+    const billing = new Billing(this.app);
 
     this.server = new ApolloServer({
       typeDefs,
@@ -99,7 +100,7 @@ class HawkAPI {
         onConnect: (connectionParams): { headers: { authorization: string } } =>
           HawkAPI.onWebSocketConnection(connectionParams as Record<string, string>),
       },
-      context: (req: ExpressContext): Promise<ResolverContextBase> => HawkAPI.createContext(req),
+      context: (req: ExpressContext): Promise<ResolverContextBase> => HawkAPI.createContext(req, billing),
       formatError: (error): GraphQLError => {
         if (error.originalError instanceof NonCriticalError) {
           return error;
@@ -157,7 +158,7 @@ class HawkAPI {
    * @param req - Express request
    * @param connection - websocket connection (for subscriptions)
    */
-  private static async createContext({ req, connection }: ExpressContext): Promise<ResolverContextBase> {
+  private static async createContext({ req, connection }: ExpressContext, billing: Billing): Promise<ResolverContextBase> {
     let userId: string | undefined;
     let isAccessTokenExpired = false;
 
@@ -217,6 +218,7 @@ class HawkAPI {
         accessTokenExpired: isAccessTokenExpired,
       },
       accounting,
+      billing,
     };
   }
 

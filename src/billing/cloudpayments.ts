@@ -5,20 +5,19 @@ import { CheckCodes, CheckResponse, PayCodes, PayResponse, FailCodes, FailRespon
 /**
  * Class for describing the logic of payment routes
  */
-export default class Cloudpayments {
+export default class CloudPaymentsWebhooks {
   /**
-   * Payment routes
+   * Get router for payments
    */
-  public router = express.Router();
+  public getRouter(): express.Router {
+    const router = express.Router();
 
-  /**
-   * Set routes
-   */
-  constructor() {
-    this.router.all('/check', this.check);
-    this.router.all('/pay', this.pay);
-    this.router.all('/fail', this.fail);
-    this.router.all('/recurrent', this.recurrent);
+    router.all('/check', this.check);
+    router.all('/pay', this.pay);
+    router.all('/fail', this.fail);
+    router.all('/recurrent', this.recurrent);
+
+    return router;
   }
 
   /**
