@@ -4,7 +4,6 @@ import * as mongo from './mongo';
 import * as rabbitmq from './rabbitmq';
 import jwt, { Secret } from 'jsonwebtoken';
 import http from 'http';
-import billing from './billing/index';
 import { initializeStrategies } from './passport';
 import { authRouter } from './auth';
 import resolvers from './resolvers';
