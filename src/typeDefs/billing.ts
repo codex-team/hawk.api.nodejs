@@ -227,12 +227,12 @@ extend type Mutation {
     language: String
   ): Boolean! @requireAuth
 
-  """
-  Initialize single payment
-  """
-  payOnce(
-   input: PayOnceInput!
-  ): BillingSession! @requireAuth @requireUserInWorkspace
+#  """
+#  Initialize single payment
+#  """
+#  payOnce(
+#   input: PayOnceInput!
+#  ): BillingSession! @requireAuth @requireUserInWorkspace
 
   """
   Returns JSON data with payment link and initiate card attach procedure

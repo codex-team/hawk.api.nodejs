@@ -70,10 +70,10 @@ export default gql`
     """
     team: [Member!]!
 
-    """
-    Workspace balance
-    """
-    balance: Long
+#    """
+#    Workspace balance
+#    """
+#    balance: Long
 
     """
     Total number of errors since the last charge date
