@@ -1,11 +1,24 @@
 import express from 'express';
 
-const router = express.Router();
-
 /**
  * Class for describing the logic of payment routes
  */
 class Cloudpayments {
+  /**
+   * Payment routes
+   */
+  public router = express.Router();
+
+  /**
+   * Set routes
+   */
+  constructor() {
+    this.router.all('/check', this.check);
+    this.router.all('/pay', this.pay);
+    this.router.all('/fail', this.fail);
+    this.router.all('/recurrent', this.recurrent);
+  }
+
   /**
    * Route for verifying a user's payment
    * https://developers.cloudpayments.ru/#check
@@ -13,7 +26,7 @@ class Cloudpayments {
    * @param req - cloudpayments request with payment details
    * @param res - check result code
    */
-  public async check(req: express.Request, res: express.Response): Promise<void> {
+  private async check(req: express.Request, res: express.Response): Promise<void> {
     res.send({
       code: 0, // Payment can be made
     });
@@ -26,7 +39,7 @@ class Cloudpayments {
    * @param req - cloudpayments request with payment details
    * @param res - result code
    */
-  public async pay(req: express.Request, res: express.Response): Promise<void> {
+  private async pay(req: express.Request, res: express.Response): Promise<void> {
     res.send({
       code: 0, // Payment registered
     });
@@ -39,7 +52,7 @@ class Cloudpayments {
    * @param req - cloudpayments request with payment details
    * @param res - result code
    */
-  public async fail(req: express.Request, res: express.Response): Promise<void> {
+  private async fail(req: express.Request, res: express.Response): Promise<void> {
     res.send({
       code: 0, // Attempt registered
     });
@@ -52,7 +65,7 @@ class Cloudpayments {
    * @param req - cloudpayments request with subscription details
    * @param res - result code
    */
-  public async recurrent(req: express.Request, res: express.Response): Promise<void> {
+  private async recurrent(req: express.Request, res: express.Response): Promise<void> {
     res.send({
       code: 0, // Changes registered
     });
@@ -61,9 +74,4 @@ class Cloudpayments {
 
 const cloudpayments = new Cloudpayments();
 
-router.all('/check', cloudpayments.check);
-router.all('/pay', cloudpayments.pay);
-router.all('/fail', cloudpayments.fail);
-router.all('/recurrent', cloudpayments.recurrent);
-
-export default router;
+export default cloudpayments.router;
