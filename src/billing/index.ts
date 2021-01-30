@@ -1,5 +1,7 @@
 import express from 'express';
 
+import { CheckCodes, CheckResponse, PayCodes, PayResponse, FailCodes, FailResponse, RecurrentResponse, RecurrentCodes } from './types';
+
 /**
  * Class for describing the logic of payment routes
  */
@@ -20,7 +22,7 @@ class Cloudpayments {
   }
 
   /**
-   * Route for verifying a user's payment
+   * Route to confirm the correctness of a user's payment
    * https://developers.cloudpayments.ru/#check
    *
    * @param req - cloudpayments request with payment details
@@ -28,8 +30,8 @@ class Cloudpayments {
    */
   private async check(req: express.Request, res: express.Response): Promise<void> {
     res.send({
-      code: 0, // Payment can be made
-    });
+      code: CheckCodes.SUCCESS,
+    } as CheckResponse);
   }
 
   /**
@@ -41,8 +43,8 @@ class Cloudpayments {
    */
   private async pay(req: express.Request, res: express.Response): Promise<void> {
     res.send({
-      code: 0, // Payment registered
-    });
+      code: PayCodes.SUCCESS,
+    } as PayResponse);
   }
 
   /**
@@ -54,8 +56,8 @@ class Cloudpayments {
    */
   private async fail(req: express.Request, res: express.Response): Promise<void> {
     res.send({
-      code: 0, // Attempt registered
-    });
+      code: FailCodes.SUCCESS,
+    } as FailResponse);
   }
 
   /**
@@ -67,8 +69,8 @@ class Cloudpayments {
    */
   private async recurrent(req: express.Request, res: express.Response): Promise<void> {
     res.send({
-      code: 0, // Changes registered
-    });
+      code: RecurrentCodes.SUCCESS,
+    } as RecurrentResponse);
   }
 }
 
