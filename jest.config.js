@@ -20,4 +20,12 @@ module.exports = {
   transform: {
     '^.+\\.tsx?$': 'ts-jest',
   },
+
+  /**
+   * Ignore folders
+   */
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/integration/',
+  ],
 };
