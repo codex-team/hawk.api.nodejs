@@ -11,7 +11,7 @@ export enum Currency {
  */
 export enum CardType {
   VISA = 'Visa',
-  MASTER_CARD = 'Mastercard',
+  MASTERCARD = 'Mastercard',
   MAESTRO = 'Maestro',
   MIR = 'МИР'
 }
@@ -443,9 +443,9 @@ export interface PayRequest {
   Status: OperationStatus;
 
   /**
-   * Operation type: Payment/Refund/CardPayout
+   * Operation type: Payment/CardPayout
    */
-  OperationType: OperationType;
+  OperationType: Exclude<OperationType, OperationType.REFUND>;
 
   /**
    * Acquiring bank identifier
@@ -526,6 +526,31 @@ export interface PayRequest {
    * An arbitrary set of parameters passed to the transaction
    */
   Data?: object;
+
+  /**
+   * Card token for repeated payments without entering details
+   */
+  Token?: string;
+
+  /**
+   * Total commission value
+   */
+  TotalFee: number;
+
+  /**
+   * Card product type
+   */
+  CardProduct?: string;
+
+  /**
+   * Payment method ApplePay or GooglePay
+   */
+  PaymentMethod?: string;
+
+  /**
+   * First unsuccessful transaction number
+   */
+  FallBackScenarioDeclinedTransactionId?: number;
 }
 
 /**
