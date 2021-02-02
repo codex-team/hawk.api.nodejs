@@ -36,6 +36,7 @@ services:
     command: dockerize -wait http://api:4000/.well-known/apollo/server-health -timeout 30s yarn jest
     volumes:
       - ./:/usr/src/app
+      - /usr/src/app/node_modules
 
 
 volumes:
