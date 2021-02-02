@@ -1,4 +1,253 @@
 /**
+ * Payment currency
+ */
+export enum Currency {
+  USD = 'USD',
+  RUB = 'RUB'
+}
+
+/**
+ * Possible card types
+ */
+export enum CardType {
+  VISA = 'Visa',
+  MASTER_CARD = 'Mastercard',
+  MAESTRO = 'Maestro',
+  MIR = 'МИР'
+}
+
+/**
+ * Operation type
+ */
+export enum OperationType {
+  /**
+   * Payment operation
+   */
+  PAYMENT = 'Payment',
+
+  /**
+   * Refund operation
+   */
+  REFUND = 'Refund',
+
+  /**
+   * Payout to card
+   */
+  CARD_PAYOUT = 'CardPayout'
+}
+
+/**
+ * Payment status in case of successful completion
+ */
+export enum OperationStatus {
+  /**
+   * Status for one-step payments,
+   */
+  COMPLETED = 'Completed',
+
+  /**
+   * Status for two-step payments
+   */
+  AUTHORIZED = 'Authorized'
+}
+
+/**
+ * Possible subscription status
+ */
+export enum SubscriptionStatus {
+  /**
+   * Subscription active.
+   * After creation and next successful payment
+   */
+  ACTIVE = 'Active',
+
+  /**
+   * Subscription expired.
+   * After one or two consecutive unsuccessful payment attempts
+   */
+  PASTDUE = 'PastDue',
+
+  /**
+   * Subscription cancelled.
+   * In case of cancellation upon request
+   */
+  CANCELLED = 'Cancelled',
+
+  /**
+   * Subscription rejected.
+   * In case of three unsuccessful payment attempts in a row
+   */
+  REJECTED = 'Rejected',
+
+  /**
+   * Subscription expired.
+   * In case of completion of the maximum number of periods (if specified)
+   */
+  EXPIRED = 'Expired'
+}
+
+/**
+ * Transaction rejection code
+ * https://developers.cloudpayments.ru/#kody-oshibok
+ */
+export enum ReasonCode {
+  /**
+   * Refusal of the issuer to conduct an online transaction
+   */
+  REFER_TO_CARD_ISSUER = 5001,
+
+  /**
+   * Refusal of the issuer to conduct an online transaction
+   */
+  INVALID_MERCHANT = 5003,
+
+  /**
+   * Card lost
+   */
+  PICK_UP_CARD = 5004,
+
+  /**
+   * Refusal of the issuer without explanation
+   */
+  DO_NOT_HONOR = 5005,
+
+  /**
+   * Network refusal to carry out the operation or incorrect CVV code
+   */
+  ERROR = 5006,
+
+  /**
+   * Card lost
+   */
+  PICK_UP_CARD_SPECIAL_CONDITIONS = 5007,
+
+  /**
+   * The card is not available for online payments
+   */
+  INVALID_TRANSACTION = 5012,
+
+  /**
+   * Too small or too large transaction amount
+   */
+  AMOUNT_ERROR = 5013,
+
+  /**
+   * Incorrect card number
+   */
+  INVALID_CARD_NUMBER = 5014,
+
+  /**
+   * Issuer not found
+   */
+  NO_SUCH_ISSUER = 5015,
+
+  /**
+   * Refusal of the issuer without explanation
+   */
+  TRANSACTION_ERROR = 5019,
+
+  /**
+   * Error on the acquirer's side - the transaction was incorrectly formed
+   */
+  FORMAT_ERROR = 5030,
+
+  /**
+   * Unknown card issuer
+   */
+  BANK_NOT_SUPPORTED_BY_SWITCH = 5031,
+
+  /**
+   * Lost card has expired
+   */
+  EXPIRED_CARD_PICKUP = 5033,
+
+  /**
+   * Issuer refusal - suspicion of fraud
+   */
+  SUSPECTED_FRAUD = 5034,
+
+  /**
+   * The card is not intended for payments
+   */
+  RESTRICTED_CARD = 5036,
+
+  /**
+   * Card lost
+   */
+  LOST_CARD = 5041,
+
+  /**
+   * Card stolen
+   */
+  STOLEN_CARD = 5043,
+
+  /**
+   * Insufficient funds
+   */
+  INSUFFICIENT_FUNDS = 5051,
+
+  /**
+   * The card is expired or the expiration date is incorrect
+   */
+  TRANSACTION_NOT_PERMITTED = 5057,
+
+  /**
+   * Restriction on the card
+   */
+  RESTRICTED_CARD_2 = 5062,
+
+  /**
+   * Card blocked due to security breaches
+   */
+  SECURITY_VIOLATION = 5063,
+
+  /**
+   * The limit of card transactions has been exceeded
+   */
+  EXCEED_WITHDRAWAL_FREQUENCY = 5065,
+
+  /**
+   * Invalid CVV code
+   */
+  INCORRECT_CVV = 5082,
+
+  /**
+   * Issuer unavailable
+   */
+  TIMEOUT = 5091,
+
+  /**
+   * Issuer unavailable
+   */
+  CANNOT_REACH_NETWORK = 5092,
+
+  /**
+   * Acquiring bank or network error
+   */
+  SYSTEM_ERROR = 5096,
+
+  /**
+   * The transaction cannot be processed for other reasons
+   */
+  UNABLE_TO_PROCESS = 5204,
+
+  /**
+   * 3-D Secure authorization failed
+   */
+  AUTHENTICATION_FAILED = 5206,
+
+  /**
+   * 3-D Secure authorization not available
+   */
+  AUTHENTICATION_UNVAILABLE = 5207,
+
+  /**
+   * Acquiring limits for transactions
+   */
+  ANTI_FRAUD = 5300
+}
+
+/**
  * Check request body
  * https://developers.cloudpayments.ru/#check
  */
@@ -14,9 +263,9 @@ export interface CheckRequest {
   Amount: number;
 
   /**
-   * Currency: RUB/USD/UER/GBP
+   * Currency: RUB/USD
    */
-  Currency: string;
+  Currency: Currency;
 
   /**
    * Date/time of payment creation in UTC time zone
@@ -36,7 +285,7 @@ export interface CheckRequest {
   /**
    * Card payment system: Visa, MasterCard, Maestro or MIR
    */
-  CardType: string;
+  CardType: CardType;
 
   /**
    * Card expiration date in MM/YY format
@@ -44,21 +293,21 @@ export interface CheckRequest {
   CardExpDate: string;
 
   /**
-   * Test mode sign: 0 or 1
+   * Test mode sign
    */
-  TestMode: number;
+  TestMode: boolean;
 
   /**
    * Payment status in case of successful completion:
    * Completed - for one-step payments,
    * Authorized - for two-step payments
    */
-  Status: string;
+  Status: OperationStatus;
 
   /**
-   * Тип операции: Payment/Refund/CardPayout
+   * Operation type: Payment/Refund/CardPayout
    */
-  OperationType: string;
+  OperationType: OperationType;
 
   /**
    * Order number from payment parameters
@@ -133,7 +382,7 @@ export interface CheckRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: JSON;
+  Data?: object;
 }
 
 /**
@@ -152,9 +401,9 @@ export interface PayRequest {
   Amount: number;
 
   /**
-   * Currency: RUB/USD/UER/GBP
+   * Currency: RUB/USD
    */
-  Currency: string;
+  Currency: Currency;
 
   /**
    * Date/time of payment creation in UTC time zone
@@ -174,7 +423,7 @@ export interface PayRequest {
   /**
    * Card payment system: Visa, MasterCard, Maestro or MIR
    */
-  CardType: string;
+  CardType: CardType;
 
   /**
    * Card expiration date in MM/YY format
@@ -182,21 +431,21 @@ export interface PayRequest {
   CardExpDate: string;
 
   /**
-   * Test mode sign: 0 or 1
+   * Test mode sign
    */
-  TestMode: number;
+  TestMode: boolean;
 
   /**
    * Payment status in case of successful completion:
    * Completed - for one-step payments,
    * Authorized - for two-step payments
    */
-  Status: string;
+  Status: OperationStatus;
 
   /**
-   * Тип операции: Payment/Refund/CardPayout
+   * Operation type: Payment/Refund/CardPayout
    */
-  OperationType: string;
+  OperationType: OperationType;
 
   /**
    * Acquiring bank identifier
@@ -276,7 +525,7 @@ export interface PayRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: JSON;
+  Data?: object;
 }
 
 /**
@@ -295,9 +544,9 @@ export interface FailRequest {
   Amount: number;
 
   /**
-   * Currency: RUB/USD/UER/GBP
+   * Currency: RUB/USD
    */
-  Currency: string;
+  Currency: Currency;
 
   /**
    * Date/time of payment creation in UTC time zone
@@ -317,7 +566,7 @@ export interface FailRequest {
   /**
    * Card payment system: Visa, MasterCard, Maestro or MIR
    */
-  CardType: string;
+  CardType: CardType;
 
   /**
    * Card expiration date in MM/YY format
@@ -325,9 +574,9 @@ export interface FailRequest {
   CardExpDate: string;
 
   /**
-   * Test mode sign: 0 or 1
+   * Test mode sign
    */
-  TestMode: number;
+  TestMode: boolean;
 
   /**
    * Rejection reason
@@ -338,11 +587,12 @@ export interface FailRequest {
    * Error code
    * https://developers.cloudpayments.ru/#kody-oshibok
    */
-  ReasonCode: number;
- /**
-  * Тип операции: Payment/Refund/CardPayout
-  */
-  OperationType: string;
+  ReasonCode: ReasonCode;
+
+  /**
+   * Operation type: Payment/Refund/CardPayout
+   */
+  OperationType: OperationType;
 
   /**
    * Order number from payment parameters
@@ -417,7 +667,7 @@ export interface FailRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: JSON;
+  Data?: object;
 
   /**
    * Card token for repeated payments without entering details
@@ -466,9 +716,9 @@ export interface RecurrentRequest {
   Amount: number;
 
   /**
-   * Currency: RUB / USD / EUR / GBP from the payment parameters
+   * Currency: RUB/USD
    */
-  Currency: string;
+  Currency: Currency;
 
   /**
    * If the value is true - the payment will be performed according to a two-stage scheme
@@ -495,7 +745,7 @@ export interface RecurrentRequest {
    * Subscription statuses
    * https://developers.cloudpayments.ru/#statusy-podpisok-rekurrent
    */
-  Status: string;
+  Status: SubscriptionStatus;
 
   /**
    * Number of successful payments
