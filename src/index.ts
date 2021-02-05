@@ -79,6 +79,9 @@ class HawkAPI {
 
     const billing = new Billing(this.app);
 
+    /**
+     * Add context to express request to call context functions in any requests
+     */
     this.app.use(async (req, res, next) => {
       req.context = await HawkAPI.createContext({ req } as ExpressContext, billing);
 
