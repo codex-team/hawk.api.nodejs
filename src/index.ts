@@ -1,3 +1,4 @@
+import './typeDefs/expressContext';
 import { ApolloServer } from 'apollo-server-express';
 import express from 'express';
 import * as mongo from './mongo';
@@ -76,9 +77,15 @@ class HawkAPI {
     this.app.use('/voyager', voyagerMiddleware({ endpointUrl: '/graphql' }));
     this.app.use(authRouter);
 
-    initializeStrategies();
-
     const billing = new Billing(this.app);
+
+    this.app.use(async (req, res, next) => {
+      req.context = await HawkAPI.createContext({ req } as ExpressContext, billing);
+
+      next();
+    });
+
+    initializeStrategies();
 
     this.server = new ApolloServer({
       typeDefs,
