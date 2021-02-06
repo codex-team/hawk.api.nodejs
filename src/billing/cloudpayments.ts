@@ -42,7 +42,7 @@ export default class CloudPaymentsWebhooks {
       invoiceId: invoiceId,
       amount: 299,
       currency: 'USD',
-      checkSum: 'some hash',
+      checksum: 'some hash',
     });
   }
 

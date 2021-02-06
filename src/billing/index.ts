@@ -19,8 +19,30 @@ export default class Billing {
   constructor(app: express.Application) {
     this.providerWebhooks = new CloudPaymentsWebhooks();
 
-    // @todo tune
-    app.use(cors());
+    app.use(cors(this.corsOptionDelegate));
     app.use('/billing', this.providerWebhooks.getRouter());
+  }
+
+  /**
+   * Enables or Disable request on origin
+   *
+   * @param req - Express HTTP request object
+   * @param callback — Function that enables request execution on origin (uses special allowed list)
+   */
+  private corsOptionDelegate(req: express.Request, callback: Function): void {
+    const allowList = [
+      'http://localhost:8080',
+      'https://hawk.so',
+      'https://beta.hawk.so',
+      'https://stage.beta.hawk.so',
+    ];
+
+    const origin = req.header('Origin') || '';
+
+    if (allowList.indexOf(origin) !== -1) {
+      callback(null, { origin: true });
+    } else {
+      callback(null, { origin: false });
+    }
   }
 }
