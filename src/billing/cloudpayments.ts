@@ -24,15 +24,17 @@ export default class CloudPaymentsWebhooks {
   }
 
   /**
-   * Prepares payment data before provider charge
+   * Prepares payment data before charge
    *
-   * @param req — HTTP request object
-   * @param res - HTPP response object
+   * @param req — Express request object
+   * @param res - Express response object
    */
   private async beforePay(req: express.Request, res: express.Response): Promise<void> {
     const { workspaceId } = req.query;
 
-    // @todo fetch workspace data: name, tariff and so on
+    /**
+     * @todo fetch workspace data: name, tariff and so on. I need services to work with storages
+     */
     const tariff = 'Basic';
     const invoiceId = `CDX 21-02-04 ${tariff}`;
 

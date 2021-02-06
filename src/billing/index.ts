@@ -24,9 +24,9 @@ export default class Billing {
   }
 
   /**
-   * Enables or Disable request on origin
+   * Enables or Disables request on origin
    *
-   * @param req - Express HTTP request object
+   * @param req - Express request object
    * @param callback — Function that enables request execution on origin (uses special allowed list)
    */
   private corsOptionDelegate(req: express.Request, callback: Function): void {
