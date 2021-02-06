@@ -14,12 +14,36 @@ export default class CloudPaymentsWebhooks {
   public getRouter(): express.Router {
     const router = express.Router();
 
+    router.get('/beforePay', this.beforePay);
     router.all('/check', this.check);
     router.all('/pay', this.pay);
     router.all('/fail', this.fail);
     router.all('/recurrent', this.recurrent);
 
     return router;
+  }
+
+  /**
+   * Prepares payment data before provider charge
+   *
+   * @param req — HTTP request object
+   * @param res - HTPP response object
+   */
+  private async beforePay(req: express.Request, res: express.Response): Promise<void> {
+    const { workspaceId } = req.query;
+
+    // @todo fetch workspace data: name, tariff and so on
+    const tariff = 'Basic';
+    const invoiceId = `CDX 21-02-04 ${tariff}`;
+
+    res.send({
+      workspaceId: workspaceId,
+      tariff: tariff,
+      invoiceId: invoiceId,
+      amount: 299,
+      currency: 'USD',
+      checkSum: 'some hash',
+    });
   }
 
   /**
