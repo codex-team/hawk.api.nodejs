@@ -5,7 +5,6 @@ import ProjectsFactory from '../models/projectsFactory';
 import Accounting from 'codex-accounting-sdk';
 import PlansFactory from '../models/plansFactory';
 import BusinessOperationsFactory from '../models/businessOperationsFactory';
-import Billing from '../../src/billing';
 
 /**
  * Resolver's Context argument
