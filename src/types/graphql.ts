@@ -25,11 +25,6 @@ export interface ResolverContextBase {
    * SDK for working with CodeX Accounting API
    */
   accounting: Accounting;
-
-  /**
-   * Billing
-   */
-  billing: Billing;
 }
 
 /**
