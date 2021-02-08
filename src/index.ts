@@ -78,7 +78,7 @@ class HawkAPI {
     this.app.use(authRouter);
 
     /**
-     * Add context to express request to call context functions in any requests
+     * Add context to the express request object to use its methods in any requests
      */
     this.app.use(async (req, res, next) => {
       req.context = await HawkAPI.createContext({ req } as ExpressContext);
@@ -88,7 +88,7 @@ class HawkAPI {
 
     const billing = new Billing();
 
-    billing.createRoutes(this.app);
+    billing.appendRoutes(this.app);
 
     initializeStrategies();
 

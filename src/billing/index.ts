@@ -6,11 +6,11 @@ import express from 'express';
  */
 export default class Billing {
   /**
-   * Set webhooks provider
+   * Append billing routes to the express app
    *
    * @param app - express app
    */
-  public createRoutes(app: express.Application): void {
+  public appendRoutes(app: express.Application): void {
     const providerWebhooks = new CloudPaymentsWebhooks();
 
     app.use('/billing', providerWebhooks.getRouter());
