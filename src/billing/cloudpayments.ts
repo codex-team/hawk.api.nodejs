@@ -14,7 +14,7 @@ export default class CloudPaymentsWebhooks {
   public getRouter(): express.Router {
     const router = express.Router();
 
-    router.get('/beforePay', this.beforePay);
+    router.get('/compose-payment', this.composePayment);
     router.all('/check', this.check);
     router.all('/pay', this.pay);
     router.all('/fail', this.fail);
@@ -29,7 +29,7 @@ export default class CloudPaymentsWebhooks {
    * @param req — Express request object
    * @param res - Express response object
    */
-  private async beforePay(req: express.Request, res: express.Response): Promise<void> {
+  private async composePayment(req: express.Request, res: express.Response): Promise<void> {
     const { workspaceId } = req.query;
 
     /**
