@@ -1,5 +1,5 @@
 import { apiInstance } from '../../utils';
-import { PayRequest } from '../../../../src/billing/types';
+import { PayCodes, PayRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
 import mongodb, { Collection, ObjectId } from 'mongodb';
 import { BusinessOperationDBScheme, BusinessOperationStatus, BusinessOperationType } from 'hawk.types';
@@ -63,7 +63,7 @@ describe('Pay webhook', () => {
       transactionId: transactionId.toString(),
     });
 
-    expect(apiResponse.data.code).toBe(0);
+    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Confirmed);
   });
 
