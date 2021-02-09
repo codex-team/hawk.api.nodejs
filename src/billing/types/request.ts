@@ -140,6 +140,16 @@ export interface CheckRequest {
      * Workspace Identifier
      */
     workspaceId: string;
+
+    /**
+     * ID of the user making the payment
+     */
+    userId: string;
+
+    /**
+     * Workspace current plan id or plan id to change
+     */
+    planId: string;
   };
 }
 
