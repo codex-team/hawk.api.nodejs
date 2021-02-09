@@ -1,6 +1,17 @@
 import express from 'express';
 
-import { CheckCodes, CheckResponse, PayCodes, PayResponse, FailCodes, FailResponse, RecurrentResponse, RecurrentCodes } from './types';
+import {
+  CheckCodes,
+  CheckResponse,
+  FailCodes,
+  FailResponse,
+  PayCodes,
+  PayRequest,
+  PayResponse,
+  RecurrentCodes,
+  RecurrentResponse
+} from './types';
+import { BusinessOperationStatus } from 'hawk.types';
 
 /**
  * Class for describing the logic of payment routes
@@ -43,6 +54,17 @@ export default class CloudPaymentsWebhooks {
    * @param res - result code
    */
   private async pay(req: express.Request, res: express.Response): Promise<void> {
+    const body: PayRequest = req.body;
+    const context = req.context;
+
+    const businessOperation = await context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(body.TransactionId.toString());
+
+    if (!businessOperation) {
+      return;
+    }
+
+    await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
+
     res.send({
       code: PayCodes.SUCCESS,
     } as PayResponse);
