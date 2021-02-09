@@ -30,7 +30,7 @@ export default class CloudPaymentsWebhooks {
    * @param res - Express response object
    */
   private async composePayment(req: express.Request, res: express.Response): Promise<void> {
-    const { workspaceId } = req.query;
+    const { workspaceId, tariffId } = req.query;
 
     /**
      * @todo fetch workspace data: name, tariff and so on. I need services to work with storages
@@ -40,7 +40,7 @@ export default class CloudPaymentsWebhooks {
 
     res.send({
       workspaceId: workspaceId,
-      tariff: tariff,
+      tariffId: tariffId,
       invoiceId: invoiceId,
       amount: 299,
       currency: 'USD',
