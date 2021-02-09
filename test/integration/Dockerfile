@@ -10,8 +10,7 @@ RUN yarn
 
 WORKDIR /usr/src/app/test/integration/
 
-COPY /test/integration/package.json ./
-COPY /test/integration/yarn.lock ./
+COPY /test/integration/package.json /test/integration/yarn.lock ./
 
 RUN yarn
 
