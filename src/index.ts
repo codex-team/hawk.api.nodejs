@@ -1,3 +1,4 @@
+import './typeDefs/expressContext';
 import { ApolloServer } from 'apollo-server-express';
 import express from 'express';
 import * as mongo from './mongo';
@@ -76,9 +77,20 @@ class HawkAPI {
     this.app.use('/voyager', voyagerMiddleware({ endpointUrl: '/graphql' }));
     this.app.use(authRouter);
 
-    initializeStrategies();
+    /**
+     * Add context to the express request object to use its methods in any requests
+     */
+    this.app.use(async (req, res, next) => {
+      req.context = await HawkAPI.createContext({ req } as ExpressContext);
 
-    const billing = new Billing(this.app);
+      next();
+    });
+
+    const billing = new Billing();
+
+    billing.appendRoutes(this.app);
+
+    initializeStrategies();
 
     this.server = new ApolloServer({
       typeDefs,
@@ -100,7 +112,7 @@ class HawkAPI {
         onConnect: (connectionParams): { headers: { authorization: string } } =>
           HawkAPI.onWebSocketConnection(connectionParams as Record<string, string>),
       },
-      context: (req: ExpressContext): Promise<ResolverContextBase> => HawkAPI.createContext(req, billing),
+      context: ({ req }): ResolverContextBase => req.context,
       formatError: (error): GraphQLError => {
         if (error.originalError instanceof NonCriticalError) {
           return error;
@@ -159,7 +171,7 @@ class HawkAPI {
    * @param connection - websocket connection (for subscriptions)
    * @param billing - hawk billing
    */
-  private static async createContext({ req, connection }: ExpressContext, billing: Billing): Promise<ResolverContextBase> {
+  private static async createContext({ req, connection }: ExpressContext): Promise<ResolverContextBase> {
     let userId: string | undefined;
     let isAccessTokenExpired = false;
 
@@ -219,7 +231,6 @@ class HawkAPI {
         accessTokenExpired: isAccessTokenExpired,
       },
       accounting,
-      billing,
     };
   }
 

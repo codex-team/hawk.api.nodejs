@@ -7,19 +7,14 @@ import cors from 'cors';
  */
 export default class Billing {
   /**
-   * Provider of cloudpayments webhooks
-   */
-  private providerWebhooks: CloudPaymentsWebhooks;
-
-  /**
-   * Set webhooks provider
+   * Append billing routes to the express app
    *
    * @param app - express app
    */
-  constructor(app: express.Application) {
-    this.providerWebhooks = new CloudPaymentsWebhooks();
+  public appendRoutes(app: express.Application): void {
+    const providerWebhooks = new CloudPaymentsWebhooks();
 
     app.use(cors());
-    app.use('/billing', this.providerWebhooks.getRouter());
+    app.use('/billing', providerWebhooks.getRouter());
   }
 }
