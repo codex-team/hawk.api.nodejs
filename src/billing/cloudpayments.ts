@@ -1,6 +1,8 @@
 import express from 'express';
-
-import { CheckCodes, CheckResponse, PayCodes, PayResponse, FailCodes, FailResponse, RecurrentResponse, RecurrentCodes } from './types';
+import * as telegram from '../utils/telegram';
+import { PayloadOfWorkspacePlanPurchase, BusinessOperationStatus, BusinessOperationType } from '../models/businessOperation';
+import { CheckCodes, CheckResponse, CheckRequest, PayCodes, PayResponse, FailCodes, FailResponse, RecurrentResponse, RecurrentCodes } from './types';
+import { ResolverContextBase } from '../types/graphql';
 
 /**
  * Class for describing the logic of payment routes
@@ -30,6 +32,72 @@ export default class CloudPaymentsWebhooks {
    * @param res - check result code
    */
   private async check(req: express.Request, res: express.Response): Promise<void> {
+    const body: CheckRequest = req.body;
+    const context = req.context;
+
+    if (!body.Data) {
+      res.send({
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
+      });
+
+      return;
+    }
+
+    const { workspaceId } = body.Data;
+    const workspace = await context.factories.workspacesFactory.findById(workspaceId);
+
+    if (!workspace) {
+      res.send({
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
+      });
+
+      return;
+    }
+
+    const plan = await context.factories.plansFactory.findById(workspace.tariffPlanId.toString());
+
+    if (!plan) {
+      res.send({
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
+      });
+
+      return;
+    }
+
+    if (body.Amount != plan.monthlyCharge) {
+      res.send({
+        code: CheckCodes.WRONG_AMOUNT,
+      });
+
+      return;
+    }
+
+    /**
+     * Create business operation about creation of subscription
+     */
+    try {
+      const businessOperation = await context.factories.businessOperationsFactory.create<PayloadOfWorkspacePlanPurchase>({
+        transactionId: body.TransactionId.toString(),
+        type: BusinessOperationType.WorkspacePlanPurchase,
+        status: BusinessOperationStatus.Pending,
+        payload: {
+          workspaceId: workspace._id,
+          amount: body.Amount,
+        },
+        dtCreated: body.DateTime,
+      });
+    } catch {
+      res.send({
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
+      });
+
+      return;
+    }
+
+    telegram.sendMessage(`✅ User has passed all checks and wants to pay for the &laquo;${workspace.name}&raquo; workspace with ${plan.name} plan for <b>$${body.Amount}</b>`);
+
+    console.log(workspace);
+
     res.send({
       code: CheckCodes.SUCCESS,
     } as CheckResponse);

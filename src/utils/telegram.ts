@@ -7,7 +7,7 @@ const botUrl = process.env.TELEGRAM_BOT_URL;
  *
  * @param message - message to send
  */
-async function sendMessage(message: string): Promise<void> {
+export async function sendMessage(message: string): Promise<void> {
   if (!botUrl) {
     return;
   }
