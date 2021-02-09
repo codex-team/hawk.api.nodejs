@@ -1,8 +1,8 @@
-import axios from 'axios';
+import { apiInstance } from '../utils';
 
 describe('Server health', () => {
   test('Server is healthy', async () => {
-    const response = await axios.get('http://api:4000/.well-known/apollo/server-health');
+    const response = await apiInstance.get('.well-known/apollo/server-health');
 
     expect(response.status).toBe(200);
   });
