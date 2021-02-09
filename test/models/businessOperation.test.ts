@@ -1,10 +1,13 @@
 import '../../src/env-test';
-import BusinessOperationModel, {
-  BusinessOperationStatus,
-  BusinessOperationType, PayloadOfDepositByUser, PayloadOfWorkspacePlanPurchase
-} from '../../src/models/businessOperation';
+import BusinessOperationModel from '../../src/models/businessOperation';
 import { ObjectId } from 'mongodb';
 import * as mongo from '../../src/mongo';
+import {
+  BusinessOperationStatus,
+  BusinessOperationType,
+  PayloadOfDepositByUser,
+  PayloadOfWorkspacePlanPurchase
+} from 'hawk.types';
 
 beforeAll(async () => {
   await mongo.setupConnections();
