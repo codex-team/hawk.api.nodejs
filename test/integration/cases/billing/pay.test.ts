@@ -11,12 +11,19 @@ describe('Pay webhook', () => {
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
 
   beforeAll(async () => {
+    /**
+     * Initiate MongoDB connection and get necessary collections
+     * @todo move to global setup config
+     */
     await mongoClient.connect();
 
     const accountsDb = await mongoClient.db('hawk');
 
     businessOperationsCollection = await accountsDb.collection<BusinessOperationDBScheme>('businessOperations');
 
+    /**
+     * Add pending business operation to database (like after /billing/check route)
+     */
     await businessOperationsCollection.insertOne({
       transactionId: transactionId.toString(),
       type: BusinessOperationType.DepositByUser,
@@ -31,7 +38,10 @@ describe('Pay webhook', () => {
     });
   });
 
-  test('Should complete pending operation if data is correct', async () => {
+  test('Should change business operation status to confirmed', async () => {
+    /**
+     * Data to send to `pay` webhook
+     */
     const data: PayRequest = {
       Amount: 10,
       CardExpDate: '06/25',
