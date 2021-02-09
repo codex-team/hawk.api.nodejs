@@ -1,8 +1,19 @@
 import express from 'express';
 import * as telegram from '../utils/telegram';
-import { PayloadOfWorkspacePlanPurchase, BusinessOperationStatus, BusinessOperationType } from '../models/businessOperation';
-import { CheckCodes, CheckResponse, CheckRequest, PayCodes, PayResponse, FailCodes, FailResponse, RecurrentResponse, RecurrentCodes } from './types';
 import { ResolverContextBase } from '../types/graphql';
+import {
+  CheckCodes,
+  CheckResponse,
+  CheckRequest,
+  FailCodes,
+  FailResponse,
+  PayCodes,
+  PayRequest,
+  PayResponse,
+  RecurrentCodes,
+  RecurrentResponse
+} from './types';
+import { BusinessOperationStatus, PayloadOfWorkspacePlanPurchase, BusinessOperationType } from 'hawk.types';
 
 /**
  * Class for describing the logic of payment routes
@@ -111,6 +122,17 @@ export default class CloudPaymentsWebhooks {
    * @param res - result code
    */
   private async pay(req: express.Request, res: express.Response): Promise<void> {
+    const body: PayRequest = req.body;
+    const context = req.context;
+
+    const businessOperation = await context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(body.TransactionId.toString());
+
+    if (!businessOperation) {
+      return;
+    }
+
+    await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
+
     res.send({
       code: PayCodes.SUCCESS,
     } as PayResponse);

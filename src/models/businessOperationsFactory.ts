@@ -1,7 +1,8 @@
 import AbstractModelFactory from './abstactModelFactory';
-import BusinessOperationModel, { BusinessOperationDBScheme, BusinessOperationPayloadType } from './businessOperation';
+import BusinessOperationModel from './businessOperation';
 import { Collection, Db, ObjectId } from 'mongodb';
 import DataLoaders from '../dataLoaders';
+import { BusinessOperationDBScheme, BusinessOperationPayloadType } from 'hawk.types';
 
 /**
  * Business operations factory to work with Business operation model
@@ -52,5 +53,21 @@ export default class BusinessOperationsFactory extends AbstractModelFactory<Busi
       .toArray();
 
     return docs.map((doc: BusinessOperationDBScheme): BusinessOperationModel => new BusinessOperationModel(doc));
+  }
+
+  /**
+   * Returns business operations by transaction id
+   * @param transactionId - transaction id from acquiring service
+   */
+  public async getBusinessOperationByTransactionId(transactionId: string): Promise<BusinessOperationModel | null> {
+    const doc = await this.collection.findOne({
+      transactionId: transactionId,
+    });
+
+    if (!doc) {
+      return null;
+    }
+
+    return new BusinessOperationModel(doc);
   }
 }

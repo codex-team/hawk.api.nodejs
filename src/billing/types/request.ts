@@ -278,7 +278,7 @@ export interface PayRequest {
   /**
    * Name of the card issuing bank
    */
-  Issuer: string;
+  Issuer?: string;
 
   /**
    * ISO3166-1 two-letter country code of the card issuer
