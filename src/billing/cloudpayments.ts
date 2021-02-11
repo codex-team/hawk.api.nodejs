@@ -1,6 +1,5 @@
 import express from 'express';
 import * as telegram from '../utils/telegram';
-import { ResolverContextBase } from '../types/graphql';
 import {
   CheckCodes,
   CheckResponse,
@@ -14,6 +13,9 @@ import {
   RecurrentResponse
 } from './types';
 import { BusinessOperationStatus, PayloadOfWorkspacePlanPurchase, BusinessOperationType } from 'hawk.types';
+import WorkspaceModel from '../models/workspace';
+import { TelegramBotURLs } from '../types/bgTasks';
+import HawkCatcher from '@hawk.so/nodejs';
 
 /**
  * Class for describing the logic of payment routes
@@ -51,10 +53,12 @@ export default class CloudPaymentsWebhooks {
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
+      telegram.sendMessage(`❌There is no necessary data in the request`, TelegramBotURLs.Money);
+
       return;
     }
 
-    const { workspaceId } = body.Data;
+    const { workspaceId, userId, planId } = body.Data;
     const workspace = await context.factories.workspacesFactory.findById(workspaceId);
 
     if (!workspace) {
@@ -62,23 +66,51 @@ export default class CloudPaymentsWebhooks {
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
+      telegram.sendMessage(`❌Workspace was not found &laquo;${workspaceId}&raquo;`, TelegramBotURLs.Money);
+
       return;
     }
 
-    const plan = await context.factories.plansFactory.findById(workspace.tariffPlanId.toString());
+    const member = await workspace.getMemberInfo(userId);
+
+    if (!member || WorkspaceModel.isPendingMember(member)) {
+      res.send({
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
+      });
+
+      telegram.sendMessage(`❌The user cannot pay for &laquo;${workspace.name}&raquo; workspace because he is not a member of it`, TelegramBotURLs.Money);
+
+      return;
+    }
+
+    if (!member.isAdmin) {
+      res.send({
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
+      });
+
+      telegram.sendMessage(`❌The user cannot pay for &laquo;${workspace.name}&raquo; workspace because he is not an admin`, TelegramBotURLs.Money);
+
+      return;
+    }
+
+    const plan = await context.factories.plansFactory.findById(planId);
 
     if (!plan) {
       res.send({
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
+      telegram.sendMessage(`❌Plan was not found &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
+
       return;
     }
 
-    if (body.Amount != plan.monthlyCharge) {
+    if (body.Amount !== plan.monthlyCharge) {
       res.send({
         code: CheckCodes.WRONG_AMOUNT,
       });
+
+      telegram.sendMessage(`❌Amount does not equal to plan monthly charge &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
 
       return;
     }
@@ -86,26 +118,26 @@ export default class CloudPaymentsWebhooks {
     /**
      * Create business operation about creation of subscription
      */
-    try {
-      const businessOperation = await context.factories.businessOperationsFactory.create<PayloadOfWorkspacePlanPurchase>({
-        transactionId: body.TransactionId.toString(),
-        type: BusinessOperationType.WorkspacePlanPurchase,
-        status: BusinessOperationStatus.Pending,
-        payload: {
-          workspaceId: workspace._id,
-          amount: body.Amount,
-        },
-        dtCreated: body.DateTime,
-      });
-    } catch {
+    const businessOperation = await context.factories.businessOperationsFactory.create<PayloadOfWorkspacePlanPurchase>({
+      transactionId: body.TransactionId.toString(),
+      type: BusinessOperationType.WorkspacePlanPurchase,
+      status: BusinessOperationStatus.Pending,
+      payload: {
+        workspaceId: workspace._id,
+        amount: body.Amount,
+      },
+      dtCreated: body.DateTime,
+    });
+
+    if (!businessOperation) {
       res.send({
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
+      telegram.sendMessage(`❌Business operation wasn't created &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
+
       return;
     }
-
-    telegram.sendMessage(`✅ User has passed all checks and wants to pay for the &laquo;${workspace.name}&raquo; workspace with ${plan.name} plan for <b>$${body.Amount}</b>`);
 
     console.log(workspace);
 

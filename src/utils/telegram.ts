@@ -23,7 +23,11 @@ export async function sendMessage(message: string, chat = TelegramBotURLs.Base):
     return;
   }
 
-  await axios.post(botUrl, `message=${encodeURIComponent(message)}&parse_mode=HTML`);
+  try {
+    await axios.post(botUrl, `message=${encodeURIComponent(message)}&parse_mode=HTML`);
+  } catch (err) {
+    console.log('Couldn\'t send a message to Telegram', err);
+  }
 }
 
 module.exports = {
