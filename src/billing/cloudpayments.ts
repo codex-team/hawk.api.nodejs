@@ -47,15 +47,15 @@ export default class CloudPaymentsWebhooks {
   private async check(req: express.Request, res: express.Response): Promise<void> {
     const body: CheckRequest = req.body;
     const context = req.context;
-    
+
     if (!body.Data) {
       res.send({
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
       telegram.sendMessage(`❌There is no necessary data in the request`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('There is no necessary data in the request'), body);  
-      
+      HawkCatcher.send(new Error('There is no necessary data in the request'), body);
+
       return;
     }
 
@@ -68,7 +68,7 @@ export default class CloudPaymentsWebhooks {
       });
 
       telegram.sendMessage(`❌Workspace was not found &laquo;${workspaceId}&raquo;`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('Workspace was not found'), body);  
+      HawkCatcher.send(new Error('Workspace was not found'), body);
 
       return;
     }
@@ -77,22 +77,22 @@ export default class CloudPaymentsWebhooks {
 
     if (!member || WorkspaceModel.isPendingMember(member)) {
       res.send({
-        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
       telegram.sendMessage(`❌The user cannot pay for &laquo;${workspace.name}&raquo; workspace because he is not a member of it`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('The user is not a member of the workspace'), body);  
+      HawkCatcher.send(new Error('The user is not a member of the workspace'), body);
 
       return;
     }
 
     if (!member.isAdmin) {
       res.send({
-        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
       telegram.sendMessage(`❌The user cannot pay for &laquo;${workspace.name}&raquo; workspace because he is not an admin`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('The user is not an admin'), body);  
+      HawkCatcher.send(new Error('The user is not an admin'), body);
 
       return;
     }
@@ -103,9 +103,9 @@ export default class CloudPaymentsWebhooks {
       res.send({
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
-      
+
       telegram.sendMessage(`❌Plan was not found &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('Plan was not found'), body);  
+      HawkCatcher.send(new Error('Plan was not found'), body);
 
       return;
     }
@@ -116,7 +116,7 @@ export default class CloudPaymentsWebhooks {
       });
 
       telegram.sendMessage(`❌Amount does not equal to plan monthly charge &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('Amount does not equal to plan monthly charge'), body);  
+      HawkCatcher.send(new Error('Amount does not equal to plan monthly charge'), body);
 
       return;
     }
@@ -134,14 +134,14 @@ export default class CloudPaymentsWebhooks {
       },
       dtCreated: body.DateTime,
     });
-    
+
     if (!businessOperation) {
       res.send({
-        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
-      
+
       telegram.sendMessage(`❌Business operation wasn't created &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('Business operation wasn\'t created'), body);  
+      HawkCatcher.send(new Error('Business operation wasn\'t created'), body);
 
       return;
     }
