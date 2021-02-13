@@ -1,4 +1,5 @@
 const NodeEnvironment = require('jest-environment-node');
+const amqp = require('amqplib');
 const mongodb = require('mongodb');
 
 /**
@@ -16,6 +17,9 @@ class CustomEnvironment extends NodeEnvironment {
     await mongoClient.connect();
     this.global.mongoClient = mongoClient;
     await mongoClient.db('hawk').dropDatabase();
+
+    this.rabbitMqConnection = await amqp.connect('amqp://guest:guest@rabbitmq:5672/');
+    this.global.rabbitChannel = await this.rabbitMqConnection.createChannel();
   }
 
   /**
@@ -24,6 +28,8 @@ class CustomEnvironment extends NodeEnvironment {
    */
   async teardown() {
     await this.global.mongoClient.close();
+    await this.global.rabbitChannel.close();
+    await this.rabbitMqConnection.close();
     await super.teardown();
   }
 }

@@ -12,6 +12,7 @@ import {
   RecurrentResponse
 } from './types';
 import { BusinessOperationStatus } from 'hawk.types';
+import { publish } from '../rabbitmq';
 
 /**
  * Class for describing the logic of payment routes
@@ -81,6 +82,11 @@ export default class CloudPaymentsWebhooks {
       await workspace.resetBillingPeriod();
       await workspace.changePlan(tariffPlan._id);
     }
+
+    await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
+      type: 'check-single-workspace',
+      workspaceId: data.workspaceId,
+    }));
 
     res.send({
       code: PayCodes.SUCCESS,

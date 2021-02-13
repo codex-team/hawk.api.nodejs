@@ -88,6 +88,7 @@ describe('Pay webhook', () => {
 
   test('Should change business operation status to confirmed', async () => {
     const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
     const updatedBusinessOperation = await businessOperationsCollection.findOne({
       transactionId: transactionId.toString(),
     });
@@ -98,6 +99,7 @@ describe('Pay webhook', () => {
 
   test('Should reset events counter in workspace', async () => {
     const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
     const updatedWorkspace = await workspacesCollection.findOne({
       _id: workspace._id,
     });
@@ -108,6 +110,7 @@ describe('Pay webhook', () => {
 
   test('Should reset last charge date in workspace', async () => {
     const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
     const updatedWorkspace = await workspacesCollection.findOne({
       _id: workspace._id,
     });
@@ -116,8 +119,9 @@ describe('Pay webhook', () => {
     expect(updatedWorkspace?.lastChargeDate).not.toBe(workspace.lastChargeDate);
   });
 
-  test.only('Should change workspace plan', async () => {
+  test('Should change workspace plan', async () => {
     const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
     const updatedWorkspace = await workspacesCollection.findOne({
       _id: workspace._id,
     });
@@ -126,7 +130,21 @@ describe('Pay webhook', () => {
     expect(updatedWorkspace?.tariffPlanId.toString()).toBe(validPayRequestData.Data?.tariffPlanId?.toString());
   });
 
-  test.todo('Should send task to limiter worker to check workspace');
+  test.only('Should send task to limiter worker to check workspace', async () => {
+    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+    const message = await global.rabbitChannel.get('cron-tasks/limiter', {
+      noAck: true,
+    });
+    const expectedLimiterTask = {
+      type: 'check-single-workspace',
+      workspaceId: workspace._id.toString(),
+    };
+
+    expect(message).toBeTruthy();
+    expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
+    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+  });
 
   test.todo('Should add payment data to accounting system');
 });
