@@ -15,6 +15,7 @@ class CustomEnvironment extends NodeEnvironment {
 
     await mongoClient.connect();
     this.global.mongoClient = mongoClient;
+    await mongoClient.db('hawk').dropDatabase();
   }
 
   /**

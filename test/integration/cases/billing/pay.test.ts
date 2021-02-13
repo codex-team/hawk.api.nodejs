@@ -2,7 +2,7 @@ import { apiInstance } from '../../utils';
 import { PayCodes, PayRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
 import { Collection, ObjectId } from 'mongodb';
-import { BusinessOperationDBScheme, BusinessOperationStatus, BusinessOperationType, WorkspaceDBScheme } from 'hawk.types';
+import { BusinessOperationDBScheme, BusinessOperationStatus, BusinessOperationType, WorkspaceDBScheme, PlanDBScheme } from 'hawk.types';
 
 const transactionId = 123456;
 
@@ -14,6 +14,14 @@ const workspace = {
   lastChargeDate: new Date(2020, 10, 4),
   name: 'Test workspace',
   tariffPlanId: new ObjectId(),
+};
+
+const tariffPlan: PlanDBScheme = {
+  _id: new ObjectId(),
+  eventsLimit: 10000,
+  isDefault: true,
+  monthlyCharge: 100,
+  name: 'Test plan',
 };
 
 /**
@@ -35,18 +43,21 @@ const validPayRequestData: PayRequest = {
   TransactionId: transactionId,
   Data: {
     workspaceId: workspace._id.toString(),
+    tariffPlanId: tariffPlan._id.toString(),
   },
 };
 
 describe('Pay webhook', () => {
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
   let workspacesCollection: Collection<WorkspaceDBScheme>;
+  let tariffPlanCollection: Collection<PlanDBScheme>;
 
   beforeAll(async () => {
     const accountsDb = await global.mongoClient.db('hawk');
 
     businessOperationsCollection = accountsDb.collection('businessOperations');
     workspacesCollection = accountsDb.collection('workspaces');
+    tariffPlanCollection = accountsDb.collection('plans');
 
     /**
      * Add pending business operation to database (like after /billing/check route)
@@ -68,6 +79,11 @@ describe('Pay webhook', () => {
      * Add workspace for testing it
      */
     await workspacesCollection.insertOne(workspace);
+
+    /**
+     * Add tariff plan for testing
+     */
+    await tariffPlanCollection.insertOne(tariffPlan);
   });
 
   test('Should change business operation status to confirmed', async () => {
@@ -100,9 +116,17 @@ describe('Pay webhook', () => {
     expect(updatedWorkspace?.lastChargeDate).not.toBe(workspace.lastChargeDate);
   });
 
-  test.todo('Should send task to limiter worker to check workspace');
+  test.only('Should change workspace plan', async () => {
+    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+    const updatedWorkspace = await workspacesCollection.findOne({
+      _id: workspace._id,
+    });
 
-  test.todo('Should change workspace plan');
+    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    expect(updatedWorkspace?.tariffPlanId.toString()).toBe(validPayRequestData.Data?.tariffPlanId?.toString());
+  });
+
+  test.todo('Should send task to limiter worker to check workspace');
 
   test.todo('Should add payment data to accounting system');
 });

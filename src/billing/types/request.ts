@@ -278,11 +278,16 @@ export interface PayRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data: {
+  Data?: {
     /**
      * Workspace Identifier
      */
-    workspaceId: string;
+    workspaceId?: string;
+
+    /**
+     * Tariff plan id that user pay for
+     */
+    tariffPlanId?: string;
   };
 
   /**

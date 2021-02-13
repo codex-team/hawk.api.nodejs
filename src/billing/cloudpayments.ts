@@ -56,6 +56,15 @@ export default class CloudPaymentsWebhooks {
   private async pay(req: express.Request, res: express.Response): Promise<void> {
     const body: PayRequest = req.body;
     const context = req.context;
+    const data = body.Data;
+
+    if (!data || !data.workspaceId || !data.tariffPlanId) {
+      res.json({
+        code: PayCodes.SUCCESS,
+      } as PayResponse);
+
+      return;
+    }
 
     const businessOperation = await context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(body.TransactionId.toString());
 
@@ -65,10 +74,12 @@ export default class CloudPaymentsWebhooks {
 
     await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
 
-    const workspace = await context.factories.workspacesFactory.findById(body.Data.workspaceId);
+    const workspace = await context.factories.workspacesFactory.findById(data.workspaceId);
+    const tariffPlan = await context.factories.plansFactory.findById(data.tariffPlanId);
 
-    if (workspace) {
+    if (workspace && tariffPlan) {
       await workspace.resetBillingPeriod();
+      await workspace.changePlan(tariffPlan._id);
     }
 
     res.send({
