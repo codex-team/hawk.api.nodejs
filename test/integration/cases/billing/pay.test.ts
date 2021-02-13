@@ -130,7 +130,7 @@ describe('Pay webhook', () => {
     expect(updatedWorkspace?.tariffPlanId.toString()).toBe(validPayRequestData.Data?.tariffPlanId?.toString());
   });
 
-  test.only('Should send task to limiter worker to check workspace', async () => {
+  test('Should send task to limiter worker to check workspace', async () => {
     const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
 
     const message = await global.rabbitChannel.get('cron-tasks/limiter', {
