@@ -1,23 +1,16 @@
 import { apiInstance } from '../../utils';
 import { PayCodes, PayRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
-import mongodb, { Collection, ObjectId } from 'mongodb';
+import { Collection, ObjectId } from 'mongodb';
 import { BusinessOperationDBScheme, BusinessOperationStatus, BusinessOperationType } from 'hawk.types';
 
 const transactionId = 123456;
 
 describe('Pay webhook', () => {
-  const mongoClient = new mongodb.MongoClient('mongodb://mongodb:27017', { useUnifiedTopology: true });
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
 
   beforeAll(async () => {
-    /**
-     * Initiate MongoDB connection and get necessary collections
-     * @todo move to global setup config
-     */
-    await mongoClient.connect();
-
-    const accountsDb = await mongoClient.db('hawk');
+    const accountsDb = await global.mongoClient.db('hawk');
 
     businessOperationsCollection = await accountsDb.collection<BusinessOperationDBScheme>('businessOperations');
 
@@ -65,9 +58,5 @@ describe('Pay webhook', () => {
 
     expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Confirmed);
-  });
-
-  afterAll(async () => {
-    await mongoClient.close();
   });
 });
