@@ -59,4 +59,22 @@ describe('Pay webhook', () => {
     expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Confirmed);
   });
+
+  test.only('Should reset events counter in workspace', () => {
+
+  });
+
+  test.skip('Should reset events counter in workspace', () => {
+
+  });
+
+  test.skip('Should send task to limiter worker to check workspace', () => {});
+
+  test.skip('Should change workspace plan', () => {
+
+  });
+
+  test.skip('Should add payment data to accounting system', () => {
+
+  });
 });
