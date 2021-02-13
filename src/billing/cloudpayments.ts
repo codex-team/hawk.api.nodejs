@@ -65,6 +65,12 @@ export default class CloudPaymentsWebhooks {
 
     await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
 
+    const workspace = await context.factories.workspacesFactory.findById(body.Data.workspaceId);
+
+    if (workspace) {
+      await workspace.resetBillingPeriod();
+    }
+
     res.send({
       code: PayCodes.SUCCESS,
     } as PayResponse);
