@@ -146,8 +146,6 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    console.log(workspace);
-
     res.send({
       code: CheckCodes.SUCCESS,
     } as CheckResponse);
