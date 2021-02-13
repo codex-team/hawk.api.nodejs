@@ -2,81 +2,7 @@ import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import { OptionalId } from '../mongo';
 import UserModel from './user';
-
-/**
- * Workspace representation in DataBase
- */
-export interface WorkspaceDBScheme {
-  /**
-   * Workspace's id
-   */
-  _id: ObjectId;
-
-  /**
-   * Workspace's name
-   */
-  name: string;
-
-  /**
-   * Workspace account uuid in accounting microservice
-   */
-  accountId: string;
-
-  /**
-   * Workspace's description
-   */
-  description?: string;
-
-  /**
-   * Workspace's image URL
-   */
-  image?: string;
-
-  /**
-   * Id of the Workspace's plan
-   */
-  tariffPlanId: ObjectId;
-}
-
-/**
- * Represents confirmed member info in DB
- */
-interface ConfirmedMemberDBScheme {
-  /**
-   * Document id
-   */
-  _id: ObjectId;
-
-  /**
-   * Id of the member of workspace
-   */
-  userId: ObjectId;
-
-  /**
-   * Is user admin in workspace
-   */
-  isAdmin?: boolean;
-}
-
-/**
- * Represents pending member info in DB
- */
-interface PendingMemberDBScheme {
-  /**
-   * Document id
-   */
-  _id: ObjectId;
-
-  /**
-   * User email for invitation
-   */
-  userEmail: string;
-}
-
-/**
- * Represents full structure of team collection documents
- */
-type MemberDBScheme = ConfirmedMemberDBScheme | PendingMemberDBScheme;
+import { ConfirmedMemberDBScheme, MemberDBScheme, PendingMemberDBScheme, WorkspaceDBScheme } from 'hawk.types';
 
 /**
  * Workspace model
@@ -111,6 +37,33 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Id of the Workspace's plan
    */
   public tariffPlanId!: ObjectId;
+
+  /**
+   * Workspace balance
+   */
+  public balance!: number;
+
+  /**
+   * Total number of errors since the last charge date
+   */
+  public billingPeriodEventsCount!: number;
+
+  /**
+   * Is workspace blocked for catching new events
+   */
+  public isBlocked!: boolean;
+
+  /**
+   * Date when workspace was charged last time
+   */
+
+  public lastChargeDate!: Date;
+
+  /**
+   * ID of subscription if it subscribed
+   * Returns from CloudPayments
+   */
+  public subscriptionId!: string;
 
   /**
    * Model's collection
@@ -292,7 +245,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    *
    * @param memberId - id of the member to get info
    */
-  public getMemberInfo(memberId: string): Promise<MemberDBScheme | null> {
+  public async getMemberInfo(memberId: string): Promise<MemberDBScheme | null> {
     return this.teamCollection.findOne({
       userId: new ObjectId(memberId),
     });
@@ -315,9 +268,26 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   }
 
   /**
+   * Starts new billing period (30 days)
+   */
+  public async resetBillingPeriod(): Promise<void> {
+    await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
+      {
+        $set: {
+          billingPeriodEventsCount: 0,
+          lastChargeDate: new Date(),
+        },
+      }
+    );
+  }
+
+  /**
    * Push old plan to plan history. So that you can trace the history of changing plans
    *
-   * @param oldPlanId - id of old plan
+   * @param tariffPlanId - id of old plan
    * @param dtChange - date of plan change
    * @param userId - id of user that changed the plan
    * @returns whether the document was successfully updated

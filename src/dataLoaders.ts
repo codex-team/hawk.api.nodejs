@@ -1,6 +1,6 @@
 import DataLoader from 'dataloader';
 import { Db, ObjectId } from 'mongodb';
-import { WorkspaceDBScheme } from './models/workspace';
+import { WorkspaceDBScheme } from 'hawk.types';
 import { UserDBScheme } from './models/user';
 import { ProjectDBScheme } from './models/project';
 import { PlanDBScheme } from './models/plan';
