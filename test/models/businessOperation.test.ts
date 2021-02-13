@@ -3,6 +3,7 @@ import BusinessOperationModel from '../../src/models/businessOperation';
 import { ObjectId } from 'mongodb';
 import * as mongo from '../../src/mongo';
 import {
+  BusinessOperationDBScheme,
   BusinessOperationStatus,
   BusinessOperationType,
   PayloadOfDepositByUser,
@@ -36,12 +37,14 @@ describe('Business operation model', () => {
   });
 
   it('should create instance for workspace plan purchase by payment worker', () => {
-    const payloadWorkspacePlanPurchase = {
+    const payloadWorkspacePlanPurchase: PayloadOfWorkspacePlanPurchase = {
       workspaceId: new ObjectId('5edd36fbb596d4759beb89f6'),
       amount: 100,
+      userId: new ObjectId(),
+      tariffPlanId: new ObjectId(),
     };
 
-    const data = {
+    const data: BusinessOperationDBScheme<PayloadOfWorkspacePlanPurchase> = {
       transactionId: 'Transaction ID',
       type: BusinessOperationType.WorkspacePlanPurchase,
       status: BusinessOperationStatus.Confirmed,
