@@ -59,6 +59,10 @@ export default class CloudPaymentsWebhooks {
     const context = req.context;
     const data = body.Data;
 
+    /**
+     * @todo full data validation and error handling
+     */
+
     if (!data || !data.workspaceId || !data.tariffPlanId) {
       res.json({
         code: PayCodes.SUCCESS,

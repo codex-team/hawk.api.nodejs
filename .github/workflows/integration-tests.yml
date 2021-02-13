@@ -13,4 +13,5 @@ jobs:
       - name: Run tests
         run: |
           cd ./test/integration
+          yarn load-rabbitmq-definitions
           docker-compose up --exit-code-from tests tests
