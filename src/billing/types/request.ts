@@ -278,7 +278,12 @@ export interface PayRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: object;
+  Data: {
+    /**
+     * Workspace Identifier
+     */
+    workspaceId: string;
+  };
 
   /**
    * Card token for repeated payments without entering details
