@@ -53,8 +53,8 @@ export default class CloudPaymentsWebhooks {
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
-      telegram.sendMessage(`❌There is no necessary data in the request`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('There is no necessary data in the request'), body);
+      telegram.sendMessage(`❌[Billing / Check] There is no necessary data in the request`, TelegramBotURLs.Money);
+      HawkCatcher.send(new Error('[Billing / Check] There is no necessary data in the request'), body);
 
       return;
     }
@@ -67,8 +67,8 @@ export default class CloudPaymentsWebhooks {
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
-      telegram.sendMessage(`❌Workspace was not found &laquo;${workspaceId}&raquo;`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('Workspace was not found'), body);
+      telegram.sendMessage(`❌[Billing / Check] Workspace was not found &laquo;${workspaceId}&raquo;`, TelegramBotURLs.Money);
+      HawkCatcher.send(new Error('[Billing / Check] Workspace was not found'), body);
 
       return;
     }
@@ -80,8 +80,8 @@ export default class CloudPaymentsWebhooks {
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
-      telegram.sendMessage(`❌The user cannot pay for &laquo;${workspace.name}&raquo; workspace because he is not a member of it`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('The user is not a member of the workspace'), body);
+      telegram.sendMessage(`❌[Billing / Check] The user cannot pay for &laquo;${workspace.name}&raquo; workspace because he is not a member of it`, TelegramBotURLs.Money);
+      HawkCatcher.send(new Error('[Billing / Check] The user is not a member of the workspace'), body);
 
       return;
     }
@@ -91,8 +91,8 @@ export default class CloudPaymentsWebhooks {
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
-      telegram.sendMessage(`❌The user cannot pay for &laquo;${workspace.name}&raquo; workspace because he is not an admin`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('The user is not an admin'), body);
+      telegram.sendMessage(`❌[Billing / Check] The user cannot pay for &laquo;${workspace.name}&raquo; workspace because he is not an admin`, TelegramBotURLs.Money);
+      HawkCatcher.send(new Error('[Billing / Check] The user is not an admin'), body);
 
       return;
     }
@@ -104,8 +104,8 @@ export default class CloudPaymentsWebhooks {
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
-      telegram.sendMessage(`❌Plan was not found &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('Plan was not found'), body);
+      telegram.sendMessage(`❌[Billing / Check] Plan was not found &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
+      HawkCatcher.send(new Error('[Billing / Check] Plan was not found'), body);
 
       return;
     }
@@ -115,8 +115,8 @@ export default class CloudPaymentsWebhooks {
         code: CheckCodes.WRONG_AMOUNT,
       });
 
-      telegram.sendMessage(`❌Amount does not equal to plan monthly charge &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('Amount does not equal to plan monthly charge'), body);
+      telegram.sendMessage(`❌[Billing / Check] Amount does not equal to plan monthly charge &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
+      HawkCatcher.send(new Error('[Billing / Check] Amount does not equal to plan monthly charge'), body);
 
       return;
     }
@@ -140,11 +140,14 @@ export default class CloudPaymentsWebhooks {
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
-      telegram.sendMessage(`❌Business operation wasn't created &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('Business operation wasn\'t created'), body);
+      telegram.sendMessage(`❌[Billing / Check] Business operation wasn't created &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
+      HawkCatcher.send(new Error('[Billing / Check] Business operation wasn\'t created'), body);
 
       return;
     }
+
+    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
+    HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body);
 
     res.send({
       code: CheckCodes.SUCCESS,
