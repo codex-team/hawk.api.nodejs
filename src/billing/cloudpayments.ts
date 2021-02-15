@@ -37,12 +37,17 @@ export default class CloudPaymentsWebhooks {
      */
     const tariff = 'Basic';
     const invoiceId = `CDX 21-02-04 ${tariff}`;
+    const plan = {
+      id: '',
+      name: '',
+    };
 
     res.send({
       workspaceId: workspaceId,
       tariffId: tariffId,
       invoiceId: invoiceId,
       amount: 299,
+      plan: plan,
       currency: 'USD',
       checksum: 'some hash',
     });
