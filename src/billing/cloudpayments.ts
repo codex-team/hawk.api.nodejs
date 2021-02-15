@@ -60,7 +60,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    const { workspaceId, userId, planId } = body.Data;
+    const { workspaceId, userId, tariffPlanId } = body.Data;
     const workspace = await context.factories.workspacesFactory.findById(workspaceId);
 
     if (!workspace) {
@@ -98,7 +98,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    const plan = await context.factories.plansFactory.findById(planId);
+    const plan = await context.factories.plansFactory.findById(tariffPlanId);
 
     if (!plan) {
       res.send({
@@ -132,6 +132,8 @@ export default class CloudPaymentsWebhooks {
       payload: {
         workspaceId: workspace._id,
         amount: body.Amount,
+        userId: member._id,
+        tariffPlanId: plan._id,
       },
       dtCreated: body.DateTime,
     });

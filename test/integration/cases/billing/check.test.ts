@@ -102,7 +102,7 @@ describe('Check webhook', () => {
       Data: {
         workspaceId: '5fe383b0126d28907780641b',
         userId: admin._id.toString(),
-        planId: plan._id.toString(),
+        tariffPlanId: plan._id.toString(),
       },
     };
 
@@ -117,7 +117,7 @@ describe('Check webhook', () => {
       Data: {
         workspaceId: workspace._id.toString(),
         userId: user._id.toString(),
-        planId: plan._id.toString(),
+        tariffPlanId: plan._id.toString(),
       },
     };
 
@@ -132,7 +132,7 @@ describe('Check webhook', () => {
       Data: {
         workspaceId: workspace._id.toString(),
         userId: member._id.toString(),
-        planId: plan._id.toString(),
+        tariffPlanId: plan._id.toString(),
       },
     };
 
@@ -147,7 +147,7 @@ describe('Check webhook', () => {
       Data: {
         workspaceId: workspace._id.toString(),
         userId: admin._id.toString(),
-        planId: '5fe383b0126d28007780641b',
+        tariffPlanId: '5fe383b0126d28007780641b',
       },
     };
 
@@ -163,7 +163,7 @@ describe('Check webhook', () => {
       Data: {
         workspaceId: workspace._id.toString(),
         userId: admin._id.toString(),
-        planId: plan._id.toString(),
+        tariffPlanId: plan._id.toString(),
       },
     };
 
@@ -178,7 +178,7 @@ describe('Check webhook', () => {
       Data: {
         workspaceId: workspace._id.toString(),
         userId: admin._id.toString(),
-        planId: plan._id.toString(),
+        tariffPlanId: plan._id.toString(),
       },
     };
 

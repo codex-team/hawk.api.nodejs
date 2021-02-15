@@ -149,7 +149,7 @@ export interface CheckRequest {
     /**
      * Workspace current plan id or plan id to change
      */
-    planId: string;
+    tariffPlanId: string;
   };
 }
 
