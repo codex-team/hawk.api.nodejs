@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "load-rabbitmq-definitions": "curl https://raw.githubusercontent.com/codex-team/hawk.registry/master/config/rabbit.definitions.json > rabbit.definitions.json"
+  },
   "dependencies": {
     "@types/jest": "^26.0.20",
     "axios": "^0.21.1",

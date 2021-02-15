@@ -297,7 +297,12 @@ export interface PayRequest {
     /**
      * Workspace Identifier
      */
-    workspaceId: string;
+    workspaceId?: string;
+
+    /**
+     * Tariff plan id that user pay for
+     */
+    tariffPlanId?: string;
   };
 
   /**
