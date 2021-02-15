@@ -34,12 +34,8 @@ describe('Check webhook', () => {
   let plan: PlanDBScheme;
 
   beforeAll(async () => {
-    /**
-     * Initiate MongoDB connection and get necessary collections
-     */
-    await mongoClient.connect();
+    const accountsDb = await global.mongoClient.db('hawk');
 
-    const accountsDb = await mongoClient.db('hawk');
     const workspaces = await accountsDb.collection<WorkspaceDBScheme>('workspaces');
     const users = await accountsDb.collection<UserDBScheme>('users');
     const plans = await accountsDb.collection<PlanDBScheme>('plans');
@@ -83,9 +79,9 @@ describe('Check webhook', () => {
     });
   });
 
-  test('Could not accept request without necessary data', async () => {
+  test('Should not accept request without necessary data', async () => {
     /**
-     * Data to send to `check` webhook
+     * Request without Data field
      */
     const data: CheckRequest = {
       ...mainRequest,
@@ -96,7 +92,10 @@ describe('Check webhook', () => {
     expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
   });
 
-  test('Could not accept request with a non-existent workspace id', async () => {
+  test('Should not accept request with a non-existent workspace id', async () => {
+    /**
+     * Request with a non-existent workspace id
+     */
     const data: CheckRequest = {
       ...mainRequest,
       Data: {
@@ -111,7 +110,10 @@ describe('Check webhook', () => {
     expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
   });
 
-  test('Could not accept request if user is not a memeber of the workspace', async () => {
+  test('Should not accept request if user is not a memeber of the workspace', async () => {
+    /**
+     * Requst with a user who is not a member of the workspace
+     */
     const data: CheckRequest = {
       ...mainRequest,
       Data: {
@@ -126,7 +128,10 @@ describe('Check webhook', () => {
     expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
   });
 
-  test('Could not accept request if user is not an admin', async () => {
+  test('Should not accept request if user is not an admin', async () => {
+    /**
+     * Requst with a user who is not an admin of the workspace
+     */
     const data: CheckRequest = {
       ...mainRequest,
       Data: {
@@ -141,7 +146,10 @@ describe('Check webhook', () => {
     expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
   });
 
-  test('Could not accept request with non-existent plan', async () => {
+  test('Should not accept request with non-existent plan', async () => {
+    /**
+     * Requst with a non-existent plan id
+     */
     const data: CheckRequest = {
       ...mainRequest,
       Data: {
@@ -156,7 +164,10 @@ describe('Check webhook', () => {
     expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
   });
 
-  test('Amount in request doesn\'t match with plan monthly charge', async () => {
+  test('Should not accept request because amount in request doesn\'t match with plan monthly charge', async () => {
+    /**
+     * Request with amount that does not match the cost of the plan
+     */
     const data: CheckRequest = {
       ...mainRequest,
       Amount: 20.45,
@@ -173,6 +184,9 @@ describe('Check webhook', () => {
   });
 
   test('Should create business operation with pending status', async () => {
+    /**
+     * Correct data
+     */
     const data: CheckRequest = {
       ...mainRequest,
       Data: {

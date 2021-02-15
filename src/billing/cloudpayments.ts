@@ -125,26 +125,29 @@ export default class CloudPaymentsWebhooks {
     /**
      * Create business operation about creation of subscription
      */
-    const businessOperation = await context.factories.businessOperationsFactory.create<PayloadOfWorkspacePlanPurchase>({
-      transactionId: body.TransactionId.toString(),
-      type: BusinessOperationType.WorkspacePlanPurchase,
-      status: BusinessOperationStatus.Pending,
-      payload: {
-        workspaceId: workspace._id,
-        amount: body.Amount,
-        userId: member._id,
-        tariffPlanId: plan._id,
-      },
-      dtCreated: body.DateTime,
-    });
-
-    if (!businessOperation) {
+    try {
+      await context.factories.businessOperationsFactory.create<PayloadOfWorkspacePlanPurchase>({
+        transactionId: body.TransactionId.toString(),
+        type: BusinessOperationType.WorkspacePlanPurchase,
+        status: BusinessOperationStatus.Pending,
+        payload: {
+          workspaceId: workspace._id,
+          amount: body.Amount,
+          userId: member._id,
+          tariffPlanId: plan._id,
+        },
+        dtCreated: body.DateTime,
+      });
+    } catch (err) {
       res.send({
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
 
       telegram.sendMessage(`❌[Billing / Check] Business operation wasn't created &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
-      HawkCatcher.send(new Error('[Billing / Check] Business operation wasn\'t created'), body);
+      HawkCatcher.send(new Error('[Billing / Check] Business operation wasn\'t created'), {
+        body,
+        err,
+      });
 
       return;
     }
