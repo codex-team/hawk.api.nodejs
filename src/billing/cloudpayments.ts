@@ -12,7 +12,7 @@ import {
   RecurrentCodes,
   RecurrentResponse
 } from './types';
-import { BusinessOperationStatus, PayloadOfWorkspacePlanPurchase, BusinessOperationType } from 'hawk.types';
+import { BusinessOperationStatus, PayloadOfWorkspacePlanPurchase, BusinessOperationType, PendingMemberDBScheme, ConfirmedMemberDBScheme, PlanDBScheme } from 'hawk.types';
 import WorkspaceModel from '../models/workspace';
 import { TelegramBotURLs } from '../types/bgTasks';
 import HawkCatcher from '@hawk.so/nodejs';
@@ -47,9 +47,14 @@ export default class CloudPaymentsWebhooks {
    */
   private async check(req: express.Request, res: express.Response): Promise<void> {
     const body: CheckRequest = req.body;
+    const data = body.Data;
     const context = req.context;
 
-    if (!body.Data) {
+    let workspace: WorkspaceModel | null;
+    let member: PendingMemberDBScheme | ConfirmedMemberDBScheme | null;
+    let plan: PlanDBScheme | null;
+
+    if (!data || !data.workspaceId || !data.tariffPlanId || !data.userId) {
       res.send({
         code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
       });
@@ -60,8 +65,23 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    const { workspaceId, userId, tariffPlanId } = body.Data;
-    const workspace = await context.factories.workspacesFactory.findById(workspaceId);
+    const { workspaceId, userId, tariffPlanId } = data;
+
+    try {
+      workspace = await context.factories.workspacesFactory.findById(workspaceId);
+    } catch (err) {
+      res.send({
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
+      });
+
+      telegram.sendMessage(`❌[Billing / Check] Error getting workspace &laquo;${workspaceId}&raquo;`, TelegramBotURLs.Money);
+      HawkCatcher.send(new Error('[Billing / Check] Error getting workspace'), {
+        body,
+        err,
+      });
+
+      return;
+    }
 
     if (!workspace) {
       res.send({
@@ -74,7 +94,21 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    const member = await workspace.getMemberInfo(userId);
+    try {
+      member = await workspace.getMemberInfo(userId);
+    } catch (err) {
+      res.send({
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
+      });
+
+      telegram.sendMessage(`❌[Billing / Check] Error getting user &laquo;${workspaceId}&raquo;`, TelegramBotURLs.Money);
+      HawkCatcher.send(new Error('[Billing / Check] Error getting user'), {
+        body,
+        err,
+      });
+
+      return;
+    }
 
     if (!member || WorkspaceModel.isPendingMember(member)) {
       res.send({
@@ -98,7 +132,21 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    const plan = await context.factories.plansFactory.findById(tariffPlanId);
+    try {
+      plan = await context.factories.plansFactory.findById(tariffPlanId);
+    } catch (err) {
+      res.send({
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
+      });
+
+      telegram.sendMessage(`❌[Billing / Check] Error getting plan &laquo;${workspaceId}&raquo;`, TelegramBotURLs.Money);
+      HawkCatcher.send(new Error('[Billing / Check] Error getting plan'), {
+        body,
+        err,
+      });
+
+      return;
+    }
 
     if (!plan) {
       res.send({

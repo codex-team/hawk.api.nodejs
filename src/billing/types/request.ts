@@ -1,6 +1,26 @@
 import { Currency, CardType, OperationType, OperationStatus, SubscriptionStatus, ReasonCode, Interval } from './enums';
 
 /**
+ * Data received from the frontend
+ */
+export interface PlanProlongationPayload {
+  /**
+   * Workspace Identifier
+   */
+  workspaceId?: string;
+
+  /**
+   * ID of the user making the payment
+   */
+  userId?: string;
+
+  /**
+   * Workspace current plan id or plan id to change
+   */
+  tariffPlanId?: string;
+}
+
+/**
  * Check request body
  * https://developers.cloudpayments.ru/#check
  */
@@ -135,22 +155,7 @@ export interface CheckRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: {
-    /**
-     * Workspace Identifier
-     */
-    workspaceId: string;
-
-    /**
-     * ID of the user making the payment
-     */
-    userId: string;
-
-    /**
-     * Workspace current plan id or plan id to change
-     */
-    tariffPlanId: string;
-  };
+  Data?: PlanProlongationPayload;
 }
 
 /**
@@ -293,17 +298,7 @@ export interface PayRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: {
-    /**
-     * Workspace Identifier
-     */
-    workspaceId?: string;
-
-    /**
-     * Tariff plan id that user pay for
-     */
-    tariffPlanId?: string;
-  };
+  Data?: PlanProlongationPayload;
 
   /**
    * Card token for repeated payments without entering details
@@ -470,12 +465,7 @@ export interface FailRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: {
-    /**
-     * Workspace Identifier
-     */
-    workspaceId: string;
-  };
+  Data?: PlanProlongationPayload;
 
   /**
    * Card token for repeated payments without entering details
