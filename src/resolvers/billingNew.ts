@@ -1,16 +1,17 @@
-import BusinessOperationModel, {
-  BusinessOperationPayloadType,
-  PayloadOfDepositByUser,
-  PayloadOfWorkspacePlanPurchase
-} from '../models/businessOperation';
+import BusinessOperationModel from '../models/businessOperation';
 import { ResolverContextWithUser, ResolverContextBase } from '../types/graphql';
 import WorkspaceModel from '../models/workspace';
 import UserModel from '../models/user';
-import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import HawkCatcher from '@hawk.so/nodejs';
 import { ObjectID } from 'mongodb';
 import { ApolloError, UserInputError } from 'apollo-server-express';
 import { PENNY_MULTIPLIER } from 'codex-accounting-sdk';
+import {
+  BusinessOperationPayloadType, BusinessOperationStatus,
+  BusinessOperationType,
+  PayloadOfDepositByUser,
+  PayloadOfWorkspacePlanPurchase
+} from 'hawk.types';
 
 /**
  * Session that is returned when you try to deposit the balance

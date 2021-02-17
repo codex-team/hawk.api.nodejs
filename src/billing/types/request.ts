@@ -263,7 +263,7 @@ export interface PayRequest {
   /**
    * Name of the card issuing bank
    */
-  Issuer: string;
+  Issuer?: string;
 
   /**
    * ISO3166-1 two-letter country code of the card issuer
@@ -278,7 +278,17 @@ export interface PayRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: object;
+  Data?: {
+    /**
+     * Workspace Identifier
+     */
+    workspaceId?: string;
+
+    /**
+     * Tariff plan id that user pay for
+     */
+    tariffPlanId?: string;
+  };
 
   /**
    * Card token for repeated payments without entering details

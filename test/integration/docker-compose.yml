@@ -13,14 +13,9 @@ services:
       - ./api.env:/usr/src/app/.env
     depends_on:
       - mongodb
+      - rabbitmq
     stdin_open: true
     tty: true
-    healthcheck:
-      test: curl http://api:4000/.well-known/apollo/server-health/
-      interval: 1m30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
 
   mongodb:
     image: mongo
@@ -29,14 +24,25 @@ services:
 
   tests:
     build:
-      dockerfile: Dockerfile
-      context: .
+      dockerfile: test/integration/Dockerfile
+      context: ../../
     depends_on:
       - api
     command: dockerize -wait http://api:4000/.well-known/apollo/server-health -timeout 30s yarn jest
     volumes:
-      - ./:/usr/src/app
+      - ../../:/usr/src/app
       - /usr/src/app/node_modules
+      - /usr/src/app/test/integration/node_modules
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - 15672:15672
+      - 5672:5672
+    volumes:
+      - ./rabbit.definitions.json:/tmp/rabbit.definitions.json:ro
+    environment:
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbitmq_management load_definitions "/tmp/rabbit.definitions.json"
 
 
 volumes:
