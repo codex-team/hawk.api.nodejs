@@ -26,12 +26,43 @@ export default class CloudPaymentsWebhooks {
   public getRouter(): express.Router {
     const router = express.Router();
 
+    router.get('/compose-payment', this.composePayment);
     router.all('/check', this.check);
     router.all('/pay', this.pay);
     router.all('/fail', this.fail);
     router.all('/recurrent', this.recurrent);
 
     return router;
+  }
+
+  /**
+   * Prepares payment data before charge
+   *
+   * @param req — Express request object
+   * @param res - Express response object
+   */
+  private async composePayment(req: express.Request, res: express.Response): Promise<void> {
+    const { workspaceId, tariffId } = req.query;
+
+    /**
+     * @todo fetch workspace data: name, tariff and so on. I need services to work with storages
+     */
+    const tariff = 'Basic';
+    const invoiceId = `CDX 21-02-04 ${tariff}`;
+    const plan = {
+      id: '',
+      name: '',
+    };
+
+    res.send({
+      workspaceId: workspaceId,
+      tariffId: tariffId,
+      invoiceId: invoiceId,
+      amount: 299,
+      plan: plan,
+      currency: 'USD',
+      checksum: 'some hash',
+    });
   }
 
   /**
