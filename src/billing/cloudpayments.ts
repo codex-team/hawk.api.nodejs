@@ -30,7 +30,7 @@ export default class CloudPaymentsWebhooks {
   public getRouter(): express.Router {
     const router = express.Router();
 
-    router.all('/check', this.check);
+    router.all('/check', this.check.bind(this));
     router.all('/pay', this.pay);
     router.all('/fail', this.fail);
     router.all('/recurrent', this.recurrent);
@@ -242,7 +242,7 @@ export default class CloudPaymentsWebhooks {
    * @param errorText - error description
    * @param backtrace - request data and error data
    */
-  private async sendError(res: express.Response, errorCode: CheckCodes | PayCodes | FailCodes | RecurrentCodes, errorText: string, backtrace: {[key: string]: any}): Promise<void> {
+  private sendError(res: express.Response, errorCode: CheckCodes | PayCodes | FailCodes | RecurrentCodes, errorText: string, backtrace: {[key: string]: any}): void {
     res.json({
       code: errorCode,
     });
