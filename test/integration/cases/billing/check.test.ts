@@ -9,7 +9,7 @@ const transactionId = 880555;
 /**
  * Basic check request
  */
-const mainRequest = {
+const mainRequest: CheckRequest = {
   Amount: 20,
   CardExpDate: '06/25',
   CardFirstSix: '578946',
