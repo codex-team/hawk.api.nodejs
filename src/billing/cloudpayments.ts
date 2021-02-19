@@ -81,9 +81,9 @@ export default class CloudPaymentsWebhooks {
     const data = body.Data;
     const context = req.context;
 
-    let workspace: WorkspaceModel | null;
-    let member: PendingMemberDBScheme | ConfirmedMemberDBScheme | null;
-    let plan: PlanDBScheme | null;
+    let workspace: WorkspaceModel;
+    let user: ConfirmedMemberDBScheme;
+    let plan: PlanDBScheme;
 
     if (!data || !data.workspaceId || !data.tariffPlanId || !data.userId) {
       this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the request', body);
@@ -94,58 +94,11 @@ export default class CloudPaymentsWebhooks {
     const { workspaceId, userId, tariffPlanId } = data;
 
     try {
-      workspace = await req.context.factories.workspacesFactory.findById(workspaceId);
+      workspace = await this.getWorkspace(req, workspaceId);
+      user = await this.getUser(userId, workspace);
+      plan = await this.getPlan(req, tariffPlanId);
     } catch (err) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Error getting workspace`, {
-        body,
-        err,
-      });
-
-      return;
-    }
-
-    if (!workspace) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Workspace was not found`, req.body);
-
-      return;
-    }
-
-    try {
-      member = await workspace.getMemberInfo(userId);
-    } catch (err) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Error getting user`, {
-        body,
-        err,
-      });
-
-      return;
-    }
-
-    if (!member || WorkspaceModel.isPendingMember(member)) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] User cannot pay for current workspace because he is not a member of it`, body);
-
-      return;
-    }
-
-    if (!member.isAdmin) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] User cannot pay for current workspace because he is not an admin`, body);
-
-      return;
-    }
-
-    try {
-      plan = await context.factories.plansFactory.findById(tariffPlanId);
-    } catch (err) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Error getting plan`, {
-        body,
-        err,
-      });
-
-      return;
-    }
-
-    if (!plan) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Plan was not found`, body);
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] ${err.toString()}`, body);
 
       return;
     }
@@ -167,16 +120,13 @@ export default class CloudPaymentsWebhooks {
         payload: {
           workspaceId: workspace._id,
           amount: body.Amount,
-          userId: member._id,
+          userId: user._id,
           tariffPlanId: plan._id,
         },
         dtCreated: body.DateTime,
       });
     } catch (err) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Business operation wasn't created`, {
-        body,
-        err,
-      });
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Business operation wasn't created`, body);
 
       return;
     }
@@ -266,6 +216,62 @@ export default class CloudPaymentsWebhooks {
   }
 
   /**
+   * Get workspace by workspace id
+   *
+   * @param req - express request
+   * @param workspaceId - id of workspace
+   */
+  private async getWorkspace(req: express.Request, workspaceId: string): Promise<WorkspaceModel> {
+    const workspace = await req.context.factories.workspacesFactory.findById(workspaceId);
+
+    if (!workspace) {
+      throw new Error('Workspace not found');
+    }
+
+    return workspace;
+  }
+
+  /**
+   * Get user info
+   *
+   * @param userId - id of current user
+   * @param workspace - workspace data
+   */
+  private async getUser(userId: string, workspace: WorkspaceModel): Promise<ConfirmedMemberDBScheme> {
+    const user = await workspace.getMemberInfo(userId);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (!user || WorkspaceModel.isPendingMember(user)) {
+      throw new Error('User cannot pay for current workspace because he is not a member of it');
+    }
+
+    if (!user.isAdmin) {
+      throw new Error('User cannot pay for current workspace because he is not an admin');
+    }
+
+    return user;
+  }
+
+  /**
+   * Get workspace plan
+   *
+   * @param req - express request
+   * @param tariffPlanId - plan id
+   */
+  private async getPlan(req: express.Request, tariffPlanId: string): Promise<PlanDBScheme> {
+    const plan = await req.context.factories.plansFactory.findById(tariffPlanId);
+
+    if (!plan) {
+      throw new Error('Plan not found');
+    }
+
+    return plan;
+  }
+
+  /**
    * Send an error to telegram, Hawk and send an express response with the error code
    *
    * @param res - Express response
@@ -273,7 +279,7 @@ export default class CloudPaymentsWebhooks {
    * @param errorText - error description
    * @param backtrace - request data and error data
    */
-  private sendError(res: express.Response, errorCode: CheckCodes | PayCodes | FailCodes | RecurrentCodes, errorText: string, backtrace: {[key: string]: any}): void {
+  private sendError(res: express.Response, errorCode: CheckCodes | PayCodes | FailCodes | RecurrentCodes, errorText: string, backtrace: { [key: string]: any }): void {
     res.json({
       code: errorCode,
     });
