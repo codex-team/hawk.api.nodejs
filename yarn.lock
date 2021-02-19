@@ -1064,7 +1064,7 @@
   dependencies:
     "@types/node" "*"
 
-"@types/mongodb@^3.3.13", "@types/mongodb@^3.5.34":
+"@types/mongodb@^3.3.13":
   version "3.6.7"
   resolved "https://registry.yarnpkg.com/@types/mongodb/-/mongodb-3.6.7.tgz#b15300254083bc4c6b09036ccaaa75d2f9c6e35c"
   integrity sha512-47P64kbkXarlleSMzSrRG04uzY+Dr3xAilOiqRIsqj/sZrmq6cUMx8njydY/iWMqi8IdE9ojFQl/X3ou9EsAlQ==
@@ -1073,9 +1073,9 @@
     "@types/node" "*"
 
 "@types/mongodb@^3.5.34":
-  version "3.6.7"
-  resolved "https://registry.yarnpkg.com/@types/mongodb/-/mongodb-3.6.7.tgz#b15300254083bc4c6b09036ccaaa75d2f9c6e35c"
-  integrity sha512-47P64kbkXarlleSMzSrRG04uzY+Dr3xAilOiqRIsqj/sZrmq6cUMx8njydY/iWMqi8IdE9ojFQl/X3ou9EsAlQ==
+  version "3.6.8"
+  resolved "https://registry.yarnpkg.com/@types/mongodb/-/mongodb-3.6.8.tgz#f80f0a3022c44d8db659a936434403ca3f4661df"
+  integrity sha512-8qNbL5/GFrljXc/QijcuQcUMYZ1iWNcqnJ6tneROwbfU0LsAjQ9bmq3aHi5lWXM4cyBPd2F/n9INAk/pZZttHw==
   dependencies:
     "@types/bson" "*"
     "@types/node" "*"
@@ -1089,14 +1089,9 @@
     form-data "^3.0.0"
 
 "@types/node@*":
-  version "14.14.28"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.28.tgz#cade4b64f8438f588951a6b35843ce536853f25b"
-  integrity sha512-lg55ArB+ZiHHbBBttLpzD07akz0QPrZgUODNakeC09i62dnrywr9mFErHuaPlB6I7z+sEbK+IYmplahvplCj2g==
-
-"@types/node@*", "@types/node@^14.0.13", "@types/node@^14.6.4":
-  version "14.14.28"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.28.tgz#cade4b64f8438f588951a6b35843ce536853f25b"
-  integrity sha512-lg55ArB+ZiHHbBBttLpzD07akz0QPrZgUODNakeC09i62dnrywr9mFErHuaPlB6I7z+sEbK+IYmplahvplCj2g==
+  version "14.14.31"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.31.tgz#72286bd33d137aa0d152d47ec7c1762563d34055"
+  integrity sha512-vFHy/ezP5qI0rFgJ7aQnjDXwAMrG0KqqIH7tQG5PPv3BWBayOPIQNBjVc/P6hhdZfMx51REc6tfDNXHUio893g==
 
 "@types/node@^10.1.0":
   version "10.17.37"
@@ -4075,7 +4070,7 @@ has@^1.0.3:
 
 "hawk.types@https://github.com/codex-team/hawk.types":
   version "0.0.1"
-  resolved "https://github.com/codex-team/hawk.types#c1fde467e45e64948a7edc6406ee808d627d3fee"
+  resolved "https://github.com/codex-team/hawk.types#1c00f49e20f53b7e2c582630a051dacea12ffd1d"
   dependencies:
     "@types/mongodb" "^3.5.34"
 

@@ -1,24 +1,5 @@
 import { Currency, CardType, OperationType, OperationStatus, SubscriptionStatus, ReasonCode, Interval } from './enums';
-
-/**
- * Data received from the frontend
- */
-export interface PlanProlongationPayload {
-  /**
-   * Workspace Identifier
-   */
-  workspaceId?: string;
-
-  /**
-   * ID of the user making the payment
-   */
-  userId?: string;
-
-  /**
-   * Workspace current plan id or plan id to change
-   */
-  tariffPlanId?: string;
-}
+import { PlanProlongationPayload } from 'hawk.types';
 
 /**
  * Check request body
