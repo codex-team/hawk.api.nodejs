@@ -1,4 +1,5 @@
 import { Currency, CardType, OperationType, OperationStatus, SubscriptionStatus, ReasonCode, Interval } from './enums';
+import { PlanProlongationPayload } from 'hawk.types';
 
 /**
  * Check request body
@@ -135,7 +136,7 @@ export interface CheckRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: object;
+  Data?: PlanProlongationPayload;
 }
 
 /**
@@ -278,17 +279,7 @@ export interface PayRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: {
-    /**
-     * Workspace Identifier
-     */
-    workspaceId?: string;
-
-    /**
-     * Tariff plan id that user pay for
-     */
-    tariffPlanId?: string;
-  };
+  Data?: PlanProlongationPayload;
 
   /**
    * Card token for repeated payments without entering details
@@ -455,7 +446,7 @@ export interface FailRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: object;
+  Data?: PlanProlongationPayload;
 
   /**
    * Card token for repeated payments without entering details
