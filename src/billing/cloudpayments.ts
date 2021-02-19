@@ -82,7 +82,7 @@ export default class CloudPaymentsWebhooks {
     const context = req.context;
 
     let workspace: WorkspaceModel;
-    let user: ConfirmedMemberDBScheme;
+    let member: ConfirmedMemberDBScheme;
     let plan: PlanDBScheme;
 
     if (!data || !data.workspaceId || !data.tariffPlanId || !data.userId) {
@@ -95,7 +95,7 @@ export default class CloudPaymentsWebhooks {
 
     try {
       workspace = await this.getWorkspace(req, workspaceId);
-      user = await this.getUser(userId, workspace);
+      member = await this.getMember(userId, workspace);
       plan = await this.getPlan(req, tariffPlanId);
     } catch (err) {
       this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] ${err.toString()}`, body);
@@ -120,7 +120,7 @@ export default class CloudPaymentsWebhooks {
         payload: {
           workspaceId: workspace._id,
           amount: body.Amount,
-          userId: user._id,
+          userId: member._id,
           tariffPlanId: plan._id,
         },
         dtCreated: body.DateTime,
@@ -232,12 +232,12 @@ export default class CloudPaymentsWebhooks {
   }
 
   /**
-   * Get user info
+   * Get member info
    *
    * @param userId - id of current user
    * @param workspace - workspace data
    */
-  private async getUser(userId: string, workspace: WorkspaceModel): Promise<ConfirmedMemberDBScheme> {
+  private async getMember(userId: string, workspace: WorkspaceModel): Promise<ConfirmedMemberDBScheme> {
     const user = await workspace.getMemberInfo(userId);
 
     if (!user) {
