@@ -12,7 +12,7 @@ import {
   RecurrentCodes,
   RecurrentResponse
 } from './types';
-import { BusinessOperationStatus, PayloadOfWorkspacePlanPurchase, BusinessOperationType, PendingMemberDBScheme, ConfirmedMemberDBScheme, PlanDBScheme } from 'hawk.types';
+import { BusinessOperationStatus, PayloadOfWorkspacePlanPurchase, BusinessOperationType, ConfirmedMemberDBScheme, PlanDBScheme } from 'hawk.types';
 import WorkspaceModel from '../models/workspace';
 import { TelegramBotURLs } from '../types/bgTasks';
 import HawkCatcher from '@hawk.so/nodejs';
