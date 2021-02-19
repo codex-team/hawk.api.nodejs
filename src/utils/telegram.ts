@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { TelegramBotURLs } from '../types/bgTasks';
 
-const baseBotUrl = process.env.TELEGRAM_BASE_URL || '';
-const moneyBotUrl = process.env.TELEGRAM_MONEY_URL || '';
+const baseBotUrl = process.env.TELEGRAM_MAIN_CHAT_URL || '';
+const moneyBotUrl = process.env.TELEGRAM_MONEY_CHAT_URL || '';
 
 /**
  * Send a message to telegram via notify-codex-bot
