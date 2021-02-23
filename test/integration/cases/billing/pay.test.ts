@@ -18,7 +18,7 @@ const workspace = {
 
 const workspaceAccount = {
   id: workspace.accountId,
-  name: 'WORKSPACE' + workspace.name,
+  name: 'WORKSPACE:' + workspace.name,
   type: 'Liability',
   currency: 'USD',
   dtCreated: Date.now(),
