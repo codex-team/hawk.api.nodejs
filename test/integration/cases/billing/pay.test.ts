@@ -66,6 +66,7 @@ const validPayRequestData: PayRequest = {
   TotalFee: 0,
   TransactionId: transactionId,
   Data: {
+    userId: new ObjectId().toString(),
     workspaceId: workspace._id.toString(),
     tariffPlanId: tariffPlan._id.toString(),
   },
