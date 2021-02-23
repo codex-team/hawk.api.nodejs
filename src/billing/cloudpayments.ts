@@ -187,18 +187,19 @@ export default class CloudPaymentsWebhooks {
           type: AccountType.LIABILITY,
           currency: Currency.USD,
         })).recordId;
+        await workspace.setAccountId(accountId);
       }
 
       await context.accounting.payOnce({
         accountId: accountId,
         amount: tariffPlan.monthlyCharge,
-        description: '',
+        description: `Account replenishment to pay for the tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
       });
 
       await context.accounting.purchase({
         accountId,
         amount: tariffPlan.monthlyCharge,
-        description: '',
+        description: `Purchasing for tariff plan with id ${tariffPlan._id}`,
       });
     }
 
