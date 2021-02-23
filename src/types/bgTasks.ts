@@ -24,6 +24,21 @@ export enum Queues {
 }
 
 /**
+ * Telegram bot URLs
+ */
+export enum TelegramBotURLs {
+  /**
+   * Hawk chat
+   */
+  Base = 'base',
+
+  /**
+   * Money integrations chat
+   */
+  Money = 'money'
+}
+
+/**
  * Contains a rabbitmq exchange and a queue for the worker
  */
 export interface WorkerPath {
