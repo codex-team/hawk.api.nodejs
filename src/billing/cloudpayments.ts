@@ -13,6 +13,7 @@ import {
 } from './types';
 import { BusinessOperationStatus } from 'hawk.types';
 import { publish } from '../rabbitmq';
+import { AccountType, Currency } from 'codex-accounting-sdk';
 
 /**
  * Class for describing the logic of payment routes
@@ -85,6 +86,28 @@ export default class CloudPaymentsWebhooks {
     if (workspace && tariffPlan) {
       await workspace.resetBillingPeriod();
       await workspace.changePlan(tariffPlan._id);
+
+      let accountId = workspace.accountId;
+
+      if (!workspace.accountId) {
+        accountId = (await context.accounting.createAccount({
+          name: `WORKSPACE:${workspace.name}`,
+          type: AccountType.LIABILITY,
+          currency: Currency.USD,
+        })).recordId;
+      }
+
+      await context.accounting.payOnce({
+        accountId: accountId,
+        amount: tariffPlan.monthlyCharge,
+        description: '',
+      });
+
+      await context.accounting.purchase({
+        accountId,
+        amount: tariffPlan.monthlyCharge,
+        description: '',
+      });
     }
 
     await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
