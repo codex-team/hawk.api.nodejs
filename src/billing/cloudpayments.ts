@@ -10,7 +10,8 @@ import {
   PayRequest,
   PayResponse,
   RecurrentCodes,
-  RecurrentResponse
+  RecurrentResponse,
+  FailRequest
 } from './types';
 import { BusinessOperationStatus, PayloadOfWorkspacePlanPurchase, BusinessOperationType, ConfirmedMemberDBScheme, PlanDBScheme } from 'hawk.types';
 import WorkspaceModel from '../models/workspace';
@@ -221,6 +222,26 @@ export default class CloudPaymentsWebhooks {
    * @param res - result code
    */
   private async fail(req: express.Request, res: express.Response): Promise<void> {
+    const body: FailRequest = req.body;
+    const context = req.context;
+
+    try {
+      const businessOperation = await context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(body.TransactionId.toString());
+
+      if (!businessOperation) {
+        throw new Error('Business operation not found');
+      }
+
+      await businessOperation.setStatus(BusinessOperationStatus.Rejected);
+    } catch (e) {
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] ${e.toString()}`, body);
+
+      return;
+    }
+
+    telegram.sendMessage(`✅ [Billing / Fail] Transaction failed`, TelegramBotURLs.Money);
+    HawkCatcher.send(new Error('[Billing / Fail] Transaction failed'), body);
+
     res.json({
       code: FailCodes.SUCCESS,
     } as FailResponse);

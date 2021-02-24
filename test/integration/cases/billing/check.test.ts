@@ -25,7 +25,6 @@ const mainRequest: CheckRequest = {
 };
 
 describe('Check webhook', () => {
-  const mongoClient = new mongodb.MongoClient('mongodb://mongodb:27017', { useUnifiedTopology: true });
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
   let workspace: WorkspaceDBScheme;
   let user: UserDBScheme;
@@ -203,9 +202,5 @@ describe('Check webhook', () => {
 
     expect(apiResponse.data.code).toBe(CheckCodes.SUCCESS);
     expect(createdBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
-  });
-
-  afterAll(async () => {
-    await mongoClient.close();
   });
 });

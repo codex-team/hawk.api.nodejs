@@ -456,7 +456,7 @@ export interface FailRequest {
   /**
    * Payment method ApplePay or GooglePay
    */
-  PaymentMethod: string;
+  PaymentMethod?: string;
 
   /**
    * First unsuccessful transaction number
