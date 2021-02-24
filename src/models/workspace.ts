@@ -327,4 +327,24 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
       }
     )).modifiedCount > 0;
   }
+
+  /**
+   * Links workspace to the specified account in accounting system
+   *
+   * @param accountId — account id to link
+   */
+  public async setAccountId(accountId: string): Promise<void> {
+    this.accountId = accountId;
+
+    await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
+      {
+        $set: {
+          accountId,
+        },
+      }
+    );
+  }
 }

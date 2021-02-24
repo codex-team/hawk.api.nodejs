@@ -17,9 +17,11 @@ class CustomEnvironment extends NodeEnvironment {
     await mongoClient.connect();
     this.global.mongoClient = mongoClient;
     await mongoClient.db('hawk').dropDatabase();
+    await mongoClient.db('codex_accounting').dropDatabase();
 
     this.rabbitMqConnection = await amqp.connect('amqp://guest:guest@rabbitmq:5672/');
     this.global.rabbitChannel = await this.rabbitMqConnection.createChannel();
+    await this.global.rabbitChannel.purgeQueue('cron-tasks/limiter');
   }
 
   /**
