@@ -199,7 +199,7 @@ export default class CloudPaymentsWebhooks {
       await context.accounting.purchase({
         accountId,
         amount: tariffPlan.monthlyCharge,
-        description: `Purchasing for tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
+        description: `Charging for tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
       });
     }
 
