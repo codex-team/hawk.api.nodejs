@@ -86,6 +86,17 @@ export default gql`
     plan: Plan
 
     """
+    Date when workspace was charged last time
+    """
+    lastChargeDate: DateTime
+
+    """
+    ID of subscription if it subscribed
+    Returns from CloudPayments
+    """
+    subscriptionId: String
+
+    """
     Workspace projects array
     """
     projects(
