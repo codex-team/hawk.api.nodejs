@@ -26,6 +26,8 @@ import { AccountType, Currency } from 'codex-accounting-sdk';
 import { TelegramBotURLs } from '../utils/telegram';
 import sendNotification from '../utils/personalNotifications';
 import { PlanProlongationNotificationTask } from '../types/personalNotifications';
+import BusinessOperationModel from '../models/businessOperation';
+import UserModel from '../models/user';
 
 /**
  * Class for describing the logic of payment routes
@@ -173,18 +175,12 @@ export default class CloudPaymentsWebhooks {
     let user;
 
     try {
-      businessOperation = await context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(body.TransactionId.toString());
-      workspace = await context.factories.workspacesFactory.findById(data.workspaceId);
-      tariffPlan = await context.factories.plansFactory.findById(data.tariffPlanId);
-      user = await context.factories.usersFactory.findById(data.userId);
+      businessOperation = await this.getBusinessOperation(req, body.TransactionId.toString());
+      workspace = await this.getWorkspace(req, data.workspaceId);
+      tariffPlan = await this.getPlan(req, data.tariffPlanId);
+      user = await this.getUser(req, data.userId);
     } catch (e) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't get data from Database ${e.toString()}`, body);
-
-      return;
-    }
-
-    if (!workspace || !tariffPlan || !businessOperation || !user) {
-      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace or tariff plan or business operation or user with provided id`, body);
 
       return;
     }
@@ -300,6 +296,38 @@ export default class CloudPaymentsWebhooks {
     }
 
     return workspace;
+  }
+
+  /**
+   * Get user by its id
+   *
+   * @param req - express request
+   * @param userId - id of user to fetch
+   */
+  private async getUser(req: express.Request, userId: string): Promise<UserModel> {
+    const user = await req.context.factories.usersFactory.findById(userId);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return user;
+  }
+
+  /**
+   * Get business operation by transaction id
+   *
+   * @param req - express request
+   * @param transactionId - id of the transaction for fetching business operation
+   */
+  private async getBusinessOperation(req: express.Request, transactionId: string): Promise<BusinessOperationModel> {
+    const businessOperation = await req.context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(transactionId);
+
+    if (!businessOperation) {
+      throw new Error('Business operation not found');
+    }
+
+    return businessOperation;
   }
 
   /**
