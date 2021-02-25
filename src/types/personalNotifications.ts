@@ -5,7 +5,7 @@ export interface SenderWorkerPayload {
   /**
    * Endpoint to send notifications to
    */
-  endpoint: string;
+  endpoint?: string;
 }
 
 /**

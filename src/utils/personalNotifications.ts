@@ -1,4 +1,4 @@
-import { SenderWorkerTasks, AssigneeNotificationTask } from '../types/personalNotifications';
+import { SenderWorkerTasks } from '../types/personalNotifications';
 import { UserDBScheme } from '../models/user';
 import { enqueue, WorkerPaths } from '../rabbitmq';
 

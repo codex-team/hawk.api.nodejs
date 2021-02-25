@@ -17,7 +17,7 @@ import {
   PayloadOfWorkspacePlanPurchase,
   BusinessOperationType,
   ConfirmedMemberDBScheme,
-  PlanDBScheme, UserDBScheme
+  PlanDBScheme
 } from 'hawk.types';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
