@@ -12,7 +12,14 @@ import {
   RecurrentCodes,
   RecurrentResponse
 } from './types';
-import { BusinessOperationStatus, PayloadOfWorkspacePlanPurchase, BusinessOperationType, ConfirmedMemberDBScheme, PlanDBScheme } from 'hawk.types';
+import {
+  BusinessOperationStatus,
+  PayloadOfWorkspacePlanPurchase,
+  BusinessOperationType,
+  ConfirmedMemberDBScheme,
+  PlanDBScheme,
+  BusinessOperationDBScheme
+} from 'hawk.types';
 import WorkspaceModel from '../models/workspace';
 import { TelegramBotURLs } from '../types/bgTasks';
 import HawkCatcher from '@hawk.so/nodejs';
@@ -33,9 +40,9 @@ export default class CloudPaymentsWebhooks {
 
     router.get('/compose-payment', this.composePayment);
     router.all('/check', this.check.bind(this));
-    router.all('/pay', this.pay);
-    router.all('/fail', this.fail);
-    router.all('/recurrent', this.recurrent);
+    router.all('/pay', this.pay.bind(this));
+    router.all('/fail', this.fail.bind(this));
+    router.all('/recurrent', this.recurrent.bind(this));
 
     return router;
   }
@@ -132,7 +139,8 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
+    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money)
+      .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body);
 
     res.json({
@@ -158,9 +166,19 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    const businessOperation = await context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(body.TransactionId.toString());
-    const workspace = await context.factories.workspacesFactory.findById(data.workspaceId);
-    const tariffPlan = await context.factories.plansFactory.findById(data.tariffPlanId);
+    let businessOperation;
+    let workspace;
+    let tariffPlan;
+
+    try {
+      businessOperation = await context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(body.TransactionId.toString());
+      workspace = await context.factories.workspacesFactory.findById(data.workspaceId);
+      tariffPlan = await context.factories.plansFactory.findById(data.tariffPlanId);
+    } catch (e) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't data from Database ${e.toString()}`, body);
+
+      return;
+    }
 
     if (!workspace || !tariffPlan || !businessOperation) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace or tariff plan or business operation with provided id`, body);
@@ -168,9 +186,15 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
-    await workspace.resetBillingPeriod();
-    await workspace.changePlan(tariffPlan._id);
+    try {
+      await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
+      await workspace.resetBillingPeriod();
+      await workspace.changePlan(tariffPlan._id);
+    } catch (e) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${e.toString()}`, body);
+
+      return;
+    }
 
     let accountId = workspace.accountId;
 
@@ -197,6 +221,8 @@ export default class CloudPaymentsWebhooks {
       });
     } catch (e) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while creating operations in accounting ${e.toString()}`, body);
+
+      return;
     }
 
     try {
@@ -207,6 +233,9 @@ export default class CloudPaymentsWebhooks {
     } catch (e) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending task to limiter worker ${e.toString()}`, body);
     }
+
+    telegram.sendMessage(`✅ [Billing / Check] Payment passed successfully for &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money)
+      .catch(e => console.error('Error while sending message to Telegram: ' + e));
 
     res.json({
       code: PayCodes.SUCCESS,
@@ -308,7 +337,8 @@ export default class CloudPaymentsWebhooks {
       code: errorCode,
     });
 
-    telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money);
+    telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money)
+      .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error(errorText), backtrace);
   }
 }
