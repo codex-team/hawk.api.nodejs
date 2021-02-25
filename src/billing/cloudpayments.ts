@@ -234,7 +234,7 @@ export default class CloudPaymentsWebhooks {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending task to limiter worker ${e.toString()}`, body);
     }
 
-    telegram.sendMessage(`✅ [Billing / Check] Payment passed successfully for &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money)
+    telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
 
     res.json({
