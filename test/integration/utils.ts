@@ -7,6 +7,11 @@ import axios from 'axios';
 export const apiEnv = dotenv.config({ path: './api.env' }).parsed || {};
 
 /**
+ * Env variables for Accounting
+ */
+export const accountingEnv = dotenv.config({ path: './accounting.env' }).parsed || {};
+
+/**
  * Axios instance to send requests to API
  */
 export const apiInstance = axios.create({

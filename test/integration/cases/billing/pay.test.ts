@@ -1,7 +1,7 @@
-import { apiInstance } from '../../utils';
+import { accountingEnv, apiInstance } from '../../utils';
 import { PayCodes, PayRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
-import { Collection, ObjectId } from 'mongodb';
+import { Collection, ObjectId, Db } from 'mongodb';
 import { BusinessOperationDBScheme, BusinessOperationStatus, BusinessOperationType, WorkspaceDBScheme, PlanDBScheme } from 'hawk.types';
 
 const transactionId = 123456;
@@ -16,12 +16,36 @@ const workspace = {
   tariffPlanId: new ObjectId(),
 };
 
+const workspaceAccount = {
+  id: workspace.accountId,
+  name: 'WORKSPACE:' + workspace.name,
+  type: 'Liability',
+  currency: 'USD',
+  dtCreated: Date.now(),
+};
+
 const tariffPlan: PlanDBScheme = {
   _id: new ObjectId(),
   eventsLimit: 10000,
   isDefault: true,
   monthlyCharge: 100,
   name: 'Test plan',
+};
+
+const cashbookAccount = {
+  id: accountingEnv.CASHBOOK_ACCOUNT_ID,
+  name: accountingEnv.CASHBOOK_ACCOUNT_NAME,
+  type: 'Asset',
+  currency: 'USD',
+  dtCreated: Date.now(),
+};
+
+const revenueAccount = {
+  id: accountingEnv.REVENUE_ACCOUNT_ID,
+  name: accountingEnv.REVENUE_ACCOUNT_NAME,
+  type: 'Revenue',
+  currency: 'USD',
+  dtCreated: Date.now(),
 };
 
 /**
@@ -42,23 +66,34 @@ const validPayRequestData: PayRequest = {
   TotalFee: 0,
   TransactionId: transactionId,
   Data: {
+    userId: new ObjectId().toString(),
     workspaceId: workspace._id.toString(),
     tariffPlanId: tariffPlan._id.toString(),
   },
 };
 
 describe('Pay webhook', () => {
+  let accountsDb: Db;
+  let accountingDb: Db;
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
   let workspacesCollection: Collection<WorkspaceDBScheme>;
   let tariffPlanCollection: Collection<PlanDBScheme>;
+  let accountingCollection: Collection;
+  let transactionsCollection: Collection;
 
   beforeAll(async () => {
-    const accountsDb = await global.mongoClient.db('hawk');
+    accountsDb = await global.mongoClient.db('hawk');
+    accountingDb = await global.mongoClient.db('codex_accounting');
 
     businessOperationsCollection = accountsDb.collection('businessOperations');
     workspacesCollection = accountsDb.collection('workspaces');
     tariffPlanCollection = accountsDb.collection('plans');
 
+    transactionsCollection = accountingDb.collection('transactions');
+    accountingCollection = accountingDb.collection('accounts');
+  });
+
+  beforeEach(async () => {
     /**
      * Add pending business operation to database (like after /billing/check route)
      */
@@ -84,6 +119,13 @@ describe('Pay webhook', () => {
      * Add tariff plan for testing
      */
     await tariffPlanCollection.insertOne(tariffPlan);
+
+    await accountingCollection.insertMany([cashbookAccount, revenueAccount, workspaceAccount]);
+  });
+
+  afterEach(async () => {
+    await accountsDb.dropDatabase();
+    await accountingDb.dropDatabase();
   });
 
   test('Should change business operation status to confirmed', async () => {
@@ -146,5 +188,43 @@ describe('Pay webhook', () => {
     expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
   });
 
-  test.todo('Should add payment data to accounting system');
+  test('Should associate an account with a workspace if the workspace did not have one', async () => {
+    /**
+     * Remove accountId from existed workspace
+     */
+    await workspacesCollection.updateOne(
+      { _id: workspace._id },
+      {
+        $unset: {
+          accountId: '',
+        },
+      }
+    );
+
+    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+    /**
+     * Check that account is created and linked
+     */
+    const updatedWorkspace = await workspacesCollection.findOne({ _id: workspace._id });
+    const accountId = updatedWorkspace?.accountId;
+    const account = await accountingCollection.findOne({ id: accountId });
+
+    expect(typeof accountId).toBe('string');
+    expect(account).toBeTruthy();
+    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+  });
+
+  test('Should add payment data to accounting system', async () => {
+    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+    const transactions = await transactionsCollection
+      .find({})
+      .toArray();
+
+    expect(transactions.length).toBe(2);
+    expect(transactions.some(tr => tr.type === 'Deposit'));
+    expect(transactions.some(tr => tr.type === 'Purchase'));
+    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+  });
 });

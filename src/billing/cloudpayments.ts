@@ -17,6 +17,7 @@ import WorkspaceModel from '../models/workspace';
 import { TelegramBotURLs } from '../types/bgTasks';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
+import { AccountType, Currency } from 'codex-accounting-sdk';
 
 /**
  * Class for describing the logic of payment routes
@@ -151,38 +152,61 @@ export default class CloudPaymentsWebhooks {
     const context = req.context;
     const data = body.Data;
 
-    /**
-     * @todo full data validation and error handling
-     */
-
-    if (!data || !data.workspaceId || !data.tariffPlanId) {
-      res.json({
-        code: PayCodes.SUCCESS,
-      } as PayResponse);
+    if (!data || !data.workspaceId || !data.tariffPlanId || !data.userId) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace, tariff plan or user id in request body`, body);
 
       return;
     }
 
     const businessOperation = await context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(body.TransactionId.toString());
+    const workspace = await context.factories.workspacesFactory.findById(data.workspaceId);
+    const tariffPlan = await context.factories.plansFactory.findById(data.tariffPlanId);
 
-    if (!businessOperation) {
+    if (!workspace || !tariffPlan || !businessOperation) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace or tariff plan or business operation with provided id`, body);
+
       return;
     }
 
     await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
+    await workspace.resetBillingPeriod();
+    await workspace.changePlan(tariffPlan._id);
 
-    const workspace = await context.factories.workspacesFactory.findById(data.workspaceId);
-    const tariffPlan = await context.factories.plansFactory.findById(data.tariffPlanId);
+    let accountId = workspace.accountId;
 
-    if (workspace && tariffPlan) {
-      await workspace.resetBillingPeriod();
-      await workspace.changePlan(tariffPlan._id);
+    try {
+      if (!workspace.accountId) {
+        accountId = (await context.accounting.createAccount({
+          name: `WORKSPACE:${workspace.name}`,
+          type: AccountType.LIABILITY,
+          currency: Currency.USD,
+        })).recordId;
+        await workspace.setAccountId(accountId);
+      }
+
+      await context.accounting.payOnce({
+        accountId: accountId,
+        amount: tariffPlan.monthlyCharge,
+        description: `Account replenishment to pay for the tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
+      });
+
+      await context.accounting.purchase({
+        accountId,
+        amount: tariffPlan.monthlyCharge,
+        description: `Charging for tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
+      });
+    } catch (e) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while creating operations in accounting ${e.toString()}`, body);
     }
 
-    await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
-      type: 'check-single-workspace',
-      workspaceId: data.workspaceId,
-    }));
+    try {
+      await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
+        type: 'check-single-workspace',
+        workspaceId: data.workspaceId,
+      }));
+    } catch (e) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending task to limiter worker ${e.toString()}`, body);
+    }
 
     res.json({
       code: PayCodes.SUCCESS,
