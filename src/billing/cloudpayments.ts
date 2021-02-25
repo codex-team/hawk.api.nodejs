@@ -17,14 +17,15 @@ import {
   PayloadOfWorkspacePlanPurchase,
   BusinessOperationType,
   ConfirmedMemberDBScheme,
-  PlanDBScheme,
-  BusinessOperationDBScheme
+  PlanDBScheme, UserDBScheme
 } from 'hawk.types';
 import WorkspaceModel from '../models/workspace';
-import { TelegramBotURLs } from '../types/bgTasks';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
 import { AccountType, Currency } from 'codex-accounting-sdk';
+import { TelegramBotURLs } from '../utils/telegram';
+import sendNotification from '../utils/personalNotifications';
+import { PlanProlongationNotificationTask } from '../types/personalNotifications';
 
 /**
  * Class for describing the logic of payment routes
@@ -169,19 +170,21 @@ export default class CloudPaymentsWebhooks {
     let businessOperation;
     let workspace;
     let tariffPlan;
+    let user;
 
     try {
       businessOperation = await context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(body.TransactionId.toString());
       workspace = await context.factories.workspacesFactory.findById(data.workspaceId);
       tariffPlan = await context.factories.plansFactory.findById(data.tariffPlanId);
+      user = await context.factories.usersFactory.findById(data.userId);
     } catch (e) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't data from Database ${e.toString()}`, body);
 
       return;
     }
 
-    if (!workspace || !tariffPlan || !businessOperation) {
-      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace or tariff plan or business operation with provided id`, body);
+    if (!workspace || !tariffPlan || !businessOperation || !user) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace or tariff plan or business operation or user with provided id`, body);
 
       return;
     }
@@ -232,6 +235,21 @@ export default class CloudPaymentsWebhooks {
       }));
     } catch (e) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending task to limiter worker ${e.toString()}`, body);
+
+      return;
+    }
+
+    try {
+      const senderWorkerTask: PlanProlongationNotificationTask = {
+        type: 'plan-prolongation',
+        payload: data,
+      };
+
+      await sendNotification(user, senderWorkerTask);
+    } catch (e) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending notification to the user ${e.toString()}`, body);
+
+      return;
     }
 
     telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money)

@@ -2,9 +2,36 @@ import { accountingEnv, apiInstance } from '../../utils';
 import { PayCodes, PayRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
 import { Collection, ObjectId, Db } from 'mongodb';
-import { BusinessOperationDBScheme, BusinessOperationStatus, BusinessOperationType, WorkspaceDBScheme, PlanDBScheme } from 'hawk.types';
+import {
+  BusinessOperationDBScheme,
+  BusinessOperationStatus,
+  BusinessOperationType,
+  WorkspaceDBScheme,
+  PlanDBScheme,
+  UserDBScheme, UserNotificationType
+} from 'hawk.types';
+import { PlanProlongationNotificationTask } from '../../../../src/types/personalNotifications';
+import { WorkerPaths } from '../../../../src/rabbitmq';
 
 const transactionId = 123456;
+
+const user: UserDBScheme = {
+  _id: new ObjectId(),
+  notifications: {
+    whatToReceive: {
+      [UserNotificationType.IssueAssigning]: true,
+      [UserNotificationType.SystemMessages]: true,
+      [UserNotificationType.WeeklyDigest]: true,
+    },
+    channels: {
+      email: {
+        isEnabled: true,
+        endpoint: 'test@hawk.so',
+        minPeriod: 10,
+      },
+    },
+  },
+};
 
 const workspace = {
   _id: new ObjectId(),
@@ -66,7 +93,7 @@ const validPayRequestData: PayRequest = {
   TotalFee: 0,
   TransactionId: transactionId,
   Data: {
-    userId: new ObjectId().toString(),
+    userId: user._id.toString(),
     workspaceId: workspace._id.toString(),
     tariffPlanId: tariffPlan._id.toString(),
   },
@@ -75,6 +102,7 @@ const validPayRequestData: PayRequest = {
 describe('Pay webhook', () => {
   let accountsDb: Db;
   let accountingDb: Db;
+  let usersCollection: Collection<UserDBScheme>;
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
   let workspacesCollection: Collection<WorkspaceDBScheme>;
   let tariffPlanCollection: Collection<PlanDBScheme>;
@@ -85,6 +113,7 @@ describe('Pay webhook', () => {
     accountsDb = await global.mongoClient.db('hawk');
     accountingDb = await global.mongoClient.db('codex_accounting');
 
+    usersCollection = accountsDb.collection('users');
     businessOperationsCollection = accountsDb.collection('businessOperations');
     workspacesCollection = accountsDb.collection('workspaces');
     tariffPlanCollection = accountsDb.collection('plans');
@@ -94,6 +123,11 @@ describe('Pay webhook', () => {
   });
 
   beforeEach(async () => {
+    /**
+     * Add user who makes payment
+     */
+    await usersCollection.insertOne(user);
+
     /**
      * Add pending business operation to database (like after /billing/check route)
      */
@@ -105,7 +139,7 @@ describe('Pay webhook', () => {
       payload: {
         workspaceId: new ObjectId(),
         amount: 10,
-        userId: new ObjectId(),
+        userId: user._id,
         cardPan: '2456',
       },
     });
@@ -120,6 +154,9 @@ describe('Pay webhook', () => {
      */
     await tariffPlanCollection.insertOne(tariffPlan);
 
+    /**
+     * Add necessary accounts to accounting system
+     */
     await accountingCollection.insertMany([cashbookAccount, revenueAccount, workspaceAccount]);
   });
 
@@ -230,6 +267,27 @@ describe('Pay webhook', () => {
     });
   });
 
+  test('Should add task to sender worker to notify user about plan prolongation', async () => {
+    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+    const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
+      noAck: true,
+    });
+    const expectedLimiterTask: PlanProlongationNotificationTask = {
+      type: 'plan-prolongation',
+      payload: {
+        endpoint: 'test@hawk.so',
+        userId: user._id.toString(),
+        workspaceId: workspace._id.toString(),
+        tariffPlanId: tariffPlan._id.toString(),
+      },
+    };
+
+    expect(message).toBeTruthy();
+    expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
+    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+  });
+
   describe('With invalid request', () => {
     test('Should not change business operation status if no data provided', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -248,7 +306,7 @@ describe('Pay webhook', () => {
       const apiResponse = await apiInstance.post('/billing/pay', {
         ...validPayRequestData,
         Data: {
-          userId: new ObjectId().toString(),
+          userId: user._id.toString(),
           tariffPlanId: tariffPlan._id.toString(),
         },
       });
@@ -282,7 +340,7 @@ describe('Pay webhook', () => {
       const apiResponse = await apiInstance.post('/billing/pay', {
         ...validPayRequestData,
         Data: {
-          userId: new ObjectId().toString(),
+          userId: user._id.toString(),
           workspaceId: workspace._id.toString(),
         },
       });
@@ -299,7 +357,7 @@ describe('Pay webhook', () => {
       const apiResponse = await apiInstance.post('/billing/pay', {
         ...validPayRequestData,
         Data: {
-          userId: new ObjectId().toString(),
+          userId: user._id.toString(),
           workspaceId: new ObjectId().toString(),
           tariffPlanId: tariffPlan._id.toString(),
         },
@@ -320,6 +378,24 @@ describe('Pay webhook', () => {
           userId: new ObjectId().toString(),
           workspaceId: workspace._id.toString(),
           tariffPlanId: new ObjectId().toString(),
+        },
+      });
+
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    });
+
+    test('Should not change business operation status if no user with provided id', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', {
+        ...validPayRequestData,
+        Data: {
+          userId: new ObjectId().toString(),
+          workspaceId: workspace._id.toString(),
+          tariffPlanId: tariffPlan._id.toString(),
         },
       });
 
