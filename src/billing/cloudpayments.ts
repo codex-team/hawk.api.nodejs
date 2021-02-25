@@ -178,7 +178,7 @@ export default class CloudPaymentsWebhooks {
       tariffPlan = await context.factories.plansFactory.findById(data.tariffPlanId);
       user = await context.factories.usersFactory.findById(data.userId);
     } catch (e) {
-      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't data from Database ${e.toString()}`, body);
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't get data from Database ${e.toString()}`, body);
 
       return;
     }
