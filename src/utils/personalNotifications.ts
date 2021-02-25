@@ -20,7 +20,7 @@ export default async function sendNotification(user: UserDBScheme, task: SenderW
         ...task.payload,
         endpoint: user.notifications.channels.email.endpoint,
       },
-    } as AssigneeNotificationTask);
+    });
   }
 
   if (user.notifications.channels.telegram?.isEnabled) {
@@ -30,7 +30,7 @@ export default async function sendNotification(user: UserDBScheme, task: SenderW
         ...task.payload,
         endpoint: user.notifications.channels.telegram.endpoint,
       },
-    } as AssigneeNotificationTask);
+    });
   }
 
   if (user.notifications.channels.slack?.isEnabled) {
@@ -40,6 +40,6 @@ export default async function sendNotification(user: UserDBScheme, task: SenderW
         ...task.payload,
         endpoint: user.notifications.channels.slack.endpoint,
       },
-    } as AssigneeNotificationTask);
+    });
   }
 }
