@@ -47,8 +47,8 @@ describe('Fail webhook', () => {
     });
   });
 
-  test('Should change business operation status to confirmed', async () => {
-    const apiResponse = await apiInstance.post('/billing/pay', mainRequest);
+  test('Should change business operation status to rejected', async () => {
+    const apiResponse = await apiInstance.post('/billing/fail', mainRequest);
 
     const updatedBusinessOperation = await businessOperationsCollection.findOne({
       transactionId: transactionId.toString(),
