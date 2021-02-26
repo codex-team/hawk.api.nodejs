@@ -1,4 +1,19 @@
 /**
+ * Types of tasks for sender worker
+ */
+export enum SenderWorkerTaskTypes {
+  /**
+   * Task to notify the user about the assignment to the task
+   */
+  Assignee = 'assignee',
+
+  /**
+   * Task to notify the user about workspace plan prolongation
+   */
+  PlanProlongation = 'plan-prolongation'
+}
+
+/**
  * Common payload for sender worker tasks
  */
 export interface SenderWorkerPayload {
@@ -15,7 +30,7 @@ export interface SenderWorkerTask<Payload extends SenderWorkerPayload> {
   /**
    * Type of task
    */
-  type: string;
+  type: SenderWorkerTaskTypes;
 
   /**
    * Payload of task
@@ -52,7 +67,7 @@ export interface AssigneeNotificationPayload extends SenderWorkerPayload {
  * Task to notify the user about the assignment to the task
  */
 export interface AssigneeNotificationTask extends SenderWorkerTask<AssigneeNotificationPayload> {
-  type: 'assignee';
+  type: SenderWorkerTaskTypes.Assignee;
 }
 
 /**
@@ -68,7 +83,7 @@ export interface PlanProlongationNotificationPayload extends SenderWorkerPayload
  * Task to notify the user about workspace plan prolongation
  */
 export interface PlanProlongationNotificationTask extends SenderWorkerTask<PlanProlongationNotificationPayload> {
-  type: 'plan-prolongation';
+  type: SenderWorkerTaskTypes.PlanProlongation;
 }
 
 /**

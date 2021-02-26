@@ -1,16 +1,17 @@
 import { accountingEnv, apiInstance } from '../../utils';
 import { PayCodes, PayRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
-import { Collection, ObjectId, Db } from 'mongodb';
+import { Collection, Db, ObjectId } from 'mongodb';
 import {
   BusinessOperationDBScheme,
   BusinessOperationStatus,
   BusinessOperationType,
-  WorkspaceDBScheme,
   PlanDBScheme,
-  UserDBScheme, UserNotificationType
+  UserDBScheme,
+  UserNotificationType,
+  WorkspaceDBScheme
 } from 'hawk.types';
-import { PlanProlongationNotificationTask } from '../../../../src/types/personalNotifications';
+import { PlanProlongationNotificationTask, SenderWorkerTaskTypes } from '../../../../src/types/personalNotifications';
 import { WorkerPaths } from '../../../../src/rabbitmq';
 
 const transactionId = 123456;
@@ -274,7 +275,7 @@ describe('Pay webhook', () => {
       noAck: true,
     });
     const expectedLimiterTask: PlanProlongationNotificationTask = {
-      type: 'plan-prolongation',
+      type: SenderWorkerTaskTypes.PlanProlongation,
       payload: {
         endpoint: 'test@hawk.so',
         userId: user._id.toString(),

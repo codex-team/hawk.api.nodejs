@@ -1,9 +1,10 @@
 import express from 'express';
 import * as telegram from '../utils/telegram';
+import { TelegramBotURLs } from '../utils/telegram';
 import {
   CheckCodes,
-  CheckResponse,
   CheckRequest,
+  CheckResponse,
   FailCodes,
   FailResponse,
   PayCodes,
@@ -14,18 +15,17 @@ import {
 } from './types';
 import {
   BusinessOperationStatus,
-  PayloadOfWorkspacePlanPurchase,
   BusinessOperationType,
   ConfirmedMemberDBScheme,
+  PayloadOfWorkspacePlanPurchase,
   PlanDBScheme
 } from 'hawk.types';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
 import { AccountType, Currency } from 'codex-accounting-sdk';
-import { TelegramBotURLs } from '../utils/telegram';
 import sendNotification from '../utils/personalNotifications';
-import { PlanProlongationNotificationTask } from '../types/personalNotifications';
+import { PlanProlongationNotificationTask, SenderWorkerTaskTypes } from '../types/personalNotifications';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 
@@ -237,7 +237,7 @@ export default class CloudPaymentsWebhooks {
 
     try {
       const senderWorkerTask: PlanProlongationNotificationTask = {
-        type: 'plan-prolongation',
+        type: SenderWorkerTaskTypes.PlanProlongation,
         payload: data,
       };
 
