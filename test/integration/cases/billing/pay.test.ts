@@ -11,7 +11,7 @@ import {
   UserNotificationType,
   WorkspaceDBScheme
 } from 'hawk.types';
-import { PlanProlongationNotificationTask, SenderWorkerTaskTypes } from '../../../../src/types/personalNotifications';
+import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
 import { WorkerPaths } from '../../../../src/rabbitmq';
 
 const transactionId = 123456;
@@ -275,7 +275,7 @@ describe('Pay webhook', () => {
       noAck: true,
     });
     const expectedLimiterTask: PlanProlongationNotificationTask = {
-      type: SenderWorkerTaskTypes.PlanProlongation,
+      type: SenderWorkerTaskType.PlanProlongation,
       payload: {
         endpoint: 'test@hawk.so',
         userId: user._id.toString(),

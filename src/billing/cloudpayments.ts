@@ -25,7 +25,7 @@ import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
 import { AccountType, Currency } from 'codex-accounting-sdk';
 import sendNotification from '../utils/personalNotifications';
-import { PlanProlongationNotificationTask, SenderWorkerTaskTypes } from '../types/personalNotifications';
+import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../types/personalNotifications';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 
@@ -237,7 +237,7 @@ export default class CloudPaymentsWebhooks {
 
     try {
       const senderWorkerTask: PlanProlongationNotificationTask = {
-        type: SenderWorkerTaskTypes.PlanProlongation,
+        type: SenderWorkerTaskType.PlanProlongation,
         payload: data,
       };
 

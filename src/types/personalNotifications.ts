@@ -1,7 +1,7 @@
 /**
  * Types of tasks for sender worker
  */
-export enum SenderWorkerTaskTypes {
+export enum SenderWorkerTaskType {
   /**
    * Task to notify the user about the assignment to the task
    */
@@ -30,7 +30,7 @@ export interface SenderWorkerTask<Payload extends SenderWorkerPayload> {
   /**
    * Type of task
    */
-  type: SenderWorkerTaskTypes;
+  type: SenderWorkerTaskType;
 
   /**
    * Payload of task
@@ -67,7 +67,7 @@ export interface AssigneeNotificationPayload extends SenderWorkerPayload {
  * Task to notify the user about the assignment to the task
  */
 export interface AssigneeNotificationTask extends SenderWorkerTask<AssigneeNotificationPayload> {
-  type: SenderWorkerTaskTypes.Assignee;
+  type: SenderWorkerTaskType.Assignee;
 }
 
 /**
@@ -83,7 +83,7 @@ export interface PlanProlongationNotificationPayload extends SenderWorkerPayload
  * Task to notify the user about workspace plan prolongation
  */
 export interface PlanProlongationNotificationTask extends SenderWorkerTask<PlanProlongationNotificationPayload> {
-  type: SenderWorkerTaskTypes.PlanProlongation;
+  type: SenderWorkerTaskType.PlanProlongation;
 }
 
 /**
