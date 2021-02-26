@@ -1,10 +1,38 @@
 import { accountingEnv, apiInstance } from '../../utils';
 import { PayCodes, PayRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
-import { Collection, ObjectId, Db } from 'mongodb';
-import { BusinessOperationDBScheme, BusinessOperationStatus, BusinessOperationType, WorkspaceDBScheme, PlanDBScheme } from 'hawk.types';
+import { Collection, Db, ObjectId } from 'mongodb';
+import {
+  BusinessOperationDBScheme,
+  BusinessOperationStatus,
+  BusinessOperationType,
+  PlanDBScheme,
+  UserDBScheme,
+  UserNotificationType,
+  WorkspaceDBScheme
+} from 'hawk.types';
+import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
+import { WorkerPaths } from '../../../../src/rabbitmq';
 
 const transactionId = 123456;
+
+const user: UserDBScheme = {
+  _id: new ObjectId(),
+  notifications: {
+    whatToReceive: {
+      [UserNotificationType.IssueAssigning]: true,
+      [UserNotificationType.SystemMessages]: true,
+      [UserNotificationType.WeeklyDigest]: true,
+    },
+    channels: {
+      email: {
+        isEnabled: true,
+        endpoint: 'test@hawk.so',
+        minPeriod: 10,
+      },
+    },
+  },
+};
 
 const workspace = {
   _id: new ObjectId(),
@@ -66,7 +94,7 @@ const validPayRequestData: PayRequest = {
   TotalFee: 0,
   TransactionId: transactionId,
   Data: {
-    userId: new ObjectId().toString(),
+    userId: user._id.toString(),
     workspaceId: workspace._id.toString(),
     tariffPlanId: tariffPlan._id.toString(),
   },
@@ -75,6 +103,7 @@ const validPayRequestData: PayRequest = {
 describe('Pay webhook', () => {
   let accountsDb: Db;
   let accountingDb: Db;
+  let usersCollection: Collection<UserDBScheme>;
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
   let workspacesCollection: Collection<WorkspaceDBScheme>;
   let tariffPlanCollection: Collection<PlanDBScheme>;
@@ -85,6 +114,7 @@ describe('Pay webhook', () => {
     accountsDb = await global.mongoClient.db('hawk');
     accountingDb = await global.mongoClient.db('codex_accounting');
 
+    usersCollection = accountsDb.collection('users');
     businessOperationsCollection = accountsDb.collection('businessOperations');
     workspacesCollection = accountsDb.collection('workspaces');
     tariffPlanCollection = accountsDb.collection('plans');
@@ -94,6 +124,11 @@ describe('Pay webhook', () => {
   });
 
   beforeEach(async () => {
+    /**
+     * Add user who makes payment
+     */
+    await usersCollection.insertOne(user);
+
     /**
      * Add pending business operation to database (like after /billing/check route)
      */
@@ -105,7 +140,7 @@ describe('Pay webhook', () => {
       payload: {
         workspaceId: new ObjectId(),
         amount: 10,
-        userId: new ObjectId(),
+        userId: user._id,
         cardPan: '2456',
       },
     });
@@ -120,6 +155,9 @@ describe('Pay webhook', () => {
      */
     await tariffPlanCollection.insertOne(tariffPlan);
 
+    /**
+     * Add necessary accounts to accounting system
+     */
     await accountingCollection.insertMany([cashbookAccount, revenueAccount, workspaceAccount]);
   });
 
@@ -128,59 +166,122 @@ describe('Pay webhook', () => {
     await accountingDb.dropDatabase();
   });
 
-  test('Should change business operation status to confirmed', async () => {
-    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+  describe('With valid request', () => {
+    test('Should change business operation status to confirmed', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
 
-    const updatedBusinessOperation = await businessOperationsCollection.findOne({
-      transactionId: transactionId.toString(),
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Confirmed);
     });
 
-    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
-    expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Confirmed);
-  });
+    test('Should reset events counter in workspace', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
 
-  test('Should reset events counter in workspace', async () => {
-    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+      const updatedWorkspace = await workspacesCollection.findOne({
+        _id: workspace._id,
+      });
 
-    const updatedWorkspace = await workspacesCollection.findOne({
-      _id: workspace._id,
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedWorkspace?.billingPeriodEventsCount).toBe(0);
     });
 
-    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
-    expect(updatedWorkspace?.billingPeriodEventsCount).toBe(0);
-  });
+    test('Should reset last charge date in workspace', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
 
-  test('Should reset last charge date in workspace', async () => {
-    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+      const updatedWorkspace = await workspacesCollection.findOne({
+        _id: workspace._id,
+      });
 
-    const updatedWorkspace = await workspacesCollection.findOne({
-      _id: workspace._id,
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedWorkspace?.lastChargeDate).not.toBe(workspace.lastChargeDate);
     });
 
-    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
-    expect(updatedWorkspace?.lastChargeDate).not.toBe(workspace.lastChargeDate);
-  });
+    test('Should change workspace plan', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
 
-  test('Should change workspace plan', async () => {
-    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+      const updatedWorkspace = await workspacesCollection.findOne({
+        _id: workspace._id,
+      });
 
-    const updatedWorkspace = await workspacesCollection.findOne({
-      _id: workspace._id,
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedWorkspace?.tariffPlanId.toString()).toBe(validPayRequestData.Data?.tariffPlanId?.toString());
     });
 
-    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
-    expect(updatedWorkspace?.tariffPlanId.toString()).toBe(validPayRequestData.Data?.tariffPlanId?.toString());
+    test('Should send task to limiter worker to check workspace', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+      const message = await global.rabbitChannel.get('cron-tasks/limiter', {
+        noAck: true,
+      });
+      const expectedLimiterTask = {
+        type: 'check-single-workspace',
+        workspaceId: workspace._id.toString(),
+      };
+
+      expect(message).toBeTruthy();
+      expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
+
+    test('Should associate an account with a workspace if the workspace did not have one', async () => {
+      /**
+       * Remove accountId from existed workspace
+       */
+      await workspacesCollection.updateOne(
+        { _id: workspace._id },
+        {
+          $unset: {
+            accountId: '',
+          },
+        }
+      );
+
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+      /**
+       * Check that account is created and linked
+       */
+      const updatedWorkspace = await workspacesCollection.findOne({ _id: workspace._id });
+      const accountId = updatedWorkspace?.accountId;
+      const account = await accountingCollection.findOne({ id: accountId });
+
+      expect(typeof accountId).toBe('string');
+      expect(account).toBeTruthy();
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
+
+    test('Should add payment data to accounting system', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+      const transactions = await transactionsCollection
+        .find({})
+        .toArray();
+
+      expect(transactions.length).toBe(2);
+      expect(transactions.some(tr => tr.type === 'Deposit'));
+      expect(transactions.some(tr => tr.type === 'Purchase'));
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
   });
 
-  test('Should send task to limiter worker to check workspace', async () => {
+  test('Should add task to sender worker to notify user about plan prolongation', async () => {
     const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
 
-    const message = await global.rabbitChannel.get('cron-tasks/limiter', {
+    const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
       noAck: true,
     });
-    const expectedLimiterTask = {
-      type: 'check-single-workspace',
-      workspaceId: workspace._id.toString(),
+    const expectedLimiterTask: PlanProlongationNotificationTask = {
+      type: SenderWorkerTaskType.PlanProlongation,
+      payload: {
+        endpoint: 'test@hawk.so',
+        userId: user._id.toString(),
+        workspaceId: workspace._id.toString(),
+        tariffPlanId: tariffPlan._id.toString(),
+      },
     };
 
     expect(message).toBeTruthy();
@@ -188,43 +289,123 @@ describe('Pay webhook', () => {
     expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
   });
 
-  test('Should associate an account with a workspace if the workspace did not have one', async () => {
-    /**
-     * Remove accountId from existed workspace
-     */
-    await workspacesCollection.updateOne(
-      { _id: workspace._id },
-      {
-        $unset: {
-          accountId: '',
+  describe('With invalid request', () => {
+    test('Should not change business operation status if no data provided', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { Data, ...invalidRequest } = validPayRequestData;
+      const apiResponse = await apiInstance.post('/billing/pay', invalidRequest);
+
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    });
+
+    test('Should not change business operation status if no workspace id provided', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', {
+        ...validPayRequestData,
+        Data: {
+          userId: user._id.toString(),
+          tariffPlanId: tariffPlan._id.toString(),
         },
-      }
-    );
+      });
 
-    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
 
-    /**
-     * Check that account is created and linked
-     */
-    const updatedWorkspace = await workspacesCollection.findOne({ _id: workspace._id });
-    const accountId = updatedWorkspace?.accountId;
-    const account = await accountingCollection.findOne({ id: accountId });
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    });
 
-    expect(typeof accountId).toBe('string');
-    expect(account).toBeTruthy();
-    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
-  });
+    test('Should not change business operation status if no user id provided', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', {
+        ...validPayRequestData,
+        Data: {
+          workspaceId: workspace._id.toString(),
+          tariffPlanId: tariffPlan._id.toString(),
+        },
+      });
 
-  test('Should add payment data to accounting system', async () => {
-    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
 
-    const transactions = await transactionsCollection
-      .find({})
-      .toArray();
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    });
 
-    expect(transactions.length).toBe(2);
-    expect(transactions.some(tr => tr.type === 'Deposit'));
-    expect(transactions.some(tr => tr.type === 'Purchase'));
-    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    test('Should not change business operation status if no tariff plan id provided', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', {
+        ...validPayRequestData,
+        Data: {
+          userId: user._id.toString(),
+          workspaceId: workspace._id.toString(),
+        },
+      });
+
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    });
+
+    test('Should not change business operation status if no workspaces with provided id', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', {
+        ...validPayRequestData,
+        Data: {
+          userId: user._id.toString(),
+          workspaceId: new ObjectId().toString(),
+          tariffPlanId: tariffPlan._id.toString(),
+        },
+      });
+
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    });
+
+    test('Should not change business operation status if no tariff plan with provided id', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', {
+        ...validPayRequestData,
+        Data: {
+          userId: new ObjectId().toString(),
+          workspaceId: workspace._id.toString(),
+          tariffPlanId: new ObjectId().toString(),
+        },
+      });
+
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    });
+
+    test('Should not change business operation status if no user with provided id', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', {
+        ...validPayRequestData,
+        Data: {
+          userId: new ObjectId().toString(),
+          workspaceId: workspace._id.toString(),
+          tariffPlanId: tariffPlan._id.toString(),
+        },
+      });
+
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    });
   });
 });

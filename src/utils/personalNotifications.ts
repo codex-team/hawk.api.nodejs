@@ -1,18 +1,6 @@
-import BgTasks from './bgTasks';
-import { WorkerPaths, BgTask, PersonalNotification, WorkerPath } from '../types/bgTasks';
+import { SenderWorkerTasks } from '../types/personalNotifications';
 import { UserDBScheme } from '../models/user';
-
-const bgTasks = new BgTasks();
-
-/**
- * Send personal notification to current worker
- *
- * @param workerType - type of worker that will send the notification
- * @param task - data to send
- */
-function sendTo(workerType: WorkerPath, task: BgTask): void {
-  bgTasks.enqueue(workerType, task);
-}
+import { enqueue, WorkerPaths } from '../rabbitmq';
 
 /**
  * Send notification to all enable resources
@@ -20,38 +8,38 @@ function sendTo(workerType: WorkerPath, task: BgTask): void {
  * @param user - user data
  * @param task - data to send
  */
-export default function sendNotification(user: UserDBScheme, task: BgTask): void {
+export default async function sendNotification(user: UserDBScheme, task: SenderWorkerTasks): Promise<void> {
   if (!user.notifications) {
     return;
   }
 
   if (user.notifications.channels.email?.isEnabled) {
-    sendTo(WorkerPaths.Email, {
+    await enqueue(WorkerPaths.Email, {
       type: task.type,
       payload: {
         ...task.payload,
         endpoint: user.notifications.channels.email.endpoint,
       },
-    } as PersonalNotification);
+    });
   }
 
   if (user.notifications.channels.telegram?.isEnabled) {
-    sendTo(WorkerPaths.Telegram, {
+    await enqueue(WorkerPaths.Telegram, {
       type: task.type,
       payload: {
         ...task.payload,
         endpoint: user.notifications.channels.telegram.endpoint,
       },
-    } as PersonalNotification);
+    });
   }
 
   if (user.notifications.channels.slack?.isEnabled) {
-    sendTo(WorkerPaths.Slack, {
+    await enqueue(WorkerPaths.Slack, {
       type: task.type,
       payload: {
         ...task.payload,
         endpoint: user.notifications.channels.slack.endpoint,
       },
-    } as PersonalNotification);
+    });
   }
 }

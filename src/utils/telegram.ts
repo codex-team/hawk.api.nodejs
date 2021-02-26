@@ -1,8 +1,22 @@
 import axios from 'axios';
-import { TelegramBotURLs } from '../types/bgTasks';
 
 const baseBotUrl = process.env.TELEGRAM_MAIN_CHAT_URL || '';
 const moneyBotUrl = process.env.TELEGRAM_MONEY_CHAT_URL || '';
+
+/**
+ * Telegram bot URLs
+ */
+export enum TelegramBotURLs {
+  /**
+   * Hawk chat
+   */
+  Base = 'base',
+
+  /**
+   * Money integrations chat
+   */
+  Money = 'money'
+}
 
 /**
  * Send a message to telegram via notify-codex-bot
@@ -29,7 +43,3 @@ export async function sendMessage(message: string, chat = TelegramBotURLs.Base):
     console.log('Couldn\'t send a message to Telegram', err);
   }
 }
-
-module.exports = {
-  sendMessage,
-};

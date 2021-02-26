@@ -1,9 +1,10 @@
 import express from 'express';
 import * as telegram from '../utils/telegram';
+import { TelegramBotURLs } from '../utils/telegram';
 import {
   CheckCodes,
-  CheckResponse,
   CheckRequest,
+  CheckResponse,
   FailCodes,
   FailResponse,
   PayCodes,
@@ -13,12 +14,21 @@ import {
   RecurrentResponse,
   FailRequest
 } from './types';
-import { BusinessOperationStatus, PayloadOfWorkspacePlanPurchase, BusinessOperationType, ConfirmedMemberDBScheme, PlanDBScheme } from 'hawk.types';
+import {
+  BusinessOperationStatus,
+  BusinessOperationType,
+  ConfirmedMemberDBScheme,
+  PayloadOfWorkspacePlanPurchase,
+  PlanDBScheme
+} from 'hawk.types';
 import WorkspaceModel from '../models/workspace';
-import { TelegramBotURLs } from '../types/bgTasks';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
 import { AccountType, Currency } from 'codex-accounting-sdk';
+import sendNotification from '../utils/personalNotifications';
+import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../types/personalNotifications';
+import BusinessOperationModel from '../models/businessOperation';
+import UserModel from '../models/user';
 
 /**
  * Class for describing the logic of payment routes
@@ -34,9 +44,9 @@ export default class CloudPaymentsWebhooks {
 
     router.get('/compose-payment', this.composePayment);
     router.all('/check', this.check.bind(this));
-    router.all('/pay', this.pay);
-    router.all('/fail', this.fail);
-    router.all('/recurrent', this.recurrent);
+    router.all('/pay', this.pay.bind(this));
+    router.all('/fail', this.fail.bind(this));
+    router.all('/recurrent', this.recurrent.bind(this));
 
     return router;
   }
@@ -133,7 +143,8 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money);
+    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money)
+      .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body);
 
     res.json({
@@ -159,19 +170,31 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    const businessOperation = await context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(body.TransactionId.toString());
-    const workspace = await context.factories.workspacesFactory.findById(data.workspaceId);
-    const tariffPlan = await context.factories.plansFactory.findById(data.tariffPlanId);
+    let businessOperation;
+    let workspace;
+    let tariffPlan;
+    let user;
 
-    if (!workspace || !tariffPlan || !businessOperation) {
-      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace or tariff plan or business operation with provided id`, body);
+    try {
+      businessOperation = await this.getBusinessOperation(req, body.TransactionId.toString());
+      workspace = await this.getWorkspace(req, data.workspaceId);
+      tariffPlan = await this.getPlan(req, data.tariffPlanId);
+      user = await this.getUser(req, data.userId);
+    } catch (e) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't get data from Database ${e.toString()}`, body);
 
       return;
     }
 
-    await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
-    await workspace.resetBillingPeriod();
-    await workspace.changePlan(tariffPlan._id);
+    try {
+      await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
+      await workspace.resetBillingPeriod();
+      await workspace.changePlan(tariffPlan._id);
+    } catch (e) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${e.toString()}`, body);
+
+      return;
+    }
 
     let accountId = workspace.accountId;
 
@@ -198,6 +221,8 @@ export default class CloudPaymentsWebhooks {
       });
     } catch (e) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while creating operations in accounting ${e.toString()}`, body);
+
+      return;
     }
 
     try {
@@ -207,7 +232,25 @@ export default class CloudPaymentsWebhooks {
       }));
     } catch (e) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending task to limiter worker ${e.toString()}`, body);
+
+      return;
     }
+
+    try {
+      const senderWorkerTask: PlanProlongationNotificationTask = {
+        type: SenderWorkerTaskType.PlanProlongation,
+        payload: data,
+      };
+
+      await sendNotification(user, senderWorkerTask);
+    } catch (e) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending notification to the user ${e.toString()}`, body);
+
+      return;
+    }
+
+    telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money)
+      .catch(e => console.error('Error while sending message to Telegram: ' + e));
 
     res.json({
       code: PayCodes.SUCCESS,
@@ -277,6 +320,38 @@ export default class CloudPaymentsWebhooks {
   }
 
   /**
+   * Get user by its id
+   *
+   * @param req - express request
+   * @param userId - id of user to fetch
+   */
+  private async getUser(req: express.Request, userId: string): Promise<UserModel> {
+    const user = await req.context.factories.usersFactory.findById(userId);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return user;
+  }
+
+  /**
+   * Get business operation by transaction id
+   *
+   * @param req - express request
+   * @param transactionId - id of the transaction for fetching business operation
+   */
+  private async getBusinessOperation(req: express.Request, transactionId: string): Promise<BusinessOperationModel> {
+    const businessOperation = await req.context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(transactionId);
+
+    if (!businessOperation) {
+      throw new Error('Business operation not found');
+    }
+
+    return businessOperation;
+  }
+
+  /**
    * Get member info
    *
    * @param userId - id of current user
@@ -329,7 +404,8 @@ export default class CloudPaymentsWebhooks {
       code: errorCode,
     });
 
-    telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money);
+    telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money)
+      .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error(errorText), backtrace);
   }
 }
