@@ -108,6 +108,9 @@ export default class CloudPaymentsWebhooks {
     const data = body.Data;
     const context = req.context;
 
+    console.log(req.body);
+    console.log(data);
+
     let workspace: WorkspaceModel;
     let member: ConfirmedMemberDBScheme;
     let plan: PlanDBScheme;
