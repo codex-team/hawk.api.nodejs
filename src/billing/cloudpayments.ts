@@ -18,8 +18,10 @@ import {
   BusinessOperationType,
   ConfirmedMemberDBScheme,
   PayloadOfWorkspacePlanPurchase,
-  PlanDBScheme
+  PlanDBScheme,
+  PlanProlongationPayload
 } from 'hawk.types';
+import jwt, { Secret } from 'jsonwebtoken';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
@@ -28,6 +30,7 @@ import sendNotification from '../utils/personalNotifications';
 import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../types/personalNotifications';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
+import { WebhookData } from './types/request';
 
 /**
  * Class for describing the logic of payment routes
@@ -80,19 +83,33 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    const invoiceId = `CDX ${new Date().toISOString()} ${tariffPlan.name}`;
+    const invoiceId = `CDX ${new Date().toISOString()} ${tariffPlan._id.toString()}`;
+
+    let checksum;
+
+    try {
+      checksum = await this.generateChecksum({
+        workspaceId: workspace._id.toString(),
+        userId: user._id.toString(),
+        tariffPlanId: tariffPlan._id.toString(),
+      });
+    } catch (e) {
+      this.sendError(res, 1, `[Billing / Compose payment] Can't generate checksum: ${e.toString()}`, req.query);
+
+      return;
+    }
+
+    console.log(tariffPlan);
 
     res.send({
-      workspaceId: workspace._id.toString(),
-      userId: user._id.toString(),
-      invoiceId: invoiceId,
+      invoiceId,
       plan: {
         id: tariffPlan._id.toString(),
         name: tariffPlan.name,
         monthlyCharge: tariffPlan.monthlyCharge,
       },
       currency: 'USD',
-      checksum: 'some hash',
+      checksum,
     });
   }
 
@@ -105,13 +122,17 @@ export default class CloudPaymentsWebhooks {
    */
   private async check(req: express.Request, res: express.Response): Promise<void> {
     const body: CheckRequest = req.body;
-    const data = body.Data;
-    const context = req.context;
+    let data;
 
-    console.log(req);
-    console.log(req.body);
-    console.log(req.query);
-    console.log(data);
+    try {
+      data = this.parseAndVerifyData(body.Data);
+    } catch (e) {
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Pay] Can't parse data from body`, body);
+
+      return;
+    }
+
+    const context = req.context;
 
     let workspace: WorkspaceModel;
     let member: ConfirmedMemberDBScheme;
@@ -135,7 +156,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    if (body.Amount !== plan.monthlyCharge) {
+    if (+body.Amount !== plan.monthlyCharge) {
       this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
 
       return;
@@ -155,7 +176,7 @@ export default class CloudPaymentsWebhooks {
           userId: member._id,
           tariffPlanId: plan._id,
         },
-        dtCreated: body.DateTime,
+        dtCreated: new Date(),
       });
     } catch (err) {
       this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Business operation wasn't created`, body);
@@ -182,7 +203,16 @@ export default class CloudPaymentsWebhooks {
   private async pay(req: express.Request, res: express.Response): Promise<void> {
     const body: PayRequest = req.body;
     const context = req.context;
-    const data = body.Data;
+
+    let data;
+
+    try {
+      data = this.parseAndVerifyData(body.Data);
+    } catch (e) {
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Pay] Can't parse data from body`, body);
+
+      return;
+    }
 
     if (!data || !data.workspaceId || !data.tariffPlanId || !data.userId) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace, tariff plan or user id in request body`, body);
@@ -407,5 +437,36 @@ export default class CloudPaymentsWebhooks {
     telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error(errorText), backtrace);
+  }
+
+  /**
+   * Generates checksum for processing billing requests
+   *
+   * @param data - data for processing billing request
+   */
+  private async generateChecksum(data: PlanProlongationPayload): Promise<string> {
+    return jwt.sign(
+      data,
+      process.env.JWT_SECRET_BILLING_CHECKSUM as Secret,
+      { expiresIn: '30m' }
+    );
+  }
+
+  /**
+   * Parses checksum from request data and returns data from it
+   *
+   * @param data - data to parse
+   */
+  private parseAndVerifyData(data: string | undefined): PlanProlongationPayload {
+    const parsedData = JSON.parse(data || '{}') as WebhookData;
+    const checksum = parsedData.checksum;
+
+    const payload = jwt.verify(checksum, process.env.JWT_SECRET_BILLING_CHECKSUM as Secret);
+
+    if (typeof payload === 'object') {
+      return payload as PlanProlongationPayload;
+    } else {
+      throw new Error(`Payload can't be a string`);
+    }
   }
 }

@@ -74,7 +74,6 @@ class HawkAPI {
   constructor() {
     this.app.use(express.json());
     this.app.use(bodyParser.urlencoded({ extended: false }));
-    this.app.use(bodyParser.json());
     this.app.use('/uploads', express.static(`./${process.env.UPLOADS_DIR || 'uploads'}`));
     this.app.use('/static', express.static(`./static`));
     this.app.use('/voyager', voyagerMiddleware({ endpointUrl: '/graphql' }));

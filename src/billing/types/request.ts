@@ -136,7 +136,7 @@ export interface CheckRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: PlanProlongationPayload;
+  Data?: string;
 }
 
 /**
@@ -279,7 +279,7 @@ export interface PayRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: PlanProlongationPayload;
+  Data?: string;
 
   /**
    * Card token for repeated payments without entering details
@@ -551,4 +551,8 @@ export interface RecurrentRequest {
    * Date and time of the next payment in the UTC time zone
    */
   NextTransactionDate?: Date;
+}
+
+export interface WebhookData {
+  checksum: string;
 }
