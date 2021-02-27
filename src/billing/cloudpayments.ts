@@ -18,10 +18,8 @@ import {
   BusinessOperationType,
   ConfirmedMemberDBScheme,
   PayloadOfWorkspacePlanPurchase,
-  PlanDBScheme,
-  PlanProlongationPayload
+  PlanDBScheme
 } from 'hawk.types';
-import jwt, { Secret } from 'jsonwebtoken';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
@@ -30,7 +28,7 @@ import sendNotification from '../utils/personalNotifications';
 import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../types/personalNotifications';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
-import { WebhookData } from './types/request';
+import checksumService from '../utils/checksumService';
 
 /**
  * Class for describing the logic of payment routes
@@ -88,7 +86,7 @@ export default class CloudPaymentsWebhooks {
     let checksum;
 
     try {
-      checksum = await this.generateChecksum({
+      checksum = await checksumService.generateChecksum({
         workspaceId: workspace._id.toString(),
         userId: user._id.toString(),
         tariffPlanId: tariffPlan._id.toString(),
@@ -98,8 +96,6 @@ export default class CloudPaymentsWebhooks {
 
       return;
     }
-
-    console.log(tariffPlan);
 
     res.send({
       invoiceId,
@@ -125,7 +121,7 @@ export default class CloudPaymentsWebhooks {
     let data;
 
     try {
-      data = this.parseAndVerifyData(body.Data);
+      data = checksumService.parseAndVerifyData(body.Data);
     } catch (e) {
       this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Pay] Can't parse data from body`, body);
 
@@ -207,7 +203,7 @@ export default class CloudPaymentsWebhooks {
     let data;
 
     try {
-      data = this.parseAndVerifyData(body.Data);
+      data = checksumService.parseAndVerifyData(body.Data);
     } catch (e) {
       this.sendError(res, CheckCodes.SUCCESS, `[Billing / Pay] Can't parse data from body`, body);
 
@@ -437,36 +433,5 @@ export default class CloudPaymentsWebhooks {
     telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error(errorText), backtrace);
-  }
-
-  /**
-   * Generates checksum for processing billing requests
-   *
-   * @param data - data for processing billing request
-   */
-  private async generateChecksum(data: PlanProlongationPayload): Promise<string> {
-    return jwt.sign(
-      data,
-      process.env.JWT_SECRET_BILLING_CHECKSUM as Secret,
-      { expiresIn: '30m' }
-    );
-  }
-
-  /**
-   * Parses checksum from request data and returns data from it
-   *
-   * @param data - data to parse
-   */
-  private parseAndVerifyData(data: string | undefined): PlanProlongationPayload {
-    const parsedData = JSON.parse(data || '{}') as WebhookData;
-    const checksum = parsedData.checksum;
-
-    const payload = jwt.verify(checksum, process.env.JWT_SECRET_BILLING_CHECKSUM as Secret);
-
-    if (typeof payload === 'object') {
-      return payload as PlanProlongationPayload;
-    } else {
-      throw new Error(`Payload can't be a string`);
-    }
   }
 }

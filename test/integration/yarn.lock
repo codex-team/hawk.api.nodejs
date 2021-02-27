@@ -1590,7 +1590,7 @@ has@^1.0.3:
 
 "hawk.types@https://github.com/codex-team/hawk.types":
   version "0.0.1"
-  resolved "https://github.com/codex-team/hawk.types#7fb5d13a419c85201747f529c540c1f2940e6ace"
+  resolved "https://github.com/codex-team/hawk.types#1c00f49e20f53b7e2c582630a051dacea12ffd1d"
   dependencies:
     "@types/mongodb" "^3.5.34"
 

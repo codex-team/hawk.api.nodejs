@@ -6,13 +6,14 @@ import {
   BusinessOperationDBScheme,
   BusinessOperationStatus,
   BusinessOperationType,
-  PlanDBScheme,
+  PlanDBScheme, PlanProlongationPayload,
   UserDBScheme,
   UserNotificationType,
   WorkspaceDBScheme
 } from 'hawk.types';
 import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
 import { WorkerPaths } from '../../../../src/rabbitmq';
+import checksumService from '../../../../src/utils/checksumService';
 
 const transactionId = 123456;
 
@@ -76,29 +77,17 @@ const revenueAccount = {
   dtCreated: Date.now(),
 };
 
+const planProlongationPayload: PlanProlongationPayload = {
+  userId: user._id.toString(),
+  workspaceId: workspace._id.toString(),
+  tariffPlanId: tariffPlan._id.toString(),
+};
+
 /**
  * Valid data to send to `pay` webhook
+ * Initializes later in beforeAll
  */
-const validPayRequestData: PayRequest = {
-  Amount: 10,
-  CardExpDate: '06/25',
-  CardFirstSix: '578946',
-  CardLastFour: '5367',
-  CardType: CardType.VISA,
-  Currency: Currency.RUB,
-  DateTime: new Date(),
-  GatewayName: 'CodeX bank',
-  OperationType: OperationType.PAYMENT,
-  Status: OperationStatus.COMPLETED,
-  TestMode: false,
-  TotalFee: 0,
-  TransactionId: transactionId,
-  Data: {
-    userId: user._id.toString(),
-    workspaceId: workspace._id.toString(),
-    tariffPlanId: tariffPlan._id.toString(),
-  },
-};
+let validPayRequestData: PayRequest;
 
 describe('Pay webhook', () => {
   let accountsDb: Db;
@@ -111,6 +100,25 @@ describe('Pay webhook', () => {
   let transactionsCollection: Collection;
 
   beforeAll(async () => {
+    validPayRequestData = {
+      Amount: 10,
+      CardExpDate: '06/25',
+      CardFirstSix: '578946',
+      CardLastFour: '5367',
+      CardType: CardType.VISA,
+      Currency: Currency.RUB,
+      DateTime: new Date(),
+      GatewayName: 'CodeX bank',
+      OperationType: OperationType.PAYMENT,
+      Status: OperationStatus.COMPLETED,
+      TestMode: false,
+      TotalFee: 0,
+      TransactionId: transactionId,
+      Data: JSON.stringify({
+        checksum: await checksumService.generateChecksum(planProlongationPayload),
+      }),
+    };
+
     accountsDb = await global.mongoClient.db('hawk');
     accountingDb = await global.mongoClient.db('codex_accounting');
 
@@ -208,7 +216,7 @@ describe('Pay webhook', () => {
       });
 
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
-      expect(updatedWorkspace?.tariffPlanId.toString()).toBe(validPayRequestData.Data?.tariffPlanId?.toString());
+      expect(updatedWorkspace?.tariffPlanId.toString()).toBe(tariffPlan._id.toString());
     });
 
     test('Should send task to limiter worker to check workspace', async () => {
