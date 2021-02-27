@@ -334,34 +334,6 @@ module.exports = {
 
       try {
         const date = new Date();
-        /**
-         * // We charge money for any change to another plan except the free one
-         * if (planModel.monthlyCharge > 0) {
-         *   // Charge money for a new plan
-         *   const transaction = await accounting.purchase({
-         *     accountId: workspaceModel.accountId,
-         *     amount: planModel.monthlyCharge,
-         *     description: 'Monthly charge for the new workspace plan',
-         *   });
-         *
-         *   // Create a business operation
-         *   const payloadWorkspacePlanPurchase = {
-         *     workspaceId: workspaceModel._id,
-         *     amount: planModel.monthlyCharge * PENNY_MULTIPLIER,
-         *   };
-         *
-         *   const businessOperationData = {
-         *     transactionId: transaction.recordId,
-         *     type: BusinessOperationType.WorkspacePlanPurchase,
-         *     status: BusinessOperationStatus.Confirmed,
-         *     dtCreated: date,
-         *     payload: payloadWorkspacePlanPurchase,
-         *   };
-         *
-         *   businessOperation = await factories.businessOperationsFactory.create(businessOperationData);
-         * }
-         *
-         */
 
         // Push old plan to plan history
         await workspaceModel.updatePlanHistory(workspaceModel.tariffPlanId, date, userModel._id);
