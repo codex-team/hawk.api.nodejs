@@ -87,6 +87,7 @@ export default class CloudPaymentsWebhooks {
       userId: user._id.toString(),
       invoiceId: invoiceId,
       plan: {
+        id: tariffPlan._id.toString(),
         name: tariffPlan.name,
         monthlyCharge: tariffPlan.monthlyCharge,
       },
