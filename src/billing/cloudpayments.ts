@@ -20,10 +20,11 @@ import {
   PayloadOfWorkspacePlanPurchase,
   PlanDBScheme
 } from 'hawk.types';
+import { PENNY_MULTIPLIER, AccountType, Currency } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
-import { AccountType, Currency } from 'codex-accounting-sdk';
+
 import sendNotification from '../utils/personalNotifications';
 import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../types/personalNotifications';
 import BusinessOperationModel from '../models/businessOperation';
@@ -168,7 +169,7 @@ export default class CloudPaymentsWebhooks {
         status: BusinessOperationStatus.Pending,
         payload: {
           workspaceId: workspace._id,
-          amount: +body.Amount,
+          amount: +body.Amount * PENNY_MULTIPLIER,
           userId: member._id,
           tariffPlanId: plan._id,
         },
@@ -256,13 +257,13 @@ export default class CloudPaymentsWebhooks {
 
       await context.accounting.payOnce({
         accountId: accountId,
-        amount: tariffPlan.monthlyCharge,
+        amount: tariffPlan.monthlyCharge * PENNY_MULTIPLIER,
         description: `Account replenishment to pay for the tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
       });
 
       await context.accounting.purchase({
         accountId,
-        amount: tariffPlan.monthlyCharge,
+        amount: tariffPlan.monthlyCharge * PENNY_MULTIPLIER,
         description: `Charging for tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
       });
     } catch (e) {
