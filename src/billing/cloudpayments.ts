@@ -83,10 +83,13 @@ export default class CloudPaymentsWebhooks {
     const invoiceId = `CDX ${new Date().toISOString()} ${tariffPlan.name}`;
 
     res.send({
-      workspaceId: workspace._id,
-      userId: user._id,
+      workspaceId: workspace._id.toString(),
+      userId: user._id.toString(),
       invoiceId: invoiceId,
-      plan: tariffPlan,
+      plan: {
+        name: tariffPlan.name,
+        monthlyCharge: tariffPlan.monthlyCharge,
+      },
       currency: 'USD',
       checksum: 'some hash',
     });
