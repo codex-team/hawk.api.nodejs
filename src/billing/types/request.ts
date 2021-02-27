@@ -14,7 +14,7 @@ export interface CheckRequest {
   /**
    * Payment amount from the payment parameters
    */
-  Amount: number;
+  Amount: string;
 
   /**
    * Currency: RUB/USD
@@ -136,7 +136,7 @@ export interface CheckRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: PlanProlongationPayload;
+  Data?: string;
 }
 
 /**
@@ -152,7 +152,7 @@ export interface PayRequest {
   /**
    * Payment amount from the payment parameters
    */
-  Amount: number;
+  Amount: string;
 
   /**
    * Currency: RUB/USD
@@ -279,7 +279,7 @@ export interface PayRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: PlanProlongationPayload;
+  Data?: string;
 
   /**
    * Card token for repeated payments without entering details
@@ -551,4 +551,14 @@ export interface RecurrentRequest {
    * Date and time of the next payment in the UTC time zone
    */
   NextTransactionDate?: Date;
+}
+
+/**
+ * Data that we expect in the request
+ */
+export interface WebhookData {
+  /**
+   * Checksum for validating request and getting data from it
+   */
+  checksum: string;
 }

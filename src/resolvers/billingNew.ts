@@ -65,7 +65,7 @@ export default {
      * @param payload - result from resolver above
      */
     __resolveType(payload: BusinessOperationPayloadType): string {
-      if ('userId' in payload) {
+      if ('cardPan' in payload) {
         return 'PayloadOfDepositByUser';
       }
 

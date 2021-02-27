@@ -3,6 +3,7 @@ import { CheckCodes, CheckRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
 import mongodb, { Collection, ObjectId } from 'mongodb';
 import { BusinessOperationDBScheme, BusinessOperationStatus, ConfirmedMemberDBScheme, PlanDBScheme, UserDBScheme, WorkspaceDBScheme } from 'hawk.types';
+import checksumService from '../../../../src/utils/checksumService';
 
 const transactionId = 880555;
 
@@ -10,7 +11,7 @@ const transactionId = 880555;
  * Basic check request
  */
 const mainRequest: CheckRequest = {
-  Amount: 20,
+  Amount: '20',
   CardExpDate: '06/25',
   CardFirstSix: '578946',
   CardLastFour: '5367',
@@ -98,11 +99,13 @@ describe('Check webhook', () => {
      */
     const data: CheckRequest = {
       ...mainRequest,
-      Data: {
-        workspaceId: '5fe383b0126d28907780641b',
-        userId: admin._id.toString(),
-        tariffPlanId: plan._id.toString(),
-      },
+      Data: JSON.stringify({
+        checksum: await checksumService.generateChecksum({
+          workspaceId: '5fe383b0126d28907780641b',
+          userId: admin._id.toString(),
+          tariffPlanId: plan._id.toString(),
+        }),
+      }),
     };
 
     const apiResponse = await apiInstance.post('/billing/check', data);
@@ -116,11 +119,13 @@ describe('Check webhook', () => {
      */
     const data: CheckRequest = {
       ...mainRequest,
-      Data: {
-        workspaceId: workspace._id.toString(),
-        userId: user._id.toString(),
-        tariffPlanId: plan._id.toString(),
-      },
+      Data: JSON.stringify({
+        checksum: await checksumService.generateChecksum({
+          workspaceId: workspace._id.toString(),
+          userId: user._id.toString(),
+          tariffPlanId: plan._id.toString(),
+        }),
+      }),
     };
 
     const apiResponse = await apiInstance.post('/billing/check', data);
@@ -134,11 +139,13 @@ describe('Check webhook', () => {
      */
     const data: CheckRequest = {
       ...mainRequest,
-      Data: {
-        workspaceId: workspace._id.toString(),
-        userId: member._id.toString(),
-        tariffPlanId: plan._id.toString(),
-      },
+      Data: JSON.stringify({
+        checksum: await checksumService.generateChecksum({
+          workspaceId: workspace._id.toString(),
+          userId: member._id.toString(),
+          tariffPlanId: plan._id.toString(),
+        }),
+      }),
     };
 
     const apiResponse = await apiInstance.post('/billing/check', data);
@@ -152,11 +159,13 @@ describe('Check webhook', () => {
      */
     const data: CheckRequest = {
       ...mainRequest,
-      Data: {
-        workspaceId: workspace._id.toString(),
-        userId: admin._id.toString(),
-        tariffPlanId: '5fe383b0126d28007780641b',
-      },
+      Data: JSON.stringify({
+        checksum: await checksumService.generateChecksum({
+          workspaceId: workspace._id.toString(),
+          userId: admin._id.toString(),
+          tariffPlanId: '5fe383b0126d28007780641b',
+        }),
+      }),
     };
 
     const apiResponse = await apiInstance.post('/billing/check', data);
@@ -170,12 +179,14 @@ describe('Check webhook', () => {
      */
     const data: CheckRequest = {
       ...mainRequest,
-      Amount: 20.45,
-      Data: {
-        workspaceId: workspace._id.toString(),
-        userId: admin._id.toString(),
-        tariffPlanId: plan._id.toString(),
-      },
+      Amount: '20.45',
+      Data: JSON.stringify({
+        checksum: await checksumService.generateChecksum({
+          workspaceId: workspace._id.toString(),
+          userId: admin._id.toString(),
+          tariffPlanId: plan._id.toString(),
+        }),
+      }),
     };
 
     const apiResponse = await apiInstance.post('/billing/check', data);
@@ -189,11 +200,13 @@ describe('Check webhook', () => {
      */
     const data: CheckRequest = {
       ...mainRequest,
-      Data: {
-        workspaceId: workspace._id.toString(),
-        userId: admin._id.toString(),
-        tariffPlanId: plan._id.toString(),
-      },
+      Data: JSON.stringify({
+        checksum: await checksumService.generateChecksum({
+          workspaceId: workspace._id.toString(),
+          userId: admin._id.toString(),
+          tariffPlanId: plan._id.toString(),
+        }),
+      }),
     };
 
     const apiResponse = await apiInstance.post('/billing/check', data);
