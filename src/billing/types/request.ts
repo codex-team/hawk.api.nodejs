@@ -553,6 +553,12 @@ export interface RecurrentRequest {
   NextTransactionDate?: Date;
 }
 
+/**
+ * Data that we expect in the request
+ */
 export interface WebhookData {
+  /**
+   * Checksum for validating request and getting data from it
+   */
   checksum: string;
 }
