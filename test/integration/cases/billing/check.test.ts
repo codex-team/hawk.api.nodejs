@@ -11,7 +11,7 @@ const transactionId = 880555;
  * Basic check request
  */
 const mainRequest: CheckRequest = {
-  Amount: 20,
+  Amount: '20',
   CardExpDate: '06/25',
   CardFirstSix: '578946',
   CardLastFour: '5367',
@@ -179,7 +179,7 @@ describe('Check webhook', () => {
      */
     const data: CheckRequest = {
       ...mainRequest,
-      Amount: 20.45,
+      Amount: '20.45',
       Data: JSON.stringify({
         checksum: await checksumService.generateChecksum({
           workspaceId: workspace._id.toString(),

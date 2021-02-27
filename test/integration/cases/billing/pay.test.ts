@@ -101,7 +101,7 @@ describe('Pay webhook', () => {
 
   beforeAll(async () => {
     validPayRequestData = {
-      Amount: 10,
+      Amount: '10',
       CardExpDate: '06/25',
       CardFirstSix: '578946',
       CardLastFour: '5367',
@@ -286,9 +286,7 @@ describe('Pay webhook', () => {
       type: SenderWorkerTaskType.PlanProlongation,
       payload: {
         endpoint: 'test@hawk.so',
-        userId: user._id.toString(),
-        workspaceId: workspace._id.toString(),
-        tariffPlanId: tariffPlan._id.toString(),
+        ...planProlongationPayload,
       },
     };
 
