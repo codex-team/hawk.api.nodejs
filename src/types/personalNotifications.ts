@@ -10,7 +10,12 @@ export enum SenderWorkerTaskType {
   /**
    * Task to notify the user about workspace plan prolongation
    */
-  PlanProlongation = 'plan-prolongation'
+  PlanProlongation = 'plan-prolongation',
+
+  /**
+   * Task when user payment failed
+   */
+  PaymentFailed = 'payment-failed'
 }
 
 /**
@@ -87,6 +92,28 @@ export interface PlanProlongationNotificationTask extends SenderWorkerTask<PlanP
 }
 
 /**
+ * Payload of the task to notify the user about workspace plan prolongation
+ */
+export interface PaymentFailedNotificationPayload extends SenderWorkerPayload {
+  /**
+   * Workspace id the user tried to pay for
+   */
+  workspaceId: string;
+
+  /**
+   * Rejection reason
+   */
+  reason: string;
+}
+
+/**
+ * Task to notify the user about workspace plan prolongation
+ */
+export interface PaymentFailedNotificationTask extends SenderWorkerTask<PaymentFailedNotificationPayload> {
+  type: SenderWorkerTaskType.PaymentFailed;
+}
+
+/**
  * All task payloads
  */
-export type SenderWorkerTasks = AssigneeNotificationTask | PlanProlongationNotificationTask;
+export type SenderWorkerTasks = AssigneeNotificationTask | PlanProlongationNotificationTask | PaymentFailedNotificationTask;

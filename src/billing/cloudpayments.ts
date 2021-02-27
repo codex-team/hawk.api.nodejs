@@ -26,7 +26,7 @@ import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
 import { AccountType, Currency } from 'codex-accounting-sdk';
 import sendNotification from '../utils/personalNotifications';
-import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../types/personalNotifications';
+import { PlanProlongationNotificationTask, SenderWorkerTaskType, PaymentFailedNotificationTask } from '../types/personalNotifications';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 
@@ -266,18 +266,46 @@ export default class CloudPaymentsWebhooks {
    */
   private async fail(req: express.Request, res: express.Response): Promise<void> {
     const body: FailRequest = req.body;
-    const context = req.context;
+    const data = body.Data;
+
+    let businessOperation: BusinessOperationModel;
+    let user: UserModel;
+
+    if (!data || !data.workspaceId || !data.userId) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Fail] No workspace or user id in request body`, body);
+
+      return;
+    }
 
     try {
-      const businessOperation = await context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(body.TransactionId.toString());
-
-      if (!businessOperation) {
-        throw new Error('Business operation not found');
-      }
-
-      await businessOperation.setStatus(BusinessOperationStatus.Rejected);
+      businessOperation = await this.getBusinessOperation(req, body.TransactionId.toString());
+      user = await this.getUser(req, data.userId);
     } catch (e) {
       this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] ${e.toString()}`, body);
+
+      return;
+    }
+
+    try {
+      await businessOperation.setStatus(BusinessOperationStatus.Rejected);
+    } catch (e) {
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Can't update business operation status ${e.toString()}`, body);
+
+      return;
+    }
+
+    try {
+      const senderWorkerTask: PaymentFailedNotificationTask = {
+        type: SenderWorkerTaskType.PaymentFailed,
+        payload: {
+          workspaceId: data.workspaceId,
+          reason: body.Reason,
+        },
+      };
+
+      await sendNotification(user, senderWorkerTask);
+    } catch (e) {
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Error while sending notification to the user ${e.toString()}`, body);
 
       return;
     }
