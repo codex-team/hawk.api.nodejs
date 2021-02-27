@@ -41,7 +41,7 @@ export default class CloudPaymentsWebhooks {
   public getRouter(): express.Router {
     const router = express.Router();
 
-    router.get('/compose-payment', this.composePayment);
+    router.get('/compose-payment', this.composePayment.bind(this));
     router.all('/check', this.check.bind(this));
     router.all('/pay', this.pay.bind(this));
     router.all('/fail', this.fail.bind(this));
@@ -57,24 +57,36 @@ export default class CloudPaymentsWebhooks {
    * @param res - Express response object
    */
   private async composePayment(req: express.Request, res: express.Response): Promise<void> {
-    const { workspaceId, tariffId } = req.query;
+    const { workspaceId, tariffIdPlan } = req.query as Record<string, string>;
+    const userId = req.context.user.id;
 
-    /**
-     * @todo fetch workspace data: name, tariff and so on. I need services to work with storages
-     */
-    const tariff = 'Basic';
-    const invoiceId = `CDX 21-02-04 ${tariff}`;
-    const plan = {
-      id: '',
-      name: '',
-    };
+    if (!workspaceId || !tariffIdPlan || !userId) {
+      this.sendError(res, 1, `[Billing / Compose payment] No workspace, tariff plan or user id in request body`, req.query);
+
+      return;
+    }
+
+    let workspace;
+    let tariffPlan;
+    let user;
+
+    try {
+      workspace = await this.getWorkspace(req, workspaceId);
+      tariffPlan = await this.getPlan(req, tariffIdPlan);
+      user = await this.getUser(req, userId);
+    } catch (e) {
+      this.sendError(res, 1, `[Billing / Compose payment] Can't get data from Database ${e.toString()}`, req.query);
+
+      return;
+    }
+
+    const invoiceId = `CDX ${new Date().toISOString()} ${tariffPlan.name}`;
 
     res.send({
-      workspaceId: workspaceId,
-      tariffId: tariffId,
+      workspaceId: workspace._id,
+      userId: user._id,
       invoiceId: invoiceId,
-      amount: 299,
-      plan: plan,
+      plan: tariffPlan,
       currency: 'USD',
       checksum: 'some hash',
     });
