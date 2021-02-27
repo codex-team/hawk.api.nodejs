@@ -70,26 +70,31 @@ export default class CloudPaymentsWebhooks {
 
     let workspace;
     let tariffPlan;
-    let user;
 
     try {
       workspace = await this.getWorkspace(req, workspaceId);
       tariffPlan = await this.getPlan(req, tariffPlanId);
-      user = await this.getUser(req, userId);
     } catch (e) {
       this.sendError(res, 1, `[Billing / Compose payment] Can't get data from Database ${e.toString()}`, req.query);
 
       return;
     }
 
-    const invoiceId = `CDX ${new Date().toISOString()} ${tariffPlan._id.toString()}`;
+    try {
+      await this.getMember(userId, workspace);
+    } catch (e) {
+      this.sendError(res, 1, `[Billing / Compose payment] Can't compose payment due to error: ${e.toString()}`, req.query);
+
+      return;
+    }
+    const invoiceId = this.generateInvoiceId(tariffPlan);
 
     let checksum;
 
     try {
       checksum = await checksumService.generateChecksum({
         workspaceId: workspace._id.toString(),
-        userId: user._id.toString(),
+        userId: userId,
         tariffPlanId: tariffPlan._id.toString(),
       });
     } catch (e) {
@@ -108,6 +113,17 @@ export default class CloudPaymentsWebhooks {
       currency: 'USD',
       checksum,
     });
+  }
+
+  /**
+   * Generates invoice id for payment
+   *
+   * @param tariffPlan - tariff plan to generate invoice id
+   */
+  private generateInvoiceId(tariffPlan: PlanDBScheme): string {
+    const now = new Date();
+
+    return `CDX ${now.getDate()}/${now.getMonth() + 1} ${tariffPlan.name}`;
   }
 
   /**
