@@ -87,7 +87,7 @@ export default class CloudPaymentsWebhooks {
 
       return;
     }
-    const invoiceId = this.generateInvoiceId(tariffPlan);
+    const invoiceId = this.generateInvoiceId(tariffPlan, workspace);
 
     let checksum;
 
@@ -119,11 +119,12 @@ export default class CloudPaymentsWebhooks {
    * Generates invoice id for payment
    *
    * @param tariffPlan - tariff plan to generate invoice id
+   * @param workspace - workspace data to generate invoice id
    */
-  private generateInvoiceId(tariffPlan: PlanDBScheme): string {
+  private generateInvoiceId(tariffPlan: PlanDBScheme, workspace: WorkspaceModel): string {
     const now = new Date();
 
-    return `CDX ${now.getDate()}/${now.getMonth() + 1} ${tariffPlan.name}`;
+    return `${workspace.name} ${now.getDate()}/${now.getMonth() + 1} ${tariffPlan.name}`;
   }
 
   /**
