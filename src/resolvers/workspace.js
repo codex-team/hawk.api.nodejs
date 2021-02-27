@@ -1,7 +1,7 @@
 import WorkspaceModel from '../models/workspace';
 import { AccountType, Currency } from 'codex-accounting-sdk/types';
 import PlanModel from '../models/plan';
-import telegram from '../utils/telegram';
+import * as telegram from '../utils/telegram';
 import HawkCatcher from '@hawk.so/nodejs';
 import escapeHTML from 'escape-html';
 

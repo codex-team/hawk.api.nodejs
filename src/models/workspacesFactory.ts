@@ -1,10 +1,11 @@
 import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
-import WorkspaceModel, { WorkspaceDBScheme } from './workspace';
+import WorkspaceModel from './workspace';
 import DataLoaders from '../dataLoaders';
 import UserModel from './user';
 import PlansFactory from './plansFactory';
 import PlanModel from './plan';
+import { WorkspaceDBScheme } from 'hawk.types';
 
 /**
  * Workspaces factory to work with WorkspaceModel

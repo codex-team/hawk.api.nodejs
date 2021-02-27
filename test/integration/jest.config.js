@@ -7,12 +7,7 @@ module.exports = {
   /**
    * The test environment that will be used for testing
    */
-  testEnvironment: 'node',
-
-  /**
-   * For testing mongodb queries
-   */
-  preset: '@shelf/jest-mongodb',
+  testEnvironment: './jestEnv.js',
 
   /**
    * TypeScript support
@@ -20,12 +15,4 @@ module.exports = {
   transform: {
     '^.+\\.tsx?$': 'ts-jest',
   },
-
-  /**
-   * Ignore folders
-   */
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/integration/',
-  ],
 };
