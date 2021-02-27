@@ -394,22 +394,6 @@ module.exports = {
     },
 
     /**
-     * Returs workspace balance
-     * @param {WorkspaceDBScheme} workspace - result from resolver above
-     * @param _args - empty list of args
-     * @param {string} accounting - accounting microservice
-     * @returns {Promise<number>}
-     */
-    /**
-     *  async balance(workspace, _args, { accounting }) {
-     *  const accountId = workspace.accountId;
-     *  const account = await accounting.getAccount(accountId);
-     *
-     *  return account.balance.amount;
-     *  },
-     */
-
-    /**
      * Returns workspace plan
      *
      * @param {WorkspaceDBScheme} workspace - result from resolver above
