@@ -428,12 +428,14 @@ module.exports = {
      * @param {string} accounting - accounting microservice
      * @returns {Promise<number>}
      */
-    async balance(workspace, _args, { accounting }) {
-      const accountId = workspace.accountId;
-      const account = await accounting.getAccount(accountId);
-
-      return account.balance.amount;
-    },
+    /**
+     *  async balance(workspace, _args, { accounting }) {
+     *  const accountId = workspace.accountId;
+     *  const account = await accounting.getAccount(accountId);
+     *
+     *  return account.balance.amount;
+     *  },
+     */
 
     /**
      * Returns workspace plan
