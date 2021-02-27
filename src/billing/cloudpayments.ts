@@ -57,10 +57,10 @@ export default class CloudPaymentsWebhooks {
    * @param res - Express response object
    */
   private async composePayment(req: express.Request, res: express.Response): Promise<void> {
-    const { workspaceId, tariffIdPlan } = req.query as Record<string, string>;
+    const { workspaceId, tariffPlanId } = req.query as Record<string, string>;
     const userId = req.context.user.id;
 
-    if (!workspaceId || !tariffIdPlan || !userId) {
+    if (!workspaceId || !tariffPlanId || !userId) {
       this.sendError(res, 1, `[Billing / Compose payment] No workspace, tariff plan or user id in request body`, req.query);
 
       return;
@@ -72,7 +72,7 @@ export default class CloudPaymentsWebhooks {
 
     try {
       workspace = await this.getWorkspace(req, workspaceId);
-      tariffPlan = await this.getPlan(req, tariffIdPlan);
+      tariffPlan = await this.getPlan(req, tariffPlanId);
       user = await this.getUser(req, userId);
     } catch (e) {
       this.sendError(res, 1, `[Billing / Compose payment] Can't get data from Database ${e.toString()}`, req.query);
