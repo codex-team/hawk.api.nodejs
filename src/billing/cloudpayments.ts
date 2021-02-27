@@ -209,7 +209,7 @@ export default class CloudPaymentsWebhooks {
     try {
       data = this.parseAndVerifyData(body.Data);
     } catch (e) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Pay] Can't parse data from body`, body);
+      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Pay] Can't parse data from body`, body);
 
       return;
     }
