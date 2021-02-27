@@ -168,7 +168,7 @@ export default class CloudPaymentsWebhooks {
         status: BusinessOperationStatus.Pending,
         payload: {
           workspaceId: workspace._id,
-          amount: body.Amount,
+          amount: +body.Amount,
           userId: member._id,
           tariffPlanId: plan._id,
         },
@@ -180,7 +180,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money)
+    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully *${workspace.name}*`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body);
 
@@ -295,7 +295,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money)
+    telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for *${workspace.name}*`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
 
     res.json({

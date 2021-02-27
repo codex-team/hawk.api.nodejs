@@ -14,7 +14,7 @@ export interface CheckRequest {
   /**
    * Payment amount from the payment parameters
    */
-  Amount: number;
+  Amount: string;
 
   /**
    * Currency: RUB/USD
@@ -152,7 +152,7 @@ export interface PayRequest {
   /**
    * Payment amount from the payment parameters
    */
-  Amount: number;
+  Amount: string;
 
   /**
    * Currency: RUB/USD
