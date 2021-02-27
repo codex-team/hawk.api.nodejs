@@ -108,7 +108,9 @@ export default class CloudPaymentsWebhooks {
     const data = body.Data;
     const context = req.context;
 
+    console.log(req);
     console.log(req.body);
+    console.log(req.query);
     console.log(data);
 
     let workspace: WorkspaceModel;
