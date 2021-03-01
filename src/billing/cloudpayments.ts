@@ -21,14 +21,16 @@ import {
   PayloadOfWorkspacePlanPurchase,
   PlanDBScheme
 } from 'hawk.types';
+import { PENNY_MULTIPLIER, AccountType, Currency } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
-import { AccountType, Currency } from 'codex-accounting-sdk';
+
 import sendNotification from '../utils/personalNotifications';
 import { PlanProlongationNotificationTask, SenderWorkerTaskType, PaymentFailedNotificationTask } from '../types/personalNotifications';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
+import checksumService from '../utils/checksumService';
 
 /**
  * Class for describing the logic of payment routes
@@ -42,7 +44,7 @@ export default class CloudPaymentsWebhooks {
   public getRouter(): express.Router {
     const router = express.Router();
 
-    router.get('/compose-payment', this.composePayment);
+    router.get('/compose-payment', this.composePayment.bind(this));
     router.all('/check', this.check.bind(this));
     router.all('/pay', this.pay.bind(this));
     router.all('/fail', this.fail.bind(this));
@@ -58,27 +60,72 @@ export default class CloudPaymentsWebhooks {
    * @param res - Express response object
    */
   private async composePayment(req: express.Request, res: express.Response): Promise<void> {
-    const { workspaceId, tariffId } = req.query;
+    const { workspaceId, tariffPlanId } = req.query as Record<string, string>;
+    const userId = req.context.user.id;
 
-    /**
-     * @todo fetch workspace data: name, tariff and so on. I need services to work with storages
-     */
-    const tariff = 'Basic';
-    const invoiceId = `CDX 21-02-04 ${tariff}`;
-    const plan = {
-      id: '',
-      name: '',
-    };
+    if (!workspaceId || !tariffPlanId || !userId) {
+      this.sendError(res, 1, `[Billing / Compose payment] No workspace, tariff plan or user id in request body`, req.query);
+
+      return;
+    }
+
+    let workspace;
+    let tariffPlan;
+
+    try {
+      workspace = await this.getWorkspace(req, workspaceId);
+      tariffPlan = await this.getPlan(req, tariffPlanId);
+    } catch (e) {
+      this.sendError(res, 1, `[Billing / Compose payment] Can't get data from Database ${e.toString()}`, req.query);
+
+      return;
+    }
+
+    try {
+      await this.getMember(userId, workspace);
+    } catch (e) {
+      this.sendError(res, 1, `[Billing / Compose payment] Can't compose payment due to error: ${e.toString()}`, req.query);
+
+      return;
+    }
+    const invoiceId = this.generateInvoiceId(tariffPlan, workspace);
+
+    let checksum;
+
+    try {
+      checksum = await checksumService.generateChecksum({
+        workspaceId: workspace._id.toString(),
+        userId: userId,
+        tariffPlanId: tariffPlan._id.toString(),
+      });
+    } catch (e) {
+      this.sendError(res, 1, `[Billing / Compose payment] Can't generate checksum: ${e.toString()}`, req.query);
+
+      return;
+    }
 
     res.send({
-      workspaceId: workspaceId,
-      tariffId: tariffId,
-      invoiceId: invoiceId,
-      amount: 299,
-      plan: plan,
+      invoiceId,
+      plan: {
+        id: tariffPlan._id.toString(),
+        name: tariffPlan.name,
+        monthlyCharge: tariffPlan.monthlyCharge,
+      },
       currency: 'USD',
-      checksum: 'some hash',
+      checksum,
     });
+  }
+
+  /**
+   * Generates invoice id for payment
+   *
+   * @param tariffPlan - tariff plan to generate invoice id
+   * @param workspace - workspace data to generate invoice id
+   */
+  private generateInvoiceId(tariffPlan: PlanDBScheme, workspace: WorkspaceModel): string {
+    const now = new Date();
+
+    return `${workspace.name} ${now.getDate()}/${now.getMonth() + 1} ${tariffPlan.name}`;
   }
 
   /**
@@ -90,7 +137,16 @@ export default class CloudPaymentsWebhooks {
    */
   private async check(req: express.Request, res: express.Response): Promise<void> {
     const body: CheckRequest = req.body;
-    const data = body.Data;
+    let data;
+
+    try {
+      data = checksumService.parseAndVerifyData(body.Data);
+    } catch (e) {
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Pay] Can't parse data from body`, body);
+
+      return;
+    }
+
     const context = req.context;
 
     let workspace: WorkspaceModel;
@@ -115,7 +171,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    if (body.Amount !== plan.monthlyCharge) {
+    if (+body.Amount !== plan.monthlyCharge) {
       this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
 
       return;
@@ -131,11 +187,11 @@ export default class CloudPaymentsWebhooks {
         status: BusinessOperationStatus.Pending,
         payload: {
           workspaceId: workspace._id,
-          amount: body.Amount,
+          amount: +body.Amount * PENNY_MULTIPLIER,
           userId: member._id,
           tariffPlanId: plan._id,
         },
-        dtCreated: body.DateTime,
+        dtCreated: new Date(),
       });
     } catch (err) {
       this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Business operation wasn't created`, body);
@@ -143,7 +199,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money)
+    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully *${workspace.name}*`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body);
 
@@ -162,7 +218,16 @@ export default class CloudPaymentsWebhooks {
   private async pay(req: express.Request, res: express.Response): Promise<void> {
     const body: PayRequest = req.body;
     const context = req.context;
-    const data = body.Data;
+
+    let data;
+
+    try {
+      data = checksumService.parseAndVerifyData(body.Data);
+    } catch (e) {
+      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Pay] Can't parse data from body`, body);
+
+      return;
+    }
 
     if (!data || !data.workspaceId || !data.tariffPlanId || !data.userId) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace, tariff plan or user id in request body`, body);
@@ -210,13 +275,13 @@ export default class CloudPaymentsWebhooks {
 
       await context.accounting.payOnce({
         accountId: accountId,
-        amount: tariffPlan.monthlyCharge,
+        amount: tariffPlan.monthlyCharge * PENNY_MULTIPLIER,
         description: `Account replenishment to pay for the tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
       });
 
       await context.accounting.purchase({
         accountId,
-        amount: tariffPlan.monthlyCharge,
+        amount: tariffPlan.monthlyCharge * PENNY_MULTIPLIER,
         description: `Charging for tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
       });
     } catch (e) {
@@ -249,7 +314,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for &laquo;${workspace.name}&raquo;`, TelegramBotURLs.Money)
+    telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for *${workspace.name}*`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
 
     res.json({

@@ -1,11 +1,9 @@
 import WorkspaceModel from '../models/workspace';
 import { AccountType, Currency } from 'codex-accounting-sdk/types';
-import { BusinessOperationStatus, BusinessOperationType } from '../../src/models/businessOperation';
 import PlanModel from '../models/plan';
 import * as telegram from '../utils/telegram';
 import HawkCatcher from '@hawk.so/nodejs';
 import escapeHTML from 'escape-html';
-import { PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -332,36 +330,10 @@ module.exports = {
         throw new UserInputError('Plan with passed ID doesn\'t exists');
       }
 
-      let businessOperation = null;
+      const businessOperation = null;
 
       try {
         const date = new Date();
-
-        // We charge money for any change to another plan except the free one
-        if (planModel.monthlyCharge > 0) {
-          // Charge money for a new plan
-          const transaction = await accounting.purchase({
-            accountId: workspaceModel.accountId,
-            amount: planModel.monthlyCharge,
-            description: 'Monthly charge for the new workspace plan',
-          });
-
-          // Create a business operation
-          const payloadWorkspacePlanPurchase = {
-            workspaceId: workspaceModel._id,
-            amount: planModel.monthlyCharge * PENNY_MULTIPLIER,
-          };
-
-          const businessOperationData = {
-            transactionId: transaction.recordId,
-            type: BusinessOperationType.WorkspacePlanPurchase,
-            status: BusinessOperationStatus.Confirmed,
-            dtCreated: date,
-            payload: payloadWorkspacePlanPurchase,
-          };
-
-          businessOperation = await factories.businessOperationsFactory.create(businessOperationData);
-        }
 
         // Push old plan to plan history
         await workspaceModel.updatePlanHistory(workspaceModel.tariffPlanId, date, userModel._id);
@@ -419,20 +391,6 @@ module.exports = {
       const workspaceModel = await factories.workspacesFactory.findById(workspaceData._id.toString());
 
       return workspaceModel.getMembers();
-    },
-
-    /**
-     * Returs workspace balance
-     * @param {WorkspaceDBScheme} workspace - result from resolver above
-     * @param _args - empty list of args
-     * @param {string} accounting - accounting microservice
-     * @returns {Promise<number>}
-     */
-    async balance(workspace, _args, { accounting }) {
-      const accountId = workspace.accountId;
-      const account = await accounting.getAccount(accountId);
-
-      return account.balance.amount;
     },
 
     /**
