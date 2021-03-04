@@ -336,8 +336,8 @@ export default class CloudPaymentsWebhooks {
     let businessOperation: BusinessOperationModel;
     let user: UserModel;
 
-    if (!data || !data.workspaceId || !data.userId) {
-      this.sendError(res, PayCodes.SUCCESS, `[Billing / Fail] No workspace or user id in request body`, body);
+    if (!data || !data.workspaceId || !data.userId || !data.tariffPlanId) {
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No workspace or user id or plan id in request body`, body);
 
       return;
     }

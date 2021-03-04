@@ -66,11 +66,12 @@ const validRequest: FailRequest = {
 };
 
 describe('Fail webhook', () => {
+  let accountsDb: Db;
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
   let usersCollection: Collection<UserDBScheme>;
 
   beforeAll(async () => {
-    const accountsDb = await global.mongoClient.db('hawk');
+    accountsDb = await global.mongoClient.db('hawk');
 
     businessOperationsCollection = await accountsDb.collection<BusinessOperationDBScheme>('businessOperations');
     usersCollection = accountsDb.collection('users');
@@ -91,9 +92,9 @@ describe('Fail webhook', () => {
       status: BusinessOperationStatus.Pending,
       dtCreated: new Date(),
       payload: {
-        workspaceId: new ObjectId(),
+        workspaceId: workspace._id,
         amount: 200,
-        userId: new ObjectId(),
+        userId: user._id,
         cardPan: '5367',
       },
     });
