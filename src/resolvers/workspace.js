@@ -330,6 +330,10 @@ module.exports = {
         throw new UserInputError('Plan with passed ID doesn\'t exists');
       }
 
+      if (planModel.monthlyCharge !== 0) {
+        throw new UserInputError('User selected plan isn\'t Free');
+      }
+
       try {
         const date = new Date();
 
