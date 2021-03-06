@@ -330,8 +330,6 @@ module.exports = {
         throw new UserInputError('Plan with passed ID doesn\'t exists');
       }
 
-      const businessOperation = null;
-
       try {
         const date = new Date();
 
@@ -350,9 +348,6 @@ module.exports = {
         throw new ApolloError('An error occurred while changing the plan');
       }
 
-      // Get a workspace account to get balance
-      const workspaceAccount = await accounting.getAccount(workspaceModel.accountId);
-
       // Send a message of a succesfully plan changed to the telegram bot
       const message = `🤑 <b>${escapeHTML(userModel.name || userModel.email)}</b> changed plan of «<b>${escapeHTML(workspaceModel.name)}</b>» workspace
 
@@ -361,9 +356,7 @@ module.exports = {
       telegram.sendMessage(message);
 
       return {
-        recordId: businessOperation ? businessOperation._id : null,
-        record: businessOperation,
-        balance: workspaceAccount.balance.amount,
+        success: true,
       };
     },
   },
