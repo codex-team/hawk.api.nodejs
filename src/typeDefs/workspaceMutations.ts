@@ -21,19 +21,9 @@ export default gql`
   """
   type ChangeWorkspacePlanResponse {
     """
-    Business operation id
+    The result of changing workspace plan
     """
-    recordId: ID
-
-    """
-    Modified workspace object
-    """
-    record: BusinessOperation
-
-    """
-    Workspace balance
-    """
-    balance: Long!
+    success: Boolean
   }
 
   extend type Mutation {
