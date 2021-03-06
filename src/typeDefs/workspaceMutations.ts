@@ -21,9 +21,14 @@ export default gql`
   """
   type ChangeWorkspacePlanResponse {
     """
-    The result of changing workspace plan
+    Workspace id which plan changed
     """
-    success: Boolean
+    recordId: ID
+
+    """
+    Workspace which plan changed
+    """
+    record: Workspace!
   }
 
   extend type Mutation {

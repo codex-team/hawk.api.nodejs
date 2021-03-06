@@ -360,7 +360,8 @@ module.exports = {
       telegram.sendMessage(message);
 
       return {
-        success: true,
+        recordId: workspaceId,
+        record: workspaceModel,
       };
     },
   },
