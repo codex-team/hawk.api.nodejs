@@ -446,7 +446,7 @@ export interface FailRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: PlanProlongationPayload;
+  Data?: string;
 
   /**
    * Card token for repeated payments without entering details

@@ -142,7 +142,7 @@ export default class CloudPaymentsWebhooks {
     try {
       data = checksumService.parseAndVerifyData(body.Data);
     } catch (e) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Pay] Can't parse data from body`, body);
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Can't parse data from body`, body);
 
       return;
     }
@@ -218,6 +218,8 @@ export default class CloudPaymentsWebhooks {
   private async pay(req: express.Request, res: express.Response): Promise<void> {
     const body: PayRequest = req.body;
     const context = req.context;
+
+    console.log('PAY ROUTE');
 
     let data;
 
@@ -331,10 +333,20 @@ export default class CloudPaymentsWebhooks {
    */
   private async fail(req: express.Request, res: express.Response): Promise<void> {
     const body: FailRequest = req.body;
-    const data = body.Data;
+    let data;
 
-    let businessOperation: BusinessOperationModel;
-    let user: UserModel;
+    console.log('FAIL ROUTE START');
+
+    try {
+      data = checksumService.parseAndVerifyData(body.Data);
+    } catch (e) {
+      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Fail] Can't parse data from body`, body);
+
+      return;
+    }
+
+    let businessOperation;
+    let user;
 
     if (!data || !data.workspaceId || !data.userId || !data.tariffPlanId) {
       this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No workspace or user id or plan id in request body`, body);

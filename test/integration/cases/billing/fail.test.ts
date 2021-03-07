@@ -1,12 +1,13 @@
-import { accountingEnv, apiInstance } from '../../utils';
+import { apiInstance } from '../../utils';
 import { FailCodes, FailRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType, ReasonCode } from '../../../../src/billing/types/enums';
 import { Collection, ObjectId, Db } from 'mongodb';
-import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, BusinessOperationType, UserDBScheme, UserNotificationType } from 'hawk.types';
+import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, BusinessOperationType, UserDBScheme, UserNotificationType, PlanProlongationPayload } from 'hawk.types';
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import { PaymentFailedNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
+import checksumService from '../../../../src/utils/checksumService';
 
-const transactionId = 123456;
+const transactionId = 909090;
 
 const user: UserDBScheme = {
   _id: new ObjectId(),
@@ -44,6 +45,12 @@ const tariffPlan: PlanDBScheme = {
   name: 'Test plan',
 };
 
+const planProlongationPayload: PlanProlongationPayload = {
+  userId: user._id.toString(),
+  workspaceId: workspace._id.toString(),
+  tariffPlanId: tariffPlan._id.toString(),
+};
+
 const validRequest: FailRequest = {
   Amount: 100,
   CardExpDate: '06/25',
@@ -58,11 +65,6 @@ const validRequest: FailRequest = {
   Issuer: 'Codex Bank',
   Reason: 'Stolen card',
   ReasonCode: ReasonCode.DO_NOT_HONOR,
-  Data: {
-    userId: user._id.toString(),
-    workspaceId: workspace._id.toString(),
-    tariffPlanId: tariffPlan._id.toString(),
-  },
 };
 
 describe('Fail webhook', () => {
@@ -98,11 +100,25 @@ describe('Fail webhook', () => {
         cardPan: '5367',
       },
     });
+
+    /**
+     * Clear rabbitmq queue
+     */
+    await global.rabbitChannel.purgeQueue(WorkerPaths.Email.queue);
+  });
+
+  afterEach(async () => {
+    await accountsDb.dropDatabase();
   });
 
   describe('With valid request', () => {
     test('Should change business operation status to rejected', async () => {
-      const apiResponse = await apiInstance.post('/billing/fail', validRequest);
+      const apiResponse = await apiInstance.post('/billing/fail', {
+        ...validRequest,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum(planProlongationPayload),
+        }),
+      });
 
       const updatedBusinessOperation = await businessOperationsCollection.findOne({
         transactionId: transactionId.toString(),
@@ -113,7 +129,12 @@ describe('Fail webhook', () => {
     });
 
     test('Should add task to sender worker to notify user about payment rejection', async () => {
-      const apiResponse = await apiInstance.post('/billing/fail', validRequest);
+      const apiResponse = await apiInstance.post('/billing/fail', {
+        ...validRequest,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum(planProlongationPayload),
+        }),
+      });
 
       const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
         noAck: true,
@@ -151,10 +172,13 @@ describe('Fail webhook', () => {
   test('Should not change business operation status if no user id provided', async () => {
     const apiResponse = await apiInstance.post('/billing/fail', {
       ...validRequest,
-      Data: {
-        workspaceId: workspace._id.toString(),
-        tariffPlanId: tariffPlan._id.toString(),
-      },
+      Data: JSON.stringify({
+        checksum: await checksumService.generateChecksum({
+          userId: '',
+          workspaceId: workspace._id.toString(),
+          tariffPlanId: tariffPlan._id.toString(),
+        }),
+      }),
     });
 
     const updatedBusinessOperation = await businessOperationsCollection.findOne({
