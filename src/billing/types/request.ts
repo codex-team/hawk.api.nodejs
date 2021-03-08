@@ -1,5 +1,4 @@
 import { Currency, CardType, OperationType, OperationStatus, SubscriptionStatus, ReasonCode, Interval } from './enums';
-import { PlanProlongationPayload } from 'hawk.types';
 
 /**
  * Check request body
