@@ -219,8 +219,6 @@ export default class CloudPaymentsWebhooks {
     const body: PayRequest = req.body;
     const context = req.context;
 
-    console.log('PAY ROUTE');
-
     let data;
 
     try {
@@ -335,12 +333,10 @@ export default class CloudPaymentsWebhooks {
     const body: FailRequest = req.body;
     let data;
 
-    console.log('FAIL ROUTE START');
-
     try {
       data = checksumService.parseAndVerifyData(body.Data);
     } catch (e) {
-      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Fail] Can't parse data from body`, body);
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Can't parse data from body`, body);
 
       return;
     }
