@@ -1,6 +1,6 @@
 import { apiInstance } from '../../utils';
 import { FailCodes, FailRequest } from '../../../../src/billing/types';
-import { CardType, Currency, OperationStatus, OperationType, ReasonCode } from '../../../../src/billing/types/enums';
+import { CardType, Currency, OperationType, ReasonCode } from '../../../../src/billing/types/enums';
 import { Collection, ObjectId, Db } from 'mongodb';
 import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, BusinessOperationType, UserDBScheme, UserNotificationType, PlanProlongationPayload } from 'hawk.types';
 import { WorkerPaths } from '../../../../src/rabbitmq';
