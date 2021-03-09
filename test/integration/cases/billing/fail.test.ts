@@ -2,7 +2,7 @@ import { apiInstance } from '../../utils';
 import { FailCodes, FailRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationType, ReasonCode } from '../../../../src/billing/types/enums';
 import { Collection, ObjectId, Db } from 'mongodb';
-import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, BusinessOperationType, UserDBScheme, UserNotificationType, PlanProlongationPayload } from 'hawk.types';
+import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, BusinessOperationType, UserDBScheme, WorkspaceDBScheme, UserNotificationType, PlanProlongationPayload } from 'hawk.types';
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import { PaymentFailedNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
 import checksumService from '../../../../src/utils/checksumService';
@@ -70,12 +70,14 @@ const validRequest: FailRequest = {
 describe('Fail webhook', () => {
   let accountsDb: Db;
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
+  let workspacesCollection: Collection<WorkspaceDBScheme>;
   let usersCollection: Collection<UserDBScheme>;
 
   beforeAll(async () => {
     accountsDb = await global.mongoClient.db('hawk');
 
     businessOperationsCollection = await accountsDb.collection<BusinessOperationDBScheme>('businessOperations');
+    workspacesCollection = accountsDb.collection('workspaces');
     usersCollection = accountsDb.collection('users');
   });
 
@@ -84,6 +86,11 @@ describe('Fail webhook', () => {
      * Add user who makes payment
      */
     await usersCollection.insertOne(user);
+
+    /**
+     * Add workspace for testing it
+     */
+    await workspacesCollection.insertOne(workspace);
 
     /**
      * Add pending business operation to database (like after /billing/check route)
