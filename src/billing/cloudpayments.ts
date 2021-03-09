@@ -11,7 +11,8 @@ import {
   PayRequest,
   PayResponse,
   RecurrentCodes,
-  RecurrentResponse
+  RecurrentResponse,
+  FailRequest
 } from './types';
 import {
   BusinessOperationStatus,
@@ -26,7 +27,7 @@ import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
 
 import sendNotification from '../utils/personalNotifications';
-import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../types/personalNotifications';
+import { PlanProlongationNotificationTask, SenderWorkerTaskType, PaymentFailedNotificationTask } from '../types/personalNotifications';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';
@@ -141,7 +142,7 @@ export default class CloudPaymentsWebhooks {
     try {
       data = checksumService.parseAndVerifyData(body.Data);
     } catch (e) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Pay] Can't parse data from body`, body);
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Can't parse data from body`, body);
 
       return;
     }
@@ -198,7 +199,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully *${workspace.name}*`, TelegramBotURLs.Money)
+    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully «${workspace.name}»`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body);
 
@@ -313,7 +314,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for *${workspace.name}*`, TelegramBotURLs.Money)
+    telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
 
     res.json({
@@ -329,6 +330,64 @@ export default class CloudPaymentsWebhooks {
    * @param res - result code
    */
   private async fail(req: express.Request, res: express.Response): Promise<void> {
+    const body: FailRequest = req.body;
+    let data;
+
+    try {
+      data = checksumService.parseAndVerifyData(body.Data);
+    } catch (e) {
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Can't parse data from body`, body);
+
+      return;
+    }
+
+    let businessOperation;
+    let workspace;
+    let user;
+
+    if (!data || !data.workspaceId || !data.userId || !data.tariffPlanId) {
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No workspace or user id or plan id in request body`, body);
+
+      return;
+    }
+
+    try {
+      businessOperation = await this.getBusinessOperation(req, body.TransactionId.toString());
+      workspace = await this.getWorkspace(req, data.workspaceId);
+      user = await this.getUser(req, data.userId);
+    } catch (e) {
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] ${e.toString()}`, body);
+
+      return;
+    }
+
+    try {
+      await businessOperation.setStatus(BusinessOperationStatus.Rejected);
+    } catch (e) {
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Can't update business operation status ${e.toString()}`, body);
+
+      return;
+    }
+
+    try {
+      const senderWorkerTask: PaymentFailedNotificationTask = {
+        type: SenderWorkerTaskType.PaymentFailed,
+        payload: {
+          workspaceId: data.workspaceId,
+          reason: body.Reason,
+        },
+      };
+
+      await sendNotification(user, senderWorkerTask);
+    } catch (e) {
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Error while sending notification to the user ${e.toString()}`, body);
+
+      return;
+    }
+
+    telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money);
+    HawkCatcher.send(new Error('[Billing / Fail] Transaction failed'), body);
+
     res.json({
       code: FailCodes.SUCCESS,
     } as FailResponse);

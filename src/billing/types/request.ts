@@ -1,5 +1,4 @@
 import { Currency, CardType, OperationType, OperationStatus, SubscriptionStatus, ReasonCode, Interval } from './enums';
-import { PlanProlongationPayload } from 'hawk.types';
 
 /**
  * Check request body
@@ -446,7 +445,7 @@ export interface FailRequest {
   /**
    * An arbitrary set of parameters passed to the transaction
    */
-  Data?: PlanProlongationPayload;
+  Data?: string;
 
   /**
    * Card token for repeated payments without entering details
@@ -456,7 +455,7 @@ export interface FailRequest {
   /**
    * Payment method ApplePay or GooglePay
    */
-  PaymentMethod: string;
+  PaymentMethod?: string;
 
   /**
    * First unsuccessful transaction number
