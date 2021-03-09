@@ -199,7 +199,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully *${workspace.name}*`, TelegramBotURLs.Money)
+    telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully «${workspace.name}»`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body);
 
@@ -314,7 +314,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for *${workspace.name}*`, TelegramBotURLs.Money)
+    telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
 
     res.json({
@@ -342,6 +342,7 @@ export default class CloudPaymentsWebhooks {
     }
 
     let businessOperation;
+    let workspace;
     let user;
 
     if (!data || !data.workspaceId || !data.userId || !data.tariffPlanId) {
@@ -352,6 +353,7 @@ export default class CloudPaymentsWebhooks {
 
     try {
       businessOperation = await this.getBusinessOperation(req, body.TransactionId.toString());
+      workspace = await this.getWorkspace(req, data.workspaceId);
       user = await this.getUser(req, data.userId);
     } catch (e) {
       this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] ${e.toString()}`, body);
@@ -383,7 +385,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Fail] Transaction failed`, TelegramBotURLs.Money);
+    telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money);
     HawkCatcher.send(new Error('[Billing / Fail] Transaction failed'), body);
 
     res.json({
