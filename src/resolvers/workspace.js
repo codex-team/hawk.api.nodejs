@@ -298,14 +298,14 @@ module.exports = {
     },
 
     /**
-     * Change workspace plan mutation implementation
+     * Change workspace plan for free plan mutation implementation
      *
      * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {string} workspaceId - id of workspace to change plan
      * @param {string} planId - plan to set
      * @param {ContextFactories} factories - factories to work with models
      */
-    async changeWorkspacePlan(
+    async changeWorkspacePlanForFreePlan(
       _obj,
       {
         input: { workspaceId, planId },

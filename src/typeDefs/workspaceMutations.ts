@@ -33,10 +33,10 @@ export default gql`
 
   extend type Mutation {
     """
-    Mutation in order to switch workspace tariff plan
-    Returns true if operation is successful
+    Mutation in order to switch workspace tariff plan to Free
+    Returns updated workspace
     """
-    changeWorkspacePlan(
+    changeWorkspacePlanForFreePlan(
         input: ChangeWorkspacePlanInput
     ): ChangeWorkspacePlanResponse! @requireAdmin
   }
