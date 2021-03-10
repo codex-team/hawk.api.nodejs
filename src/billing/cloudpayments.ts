@@ -401,6 +401,8 @@ export default class CloudPaymentsWebhooks {
    * @param res - result code
    */
   private async recurrent(req: express.Request, res: express.Response): Promise<void> {
+    await telegram.sendMessage(`✅ [Billing / Recurrent] New recurrent event`, TelegramBotURLs.Money);
+    HawkCatcher.send(new Error('[Billing / Recurrent] New recurrent event'), req.body);
     res.json({
       code: RecurrentCodes.SUCCESS,
     } as RecurrentResponse);
