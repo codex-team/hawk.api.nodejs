@@ -14,6 +14,7 @@ import {
   RecurrentResponse,
   FailRequest
 } from './types';
+import { ReasonCodesTranscript } from './types/enums';
 import {
   BusinessOperationStatus,
   BusinessOperationType,
@@ -374,7 +375,7 @@ export default class CloudPaymentsWebhooks {
         type: SenderWorkerTaskType.PaymentFailed,
         payload: {
           workspaceId: data.workspaceId,
-          reason: body.Reason,
+          reason: ReasonCodesTranscript[body.ReasonCode],
         },
       };
 
