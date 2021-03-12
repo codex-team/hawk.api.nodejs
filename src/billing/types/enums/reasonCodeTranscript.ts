@@ -24,7 +24,7 @@ export const ReasonCodesTranscript = {
   /**
    * Refusal of the issuer without explanation
    */
-  [ReasonCode.DO_NOT_HONOR]: 'error on the payment server side',
+  [ReasonCode.DO_NOT_HONOR]: 'error on the payment service side',
 
   /**
    * Network refusal to carry out the operation or incorrect CVV code
@@ -59,12 +59,12 @@ export const ReasonCodesTranscript = {
   /**
    * Refusal of the issuer without explanation
    */
-  [ReasonCode.TRANSACTION_ERROR]: 'error on the payment server side',
+  [ReasonCode.TRANSACTION_ERROR]: 'error on the payment service side',
 
   /**
    * Error on the acquirer's side - the transaction was incorrectly formed
    */
-  [ReasonCode.FORMAT_ERROR]: 'error on the payment server side',
+  [ReasonCode.FORMAT_ERROR]: 'error on the payment service side',
 
   /**
    * Unknown card issuer
@@ -79,7 +79,7 @@ export const ReasonCodesTranscript = {
   /**
    * Issuer refusal - suspicion of fraud
    */
-  [ReasonCode.SUSPECTED_FRAUD]: 'error on the payment server side',
+  [ReasonCode.SUSPECTED_FRAUD]: 'error on the payment service side',
 
   /**
    * The card is not intended for payments
@@ -89,12 +89,12 @@ export const ReasonCodesTranscript = {
   /**
    * Card lost
    */
-  [ReasonCode.LOST_CARD]: 'error on the payment server side',
+  [ReasonCode.LOST_CARD]: 'error on the payment service side',
 
   /**
    * Card stolen
    */
-  [ReasonCode.STOLEN_CARD]: 'error on the payment server side',
+  [ReasonCode.STOLEN_CARD]: 'error on the payment service side',
 
   /**
    * Insufficient funds
@@ -139,12 +139,12 @@ export const ReasonCodesTranscript = {
   /**
    * Acquiring bank or network error
    */
-  [ReasonCode.SYSTEM_ERROR]: 'error on the payment server side',
+  [ReasonCode.SYSTEM_ERROR]: 'error on the payment service side',
 
   /**
    * The transaction cannot be processed for other reasons
    */
-  [ReasonCode.UNABLE_TO_PROCESS]: 'error on the payment server side',
+  [ReasonCode.UNABLE_TO_PROCESS]: 'error on the payment service side',
 
   /**
    * 3-D Secure authorization failed
