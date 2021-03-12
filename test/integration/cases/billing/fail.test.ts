@@ -1,6 +1,6 @@
 import { apiInstance } from '../../utils';
 import { FailCodes, FailRequest } from '../../../../src/billing/types';
-import { CardType, Currency, OperationType, ReasonCode } from '../../../../src/billing/types/enums';
+import { CardType, Currency, OperationType, ReasonCode, ReasonCodesTranscript } from '../../../../src/billing/types/enums';
 import { Collection, ObjectId, Db } from 'mongodb';
 import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, BusinessOperationType, UserDBScheme, WorkspaceDBScheme, UserNotificationType, PlanProlongationPayload } from 'hawk.types';
 import { WorkerPaths } from '../../../../src/rabbitmq';
@@ -63,7 +63,7 @@ const validRequest: FailRequest = {
   TestMode: false,
   TransactionId: transactionId,
   Issuer: 'Codex Bank',
-  Reason: 'Stolen card',
+  Reason: 'DoNotHonor',
   ReasonCode: ReasonCode.DO_NOT_HONOR,
 };
 
@@ -151,7 +151,7 @@ describe('Fail webhook', () => {
         payload: {
           endpoint: 'test@hawk.so',
           workspaceId: workspace._id.toString(),
-          reason: validRequest.Reason,
+          reason: ReasonCodesTranscript[validRequest.ReasonCode],
         },
       };
 
