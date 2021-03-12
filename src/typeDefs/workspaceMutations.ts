@@ -4,22 +4,17 @@ export default gql`
   """
   Payload for changing workspace tariff plan
   """
-  input ChangeWorkspacePlanInput {
+  input ChangeWorkspacePlanForFreePlanInput {
     """
     Workspace ID
     """
     workspaceId: ID!
-
-    """
-    Tariff plan ID
-    """
-    planId: ID!
   }
 
   """
   Workspace tariff plan change mutation response
   """
-  type ChangeWorkspacePlanResponse {
+  type ChangeWorkspacePlanForFreePlanResponse {
     """
     Workspace id which plan changed
     """
@@ -37,7 +32,7 @@ export default gql`
     Returns updated workspace
     """
     changeWorkspacePlanForFreePlan(
-        input: ChangeWorkspacePlanInput
-    ): ChangeWorkspacePlanResponse! @requireAdmin
+        input: ChangeWorkspacePlanForFreePlanInput
+    ): ChangeWorkspacePlanForFreePlanResponse! @requireAdmin
   }
 `;

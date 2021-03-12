@@ -302,15 +302,14 @@ module.exports = {
      *
      * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {string} workspaceId - id of workspace to change plan
-     * @param {string} planId - plan to set
      * @param {ContextFactories} factories - factories to work with models
      */
     async changeWorkspacePlanForFreePlan(
       _obj,
       {
-        input: { workspaceId, planId },
+        input: { workspaceId },
       },
-      { factories, accounting, user }
+      { factories, user }
     ) {
       const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
 
@@ -318,21 +317,14 @@ module.exports = {
         throw new UserInputError('There is no workspace with provided id');
       }
 
-      if (workspaceModel.tariffPlanId.toString() === planId) {
-        throw new UserInputError('Plan with given ID is already used for the workspace');
+      const freePlan = await factories.plansFactory.getDefaultPlan();
+
+      if (workspaceModel.tariffPlanId === freePlan.id) {
+        throw new UserInputError('User plan is already Free');
       }
 
-      const planModel = await factories.plansFactory.findById(planId);
       const oldPlanModel = await factories.plansFactory.findById(workspaceModel.tariffPlanId);
       const userModel = await factories.usersFactory.findById(user.id);
-
-      if (!planModel) {
-        throw new UserInputError('Plan with passed ID doesn\'t exists');
-      }
-
-      if (planModel.monthlyCharge !== 0) {
-        throw new UserInputError('User selected plan isn\'t Free');
-      }
 
       try {
         const date = new Date();
@@ -344,7 +336,7 @@ module.exports = {
         await workspaceModel.updateLastChargeDate(date);
 
         // Change workspace plan
-        await workspaceModel.changePlan(planModel._id);
+        await workspaceModel.changePlan(freePlan._id);
       } catch (err) {
         console.error('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
         HawkCatcher.send(err);
@@ -355,13 +347,15 @@ module.exports = {
       // Send a message of a succesfully plan changed to the telegram bot
       const message = `🤑 <b>${escapeHTML(userModel.name || userModel.email)}</b> changed plan of «<b>${escapeHTML(workspaceModel.name)}</b>» workspace
 
-⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${planModel.name} $${planModel.monthlyCharge}</b> `;
+⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${freePlan.name} $${freePlan.monthlyCharge}</b> `;
 
       telegram.sendMessage(message);
 
+      const updatedWorkspaceModel = await factories.workspacesFactory.findById(workspaceId);
+
       return {
         recordId: workspaceId,
-        record: workspaceModel,
+        record: updatedWorkspaceModel,
       };
     },
   },
