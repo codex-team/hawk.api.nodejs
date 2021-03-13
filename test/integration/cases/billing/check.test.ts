@@ -79,141 +79,152 @@ describe('Check webhook', () => {
     });
   });
 
-  test('Should not accept request without necessary data', async () => {
-    /**
-     * Request without Data field
-     */
-    const data: CheckRequest = {
-      ...mainRequest,
-    };
-
-    const apiResponse = await apiInstance.post('/billing/check', data);
-
-    expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
+  describe('With SubscriptionId field only', () => {
+    test.todo('Should create business operation for workspace with that SubscriptionId');
+    test.todo('Should prohibit payment if no workspace with provided SubscriptionId was found');
   });
 
-  test('Should not accept request with a non-existent workspace id', async () => {
-    /**
-     * Request with a non-existent workspace id
-     */
-    const data: CheckRequest = {
-      ...mainRequest,
-      Data: JSON.stringify({
-        checksum: await checksumService.generateChecksum({
-          workspaceId: '5fe383b0126d28907780641b',
-          userId: admin._id.toString(),
-          tariffPlanId: plan._id.toString(),
-        }),
-      }),
-    };
-
-    const apiResponse = await apiInstance.post('/billing/check', data);
-
-    expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
+  describe('With SubscriptionId field and Data field', () => {
+    test.todo('Should prohibit payment if the workspace already has a subscription ');
   });
 
-  test('Should not accept request if user is not a memeber of the workspace', async () => {
-    /**
-     * Requst with a user who is not a member of the workspace
-     */
-    const data: CheckRequest = {
-      ...mainRequest,
-      Data: JSON.stringify({
-        checksum: await checksumService.generateChecksum({
-          workspaceId: workspace._id.toString(),
-          userId: user._id.toString(),
-          tariffPlanId: plan._id.toString(),
-        }),
-      }),
-    };
+  describe('With Data field', () => {
+    test('Should not accept request without necessary data', async () => {
+      /**
+       * Request without Data field
+       */
+      const data: CheckRequest = {
+        ...mainRequest,
+      };
 
-    const apiResponse = await apiInstance.post('/billing/check', data);
+      const apiResponse = await apiInstance.post('/billing/check', data);
 
-    expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
-  });
-
-  test('Should not accept request if user is not an admin', async () => {
-    /**
-     * Requst with a user who is not an admin of the workspace
-     */
-    const data: CheckRequest = {
-      ...mainRequest,
-      Data: JSON.stringify({
-        checksum: await checksumService.generateChecksum({
-          workspaceId: workspace._id.toString(),
-          userId: member._id.toString(),
-          tariffPlanId: plan._id.toString(),
-        }),
-      }),
-    };
-
-    const apiResponse = await apiInstance.post('/billing/check', data);
-
-    expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
-  });
-
-  test('Should not accept request with non-existent plan', async () => {
-    /**
-     * Requst with a non-existent plan id
-     */
-    const data: CheckRequest = {
-      ...mainRequest,
-      Data: JSON.stringify({
-        checksum: await checksumService.generateChecksum({
-          workspaceId: workspace._id.toString(),
-          userId: admin._id.toString(),
-          tariffPlanId: '5fe383b0126d28007780641b',
-        }),
-      }),
-    };
-
-    const apiResponse = await apiInstance.post('/billing/check', data);
-
-    expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
-  });
-
-  test('Should not accept request because amount in request doesn\'t match with plan monthly charge', async () => {
-    /**
-     * Request with amount that does not match the cost of the plan
-     */
-    const data: CheckRequest = {
-      ...mainRequest,
-      Amount: '20.45',
-      Data: JSON.stringify({
-        checksum: await checksumService.generateChecksum({
-          workspaceId: workspace._id.toString(),
-          userId: admin._id.toString(),
-          tariffPlanId: plan._id.toString(),
-        }),
-      }),
-    };
-
-    const apiResponse = await apiInstance.post('/billing/check', data);
-
-    expect(apiResponse.data.code).toBe(CheckCodes.WRONG_AMOUNT);
-  });
-
-  test('Should create business operation with pending status', async () => {
-    /**
-     * Correct data
-     */
-    const data: CheckRequest = {
-      ...mainRequest,
-      Data: JSON.stringify({
-        checksum: await checksumService.generateChecksum({
-          workspaceId: workspace._id.toString(),
-          userId: admin._id.toString(),
-          tariffPlanId: plan._id.toString(),
-        }),
-      }),
-    };
-
-    const apiResponse = await apiInstance.post('/billing/check', data);
-    const createdBusinessOperation = await businessOperationsCollection.findOne({
-      transactionId: transactionId.toString(),
+      expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
     });
 
-    expect(apiResponse.data.code).toBe(CheckCodes.SUCCESS);
-    expect(createdBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    test('Should not accept request with a non-existent workspace id', async () => {
+      /**
+       * Request with a non-existent workspace id
+       */
+      const data: CheckRequest = {
+        ...mainRequest,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            workspaceId: '5fe383b0126d28907780641b',
+            userId: admin._id.toString(),
+            tariffPlanId: plan._id.toString(),
+          }),
+        }),
+      };
+
+      const apiResponse = await apiInstance.post('/billing/check', data);
+
+      expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
+    });
+
+    test('Should not accept request if user is not a memeber of the workspace', async () => {
+      /**
+       * Requst with a user who is not a member of the workspace
+       */
+      const data: CheckRequest = {
+        ...mainRequest,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            workspaceId: workspace._id.toString(),
+            userId: user._id.toString(),
+            tariffPlanId: plan._id.toString(),
+          }),
+        }),
+      };
+
+      const apiResponse = await apiInstance.post('/billing/check', data);
+
+      expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
+    });
+
+    test('Should not accept request if user is not an admin', async () => {
+      /**
+       * Requst with a user who is not an admin of the workspace
+       */
+      const data: CheckRequest = {
+        ...mainRequest,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            workspaceId: workspace._id.toString(),
+            userId: member._id.toString(),
+            tariffPlanId: plan._id.toString(),
+          }),
+        }),
+      };
+
+      const apiResponse = await apiInstance.post('/billing/check', data);
+
+      expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
+    });
+
+    test('Should not accept request with non-existent plan', async () => {
+      /**
+       * Requst with a non-existent plan id
+       */
+      const data: CheckRequest = {
+        ...mainRequest,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            workspaceId: workspace._id.toString(),
+            userId: admin._id.toString(),
+            tariffPlanId: '5fe383b0126d28007780641b',
+          }),
+        }),
+      };
+
+      const apiResponse = await apiInstance.post('/billing/check', data);
+
+      expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
+    });
+
+    test('Should not accept request because amount in request doesn\'t match with plan monthly charge', async () => {
+      /**
+       * Request with amount that does not match the cost of the plan
+       */
+      const data: CheckRequest = {
+        ...mainRequest,
+        Amount: '20.45',
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            workspaceId: workspace._id.toString(),
+            userId: admin._id.toString(),
+            tariffPlanId: plan._id.toString(),
+          }),
+        }),
+      };
+
+      const apiResponse = await apiInstance.post('/billing/check', data);
+
+      expect(apiResponse.data.code).toBe(CheckCodes.WRONG_AMOUNT);
+    });
+
+    test('Should create business operation with pending status', async () => {
+      /**
+       * Correct data
+       */
+      const data: CheckRequest = {
+        ...mainRequest,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            workspaceId: workspace._id.toString(),
+            userId: admin._id.toString(),
+            tariffPlanId: plan._id.toString(),
+          }),
+        }),
+      };
+
+      const apiResponse = await apiInstance.post('/billing/check', data);
+      const createdBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(CheckCodes.SUCCESS);
+      expect(createdBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    });
   });
 });
