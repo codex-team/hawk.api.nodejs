@@ -19,7 +19,7 @@ import {
   BusinessOperationType,
   ConfirmedMemberDBScheme,
   PayloadOfWorkspacePlanPurchase,
-  PlanDBScheme
+  PlanDBScheme, PlanProlongationPayload
 } from 'hawk.types';
 import { PENNY_MULTIPLIER, AccountType, Currency } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
@@ -136,24 +136,23 @@ export default class CloudPaymentsWebhooks {
    * @param res - check result code
    */
   private async check(req: express.Request, res: express.Response): Promise<void> {
+    const context = req.context;
     const body: CheckRequest = req.body;
-    let data;
+    let data: PlanProlongationPayload;
 
     try {
-      data = checksumService.parseAndVerifyData(body.Data);
+      data = await this.getDataFromRequest(req);
     } catch (e) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Can't parse data from body`, body);
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Invalid request`, body);
 
       return;
     }
-
-    const context = req.context;
 
     let workspace: WorkspaceModel;
     let member: ConfirmedMemberDBScheme;
     let plan: PlanDBScheme;
 
-    if (!data || !data.workspaceId || !data.tariffPlanId || !data.userId) {
+    if (!data.workspaceId || !data.tariffPlanId || !data.userId) {
       this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the request', body);
 
       return;
@@ -512,5 +511,37 @@ export default class CloudPaymentsWebhooks {
     telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error(errorText), backtrace);
+  }
+
+  /**
+   * Parses request body and returns data from it
+   * @param req - request with necessary data
+   */
+  private async getDataFromRequest(req: express.Request): Promise<PlanProlongationPayload> {
+    const context = req.context;
+    const body: CheckRequest = req.body;
+
+    if (body.Data) {
+      return checksumService.parseAndVerifyData(body.Data);
+    }
+
+    const subscriptionId = body.SubscriptionId;
+    const userId = body.AccountId;
+
+    if (!subscriptionId || !userId) {
+      throw new Error('kek234');
+    }
+
+    const workspace = await context.factories.workspacesFactory.findBySubscriptionId(subscriptionId);
+
+    if (workspace) {
+      return {
+        workspaceId: workspace._id.toString(),
+        tariffPlanId: workspace.tariffPlanId.toString(),
+        userId,
+      };
+    }
+
+    throw new Error('Invalid request');
   }
 }

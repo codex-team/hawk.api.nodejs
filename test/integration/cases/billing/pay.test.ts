@@ -8,32 +8,14 @@ import {
   BusinessOperationType,
   PlanDBScheme, PlanProlongationPayload,
   UserDBScheme,
-  UserNotificationType,
   WorkspaceDBScheme
 } from 'hawk.types';
 import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import checksumService from '../../../../src/utils/checksumService';
+import { user } from '../../mocks';
 
 const transactionId = 123456;
-
-const user: UserDBScheme = {
-  _id: new ObjectId(),
-  notifications: {
-    whatToReceive: {
-      [UserNotificationType.IssueAssigning]: true,
-      [UserNotificationType.SystemMessages]: true,
-      [UserNotificationType.WeeklyDigest]: true,
-    },
-    channels: {
-      email: {
-        isEnabled: true,
-        endpoint: 'test@hawk.so',
-        minPeriod: 10,
-      },
-    },
-  },
-};
 
 const workspace = {
   _id: new ObjectId(),
@@ -174,6 +156,127 @@ describe('Pay webhook', () => {
     await accountingDb.dropDatabase();
   });
 
+  describe('With SubscriptionId field only', () => {
+    test.skip('Should change business operation status to confirmed', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Confirmed);
+    });
+
+    test.skip('Should reset events counter in workspace', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+      const updatedWorkspace = await workspacesCollection.findOne({
+        _id: workspace._id,
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedWorkspace?.billingPeriodEventsCount).toBe(0);
+    });
+
+    test.skip('Should reset last charge date in workspace', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+      const updatedWorkspace = await workspacesCollection.findOne({
+        _id: workspace._id,
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedWorkspace?.lastChargeDate).not.toBe(workspace.lastChargeDate);
+    });
+
+    test.skip('Should change workspace plan', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+      const updatedWorkspace = await workspacesCollection.findOne({
+        _id: workspace._id,
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedWorkspace?.tariffPlanId.toString()).toBe(tariffPlan._id.toString());
+    });
+
+    test.skip('Should send task to limiter worker to check workspace', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+      const message = await global.rabbitChannel.get('cron-tasks/limiter', {
+        noAck: true,
+      });
+      const expectedLimiterTask = {
+        type: 'check-single-workspace',
+        workspaceId: workspace._id.toString(),
+      };
+
+      expect(message).toBeTruthy();
+      expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
+
+    test.skip('Should associate an account with a workspace if the workspace did not have one', async () => {
+      /**
+       * Remove accountId from existed workspace
+       */
+      await workspacesCollection.updateOne(
+        { _id: workspace._id },
+        {
+          $unset: {
+            accountId: '',
+          },
+        }
+      );
+
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+      /**
+       * Check that account is created and linked
+       */
+      const updatedWorkspace = await workspacesCollection.findOne({ _id: workspace._id });
+      const accountId = updatedWorkspace?.accountId;
+      const account = await accountingCollection.findOne({ id: accountId });
+
+      expect(typeof accountId).toBe('string');
+      expect(account).toBeTruthy();
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
+
+    test.skip('Should add payment data to accounting system', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+      const transactions = await transactionsCollection
+        .find({})
+        .toArray();
+
+      expect(transactions.length).toBe(2);
+      expect(transactions.some(tr => tr.type === 'Deposit'));
+      expect(transactions.some(tr => tr.type === 'Purchase'));
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
+
+    test.skip('Should add task to sender worker to notify user about plan prolongation', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+
+      const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
+        noAck: true,
+      });
+      const expectedLimiterTask: PlanProlongationNotificationTask = {
+        type: SenderWorkerTaskType.PlanProlongation,
+        payload: {
+          endpoint: 'test@hawk.so',
+          ...planProlongationPayload,
+        },
+      };
+
+      expect(message).toBeTruthy();
+      expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
+  });
+
   describe('With valid request', () => {
     test('Should change business operation status to confirmed', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
@@ -274,25 +377,27 @@ describe('Pay webhook', () => {
       expect(transactions.some(tr => tr.type === 'Purchase'));
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
-  });
 
-  test('Should add task to sender worker to notify user about plan prolongation', async () => {
-    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+    test('Should add task to sender worker to notify user about plan prolongation', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
 
-    const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
-      noAck: true,
+      const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
+        noAck: true,
+      });
+      const expectedLimiterTask: PlanProlongationNotificationTask = {
+        type: SenderWorkerTaskType.PlanProlongation,
+        payload: {
+          endpoint: 'test@hawk.so',
+          ...planProlongationPayload,
+        },
+      };
+
+      expect(message).toBeTruthy();
+      expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
-    const expectedLimiterTask: PlanProlongationNotificationTask = {
-      type: SenderWorkerTaskType.PlanProlongation,
-      payload: {
-        endpoint: 'test@hawk.so',
-        ...planProlongationPayload,
-      },
-    };
 
-    expect(message).toBeTruthy();
-    expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
-    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    test.todo('Should save SubscriptionId if it is provided in request');
   });
 
   describe('With invalid request', () => {

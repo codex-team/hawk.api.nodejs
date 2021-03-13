@@ -1,9 +1,10 @@
 import { apiInstance } from '../../utils';
 import { CheckCodes, CheckRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
-import mongodb, { Collection, ObjectId } from 'mongodb';
+import { Collection, ObjectId } from 'mongodb';
 import { BusinessOperationDBScheme, BusinessOperationStatus, ConfirmedMemberDBScheme, PlanDBScheme, UserDBScheme, WorkspaceDBScheme } from 'hawk.types';
 import checksumService from '../../../../src/utils/checksumService';
+import { user } from '../../mocks';
 
 const transactionId = 880555;
 
@@ -25,30 +26,53 @@ const mainRequest: CheckRequest = {
   Issuer: 'Codex Bank',
 };
 
+/**
+ * Generates request for payment via subscription
+ *
+ * @param accountId - id of the account who makes payment
+ */
+function getRequestWithSubscription(accountId: string): CheckRequest {
+  return {
+    ...mainRequest,
+    SubscriptionId: '123',
+    AccountId: accountId,
+    Amount: '10',
+  };
+}
+
 describe('Check webhook', () => {
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
+  let workspacesCollection: Collection<WorkspaceDBScheme>;
+
   let workspace: WorkspaceDBScheme;
-  let user: UserDBScheme;
+  let externalUser: UserDBScheme;
   let member: UserDBScheme;
   let admin: UserDBScheme;
-  let plan: PlanDBScheme;
+  let planToChange: PlanDBScheme;
 
   beforeAll(async () => {
     const accountsDb = await global.mongoClient.db('hawk');
 
-    const workspaces = await accountsDb.collection<WorkspaceDBScheme>('workspaces');
+    workspacesCollection = await accountsDb.collection<WorkspaceDBScheme>('workspaces');
     const users = await accountsDb.collection<UserDBScheme>('users');
     const plans = await accountsDb.collection<PlanDBScheme>('plans');
 
     businessOperationsCollection = await accountsDb.collection<BusinessOperationDBScheme>('businessOperations');
 
-    workspace = (await workspaces.insertOne({
+    const currentPlan = (await plans.insertOne({
+      name: 'CurrentTestPlan',
+      monthlyCharge: 10,
+      eventsLimit: 1000,
+      isDefault: false,
+    })).ops[0];
+
+    workspace = (await workspacesCollection.insertOne({
       name: 'BillingTest',
       accountId: '123',
-      tariffPlanId: new ObjectId('5fe383b0126d28007780641b'),
+      tariffPlanId: currentPlan._id,
     } as WorkspaceDBScheme)).ops[0];
 
-    user = (await users.insertOne({
+    externalUser = (await users.insertOne({
       email: 'user@billing.test',
     })).ops[0];
 
@@ -60,7 +84,7 @@ describe('Check webhook', () => {
       email: 'admin@billing.test',
     })).ops[0];
 
-    plan = (await plans.insertOne({
+    planToChange = (await plans.insertOne({
       name: 'BasicTest',
       monthlyCharge: 20,
       eventsLimit: 10000,
@@ -80,12 +104,27 @@ describe('Check webhook', () => {
   });
 
   describe('With SubscriptionId field only', () => {
-    test.todo('Should create business operation for workspace with that SubscriptionId');
+    test.only('Should create business operation for workspace with that SubscriptionId', async () => {
+      const request = getRequestWithSubscription(admin._id.toString());
+
+      await workspacesCollection.updateOne(
+        { _id: workspace._id },
+        { $set: { subscriptionId: request.SubscriptionId } }
+      );
+
+      const apiResponse = await apiInstance.post('/billing/check', request);
+      const createdBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(CheckCodes.SUCCESS);
+      expect(createdBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    });
     test.todo('Should prohibit payment if no workspace with provided SubscriptionId was found');
   });
 
   describe('With SubscriptionId field and Data field', () => {
-    test.todo('Should prohibit payment if the workspace already has a subscription ');
+    test.todo('Should prohibit payment if the workspace already has a subscription');
   });
 
   describe('With Data field', () => {
@@ -112,7 +151,7 @@ describe('Check webhook', () => {
           checksum: await checksumService.generateChecksum({
             workspaceId: '5fe383b0126d28907780641b',
             userId: admin._id.toString(),
-            tariffPlanId: plan._id.toString(),
+            tariffPlanId: planToChange._id.toString(),
           }),
         }),
       };
@@ -122,17 +161,17 @@ describe('Check webhook', () => {
       expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
     });
 
-    test('Should not accept request if user is not a memeber of the workspace', async () => {
+    test('Should not accept request if user is not a member of the workspace', async () => {
       /**
-       * Requst with a user who is not a member of the workspace
+       * Request with a user who is not a member of the workspace
        */
       const data: CheckRequest = {
         ...mainRequest,
         Data: JSON.stringify({
           checksum: await checksumService.generateChecksum({
             workspaceId: workspace._id.toString(),
-            userId: user._id.toString(),
-            tariffPlanId: plan._id.toString(),
+            userId: externalUser._id.toString(),
+            tariffPlanId: planToChange._id.toString(),
           }),
         }),
       };
@@ -144,7 +183,7 @@ describe('Check webhook', () => {
 
     test('Should not accept request if user is not an admin', async () => {
       /**
-       * Requst with a user who is not an admin of the workspace
+       * Request with a user who is not an admin of the workspace
        */
       const data: CheckRequest = {
         ...mainRequest,
@@ -152,7 +191,7 @@ describe('Check webhook', () => {
           checksum: await checksumService.generateChecksum({
             workspaceId: workspace._id.toString(),
             userId: member._id.toString(),
-            tariffPlanId: plan._id.toString(),
+            tariffPlanId: planToChange._id.toString(),
           }),
         }),
       };
@@ -164,7 +203,7 @@ describe('Check webhook', () => {
 
     test('Should not accept request with non-existent plan', async () => {
       /**
-       * Requst with a non-existent plan id
+       * Request with a non-existent plan id
        */
       const data: CheckRequest = {
         ...mainRequest,
@@ -193,7 +232,7 @@ describe('Check webhook', () => {
           checksum: await checksumService.generateChecksum({
             workspaceId: workspace._id.toString(),
             userId: admin._id.toString(),
-            tariffPlanId: plan._id.toString(),
+            tariffPlanId: planToChange._id.toString(),
           }),
         }),
       };
@@ -213,7 +252,7 @@ describe('Check webhook', () => {
           checksum: await checksumService.generateChecksum({
             workspaceId: workspace._id.toString(),
             userId: admin._id.toString(),
-            tariffPlanId: plan._id.toString(),
+            tariffPlanId: planToChange._id.toString(),
           }),
         }),
       };
