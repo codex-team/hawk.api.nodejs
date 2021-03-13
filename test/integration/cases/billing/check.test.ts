@@ -1,7 +1,7 @@
 import { apiInstance } from '../../utils';
 import { CheckCodes, CheckRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
-import { Collection, ObjectId } from 'mongodb';
+import { Collection, ObjectId, Db } from 'mongodb';
 import { BusinessOperationDBScheme, BusinessOperationStatus, ConfirmedMemberDBScheme, PlanDBScheme, UserDBScheme, WorkspaceDBScheme } from 'hawk.types';
 import checksumService from '../../../../src/utils/checksumService';
 import { user } from '../../mocks';
@@ -41,6 +41,8 @@ function getRequestWithSubscription(accountId: string): CheckRequest {
 }
 
 describe('Check webhook', () => {
+  let accountsDb: Db;
+
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
   let workspacesCollection: Collection<WorkspaceDBScheme>;
 
@@ -51,7 +53,7 @@ describe('Check webhook', () => {
   let planToChange: PlanDBScheme;
 
   beforeAll(async () => {
-    const accountsDb = await global.mongoClient.db('hawk');
+    accountsDb = await global.mongoClient.db('hawk');
 
     workspacesCollection = await accountsDb.collection<WorkspaceDBScheme>('workspaces');
     const users = await accountsDb.collection<UserDBScheme>('users');
@@ -103,8 +105,12 @@ describe('Check webhook', () => {
     });
   });
 
+  afterEach(async () => {
+    await accountsDb.dropDatabase();
+  });
+
   describe('With SubscriptionId field only', () => {
-    test.only('Should create business operation for workspace with that SubscriptionId', async () => {
+    test('Should create business operation for workspace with that SubscriptionId', async () => {
       const request = getRequestWithSubscription(admin._id.toString());
 
       await workspacesCollection.updateOne(
@@ -120,7 +126,18 @@ describe('Check webhook', () => {
       expect(apiResponse.data.code).toBe(CheckCodes.SUCCESS);
       expect(createdBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
     });
-    test.todo('Should prohibit payment if no workspace with provided SubscriptionId was found');
+
+    test('Should prohibit payment if no workspace with provided SubscriptionId was found', async () => {
+      const request = getRequestWithSubscription(admin._id.toString());
+
+      const apiResponse = await apiInstance.post('/billing/check', request);
+      const createdBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
+      expect(createdBusinessOperation).toBe(null);
+    });
   });
 
   describe('With SubscriptionId field and Data field', () => {
@@ -221,7 +238,7 @@ describe('Check webhook', () => {
       expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
     });
 
-    test('Should not accept request because amount in request doesn\'t match with plan monthly charge', async () => {
+    test.only('Should not accept request because amount in request doesn\'t match with plan monthly charge', async () => {
       /**
        * Request with amount that does not match the cost of the plan
        */
