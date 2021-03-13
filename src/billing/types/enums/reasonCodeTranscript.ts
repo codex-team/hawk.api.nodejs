@@ -129,7 +129,7 @@ export const ReasonCodesTranscript = {
   /**
    * Issuer unavailable
    */
-  [ReasonCode.TIMEOUT]: 'issuer unvailabe',
+  [ReasonCode.TIMEOUT]: 'issuer unvailable',
 
   /**
    * Issuer unavailable
