@@ -336,12 +336,12 @@ export default class CloudPaymentsWebhooks {
    */
   private async fail(req: express.Request, res: express.Response): Promise<void> {
     const body: FailRequest = req.body;
-    let data;
+    let data: PlanProlongationPayload;
 
     try {
-      data = checksumService.parseAndVerifyData(body.Data);
+      data = await this.getDataFromRequest(req);
     } catch (e) {
-      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Can't parse data from body`, body);
+      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Fail] Invalid request`, body);
 
       return;
     }
@@ -350,7 +350,7 @@ export default class CloudPaymentsWebhooks {
     let workspace;
     let user;
 
-    if (!data || !data.workspaceId || !data.userId || !data.tariffPlanId) {
+    if (!data.workspaceId || !data.userId || !data.tariffPlanId) {
       this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No workspace or user id or plan id in request body`, body);
 
       return;
@@ -390,7 +390,8 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money);
+    telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money)
+      .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error('[Billing / Fail] Transaction failed'), body);
 
     res.json({
