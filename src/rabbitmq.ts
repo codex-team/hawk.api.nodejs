@@ -80,6 +80,9 @@ export const WorkerPaths: Record<string, WorkerPath> = {
     queue: Queues.Slack,
   },
 
+  /**
+   * Path to limiter worker
+   */
   Limiter: {
     exchange: Exchanges.CronTasks,
     queue: Queues.Limiter,

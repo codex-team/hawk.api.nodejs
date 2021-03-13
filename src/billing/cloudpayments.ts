@@ -19,7 +19,8 @@ import {
   BusinessOperationType,
   ConfirmedMemberDBScheme,
   PayloadOfWorkspacePlanPurchase,
-  PlanDBScheme, PlanProlongationPayload
+  PlanDBScheme,
+  PlanProlongationPayload
 } from 'hawk.types';
 import { PENNY_MULTIPLIER, AccountType, Currency } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
@@ -522,6 +523,7 @@ export default class CloudPaymentsWebhooks {
 
   /**
    * Parses request body and returns data from it
+   *
    * @param req - request with necessary data
    */
   private async getDataFromRequest(req: express.Request): Promise<PlanProlongationPayload> {
@@ -536,7 +538,7 @@ export default class CloudPaymentsWebhooks {
     const userId = body.AccountId;
 
     if (!subscriptionId || !userId) {
-      throw new Error('kek234');
+      throw new Error('Invalid request: no subscription or user id');
     }
 
     const workspace = await context.factories.workspacesFactory.findBySubscriptionId(subscriptionId);
@@ -549,6 +551,6 @@ export default class CloudPaymentsWebhooks {
       };
     }
 
-    throw new Error('Invalid request');
+    throw new Error('Invalid request: no necessary data');
   }
 }
