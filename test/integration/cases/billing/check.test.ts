@@ -1,44 +1,16 @@
 import { apiInstance } from '../../utils';
 import { CheckCodes, CheckRequest } from '../../../../src/billing/types';
-import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
-import { Collection, ObjectId, Db } from 'mongodb';
-import { BusinessOperationDBScheme, BusinessOperationStatus, ConfirmedMemberDBScheme, PlanDBScheme, UserDBScheme, WorkspaceDBScheme } from 'hawk.types';
+import { Collection, Db } from 'mongodb';
+import {
+  BusinessOperationDBScheme,
+  BusinessOperationStatus,
+  ConfirmedMemberDBScheme,
+  PlanDBScheme,
+  UserDBScheme,
+  WorkspaceDBScheme
+} from 'hawk.types';
 import checksumService from '../../../../src/utils/checksumService';
-import { user } from '../../mocks';
-
-const transactionId = 880555;
-
-/**
- * Basic check request
- */
-const mainRequest: CheckRequest = {
-  Amount: '20',
-  CardExpDate: '06/25',
-  CardFirstSix: '578946',
-  CardLastFour: '5367',
-  CardType: CardType.VISA,
-  Currency: Currency.USD,
-  DateTime: new Date(),
-  OperationType: OperationType.PAYMENT,
-  Status: OperationStatus.COMPLETED,
-  TestMode: false,
-  TransactionId: transactionId,
-  Issuer: 'Codex Bank',
-};
-
-/**
- * Generates request for payment via subscription
- *
- * @param accountId - id of the account who makes payment
- */
-function getRequestWithSubscription(accountId: string): CheckRequest {
-  return {
-    ...mainRequest,
-    SubscriptionId: '123',
-    AccountId: accountId,
-    Amount: '10',
-  };
-}
+import { getRequestWithSubscription, mainRequest, transactionId } from '../../mocks';
 
 describe('Check webhook', () => {
   let accountsDb: Db;

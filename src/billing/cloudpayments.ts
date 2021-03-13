@@ -221,14 +221,14 @@ export default class CloudPaymentsWebhooks {
     let data;
 
     try {
-      data = checksumService.parseAndVerifyData(body.Data);
+      data = await this.getDataFromRequest(req);
     } catch (e) {
-      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Pay] Can't parse data from body`, body);
+      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Pay] Invalid request`, body);
 
       return;
     }
 
-    if (!data || !data.workspaceId || !data.tariffPlanId || !data.userId) {
+    if (!data.workspaceId || !data.tariffPlanId || !data.userId) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace, tariff plan or user id in request body`, body);
 
       return;
@@ -254,6 +254,12 @@ export default class CloudPaymentsWebhooks {
       await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
       await workspace.resetBillingPeriod();
       await workspace.changePlan(tariffPlan._id);
+
+      const subscriptionId = body.SubscriptionId;
+
+      if (subscriptionId) {
+        await workspace.setSubscriptionId(subscriptionId);
+      }
     } catch (e) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${e.toString()}`, body);
 
