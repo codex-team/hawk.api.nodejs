@@ -151,7 +151,7 @@ export enum ReasonCode {
   /**
    * 3-D Secure authorization not available
    */
-  AUTHENTICATION_UNVAILABLE = 5207,
+  AUTHENTICATION_UNAVAILABLE = 5207,
 
   /**
    * Acquiring limits for transactions

@@ -129,12 +129,12 @@ export const ReasonCodesTranscript = {
   /**
    * Issuer unavailable
    */
-  [ReasonCode.TIMEOUT]: 'issuer unvailable',
+  [ReasonCode.TIMEOUT]: 'issuer unavailable',
 
   /**
    * Issuer unavailable
    */
-  [ReasonCode.CANNOT_REACH_NETWORK]: 'issuer unvailable',
+  [ReasonCode.CANNOT_REACH_NETWORK]: 'issuer unavailable',
 
   /**
    * Acquiring bank or network error
@@ -154,7 +154,7 @@ export const ReasonCodesTranscript = {
   /**
    * 3-D Secure authorization not available
    */
-  [ReasonCode.AUTHENTICATION_UNVAILABLE]: '3-D Secure authorization not available',
+  [ReasonCode.AUTHENTICATION_UNAVAILABLE]: '3-D Secure authorization not available',
 
   /**
    * Acquiring limits for transactions
