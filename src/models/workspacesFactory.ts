@@ -78,7 +78,17 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
   }
 
   /**
-   * @private
+   * Returns workspace bu its subscription id
+   *
+   * @param subscriptionId - subscription id from payment system
+   */
+  public async findBySubscriptionId(subscriptionId: string): Promise<WorkspaceModel | null> {
+    const workspaceData = await this.collection.findOne({ subscriptionId });
+
+    return workspaceData && new WorkspaceModel(workspaceData);
+  }
+
+  /**
    * Get default plan to be used for new projects
    */
   private async getDefaultPlan(): Promise<PlanModel> {

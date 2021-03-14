@@ -12,7 +12,8 @@ import {
   PayResponse,
   RecurrentCodes,
   RecurrentResponse,
-  FailRequest
+  FailRequest,
+  RecurrentRequest
 } from './types';
 import { ReasonCodesTranscript } from './types/enums';
 import {
@@ -20,7 +21,8 @@ import {
   BusinessOperationType,
   ConfirmedMemberDBScheme,
   PayloadOfWorkspacePlanPurchase,
-  PlanDBScheme
+  PlanDBScheme,
+  PlanProlongationPayload
 } from 'hawk.types';
 import { PENNY_MULTIPLIER, AccountType, Currency } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
@@ -32,6 +34,7 @@ import { PlanProlongationNotificationTask, SenderWorkerTaskType, PaymentFailedNo
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';
+import { SubscriptionStatus } from './types/enums';
 
 /**
  * Class for describing the logic of payment routes
@@ -137,24 +140,23 @@ export default class CloudPaymentsWebhooks {
    * @param res - check result code
    */
   private async check(req: express.Request, res: express.Response): Promise<void> {
+    const context = req.context;
     const body: CheckRequest = req.body;
-    let data;
+    let data: PlanProlongationPayload;
 
     try {
-      data = checksumService.parseAndVerifyData(body.Data);
+      data = await this.getDataFromRequest(req);
     } catch (e) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Can't parse data from body`, body);
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Invalid request`, body);
 
       return;
     }
-
-    const context = req.context;
 
     let workspace: WorkspaceModel;
     let member: ConfirmedMemberDBScheme;
     let plan: PlanDBScheme;
 
-    if (!data || !data.workspaceId || !data.tariffPlanId || !data.userId) {
+    if (!data.workspaceId || !data.tariffPlanId || !data.userId) {
       this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the request', body);
 
       return;
@@ -223,14 +225,14 @@ export default class CloudPaymentsWebhooks {
     let data;
 
     try {
-      data = checksumService.parseAndVerifyData(body.Data);
+      data = await this.getDataFromRequest(req);
     } catch (e) {
-      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Pay] Can't parse data from body`, body);
+      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Pay] Invalid request`, body);
 
       return;
     }
 
-    if (!data || !data.workspaceId || !data.tariffPlanId || !data.userId) {
+    if (!data.workspaceId || !data.tariffPlanId || !data.userId) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace, tariff plan or user id in request body`, body);
 
       return;
@@ -256,6 +258,12 @@ export default class CloudPaymentsWebhooks {
       await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
       await workspace.resetBillingPeriod();
       await workspace.changePlan(tariffPlan._id);
+
+      const subscriptionId = body.SubscriptionId;
+
+      if (subscriptionId) {
+        await workspace.setSubscriptionId(subscriptionId);
+      }
     } catch (e) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${e.toString()}`, body);
 
@@ -332,12 +340,12 @@ export default class CloudPaymentsWebhooks {
    */
   private async fail(req: express.Request, res: express.Response): Promise<void> {
     const body: FailRequest = req.body;
-    let data;
+    let data: PlanProlongationPayload;
 
     try {
-      data = checksumService.parseAndVerifyData(body.Data);
+      data = await this.getDataFromRequest(req);
     } catch (e) {
-      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Can't parse data from body`, body);
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Invalid request`, body);
 
       return;
     }
@@ -346,7 +354,7 @@ export default class CloudPaymentsWebhooks {
     let workspace;
     let user;
 
-    if (!data || !data.workspaceId || !data.userId || !data.tariffPlanId) {
+    if (!data.workspaceId || !data.userId || !data.tariffPlanId) {
       this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No workspace or user id or plan id in request body`, body);
 
       return;
@@ -386,7 +394,8 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money);
+    telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money)
+      .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error('[Billing / Fail] Transaction failed'), body);
 
     res.json({
@@ -402,6 +411,30 @@ export default class CloudPaymentsWebhooks {
    * @param res - result code
    */
   private async recurrent(req: express.Request, res: express.Response): Promise<void> {
+    const body: RecurrentRequest = req.body;
+    const context = req.context;
+
+    switch (body.Status) {
+      case SubscriptionStatus.CANCELLED:
+      case SubscriptionStatus.REJECTED: {
+        try {
+          const workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
+
+          if (workspace) {
+            await workspace.setSubscriptionId(null);
+          } else {
+            throw new Error('There is no workspace with provided subscription id');
+          }
+        } catch {
+          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't remove subscriptionId from workspace`, body);
+        }
+      }
+    }
+
+    telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money)
+      .catch(e => console.error('Error while sending message to Telegram: ' + e));
+    HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
+
     res.json({
       code: RecurrentCodes.SUCCESS,
     } as RecurrentResponse);
@@ -511,5 +544,42 @@ export default class CloudPaymentsWebhooks {
     telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
     HawkCatcher.send(new Error(errorText), backtrace);
+  }
+
+  /**
+   * Parses request body and returns data from it
+   *
+   * @param req - request with necessary data
+   */
+  private async getDataFromRequest(req: express.Request): Promise<PlanProlongationPayload> {
+    const context = req.context;
+    const body: CheckRequest = req.body;
+
+    /**
+     * If Data is not presented in body means there is a recurring payment
+     * Data field is presented only in one-time payment requests or subscription initial request
+     */
+    if (body.Data) {
+      return checksumService.parseAndVerifyData(body.Data);
+    }
+
+    const subscriptionId = body.SubscriptionId;
+    const userId = body.AccountId;
+
+    if (!subscriptionId || !userId) {
+      throw new Error('Invalid request: no subscription or user id');
+    }
+
+    const workspace = await context.factories.workspacesFactory.findBySubscriptionId(subscriptionId);
+
+    if (workspace) {
+      return {
+        workspaceId: workspace._id.toString(),
+        tariffPlanId: workspace.tariffPlanId.toString(),
+        userId,
+      };
+    }
+
+    throw new Error('Invalid request: no necessary data');
   }
 }

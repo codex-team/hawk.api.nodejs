@@ -6,6 +6,7 @@ import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, Busin
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import { PaymentFailedNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
 import checksumService from '../../../../src/utils/checksumService';
+import { getRequestWithSubscription } from '../../billingMocks';
 
 const transactionId = 909090;
 
@@ -118,6 +119,54 @@ describe('Fail webhook', () => {
     await accountsDb.dropDatabase();
   });
 
+  describe('With SubscriptionId only', () => {
+    const request: FailRequest = {
+      ...validRequest,
+      SubscriptionId: '123',
+      AccountId: user._id.toString(),
+    };
+
+    request.TransactionId = transactionId;
+
+    beforeEach(async () => {
+      await workspacesCollection.updateOne(
+        { _id: workspace._id },
+        { $set: { subscriptionId: request.SubscriptionId } }
+      );
+    });
+
+    test('Should change business operation status to rejected', async () => {
+      const apiResponse = await apiInstance.post('/billing/fail', request);
+
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(FailCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Rejected);
+    });
+
+    test('Should add task to sender worker to notify user about payment rejection', async () => {
+      const apiResponse = await apiInstance.post('/billing/fail', request);
+
+      const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
+        noAck: true,
+      });
+      const expectedLimiterTask: PaymentFailedNotificationTask = {
+        type: SenderWorkerTaskType.PaymentFailed,
+        payload: {
+          endpoint: 'test@hawk.so',
+          workspaceId: workspace._id.toString(),
+          reason: request.Reason,
+        },
+      };
+
+      expect(message).toBeTruthy();
+      expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
+      expect(apiResponse.data.code).toBe(FailCodes.SUCCESS);
+    });
+  });
+
   describe('With valid request', () => {
     test('Should change business operation status to rejected', async () => {
       const apiResponse = await apiInstance.post('/billing/fail', {
@@ -174,25 +223,25 @@ describe('Fail webhook', () => {
       expect(apiResponse.data.code).toBe(FailCodes.SUCCESS);
       expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
     });
-  });
 
-  test('Should not change business operation status if no user id provided', async () => {
-    const apiResponse = await apiInstance.post('/billing/fail', {
-      ...validRequest,
-      Data: JSON.stringify({
-        checksum: await checksumService.generateChecksum({
-          userId: '',
-          workspaceId: workspace._id.toString(),
-          tariffPlanId: tariffPlan._id.toString(),
+    test('Should not change business operation status if no user id provided', async () => {
+      const apiResponse = await apiInstance.post('/billing/fail', {
+        ...validRequest,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            userId: '',
+            workspaceId: workspace._id.toString(),
+            tariffPlanId: tariffPlan._id.toString(),
+          }),
         }),
-      }),
-    });
+      });
 
-    const updatedBusinessOperation = await businessOperationsCollection.findOne({
-      transactionId: transactionId.toString(),
-    });
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
 
-    expect(apiResponse.data.code).toBe(FailCodes.SUCCESS);
-    expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+      expect(apiResponse.data.code).toBe(FailCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    });
   });
 });
