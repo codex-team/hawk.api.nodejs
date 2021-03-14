@@ -17,6 +17,8 @@ describe('Check webhook', () => {
 
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
   let workspacesCollection: Collection<WorkspaceDBScheme>;
+  let plans: Collection<PlanDBScheme>;
+  let users: Collection<UserDBScheme>;
 
   let workspace: WorkspaceDBScheme;
   let externalUser: UserDBScheme;
@@ -28,11 +30,13 @@ describe('Check webhook', () => {
     accountsDb = await global.mongoClient.db('hawk');
 
     workspacesCollection = await accountsDb.collection<WorkspaceDBScheme>('workspaces');
-    const users = await accountsDb.collection<UserDBScheme>('users');
-    const plans = await accountsDb.collection<PlanDBScheme>('plans');
+    users = await accountsDb.collection<UserDBScheme>('users');
+    plans = await accountsDb.collection<PlanDBScheme>('plans');
 
     businessOperationsCollection = await accountsDb.collection<BusinessOperationDBScheme>('businessOperations');
+  });
 
+  beforeEach(async () => {
     const currentPlan = (await plans.insertOne({
       name: 'CurrentTestPlan',
       monthlyCharge: 10,
@@ -210,7 +214,7 @@ describe('Check webhook', () => {
       expect(apiResponse.data.code).toBe(CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
     });
 
-    test.only('Should not accept request because amount in request doesn\'t match with plan monthly charge', async () => {
+    test('Should not accept request because amount in request doesn\'t match with plan monthly charge', async () => {
       /**
        * Request with amount that does not match the cost of the plan
        */
