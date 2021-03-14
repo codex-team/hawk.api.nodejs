@@ -63,7 +63,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * ID of subscription if it subscribed
    * Returns from CloudPayments
    */
-  public subscriptionId!: string;
+  public subscriptionId!: string | undefined;
 
   /**
    * Model's collection
@@ -353,8 +353,8 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    *
    * @param subscriptionId — subscription id to save
    */
-  public async setSubscriptionId(subscriptionId: string): Promise<void> {
-    this.subscriptionId = subscriptionId;
+  public async setSubscriptionId(subscriptionId: string | null): Promise<void> {
+    this.subscriptionId = subscriptionId || undefined;
 
     await this.collection.updateOne(
       {
@@ -362,7 +362,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
       },
       {
         $set: {
-          subscriptionId,
+          subscriptionId: this.subscriptionId,
         },
       }
     );

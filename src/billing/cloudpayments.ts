@@ -12,7 +12,8 @@ import {
   PayResponse,
   RecurrentCodes,
   RecurrentResponse,
-  FailRequest
+  FailRequest,
+  RecurrentRequest
 } from './types';
 import {
   BusinessOperationStatus,
@@ -32,6 +33,7 @@ import { PlanProlongationNotificationTask, SenderWorkerTaskType, PaymentFailedNo
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';
+import { SubscriptionStatus } from './types/enums';
 
 /**
  * Class for describing the logic of payment routes
@@ -408,8 +410,30 @@ export default class CloudPaymentsWebhooks {
    * @param res - result code
    */
   private async recurrent(req: express.Request, res: express.Response): Promise<void> {
-    await telegram.sendMessage(`✅ [Billing / Recurrent] New recurrent event`, TelegramBotURLs.Money);
-    HawkCatcher.send(new Error('[Billing / Recurrent] New recurrent event'), req.body);
+    const body: RecurrentRequest = req.body;
+    const context = req.context;
+
+    switch (body.Status) {
+      case SubscriptionStatus.CANCELLED:
+      case SubscriptionStatus.REJECTED: {
+        try {
+          const workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
+
+          if (workspace) {
+            await workspace.setSubscriptionId(null);
+          } else {
+            throw new Error('There is no workspace with provided subscription id');
+          }
+        } catch {
+          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't remove subscriptionId from workspace`, body);
+        }
+      }
+    }
+
+    telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money)
+      .catch(e => console.error('Error while sending message to Telegram: ' + e));
+    HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
+
     res.json({
       code: RecurrentCodes.SUCCESS,
     } as RecurrentResponse);

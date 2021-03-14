@@ -491,7 +491,7 @@ export interface RecurrentRequest {
   /**
    * Amount of payment
    */
-  Amount: number;
+  Amount: string;
 
   /**
    * Currency: RUB/USD
@@ -506,7 +506,7 @@ export interface RecurrentRequest {
   /**
    * Date and time of the first payment according to the plan in the UTC time zone
    */
-  StartDate: Date;
+  StartDate: string;
 
   /**
    * Interval. Possible values: Week, Month, Day
@@ -544,12 +544,12 @@ export interface RecurrentRequest {
   /**
    * Date and time of the last successful payment in the UTC time zone
    */
-  LastTransactionDate?: Date;
+  LastTransactionDate?: string;
 
   /**
    * Date and time of the next payment in the UTC time zone
    */
-  NextTransactionDate?: Date;
+  NextTransactionDate?: string;
 }
 
 /**

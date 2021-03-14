@@ -120,7 +120,11 @@ describe('Fail webhook', () => {
   });
 
   describe('With SubscriptionId only', () => {
-    const request = getRequestWithSubscription(user._id.toString());
+    const request: FailRequest = {
+      ...validRequest,
+      SubscriptionId: '123',
+      AccountId: user._id.toString(),
+    };
 
     request.TransactionId = transactionId;
 
@@ -131,7 +135,7 @@ describe('Fail webhook', () => {
       );
     });
 
-    test.only('Should change business operation status to rejected', async () => {
+    test('Should change business operation status to rejected', async () => {
       const apiResponse = await apiInstance.post('/billing/fail', request);
 
       const updatedBusinessOperation = await businessOperationsCollection.findOne({
@@ -153,7 +157,7 @@ describe('Fail webhook', () => {
         payload: {
           endpoint: 'test@hawk.so',
           workspaceId: workspace._id.toString(),
-          reason: validRequest.Reason,
+          reason: request.Reason,
         },
       };
 
