@@ -157,7 +157,7 @@ describe('Fail webhook', () => {
         payload: {
           endpoint: 'test@hawk.so',
           workspaceId: workspace._id.toString(),
-          reason: request.Reason,
+          reason: ReasonCodesTranscript[validRequest.ReasonCode],
         },
       };
 
