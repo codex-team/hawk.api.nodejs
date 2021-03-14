@@ -15,7 +15,7 @@ import {
   FailRequest,
   RecurrentRequest
 } from './types';
-import { ReasonCodesTranscript } from './types/enums';
+import { ReasonCodesTranscript, SubscriptionStatus } from './types/enums';
 import {
   BusinessOperationStatus,
   BusinessOperationType,
@@ -34,7 +34,6 @@ import { PlanProlongationNotificationTask, SenderWorkerTaskType, PaymentFailedNo
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';
-import { SubscriptionStatus } from './types/enums';
 
 /**
  * Class for describing the logic of payment routes
