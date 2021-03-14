@@ -20,6 +20,9 @@ class CloudPaymentsApi {
    */
   private readonly secret: string;
 
+  /**
+   * Axios instance to make calls to API
+   */
   private readonly api: AxiosInstance;
 
   /**
@@ -45,11 +48,9 @@ class CloudPaymentsApi {
    * @param subscriptionId - subscription id to cancel
    */
   public async cancelSubscription(subscriptionId: string): Promise<void> {
-    const response = await this.api.post('/subscriptions/cancel', {
+    await this.api.post('/subscriptions/cancel', {
       Id: subscriptionId,
     });
-
-    console.log(response.data);
   }
 }
 
