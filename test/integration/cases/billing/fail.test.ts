@@ -6,7 +6,7 @@ import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, Busin
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import { PaymentFailedNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
 import checksumService from '../../../../src/utils/checksumService';
-import { getRequestWithSubscription } from '../../mocks';
+import { getRequestWithSubscription } from '../../billingMocks';
 
 const transactionId = 909090;
 

@@ -13,7 +13,7 @@ import {
 import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import checksumService from '../../../../src/utils/checksumService';
-import { getRequestWithSubscription, user } from '../../mocks';
+import { getRequestWithSubscription, user } from '../../billingMocks';
 
 const transactionId = 123456;
 

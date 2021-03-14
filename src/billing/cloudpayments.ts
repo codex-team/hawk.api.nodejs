@@ -342,7 +342,7 @@ export default class CloudPaymentsWebhooks {
     try {
       data = await this.getDataFromRequest(req);
     } catch (e) {
-      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Fail] Invalid request`, body);
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Invalid request`, body);
 
       return;
     }
@@ -530,6 +530,10 @@ export default class CloudPaymentsWebhooks {
     const context = req.context;
     const body: CheckRequest = req.body;
 
+    /**
+     * If Data is not presented in body means there is a recurring payment
+     * Data field is presented only in one-time payment requests or subscription initial request
+     */
     if (body.Data) {
       return checksumService.parseAndVerifyData(body.Data);
     }

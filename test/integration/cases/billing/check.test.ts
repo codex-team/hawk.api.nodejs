@@ -10,7 +10,7 @@ import {
   WorkspaceDBScheme
 } from 'hawk.types';
 import checksumService from '../../../../src/utils/checksumService';
-import { getRequestWithSubscription, mainRequest, transactionId } from '../../mocks';
+import { getRequestWithSubscription, mainRequest, transactionId } from '../../billingMocks';
 
 describe('Check webhook', () => {
   let accountsDb: Db;
