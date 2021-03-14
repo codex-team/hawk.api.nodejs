@@ -347,4 +347,24 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
       }
     );
   }
+
+  /**
+   * Saves subscription id from payment system
+   *
+   * @param subscriptionId — subscription id to save
+   */
+  public async setSubscriptionId(subscriptionId: string): Promise<void> {
+    this.subscriptionId = subscriptionId;
+
+    await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
+      {
+        $set: {
+          subscriptionId,
+        },
+      }
+    );
+  }
 }

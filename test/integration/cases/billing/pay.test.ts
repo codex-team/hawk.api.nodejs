@@ -8,31 +8,21 @@ import {
   BusinessOperationType,
   PlanDBScheme, PlanProlongationPayload,
   UserDBScheme,
-  UserNotificationType,
   WorkspaceDBScheme
 } from 'hawk.types';
 import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import checksumService from '../../../../src/utils/checksumService';
+import { getRequestWithSubscription, user } from '../../billingMocks';
 
 const transactionId = 123456;
 
-const user: UserDBScheme = {
+const currentPlan: PlanDBScheme = {
   _id: new ObjectId(),
-  notifications: {
-    whatToReceive: {
-      [UserNotificationType.IssueAssigning]: true,
-      [UserNotificationType.SystemMessages]: true,
-      [UserNotificationType.WeeklyDigest]: true,
-    },
-    channels: {
-      email: {
-        isEnabled: true,
-        endpoint: 'test@hawk.so',
-        minPeriod: 10,
-      },
-    },
-  },
+  eventsLimit: 1000,
+  isDefault: true,
+  monthlyCharge: 1000,
+  name: 'Test plan',
 };
 
 const workspace = {
@@ -42,7 +32,7 @@ const workspace = {
   billingPeriodEventsCount: 1000,
   lastChargeDate: new Date(2020, 10, 4),
   name: 'Test workspace',
-  tariffPlanId: new ObjectId(),
+  tariffPlanId: currentPlan._id,
 };
 
 const workspaceAccount = {
@@ -53,7 +43,7 @@ const workspaceAccount = {
   dtCreated: Date.now(),
 };
 
-const tariffPlan: PlanDBScheme = {
+const planToChange: PlanDBScheme = {
   _id: new ObjectId(),
   eventsLimit: 10000,
   isDefault: true,
@@ -80,7 +70,7 @@ const revenueAccount = {
 const planProlongationPayload: PlanProlongationPayload = {
   userId: user._id.toString(),
   workspaceId: workspace._id.toString(),
-  tariffPlanId: tariffPlan._id.toString(),
+  tariffPlanId: planToChange._id.toString(),
 };
 
 /**
@@ -159,9 +149,10 @@ describe('Pay webhook', () => {
     await workspacesCollection.insertOne(workspace);
 
     /**
-     * Add tariff plan for testing
+     * Add tariff plans for testing
      */
-    await tariffPlanCollection.insertOne(tariffPlan);
+    await tariffPlanCollection.insertOne(currentPlan);
+    await tariffPlanCollection.insertOne(planToChange);
 
     /**
      * Add necessary accounts to accounting system
@@ -172,6 +163,131 @@ describe('Pay webhook', () => {
   afterEach(async () => {
     await accountsDb.dropDatabase();
     await accountingDb.dropDatabase();
+    await global.rabbitChannel.purgeQueue(WorkerPaths.Limiter.queue);
+    await global.rabbitChannel.purgeQueue(WorkerPaths.Email.queue);
+  });
+
+  describe('With SubscriptionId field only', () => {
+    const request = getRequestWithSubscription(user._id.toString());
+
+    request.TransactionId = transactionId;
+
+    beforeEach(async () => {
+      await workspacesCollection.updateOne(
+        { _id: workspace._id },
+        { $set: { subscriptionId: request.SubscriptionId } }
+      );
+    });
+
+    test('Should change business operation status to confirmed', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', request);
+
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Confirmed);
+    });
+
+    test('Should reset events counter in workspace', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', request);
+
+      const updatedWorkspace = await workspacesCollection.findOne({
+        _id: workspace._id,
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedWorkspace?.billingPeriodEventsCount).toBe(0);
+    });
+
+    test('Should reset last charge date in workspace', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', request);
+
+      const updatedWorkspace = await workspacesCollection.findOne({
+        _id: workspace._id,
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(updatedWorkspace?.lastChargeDate).not.toBe(workspace.lastChargeDate);
+    });
+
+    test('Should send task to limiter worker to check workspace', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', request);
+
+      const message = await global.rabbitChannel.get('cron-tasks/limiter', {
+        noAck: true,
+      });
+      const expectedLimiterTask = {
+        type: 'check-single-workspace',
+        workspaceId: workspace._id.toString(),
+      };
+
+      expect(message).toBeTruthy();
+      expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
+
+    test('Should associate an account with a workspace if the workspace did not have one', async () => {
+      /**
+       * Remove accountId from existed workspace
+       */
+      await workspacesCollection.updateOne(
+        { _id: workspace._id },
+        {
+          $unset: {
+            accountId: '',
+          },
+        }
+      );
+
+      const apiResponse = await apiInstance.post('/billing/pay', request);
+
+      /**
+       * Check that account is created and linked
+       */
+      const updatedWorkspace = await workspacesCollection.findOne({ _id: workspace._id });
+      const accountId = updatedWorkspace?.accountId;
+      const account = await accountingCollection.findOne({ id: accountId });
+
+      expect(typeof accountId).toBe('string');
+      expect(account).toBeTruthy();
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
+
+    test('Should add payment data to accounting system', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', request);
+
+      const transactions = await transactionsCollection
+        .find({})
+        .toArray();
+
+      expect(transactions.length).toBe(2);
+      expect(transactions.some(tr => tr.type === 'Deposit'));
+      expect(transactions.some(tr => tr.type === 'Purchase'));
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
+
+    test('Should add task to sender worker to notify user about plan prolongation', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', request);
+
+      const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
+        noAck: true,
+      });
+      const expectedLimiterTask: PlanProlongationNotificationTask = {
+        type: SenderWorkerTaskType.PlanProlongation,
+        payload: {
+          endpoint: 'test@hawk.so',
+          userId: user._id.toString(),
+          workspaceId: workspace._id.toString(),
+          tariffPlanId: currentPlan._id.toString(),
+        },
+      };
+
+      expect(message).toBeTruthy();
+      expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
   });
 
   describe('With valid request', () => {
@@ -216,7 +332,7 @@ describe('Pay webhook', () => {
       });
 
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
-      expect(updatedWorkspace?.tariffPlanId.toString()).toBe(tariffPlan._id.toString());
+      expect(updatedWorkspace?.tariffPlanId.toString()).toBe(planToChange._id.toString());
     });
 
     test('Should send task to limiter worker to check workspace', async () => {
@@ -274,29 +390,43 @@ describe('Pay webhook', () => {
       expect(transactions.some(tr => tr.type === 'Purchase'));
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
-  });
 
-  test('Should add task to sender worker to notify user about plan prolongation', async () => {
-    const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+    test('Should add task to sender worker to notify user about plan prolongation', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
 
-    const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
-      noAck: true,
+      const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
+        noAck: true,
+      });
+      const expectedLimiterTask: PlanProlongationNotificationTask = {
+        type: SenderWorkerTaskType.PlanProlongation,
+        payload: {
+          endpoint: 'test@hawk.so',
+          ...planProlongationPayload,
+        },
+      };
+
+      expect(message).toBeTruthy();
+      expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
-    const expectedLimiterTask: PlanProlongationNotificationTask = {
-      type: SenderWorkerTaskType.PlanProlongation,
-      payload: {
-        endpoint: 'test@hawk.so',
-        ...planProlongationPayload,
-      },
-    };
 
-    expect(message).toBeTruthy();
-    expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
-    expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    test('Should save SubscriptionId if it is provided in request', async () => {
+      const request = {
+        ...validPayRequestData,
+        SubscriptionId: '123',
+      };
+
+      const apiResponse = await apiInstance.post('/billing/pay', request);
+
+      const updatedWorkspace = await workspacesCollection.findOne({ _id: workspace._id });
+
+      expect(updatedWorkspace?.subscriptionId).toBe(request.SubscriptionId);
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
   });
 
   describe('With invalid request', () => {
-    test('Should not change business operation status if no data provided', async () => {
+    test('Should not change business operation status if no data or subscription id provided', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { Data, ...invalidRequest } = validPayRequestData;
       const apiResponse = await apiInstance.post('/billing/pay', invalidRequest);
@@ -316,7 +446,7 @@ describe('Pay webhook', () => {
           checksum: await checksumService.generateChecksum({
             userId: user._id.toString(),
             workspaceId: '',
-            tariffPlanId: tariffPlan._id.toString(),
+            tariffPlanId: planToChange._id.toString(),
           }),
         }),
       });
@@ -336,7 +466,7 @@ describe('Pay webhook', () => {
           checksum: await checksumService.generateChecksum({
             userId: '',
             workspaceId: workspace._id.toString(),
-            tariffPlanId: tariffPlan._id.toString(),
+            tariffPlanId: planToChange._id.toString(),
           }),
         }),
       });
@@ -376,7 +506,7 @@ describe('Pay webhook', () => {
           checksum: await checksumService.generateChecksum({
             userId: user._id.toString(),
             workspaceId: new ObjectId().toString(),
-            tariffPlanId: tariffPlan._id.toString(),
+            tariffPlanId: planToChange._id.toString(),
           }),
         }),
       });
@@ -416,7 +546,7 @@ describe('Pay webhook', () => {
           checksum: await checksumService.generateChecksum({
             userId: new ObjectId().toString(),
             workspaceId: workspace._id.toString(),
-            tariffPlanId: tariffPlan._id.toString(),
+            tariffPlanId: planToChange._id.toString(),
           }),
         }),
       });
