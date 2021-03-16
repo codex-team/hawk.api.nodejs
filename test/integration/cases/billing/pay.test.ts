@@ -312,10 +312,13 @@ describe('Pay webhook', () => {
     test('Should not change business operation status if no workspace id provided', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', {
         ...validPayRequestData,
-        Data: {
-          userId: user._id.toString(),
-          tariffPlanId: tariffPlan._id.toString(),
-        },
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            userId: user._id.toString(),
+            workspaceId: '',
+            tariffPlanId: tariffPlan._id.toString(),
+          }),
+        }),
       });
 
       const updatedBusinessOperation = await businessOperationsCollection.findOne({
@@ -329,10 +332,13 @@ describe('Pay webhook', () => {
     test('Should not change business operation status if no user id provided', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', {
         ...validPayRequestData,
-        Data: {
-          workspaceId: workspace._id.toString(),
-          tariffPlanId: tariffPlan._id.toString(),
-        },
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            userId: '',
+            workspaceId: workspace._id.toString(),
+            tariffPlanId: tariffPlan._id.toString(),
+          }),
+        }),
       });
 
       const updatedBusinessOperation = await businessOperationsCollection.findOne({
@@ -346,10 +352,13 @@ describe('Pay webhook', () => {
     test('Should not change business operation status if no tariff plan id provided', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', {
         ...validPayRequestData,
-        Data: {
-          userId: user._id.toString(),
-          workspaceId: workspace._id.toString(),
-        },
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            userId: user._id.toString(),
+            workspaceId: workspace._id.toString(),
+            tariffPlanId: '',
+          }),
+        }),
       });
 
       const updatedBusinessOperation = await businessOperationsCollection.findOne({
@@ -363,11 +372,13 @@ describe('Pay webhook', () => {
     test('Should not change business operation status if no workspaces with provided id', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', {
         ...validPayRequestData,
-        Data: {
-          userId: user._id.toString(),
-          workspaceId: new ObjectId().toString(),
-          tariffPlanId: tariffPlan._id.toString(),
-        },
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            userId: user._id.toString(),
+            workspaceId: new ObjectId().toString(),
+            tariffPlanId: tariffPlan._id.toString(),
+          }),
+        }),
       });
 
       const updatedBusinessOperation = await businessOperationsCollection.findOne({
@@ -381,11 +392,13 @@ describe('Pay webhook', () => {
     test('Should not change business operation status if no tariff plan with provided id', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', {
         ...validPayRequestData,
-        Data: {
-          userId: new ObjectId().toString(),
-          workspaceId: workspace._id.toString(),
-          tariffPlanId: new ObjectId().toString(),
-        },
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            userId: new ObjectId().toString(),
+            workspaceId: workspace._id.toString(),
+            tariffPlanId: new ObjectId().toString(),
+          }),
+        }),
       });
 
       const updatedBusinessOperation = await businessOperationsCollection.findOne({
@@ -399,11 +412,13 @@ describe('Pay webhook', () => {
     test('Should not change business operation status if no user with provided id', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', {
         ...validPayRequestData,
-        Data: {
-          userId: new ObjectId().toString(),
-          workspaceId: workspace._id.toString(),
-          tariffPlanId: tariffPlan._id.toString(),
-        },
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            userId: new ObjectId().toString(),
+            workspaceId: workspace._id.toString(),
+            tariffPlanId: tariffPlan._id.toString(),
+          }),
+        }),
       });
 
       const updatedBusinessOperation = await businessOperationsCollection.findOne({
