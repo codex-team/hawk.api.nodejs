@@ -5,3 +5,4 @@ export { OperationStatus } from './operationStatus';
 export { SubscriptionStatus } from './subscriptionStatus';
 export { ReasonCode } from './reasonCode';
 export { Interval } from './interval';
+export { ReasonCodesTranscript } from './reasonCodeTranscript';

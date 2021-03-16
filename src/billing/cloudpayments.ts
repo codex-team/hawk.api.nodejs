@@ -15,6 +15,7 @@ import {
   FailRequest,
   RecurrentRequest
 } from './types';
+import { ReasonCodesTranscript, SubscriptionStatus } from './types/enums';
 import {
   BusinessOperationStatus,
   BusinessOperationType,
@@ -33,7 +34,6 @@ import { PlanProlongationNotificationTask, SenderWorkerTaskType, PaymentFailedNo
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';
-import { SubscriptionStatus } from './types/enums';
 
 /**
  * Class for describing the logic of payment routes
@@ -382,7 +382,7 @@ export default class CloudPaymentsWebhooks {
         type: SenderWorkerTaskType.PaymentFailed,
         payload: {
           workspaceId: data.workspaceId,
-          reason: body.Reason,
+          reason: ReasonCodesTranscript[body.ReasonCode],
         },
       };
 
