@@ -14,7 +14,8 @@ export enum Exchanges {
   Notify = 'notify',
   Stash = 'stash',
   Merchant = 'merchant',
-  Empty = ''
+  CronTasks = 'cron-tasks',
+  Empty = '',
 }
 
 /**
@@ -24,7 +25,8 @@ export enum Queues {
   Merchant = 'merchant/initialized',
   Email = 'sender/email',
   Telegram = 'notify/telegram',
-  Slack = 'notify/slack'
+  Slack = 'notify/slack',
+  Limiter = 'cron-tasks/limiter',
 }
 
 /**
@@ -76,6 +78,14 @@ export const WorkerPaths: Record<string, WorkerPath> = {
   Slack: {
     exchange: Exchanges.Notify,
     queue: Queues.Slack,
+  },
+
+  /**
+   * Path to limiter worker
+   */
+  Limiter: {
+    exchange: Exchanges.CronTasks,
+    queue: Queues.Limiter,
   },
 };
 

@@ -4,6 +4,7 @@ import PlanModel from '../models/plan';
 import * as telegram from '../utils/telegram';
 import HawkCatcher from '@hawk.so/nodejs';
 import escapeHTML from 'escape-html';
+import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -358,6 +359,11 @@ module.exports = {
         record: updatedWorkspaceModel,
       };
     },
+
+    /**
+     * Return empty object to call resolver for specific mutation
+     */
+    workspace: () => ({}),
   },
   Workspace: {
     /**
@@ -434,6 +440,43 @@ module.exports = {
      */
     isAdmin(memberData) {
       return !WorkspaceModel.isPendingMember(memberData) && (memberData.isAdmin || false);
+    },
+  },
+
+  WorkspaceMutations: {
+    /**
+     * Cancels subscription for workspace
+     * @param _obj - result of the parent resolver
+     * @param {string} workspaceId - workspace id to cancel subscription for
+     * @param {ContextFactories} factories - factories to work with models
+     * @return {Promise<{recordId: *, record: {subscriptionId: null}}>}
+     */
+    async cancelSubscription(
+      _obj,
+      {
+        input: { workspaceId },
+      },
+      { factories }
+    ) {
+      const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
+
+      if (!workspaceModel) {
+        throw new UserInputError('There is no workspace with provided id');
+      }
+
+      if (!workspaceModel.subscriptionId) {
+        throw new UserInputError('There is no subscription for provided workspace');
+      }
+
+      await cloudPaymentsApi.cancelSubscription(workspaceModel.subscriptionId);
+
+      return {
+        recordId: workspaceModel._id,
+        record: {
+          ...workspaceModel,
+          subscriptionId: null,
+        },
+      };
     },
   },
 };

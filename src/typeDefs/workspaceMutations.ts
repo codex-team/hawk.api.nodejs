@@ -26,6 +26,40 @@ export default gql`
     record: Workspace!
   }
 
+  """
+  Input data for cancelSubscription mutation
+  """
+  input CancelSubscriptionInput {
+    """
+    Workspace id to cancel subscription for
+    """
+    workspaceId: ID!
+  }
+
+  """
+  Respose of the cancelSubscription mutation
+  """
+  type CancelSubscriptionResponse {
+    """
+    Workspace id
+    """
+    recordId: ID!
+
+    """
+    Modified workspace
+    """
+    record: Workspace!
+  }
+
+  """
+  Mutations for workspace
+  """
+  type WorkspaceMutations {
+    cancelSubscription(
+      input: CancelSubscriptionInput!
+    ): CancelSubscriptionResponse! @requireAdmin
+  }
+
   extend type Mutation {
     """
     Mutation in order to switch workspace tariff plan to Free
@@ -34,5 +68,10 @@ export default gql`
     changeWorkspacePlanForFreePlan(
         input: ChangeWorkspacePlanForFreePlanInput
     ): ChangeWorkspacePlanForFreePlanResponse! @requireAdmin
+
+    """
+    Namespace for workspaces mutations
+    """
+    workspace: WorkspaceMutations!
   }
 `;
