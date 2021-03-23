@@ -30,7 +30,7 @@ import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
 
 import sendNotification from '../utils/personalNotifications';
-import { PlanProlongationNotificationTask, SenderWorkerTaskType, PaymentFailedNotificationTask } from '../types/personalNotifications';
+import { SenderWorkerTaskType, PaymentFailedNotificationTask, PaymentSuccessNotificationTask } from '../types/personalNotification';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';
@@ -310,8 +310,9 @@ export default class CloudPaymentsWebhooks {
     }
 
     try {
-      const senderWorkerTask: PlanProlongationNotificationTask = {
-        type: SenderWorkerTaskType.PlanProlongation,
+      // todo: add plan-prolongation notification if it was a payment by subscription
+      const senderWorkerTask: PaymentSuccessNotificationTask = {
+        type: SenderWorkerTaskType.PaymentSuccess,
         payload: data,
       };
 
