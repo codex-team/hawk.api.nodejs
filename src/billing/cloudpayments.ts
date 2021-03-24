@@ -30,7 +30,7 @@ import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
 
 import sendNotification from '../utils/personalNotifications';
-import { SenderWorkerTaskType, PaymentFailedNotificationTask, PaymentSuccessNotificationTask } from '../types/personalNotification';
+import { SenderWorkerTaskType, PaymentFailedNotificationTask, PaymentSuccessNotificationTask } from '../types/personalNotifications';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';

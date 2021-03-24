@@ -6,11 +6,11 @@ import {
   BusinessOperationDBScheme,
   BusinessOperationStatus,
   BusinessOperationType,
-  PlanDBScheme, PlanProlongationPayload,
+  PlanDBScheme,
   UserDBScheme,
   WorkspaceDBScheme
 } from 'hawk.types';
-import { PlanProlongationNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
+import { PaymentSuccessNotificationTask, PaymentSuccessNotificationPayload, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import checksumService from '../../../../src/utils/checksumService';
 import { getRequestWithSubscription, user } from '../../billingMocks';
@@ -67,7 +67,7 @@ const revenueAccount = {
   dtCreated: Date.now(),
 };
 
-const planProlongationPayload: PlanProlongationPayload = {
+const PaymentSuccessPayload: PaymentSuccessNotificationPayload = {
   userId: user._id.toString(),
   workspaceId: workspace._id.toString(),
   tariffPlanId: planToChange._id.toString(),
@@ -105,7 +105,7 @@ describe('Pay webhook', () => {
       TotalFee: 0,
       TransactionId: transactionId,
       Data: JSON.stringify({
-        checksum: await checksumService.generateChecksum(planProlongationPayload),
+        checksum: await checksumService.generateChecksum(PaymentSuccessPayload),
       }),
     };
 
@@ -268,14 +268,14 @@ describe('Pay webhook', () => {
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
 
-    test('Should add task to sender worker to notify user about plan prolongation', async () => {
+    test('Should add task to sender worker to notify user about successful payment', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', request);
 
       const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
         noAck: true,
       });
-      const expectedLimiterTask: PlanProlongationNotificationTask = {
-        type: SenderWorkerTaskType.PlanProlongation,
+      const expectedLimiterTask: PaymentSuccessNotificationTask = {
+        type: SenderWorkerTaskType.PaymentSuccess,
         payload: {
           endpoint: 'test@hawk.so',
           userId: user._id.toString(),
@@ -391,17 +391,17 @@ describe('Pay webhook', () => {
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
 
-    test('Should add task to sender worker to notify user about plan prolongation', async () => {
+    test('Should add task to sender worker to notify user about successful payment', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
 
       const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
         noAck: true,
       });
-      const expectedLimiterTask: PlanProlongationNotificationTask = {
-        type: SenderWorkerTaskType.PlanProlongation,
+      const expectedLimiterTask: PaymentSuccessNotificationTask = {
+        type: SenderWorkerTaskType.PaymentSuccess,
         payload: {
           endpoint: 'test@hawk.so',
-          ...planProlongationPayload,
+          ...PaymentSuccessPayload,
         },
       };
 
