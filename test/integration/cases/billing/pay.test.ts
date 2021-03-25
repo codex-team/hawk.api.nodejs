@@ -67,7 +67,7 @@ const revenueAccount = {
   dtCreated: Date.now(),
 };
 
-const PaymentSuccessPayload: PaymentSuccessNotificationPayload = {
+const paymentSuccessPayload: PaymentSuccessNotificationPayload = {
   userId: user._id.toString(),
   workspaceId: workspace._id.toString(),
   tariffPlanId: planToChange._id.toString(),
@@ -105,7 +105,7 @@ describe('Pay webhook', () => {
       TotalFee: 0,
       TransactionId: transactionId,
       Data: JSON.stringify({
-        checksum: await checksumService.generateChecksum(PaymentSuccessPayload),
+        checksum: await checksumService.generateChecksum(paymentSuccessPayload),
       }),
     };
 
@@ -401,7 +401,7 @@ describe('Pay webhook', () => {
         type: SenderWorkerTaskType.PaymentSuccess,
         payload: {
           endpoint: 'test@hawk.so',
-          ...PaymentSuccessPayload,
+          ...paymentSuccessPayload,
         },
       };
 
