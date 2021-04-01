@@ -58,7 +58,7 @@ type EventUser {
   """
   Internal user's identifier inside an app
   """
-  id: ID!
+  id: ID
 
   """
   User public name
