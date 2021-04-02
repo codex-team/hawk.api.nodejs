@@ -176,9 +176,14 @@ export default {
       }
 
       try {
-        const options: {[key: string]: string} = {
+        const options: {[key: string]: string | object} = {
           name,
           email,
+          notifications: {
+            channels: {
+              email: { endpoint: email },
+            },
+          },
         };
 
         if (image) {
