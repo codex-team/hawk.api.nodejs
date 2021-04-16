@@ -11,7 +11,7 @@ export interface InviteDBScheme {
   _id: ObjectId;
 
   /**
-   * Member id - if it isn't set then then doc is general invite for specified workspace
+   * Member id - if it isn't set then doc is general invite for specified workspace
    */
   memberId?: ObjectId;
 
