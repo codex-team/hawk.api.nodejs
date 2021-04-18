@@ -3,7 +3,8 @@ const ProjectToWorkspace = require('../models/projectToWorkspace');
 const asyncForEach = require('../utils/asyncForEach');
 const mongo = require('../mongo');
 const EventsFactory = require('../models/eventsFactory');
-
+const { ObjectID } = require('mongodb');
+const sendPersonalNotification = require('../utils/personalNotifications').default;
 const watchController = new MongoWatchController();
 
 /**
@@ -86,6 +87,21 @@ module.exports = {
       }
 
       return factories.usersFactory.dataLoaders.userById.load(assignee);
+    },
+
+    /**
+     * Return chart data for target event occured in last few days
+     *
+     * @param {string} projectId - event's project
+     * @param {string} groupHash - event's groupHash
+     * @param {number} days - how many days we need to fetch for displaying in a charts
+     * @param {number} timezoneOffset - user's local timezone offset in minutes
+     * @returns {Promise<ProjectChartItem[]>}
+     */
+    async chartData({ projectId, groupHash }, { days, timezoneOffset }) {
+      const factory = new EventsFactory(new ObjectID(projectId));
+
+      return factory.findChartData(days, timezoneOffset, groupHash);
     },
   },
   Subscription: {
@@ -186,7 +202,7 @@ module.exports = {
      * @param factories - factories for working with models
      * @return {Promise<boolean>}
      */
-    async updateAssignee(_obj, { input }, { factories }) {
+    async updateAssignee(_obj, { input }, { factories, user }) {
       const { projectId, eventId, assignee } = input;
       const factory = new EventsFactory(projectId);
 
@@ -211,7 +227,17 @@ module.exports = {
 
       const { result } = await factory.updateAssignee(eventId, assignee);
 
-      const assigneeData = factories.usersFactory.dataLoaders.userById.load(assignee);
+      const assigneeData = await factories.usersFactory.dataLoaders.userById.load(assignee);
+
+      await sendPersonalNotification(assigneeData, {
+        type: 'assignee',
+        payload: {
+          assigneeId: assignee,
+          projectId,
+          whoAssignedId: user.id,
+          eventId,
+        },
+      });
 
       return {
         success: !!result.ok,
@@ -223,7 +249,7 @@ module.exports = {
      * Remove an assignee from the selected event
      *
      * @param {ResolverObj} _obj - resolver context
-     * @param {RemveAssigneeInput} input - object of arguments
+     * @param {RemoveAssigneeInput} input - object of arguments
      * @param factories - factories for working with models
      * @return {Promise<boolean>}
      */

@@ -1,10 +1,11 @@
 import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
-import WorkspaceModel, { WorkspaceDBScheme } from './workspace';
+import WorkspaceModel from './workspace';
 import DataLoaders from '../dataLoaders';
 import UserModel from './user';
 import PlansFactory from './plansFactory';
 import PlanModel from './plan';
+import { WorkspaceDBScheme } from 'hawk.types';
 
 /**
  * Workspaces factory to work with WorkspaceModel
@@ -77,7 +78,17 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
   }
 
   /**
-   * @private
+   * Returns workspace bu its subscription id
+   *
+   * @param subscriptionId - subscription id from payment system
+   */
+  public async findBySubscriptionId(subscriptionId: string): Promise<WorkspaceModel | null> {
+    const workspaceData = await this.collection.findOne({ subscriptionId });
+
+    return workspaceData && new WorkspaceModel(workspaceData);
+  }
+
+  /**
    * Get default plan to be used for new projects
    */
   private async getDefaultPlan(): Promise<PlanModel> {

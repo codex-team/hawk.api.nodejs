@@ -71,14 +71,25 @@ export default gql`
     team: [Member!]!
 
     """
-    Workspace balance
+    Total number of errors since the last charge date
     """
-    balance: Int
+    billingPeriodEventsCount: Int
 
     """
     Workspace tariff plan
     """
     plan: Plan
+
+    """
+    Date when workspace was charged last time
+    """
+    lastChargeDate: DateTime
+
+    """
+    ID of subscription if it subscribed
+    Returns from CloudPayments
+    """
+    subscriptionId: String
 
     """
     Workspace projects array

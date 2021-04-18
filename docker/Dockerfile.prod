@@ -18,6 +18,7 @@ WORKDIR /usr/src/app
 COPY --from=builder /usr/src/app/build ./
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY  ./migrations/ ./migrations/
+COPY  ./static/ ./static/
 COPY  migrate-mongo-config.js ./
 COPY  package.json ./
 

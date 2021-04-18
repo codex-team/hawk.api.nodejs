@@ -58,7 +58,7 @@ type EventUser {
   """
   Internal user's identifier inside an app
   """
-  id: ID!
+  id: ID
 
   """
   User public name
@@ -133,12 +133,12 @@ type EventPayload {
   """
   Any additional data of Event
   """
-  context: JSONObject
+  context: EncodedJSON
 
   """
   Custom data provided by project users
   """
-  addons: JSONObject
+  addons: EncodedJSON
 }
 
 """
@@ -188,12 +188,12 @@ type RepetitionPayload {
   """
   Any additional data of Event
   """
-  context: JSONObject
+  context: EncodedJSON
 
   """
   Custom data provided by project users
   """
-  addons: JSONObject
+  addons: EncodedJSON
 }
 
 """
@@ -292,6 +292,21 @@ type Event {
   How many users catch this error
   """
   usersAffected: Int
+
+  """
+  Return graph of the error rate for the last few days
+  """
+  chartData(
+    """
+    How many days we need to fetch for displaying in a chart
+    """
+    days: Int! = 0
+
+    """
+    User's local timezone offset in minutes
+    """
+    timezoneOffset: Int! = 0
+  ): [ChartDataItem!]! @requireAuth
 }
 
 """

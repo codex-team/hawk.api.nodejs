@@ -2,8 +2,6 @@ const PaymentRequest = require('../models/paymentRequest');
 const UserCard = require('../models/userCard');
 const rabbitmq = require('../rabbitmq');
 const PaymentTransaction = require('../models/paymentTransaction');
-const Membership = require('../models/membership');
-// const BusinessOperation = require('../models/businessOperation');
 
 /**
  * @typedef {Object} PaymentQuery
@@ -34,32 +32,6 @@ module.exports = {
      */
     async cardList(_obj, { paymentQuery }, { user }) {
       return UserCard.findByUserId(user.id);
-    },
-
-    /**
-     * API Query method for getting all transactions for passed workspaces
-     * @param _obj
-     * @param {string[]} ids - ids of workspaces for which transactions have been requested
-     * @param {User} user - current authorized user
-     * @returns {Promise<BusinessOperation>}
-     */
-    async transactions(_obj, { ids }, { user }) {
-      /*
-       * @todo check if user has permissions to get transactions
-       * @todo refactor resolver for new business operation model and factory
-       */
-
-      const membership = new Membership(user.id);
-
-      const allowedIds = await membership.getWorkspacesIds();
-
-      if (ids.length === 0) {
-        ids = allowedIds;
-      } else {
-        ids = ids.filter(id => allowedIds.includes(id));
-      }
-
-      return [];
     },
   },
   Mutation: {
@@ -168,40 +140,6 @@ module.exports = {
       await rabbitmq.publish('merchant', 'merchant/charged', JSON.stringify(transaction));
 
       return true;
-    },
-
-    /**
-     * Mutation for single payment
-     * @param {ResolverObj} _obj
-     * @param {PaymentQuery} paymentQuery
-     * @param {Object} user - current user object
-     * @return {Promise<boolean>}
-     */
-    async payOnce(_obj, { input }, { user }) {
-      const { amount, language, workspaceId } = input;
-      const orderId = PaymentRequest.generateOrderId();
-      const result = await PaymentRequest.apiInitPayment(user.id, {
-        language: language || 'en',
-        data: {
-          UserId: user.id,
-        },
-        amount,
-        orderId: orderId,
-      });
-
-      const transaction = await PaymentTransaction.create({
-        userId: user.id,
-        workspaceId,
-        amount,
-        orderId,
-        paymentId: result.PaymentId,
-        status: 'SINGLE',
-        timestamp: parseInt((Date.now() / 1000).toFixed(0)),
-      });
-
-      await rabbitmq.publish('merchant', 'merchant/initialized', JSON.stringify(transaction));
-
-      return result;
     },
   },
 };

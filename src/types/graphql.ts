@@ -2,9 +2,10 @@ import UsersFactory from '../models/usersFactory';
 import WorkspacesFactory from '../models/workspacesFactory';
 import { GraphQLField } from 'graphql';
 import ProjectsFactory from '../models/projectsFactory';
-import Accounting from '../accounting';
 import InvitesFactory from '../models/invitesFactory';
+import Accounting from 'codex-accounting-sdk';
 import PlansFactory from '../models/plansFactory';
+import BusinessOperationsFactory from '../models/businessOperationsFactory';
 
 /**
  * Resolver's Context argument
@@ -79,6 +80,11 @@ export interface ContextFactories {
    * Plans factory for working with tariff plans
    */
   plansFactory: PlansFactory;
+
+  /**
+   * Allows to work with the Business Operations models
+   */
+  businessOperationsFactory: BusinessOperationsFactory;
 }
 
 /**

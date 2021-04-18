@@ -1,5 +1,6 @@
 const { merge } = require('lodash');
 const { GraphQLDateTime } = require('graphql-iso-date');
+const { LongResolver, PositiveIntResolver } = require('graphql-scalars');
 const { GraphQLJSON, GraphQLJSONObject } = require('graphql-type-json');
 const user = require('./user').default;
 const workspace = require('./workspace');
@@ -8,6 +9,8 @@ const event = require('./event');
 const plans = require('./plans').default;
 const projectNotifications = require('./projectNotifications').default;
 const userNotifications = require('./userNotifications').default;
+const billing = require('./billingNew').default;
+const EncodedJSON = require('./encodedJSON').default;
 
 /**
  * @typedef ResolverObj
@@ -38,10 +41,21 @@ const indexResolver = {
   },
   // DateTime scalar resolver
   DateTime: GraphQLDateTime,
+
   // JSON values resolver
   JSON: GraphQLJSON,
+
   // JSON object resolver
   JSONObject: GraphQLJSONObject,
+
+  // Represents JSON objects encoded (or not) in string format
+  EncodedJSON,
+
+  // Allow only positive integers
+  PositiveInt: PositiveIntResolver,
+
+  // Allow big int numbers
+  Long: LongResolver,
 };
 
 module.exports = merge(
@@ -52,5 +66,6 @@ module.exports = merge(
   event,
   projectNotifications,
   userNotifications,
-  plans
+  plans,
+  billing
 );

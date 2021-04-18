@@ -1,10 +1,14 @@
 import '../../src/env-test';
-import BusinessOperationModel, {
-  BusinessOperationStatus,
-  BusinessOperationType, PayloadOfDepositByUser, PayloadOfWorkspacePlanPurchase
-} from '../../src/models/businessOperation';
+import BusinessOperationModel from '../../src/models/businessOperation';
 import { ObjectId } from 'mongodb';
 import * as mongo from '../../src/mongo';
+import {
+  BusinessOperationDBScheme,
+  BusinessOperationStatus,
+  BusinessOperationType,
+  PayloadOfDepositByUser,
+  PayloadOfWorkspacePlanPurchase
+} from 'hawk.types';
 
 beforeAll(async () => {
   await mongo.setupConnections();
@@ -23,6 +27,7 @@ describe('Business operation model', () => {
       transactionId: 'Transaction ID',
       type: BusinessOperationType.DepositByUser,
       status: BusinessOperationStatus.Confirmed,
+      dtCreated: new Date(),
       payload: payloadDepositByUser,
     };
 
@@ -32,15 +37,18 @@ describe('Business operation model', () => {
   });
 
   it('should create instance for workspace plan purchase by payment worker', () => {
-    const payloadWorkspacePlanPurchase = {
+    const payloadWorkspacePlanPurchase: PayloadOfWorkspacePlanPurchase = {
       workspaceId: new ObjectId('5edd36fbb596d4759beb89f6'),
       amount: 100,
+      userId: new ObjectId(),
+      tariffPlanId: new ObjectId(),
     };
 
-    const data = {
+    const data: BusinessOperationDBScheme<PayloadOfWorkspacePlanPurchase> = {
       transactionId: 'Transaction ID',
       type: BusinessOperationType.WorkspacePlanPurchase,
       status: BusinessOperationStatus.Confirmed,
+      dtCreated: new Date(),
       payload: payloadWorkspacePlanPurchase,
     };
 
