@@ -105,7 +105,10 @@ describe('Pay webhook', () => {
       TotalFee: 0,
       TransactionId: transactionId,
       Data: JSON.stringify({
-        checksum: await checksumService.generateChecksum(paymentSuccessPayload),
+        checksum: await checksumService.generateChecksum({
+          ...paymentSuccessPayload,
+          shouldSaveCard: false,
+        }),
       }),
     };
 
@@ -447,6 +450,7 @@ describe('Pay webhook', () => {
             userId: user._id.toString(),
             workspaceId: '',
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       });
@@ -467,6 +471,7 @@ describe('Pay webhook', () => {
             userId: '',
             workspaceId: workspace._id.toString(),
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       });
@@ -487,6 +492,7 @@ describe('Pay webhook', () => {
             userId: user._id.toString(),
             workspaceId: workspace._id.toString(),
             tariffPlanId: '',
+            shouldSaveCard: false,
           }),
         }),
       });
@@ -507,6 +513,7 @@ describe('Pay webhook', () => {
             userId: user._id.toString(),
             workspaceId: new ObjectId().toString(),
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       });
@@ -527,6 +534,7 @@ describe('Pay webhook', () => {
             userId: new ObjectId().toString(),
             workspaceId: workspace._id.toString(),
             tariffPlanId: new ObjectId().toString(),
+            shouldSaveCard: false,
           }),
         }),
       });
@@ -547,6 +555,7 @@ describe('Pay webhook', () => {
             userId: new ObjectId().toString(),
             workspaceId: workspace._id.toString(),
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       });

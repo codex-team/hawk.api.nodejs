@@ -63,7 +63,7 @@ export default class CloudPaymentsWebhooks {
    * @param res - Express response object
    */
   private async composePayment(req: express.Request, res: express.Response): Promise<void> {
-    const { workspaceId, tariffPlanId } = req.query as Record<string, string>;
+    const { workspaceId, tariffPlanId, shouldSaveCard } = req.query as Record<string, string>;
     const userId = req.context.user.id;
 
     if (!workspaceId || !tariffPlanId || !userId) {
@@ -100,6 +100,7 @@ export default class CloudPaymentsWebhooks {
         workspaceId: workspace._id.toString(),
         userId: userId,
         tariffPlanId: tariffPlan._id.toString(),
+        shouldSaveCard: shouldSaveCard === 'true',
       });
     } catch (e) {
       this.sendError(res, 1, `[Billing / Compose payment] Can't generate checksum: ${e.toString()}`, req.query);
@@ -313,7 +314,11 @@ export default class CloudPaymentsWebhooks {
       // todo: add plan-prolongation notification if it was a payment by subscription
       const senderWorkerTask: PaymentSuccessNotificationTask = {
         type: SenderWorkerTaskType.PaymentSuccess,
-        payload: data,
+        payload: {
+          workspaceId: data.workspaceId,
+          tariffPlanId: data.tariffPlanId,
+          userId: data.userId,
+        },
       };
 
       await sendNotification(user, senderWorkerTask);
@@ -577,6 +582,7 @@ export default class CloudPaymentsWebhooks {
         workspaceId: workspace._id.toString(),
         tariffPlanId: workspace.tariffPlanId.toString(),
         userId,
+        shouldSaveCard: false,
       };
     }
 
