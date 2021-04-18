@@ -427,7 +427,7 @@ describe('Pay webhook', () => {
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
 
-    test('Should save user card if shouldSaveCard true', async () => {
+    test.only('Should save user card if shouldSaveCard true', async () => {
       /**
        * Correct data
        */
@@ -445,7 +445,7 @@ describe('Pay webhook', () => {
       };
 
       const apiResponse = await apiInstance.post('/billing/pay', request);
-      const updatedUser = await usersCollection.findOne({_id: user._id});
+      const updatedUser = await usersCollection.findOne({ _id: user._id });
 
       expect(updatedUser?.bankCards).toBeDefined();
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);

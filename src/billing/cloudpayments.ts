@@ -17,6 +17,7 @@ import {
 } from './types';
 import { ReasonCodesTranscript, SubscriptionStatus } from './types/enums';
 import {
+  BankCard,
   BusinessOperationStatus,
   BusinessOperationType,
   ConfirmedMemberDBScheme,
@@ -328,6 +329,20 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
+    try {
+      if (data.shouldSaveCard) {
+        const cardData = this.getCardData(body);
+
+        if (cardData) {
+          await user.saveNewBankCard(cardData);
+        }
+      }
+    } catch (e) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while saving user card: ${e.toString()}`, body);
+
+      return;
+    }
+
     telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
 
@@ -587,5 +602,25 @@ export default class CloudPaymentsWebhooks {
     }
 
     throw new Error('Invalid request: no necessary data');
+  }
+
+  /**
+   * Parses body and returns card data
+   * @param request - request body to parse
+   * @private
+   */
+  private getCardData(request: PayRequest): BankCard | null {
+    if (!request.CardType || !request.CardExpDate || !request.CardLastFour || !request.CardFirstSix || !request.Token) {
+      return null;
+    }
+
+    return {
+      cardExpDate: request.CardExpDate,
+      firstSix: +request.CardFirstSix,
+      lastFour: +request.CardLastFour,
+      token: request.Token,
+      type: request.CardType,
+
+    };
   }
 }
