@@ -620,7 +620,6 @@ export default class CloudPaymentsWebhooks {
       lastFour: +request.CardLastFour,
       token: request.Token,
       type: request.CardType,
-
     };
   }
 }

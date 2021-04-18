@@ -357,8 +357,6 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       'bankCards.token': cardData.token,
     });
 
-    console.log(userWithProvidedCard);
-
     if (userWithProvidedCard) {
       return;
     }
