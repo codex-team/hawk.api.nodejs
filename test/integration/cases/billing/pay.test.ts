@@ -426,6 +426,30 @@ describe('Pay webhook', () => {
       expect(updatedWorkspace?.subscriptionId).toBe(request.SubscriptionId);
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
+
+    test('Should save user card if shouldSaveCard true', async () => {
+      /**
+       * Correct data
+       */
+      const request: PayRequest = {
+        ...validPayRequestData,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            ...paymentSuccessPayload,
+            shouldSaveCard: true,
+          }),
+        }),
+        Token: '123123',
+        CardFirstSix: '545636',
+        CardLastFour: '4555',
+      };
+
+      const apiResponse = await apiInstance.post('/billing/pay', request);
+      const updatedUser = await usersCollection.findOne({_id: user._id});
+
+      expect(updatedUser?.bankCards).toBeDefined();
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
   });
 
   describe('With invalid request', () => {

@@ -3825,7 +3825,7 @@ has@^1.0.3:
 
 "hawk.types@https://github.com/codex-team/hawk.types#add-save-card-param":
   version "0.1.3"
-  resolved "https://github.com/codex-team/hawk.types#e1b9a1b894bd964ef3144ac2dcb9fbee6c016119"
+  resolved "https://github.com/codex-team/hawk.types#5c584ae56ce02354d0ef822013fa13a010112143"
   dependencies:
     "@types/mongodb" "^3.5.34"
 
