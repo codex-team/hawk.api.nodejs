@@ -3823,9 +3823,9 @@ has@^1.0.3:
   dependencies:
     function-bind "^1.1.1"
 
-"hawk.types@https://github.com/codex-team/hawk.types#add-save-card-param":
+"hawk.types@https://github.com/codex-team/hawk.types":
   version "0.1.3"
-  resolved "https://github.com/codex-team/hawk.types#5c584ae56ce02354d0ef822013fa13a010112143"
+  resolved "https://github.com/codex-team/hawk.types#bd9ca4b25368d9089b6866ef515bdbd671bc55a8"
   dependencies:
     "@types/mongodb" "^3.5.34"
 
