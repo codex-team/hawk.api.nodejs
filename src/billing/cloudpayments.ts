@@ -17,6 +17,7 @@ import {
 } from './types';
 import { ReasonCodesTranscript, SubscriptionStatus } from './types/enums';
 import {
+  BankCard,
   BusinessOperationStatus,
   BusinessOperationType,
   ConfirmedMemberDBScheme,
@@ -63,7 +64,7 @@ export default class CloudPaymentsWebhooks {
    * @param res - Express response object
    */
   private async composePayment(req: express.Request, res: express.Response): Promise<void> {
-    const { workspaceId, tariffPlanId } = req.query as Record<string, string>;
+    const { workspaceId, tariffPlanId, shouldSaveCard } = req.query as Record<string, string>;
     const userId = req.context.user.id;
 
     if (!workspaceId || !tariffPlanId || !userId) {
@@ -100,6 +101,7 @@ export default class CloudPaymentsWebhooks {
         workspaceId: workspace._id.toString(),
         userId: userId,
         tariffPlanId: tariffPlan._id.toString(),
+        shouldSaveCard: shouldSaveCard === 'true',
       });
     } catch (e) {
       this.sendError(res, 1, `[Billing / Compose payment] Can't generate checksum: ${e.toString()}`, req.query);
@@ -313,12 +315,30 @@ export default class CloudPaymentsWebhooks {
       // todo: add plan-prolongation notification if it was a payment by subscription
       const senderWorkerTask: PaymentSuccessNotificationTask = {
         type: SenderWorkerTaskType.PaymentSuccess,
-        payload: data,
+        payload: {
+          workspaceId: data.workspaceId,
+          tariffPlanId: data.tariffPlanId,
+          userId: data.userId,
+        },
       };
 
       await sendNotification(user, senderWorkerTask);
     } catch (e) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending notification to the user ${e.toString()}`, body);
+
+      return;
+    }
+
+    try {
+      if (data.shouldSaveCard) {
+        const cardData = this.getCardData(body);
+
+        if (cardData) {
+          await user.saveNewBankCard(cardData);
+        }
+      }
+    } catch (e) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while saving user card: ${e.toString()}`, body);
 
       return;
     }
@@ -577,9 +597,28 @@ export default class CloudPaymentsWebhooks {
         workspaceId: workspace._id.toString(),
         tariffPlanId: workspace.tariffPlanId.toString(),
         userId,
+        shouldSaveCard: false,
       };
     }
 
     throw new Error('Invalid request: no necessary data');
+  }
+
+  /**
+   * Parses body and returns card data
+   * @param request - request body to parse
+   */
+  private getCardData(request: PayRequest): BankCard | null {
+    if (!request.CardType || !request.CardExpDate || !request.CardLastFour || !request.CardFirstSix || !request.Token) {
+      return null;
+    }
+
+    return {
+      cardExpDate: request.CardExpDate,
+      firstSix: +request.CardFirstSix,
+      lastFour: +request.CardLastFour,
+      token: request.Token,
+      type: request.CardType,
+    };
   }
 }

@@ -3,6 +3,7 @@ import { PayCodes, PayRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
 import { Collection, Db, ObjectId } from 'mongodb';
 import {
+  BankCard,
   BusinessOperationDBScheme,
   BusinessOperationStatus,
   BusinessOperationType,
@@ -10,10 +11,15 @@ import {
   UserDBScheme,
   WorkspaceDBScheme
 } from 'hawk.types';
-import { PaymentSuccessNotificationTask, PaymentSuccessNotificationPayload, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
+import {
+  PaymentSuccessNotificationPayload,
+  PaymentSuccessNotificationTask,
+  SenderWorkerTaskType
+} from '../../../../src/types/personalNotifications';
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import checksumService from '../../../../src/utils/checksumService';
 import { getRequestWithSubscription, user } from '../../billingMocks';
+import { CardDetails } from '../../../../src/billing/types/cardDetails';
 
 const transactionId = 123456;
 
@@ -23,6 +29,14 @@ const currentPlan: PlanDBScheme = {
   isDefault: true,
   monthlyCharge: 1000,
   name: 'Test plan',
+};
+
+const cardDetails: Required<CardDetails> = {
+  CardExpDate: '25/03',
+  CardType: CardType.VISA,
+  Token: '123123',
+  CardFirstSix: '545636',
+  CardLastFour: '4555',
 };
 
 const workspace = {
@@ -105,7 +119,10 @@ describe('Pay webhook', () => {
       TotalFee: 0,
       TransactionId: transactionId,
       Data: JSON.stringify({
-        checksum: await checksumService.generateChecksum(paymentSuccessPayload),
+        checksum: await checksumService.generateChecksum({
+          ...paymentSuccessPayload,
+          shouldSaveCard: false,
+        }),
       }),
     };
 
@@ -423,6 +440,37 @@ describe('Pay webhook', () => {
       expect(updatedWorkspace?.subscriptionId).toBe(request.SubscriptionId);
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
+
+    test.only('Should save user card if shouldSaveCard true', async () => {
+      /**
+       * Correct data
+       */
+      const request: PayRequest = {
+        ...validPayRequestData,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            ...paymentSuccessPayload,
+            shouldSaveCard: true,
+          }),
+        }),
+        ...cardDetails,
+      };
+
+      const apiResponse = await apiInstance.post('/billing/pay', request);
+      const updatedUser = await usersCollection.findOne({ _id: user._id });
+
+      const expectedCard: BankCard = {
+        cardExpDate: cardDetails.CardExpDate,
+        firstSix: +cardDetails.CardFirstSix,
+        lastFour: +cardDetails.CardLastFour,
+        token: cardDetails.Token,
+        type: cardDetails.CardType,
+      };
+
+      expect(updatedUser?.bankCards?.length).toBe(1);
+      expect(updatedUser?.bankCards?.shift()).toEqual(expectedCard);
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
   });
 
   describe('With invalid request', () => {
@@ -447,6 +495,7 @@ describe('Pay webhook', () => {
             userId: user._id.toString(),
             workspaceId: '',
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       });
@@ -467,6 +516,7 @@ describe('Pay webhook', () => {
             userId: '',
             workspaceId: workspace._id.toString(),
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       });
@@ -487,6 +537,7 @@ describe('Pay webhook', () => {
             userId: user._id.toString(),
             workspaceId: workspace._id.toString(),
             tariffPlanId: '',
+            shouldSaveCard: false,
           }),
         }),
       });
@@ -507,6 +558,7 @@ describe('Pay webhook', () => {
             userId: user._id.toString(),
             workspaceId: new ObjectId().toString(),
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       });
@@ -527,6 +579,7 @@ describe('Pay webhook', () => {
             userId: new ObjectId().toString(),
             workspaceId: workspace._id.toString(),
             tariffPlanId: new ObjectId().toString(),
+            shouldSaveCard: false,
           }),
         }),
       });
@@ -547,6 +600,7 @@ describe('Pay webhook', () => {
             userId: new ObjectId().toString(),
             workspaceId: workspace._id.toString(),
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       });

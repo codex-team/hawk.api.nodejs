@@ -3824,8 +3824,8 @@ has@^1.0.3:
     function-bind "^1.1.1"
 
 "hawk.types@https://github.com/codex-team/hawk.types":
-  version "0.0.1"
-  resolved "https://github.com/codex-team/hawk.types#1c00f49e20f53b7e2c582630a051dacea12ffd1d"
+  version "0.1.3"
+  resolved "https://github.com/codex-team/hawk.types#bd9ca4b25368d9089b6866ef515bdbd671bc55a8"
   dependencies:
     "@types/mongodb" "^3.5.34"
 

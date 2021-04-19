@@ -1,6 +1,6 @@
 import { SenderWorkerTasks } from '../types/personalNotifications';
-import { UserDBScheme } from '../models/user';
 import { enqueue, WorkerPaths } from '../rabbitmq';
+import { UserDBScheme } from 'hawk.types';
 
 /**
  * Send notification to all enable resources

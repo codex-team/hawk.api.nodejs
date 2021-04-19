@@ -33,12 +33,13 @@ class ChecksumService {
     /**
      * Filter unnecessary fields from JWT payload (e.g. "iat")
      */
-    const { tariffPlanId, workspaceId, userId } = payload;
+    const { tariffPlanId, workspaceId, userId, shouldSaveCard } = payload;
 
     return {
       tariffPlanId,
       workspaceId,
       userId,
+      shouldSaveCard,
     };
   }
 }

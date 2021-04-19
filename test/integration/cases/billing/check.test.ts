@@ -145,6 +145,7 @@ describe('Check webhook', () => {
             workspaceId: '5fe383b0126d28907780641b',
             userId: admin._id.toString(),
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       };
@@ -165,6 +166,7 @@ describe('Check webhook', () => {
             workspaceId: workspace._id.toString(),
             userId: externalUser._id.toString(),
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       };
@@ -185,6 +187,7 @@ describe('Check webhook', () => {
             workspaceId: workspace._id.toString(),
             userId: member._id.toString(),
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       };
@@ -205,6 +208,7 @@ describe('Check webhook', () => {
             workspaceId: workspace._id.toString(),
             userId: admin._id.toString(),
             tariffPlanId: '5fe383b0126d28007780641b',
+            shouldSaveCard: false,
           }),
         }),
       };
@@ -226,6 +230,7 @@ describe('Check webhook', () => {
             workspaceId: workspace._id.toString(),
             userId: admin._id.toString(),
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       };
@@ -246,6 +251,7 @@ describe('Check webhook', () => {
             workspaceId: workspace._id.toString(),
             userId: admin._id.toString(),
             tariffPlanId: planToChange._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       };

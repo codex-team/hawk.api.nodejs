@@ -6,6 +6,7 @@ import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
+import { BankCard, UserDBScheme } from 'hawk.types';
 
 /**
  * Tokens pair for User authentication.
@@ -41,52 +42,6 @@ export interface MembershipDBScheme {
    * Shows if member is pending
    */
   isPending?: boolean;
-}
-
-/**
- * Interface representing how user is stored in DB
- */
-export interface UserDBScheme {
-  /**
-   * User's id
-   */
-  _id: ObjectId;
-
-  /**
-   * User's email
-   */
-  email?: string;
-
-  /**
-   * User's password
-   */
-  password?: string;
-
-  /**
-   * User's image url
-   */
-  image?: string;
-
-  /**
-   * User's name
-   */
-  name?: string;
-
-  /**
-   * User's GitHub profile id
-   */
-  githubId?: string;
-
-  /**
-   * User's original password (this field appears only after registration).
-   * Using to send password to user after registration
-   */
-  generatedPassword?: string;
-
-  /**
-   * User notifications settings
-   */
-  notifications?: UserNotificationsDBScheme;
 }
 
 /**
@@ -390,5 +345,28 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
     const membershipDocuments = await this.membershipCollection.find(searchQuery).toArray();
 
     return membershipDocuments.map(doc => doc.workspaceId.toString());
+  }
+
+  /**
+   * Saves new back card of the user
+   * @param cardData - card data to save
+   */
+  public async saveNewBankCard(cardData: BankCard): Promise<void> {
+    const userWithProvidedCard = await this.collection.findOne({
+      _id: this._id,
+      'bankCards.token': cardData.token,
+    });
+
+    if (userWithProvidedCard) {
+      return;
+    }
+
+    await this.collection.updateOne({
+      _id: this._id,
+    }, {
+      $push: {
+        bankCards: cardData,
+      },
+    });
   }
 }
