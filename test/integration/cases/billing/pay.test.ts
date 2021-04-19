@@ -3,6 +3,7 @@ import { PayCodes, PayRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
 import { Collection, Db, ObjectId } from 'mongodb';
 import {
+  BankCard,
   BusinessOperationDBScheme,
   BusinessOperationStatus,
   BusinessOperationType,
@@ -10,10 +11,15 @@ import {
   UserDBScheme,
   WorkspaceDBScheme
 } from 'hawk.types';
-import { PaymentSuccessNotificationTask, PaymentSuccessNotificationPayload, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
+import {
+  PaymentSuccessNotificationPayload,
+  PaymentSuccessNotificationTask,
+  SenderWorkerTaskType
+} from '../../../../src/types/personalNotifications';
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import checksumService from '../../../../src/utils/checksumService';
 import { getRequestWithSubscription, user } from '../../billingMocks';
+import { CardDetails } from '../../../../src/billing/types/cardDetails';
 
 const transactionId = 123456;
 
@@ -23,6 +29,14 @@ const currentPlan: PlanDBScheme = {
   isDefault: true,
   monthlyCharge: 1000,
   name: 'Test plan',
+};
+
+const cardDetails: Required<CardDetails> = {
+  CardExpDate: '25/03',
+  CardType: CardType.VISA,
+  Token: '123123',
+  CardFirstSix: '545636',
+  CardLastFour: '4555',
 };
 
 const workspace = {
@@ -439,15 +453,22 @@ describe('Pay webhook', () => {
             shouldSaveCard: true,
           }),
         }),
-        Token: '123123',
-        CardFirstSix: '545636',
-        CardLastFour: '4555',
+        ...cardDetails,
       };
 
       const apiResponse = await apiInstance.post('/billing/pay', request);
       const updatedUser = await usersCollection.findOne({ _id: user._id });
 
-      expect(updatedUser?.bankCards).toBeDefined();
+      const expectedCard: BankCard = {
+        cardExpDate: cardDetails.CardExpDate,
+        firstSix: +cardDetails.CardFirstSix,
+        lastFour: +cardDetails.CardLastFour,
+        token: cardDetails.Token,
+        type: cardDetails.CardType,
+      };
+
+      expect(updatedUser?.bankCards?.length).toBe(1);
+      expect(updatedUser?.bankCards?.shift()).toEqual(expectedCard);
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
   });
