@@ -360,7 +360,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   public async saveNewBankCard(cardData: PartialBy<BankCard, 'id'>): Promise<void> {
     const userWithProvidedCard = await this.collection.findOne({
       _id: this._id,
-      'bankCards.id': cardData.id,
+      'bankCards.token': cardData.token,
     });
 
     if (userWithProvidedCard) {
