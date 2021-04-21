@@ -44,7 +44,7 @@ type BankCard {
   id: ID!
 
   """
-  Last for numbers of card PAN
+  Last four numbers of card PAN
   """
   lastFour: Int!
 }
