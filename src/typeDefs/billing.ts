@@ -184,11 +184,6 @@ input PayOnceInput {
 
 extend type Query {
   """
-  Get attached cards
-  """
-  cardList: [CardInfo!]! @requireAuth
-
-  """
   Get workspace billing history
   """
   businessOperations("Workspaces IDs" ids: [ID!] = []): [BusinessOperation!]! @requireAuth @requireAdmin

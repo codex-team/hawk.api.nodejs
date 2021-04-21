@@ -460,6 +460,7 @@ describe('Pay webhook', () => {
       const updatedUser = await usersCollection.findOne({ _id: user._id });
 
       const expectedCard: BankCard = {
+        id: '2342424',
         cardExpDate: cardDetails.CardExpDate,
         firstSix: +cardDetails.CardFirstSix,
         lastFour: +cardDetails.CardLastFour,

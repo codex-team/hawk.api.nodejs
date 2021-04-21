@@ -608,7 +608,7 @@ export default class CloudPaymentsWebhooks {
    * Parses body and returns card data
    * @param request - request body to parse
    */
-  private getCardData(request: PayRequest): BankCard | null {
+  private getCardData(request: PayRequest): Omit<BankCard, 'id'> | null {
     if (!request.CardType || !request.CardExpDate || !request.CardLastFour || !request.CardFirstSix || !request.Token) {
       return null;
     }
