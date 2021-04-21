@@ -47,7 +47,7 @@ export default gql`
     """
     Saved bank cards for one-click payments
     """
-    bankCards: [BankCard!]!
+    bankCards: [BankCard!]
   }
 
   extend type Query {
