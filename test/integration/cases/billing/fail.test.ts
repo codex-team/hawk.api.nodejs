@@ -50,6 +50,7 @@ const planProlongationPayload: PlanProlongationPayload = {
   userId: user._id.toString(),
   workspaceId: workspace._id.toString(),
   tariffPlanId: tariffPlan._id.toString(),
+  shouldSaveCard: false,
 };
 
 const validRequest: FailRequest = {
@@ -232,6 +233,7 @@ describe('Fail webhook', () => {
             userId: '',
             workspaceId: workspace._id.toString(),
             tariffPlanId: tariffPlan._id.toString(),
+            shouldSaveCard: false,
           }),
         }),
       });

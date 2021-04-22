@@ -1,10 +1,12 @@
-import { Currency, CardType, OperationType, OperationStatus, SubscriptionStatus, ReasonCode, Interval } from './enums';
+import { Currency, OperationType, OperationStatus, SubscriptionStatus, ReasonCode, Interval } from './enums';
+import { CardDetails } from './cardDetails';
+import { IpData } from './ipData';
 
 /**
  * Check request body
  * https://developers.cloudpayments.ru/#check
  */
-export interface CheckRequest {
+export interface CheckRequest extends CardDetails, IpData {
   /**
    * Number of transaction in the system
    */
@@ -24,26 +26,6 @@ export interface CheckRequest {
    * Date/time of payment creation in UTC time zone
    */
   DateTime: Date;
-
-  /**
-   * First 6 digits of the card number
-   */
-  CardFirstSix: string;
-
-  /**
-   * Last 4 digits of the card number
-   */
-  CardLastFour: string;
-
-  /**
-   * Card payment system: Visa, MasterCard, Maestro or MIR
-   */
-  CardType: CardType;
-
-  /**
-   * Card expiration date in MM/YY format
-   */
-  CardExpDate: string;
 
   /**
    * Test mode sign
@@ -93,31 +75,6 @@ export interface CheckRequest {
   Email?: string;
 
   /**
-   * Payer's IP address
-   */
-  IpAdress?: string;
-
-  /**
-   * ISO3166-1 two-letter country code of the payer's country
-   */
-  IpCountry?: string;
-
-  /**
-   * Payer's city
-   */
-  IpCity?: string;
-
-  /**
-   * Payer's region
-   */
-  IpRegion?: string;
-
-  /**
-   * Payer's district
-   */
-  IpDistrict?: string;
-
-  /**
    * Name of the card issuing bank
    */
   Issuer: string;
@@ -142,7 +99,7 @@ export interface CheckRequest {
  * Pay request body
  * https://developers.cloudpayments.ru/#pay
  */
-export interface PayRequest {
+export interface PayRequest extends CardDetails, IpData {
   /**
    * Number of transaction in the system
    */
@@ -162,26 +119,6 @@ export interface PayRequest {
    * Date/time of payment creation in UTC time zone
    */
   DateTime: Date;
-
-  /**
-   * First 6 digits of the card number
-   */
-  CardFirstSix: string;
-
-  /**
-   * Last 4 digits of the card number
-   */
-  CardLastFour: string;
-
-  /**
-   * Card payment system: Visa, MasterCard, Maestro or MIR
-   */
-  CardType: CardType;
-
-  /**
-   * Card expiration date in MM/YY format
-   */
-  CardExpDate: string;
 
   /**
    * Test mode sign
@@ -236,31 +173,6 @@ export interface PayRequest {
   Email?: string;
 
   /**
-   * Payer's IP address
-   */
-  IpAdress?: string;
-
-  /**
-   * ISO3166-1 two-letter country code of the payer's country
-   */
-  IpCountry?: string;
-
-  /**
-   * Payer's city
-   */
-  IpCity?: string;
-
-  /**
-   * Payer's region
-   */
-  IpRegion?: string;
-
-  /**
-   * Payer's district
-   */
-  IpDistrict?: string;
-
-  /**
    * Name of the card issuing bank
    */
   Issuer?: string;
@@ -279,11 +191,6 @@ export interface PayRequest {
    * An arbitrary set of parameters passed to the transaction
    */
   Data?: string;
-
-  /**
-   * Card token for repeated payments without entering details
-   */
-  Token?: string;
 
   /**
    * Total commission value
@@ -310,7 +217,7 @@ export interface PayRequest {
  * Fail request body
  * https://developers.cloudpayments.ru/#fail
  */
-export interface FailRequest {
+export interface FailRequest extends CardDetails, IpData {
   /**
    * Number of transaction in the system
    */
@@ -330,26 +237,6 @@ export interface FailRequest {
    * Date/time of payment creation in UTC time zone
    */
   DateTime: Date;
-
-  /**
-   * First 6 digits of the card number
-   */
-  CardFirstSix: string;
-
-  /**
-   * Last 4 digits of the card number
-   */
-  CardLastFour: string;
-
-  /**
-   * Card payment system: Visa, MasterCard, Maestro or MIR
-   */
-  CardType: CardType;
-
-  /**
-   * Card expiration date in MM/YY format
-   */
-  CardExpDate: string;
 
   /**
    * Test mode sign
@@ -403,31 +290,6 @@ export interface FailRequest {
   Email?: string;
 
   /**
-   * Payer's IP address
-   */
-  IpAdress?: string;
-
-  /**
-   * ISO3166-1 two-letter country code of the payer's country
-   */
-  IpCountry?: string;
-
-  /**
-   * Payer's city
-   */
-  IpCity?: string;
-
-  /**
-   * Payer's region
-   */
-  IpRegion?: string;
-
-  /**
-   * Payer's district
-   */
-  IpDistrict?: string;
-
-  /**
    * Name of the card issuing bank
    */
   Issuer: string;
@@ -446,11 +308,6 @@ export interface FailRequest {
    * An arbitrary set of parameters passed to the transaction
    */
   Data?: string;
-
-  /**
-   * Card token for repeated payments without entering details
-   */
-  Token?: string;
 
   /**
    * Payment method ApplePay or GooglePay
