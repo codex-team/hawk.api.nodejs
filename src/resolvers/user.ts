@@ -50,7 +50,7 @@ export default {
       } catch (e) {
         if (e.code.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
           throw new AuthenticationError(
-            'User with such email already registered'
+            'User with this email already registered'
           );
         }
         throw e;
@@ -176,9 +176,14 @@ export default {
       }
 
       try {
-        const options: {[key: string]: string} = {
+        const options: {[key: string]: string | object} = {
           name,
           email,
+          notifications: {
+            channels: {
+              email: { endpoint: email },
+            },
+          },
         };
 
         if (image) {

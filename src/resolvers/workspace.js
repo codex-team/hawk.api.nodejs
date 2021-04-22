@@ -1,6 +1,10 @@
 import WorkspaceModel from '../models/workspace';
-import { AccountType, Currency } from '../accounting/types';
+import { AccountType, Currency } from 'codex-accounting-sdk/types';
 import PlanModel from '../models/plan';
+import * as telegram from '../utils/telegram';
+import HawkCatcher from '@hawk.so/nodejs';
+import escapeHTML from 'escape-html';
+import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -47,7 +51,7 @@ module.exports = {
       try {
         // Create workspace account and set account id to workspace
         const accountResponse = await accounting.createAccount({
-          name: name,
+          name: 'WORKSPACE:' + name,
           type: AccountType.LIABILITY,
           currency: Currency.USD,
         });
@@ -399,19 +403,18 @@ module.exports = {
     },
 
     /**
-     * Change workspace plan mutation implementation
+     * Change workspace plan for free plan mutation implementation
      *
      * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {string} workspaceId - id of workspace to change plan
-     * @param {string} planId - plan to set
      * @param {ContextFactories} factories - factories to work with models
      */
-    async changeWorkspacePlan(
+    async changeWorkspacePlanForFreePlan(
       _obj,
       {
-        input: { workspaceId, planId },
+        input: { workspaceId },
       },
-      { factories }
+      { factories, user }
     ) {
       const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
 
@@ -419,23 +422,52 @@ module.exports = {
         throw new UserInputError('There is no workspace with provided id');
       }
 
-      if (workspaceModel.plan === planId) {
-        throw new UserInputError('Plan with given ID is already used for the workspace');
+      const freePlan = await factories.plansFactory.getDefaultPlan();
+
+      if (workspaceModel.tariffPlanId === freePlan.id) {
+        throw new UserInputError('User plan is already Free');
       }
 
-      const planModel = await factories.plansFactory.findById(planId);
+      const oldPlanModel = await factories.plansFactory.findById(workspaceModel.tariffPlanId);
+      const userModel = await factories.usersFactory.findById(user.id);
 
-      if (!planModel) {
-        throw new UserInputError('Plan with passed ID doesn\'t exists');
+      try {
+        const date = new Date();
+
+        // Push old plan to plan history
+        await workspaceModel.updatePlanHistory(workspaceModel.tariffPlanId, date, userModel._id);
+
+        // Update workspace last charge date
+        await workspaceModel.updateLastChargeDate(date);
+
+        // Change workspace plan
+        await workspaceModel.changePlan(freePlan._id);
+      } catch (err) {
+        console.error('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
+        HawkCatcher.send(err);
+
+        throw new ApolloError('An error occurred while changing the plan');
       }
 
-      await workspaceModel.changePlan(planModel._id);
+      // Send a message of a succesfully plan changed to the telegram bot
+      const message = `🤑 <b>${escapeHTML(userModel.name || userModel.email)}</b> changed plan of «<b>${escapeHTML(workspaceModel.name)}</b>» workspace
+
+⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${freePlan.name} $${freePlan.monthlyCharge}</b> `;
+
+      telegram.sendMessage(message);
+
+      const updatedWorkspaceModel = await factories.workspacesFactory.findById(workspaceId);
 
       return {
-        recordId: workspaceModel._id,
-        record: workspaceModel,
+        recordId: workspaceId,
+        record: updatedWorkspaceModel,
       };
     },
+
+    /**
+     * Return empty object to call resolver for specific mutation
+     */
+    workspace: () => ({}),
   },
   Workspace: {
     /**
@@ -464,20 +496,6 @@ module.exports = {
     },
 
     /**
-     * Returs workspace balance
-     * @param {WorkspaceDBScheme} workspace - result from resolver above
-     * @param _args - empty list of args
-     * @param {string} accounting - accounting microservice
-     * @returns {Promise<number>}
-     */
-    async balance(workspace, _args, { accounting }) {
-      const accountId = workspace.accountId;
-      const account = await accounting.getAccount(accountId);
-
-      return account.balance;
-    },
-
-    /**
      * Returns workspace plan
      *
      * @param {WorkspaceDBScheme} workspace - result from resolver above
@@ -486,7 +504,7 @@ module.exports = {
      * @returns {Promise<PlanModel>}
      */
     async plan(workspace, _args, { factories }) {
-      const plan = await factories.plansFactory.findById(workspace.plan);
+      const plan = await factories.plansFactory.findById(workspace.tariffPlanId);
 
       return new PlanModel(plan);
     },
@@ -526,6 +544,43 @@ module.exports = {
      */
     isAdmin(memberData) {
       return !WorkspaceModel.isPendingMember(memberData) && (memberData.isAdmin || false);
+    },
+  },
+
+  WorkspaceMutations: {
+    /**
+     * Cancels subscription for workspace
+     * @param _obj - result of the parent resolver
+     * @param {string} workspaceId - workspace id to cancel subscription for
+     * @param {ContextFactories} factories - factories to work with models
+     * @return {Promise<{recordId: *, record: {subscriptionId: null}}>}
+     */
+    async cancelSubscription(
+      _obj,
+      {
+        input: { workspaceId },
+      },
+      { factories }
+    ) {
+      const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
+
+      if (!workspaceModel) {
+        throw new UserInputError('There is no workspace with provided id');
+      }
+
+      if (!workspaceModel.subscriptionId) {
+        throw new UserInputError('There is no subscription for provided workspace');
+      }
+
+      await cloudPaymentsApi.cancelSubscription(workspaceModel.subscriptionId);
+
+      return {
+        recordId: workspaceModel._id,
+        record: {
+          ...workspaceModel,
+          subscriptionId: null,
+        },
+      };
     },
   },
 };

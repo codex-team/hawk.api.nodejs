@@ -1,10 +1,10 @@
+import './typeDefs/expressContext';
 import { ApolloServer } from 'apollo-server-express';
 import express from 'express';
 import * as mongo from './mongo';
 import * as rabbitmq from './rabbitmq';
 import jwt, { Secret } from 'jsonwebtoken';
 import http from 'http';
-import billing from './billing/index';
 import { initializeStrategies } from './passport';
 import { authRouter } from './auth';
 import resolvers from './resolvers';
@@ -17,7 +17,9 @@ import WorkspacesFactory from './models/workspacesFactory';
 import DataLoaders from './dataLoaders';
 import HawkCatcher from '@hawk.so/nodejs';
 import { express as voyagerMiddleware } from 'graphql-voyager/middleware';
-import Accounting from './accounting';
+import Accounting from 'codex-accounting-sdk';
+import Billing from './billing';
+import bodyParser from 'body-parser';
 
 import UploadImageDirective from './directives/uploadImageDirective';
 import RequireAuthDirective from './directives/requireAuthDirective';
@@ -29,6 +31,7 @@ import ProjectsFactory from './models/projectsFactory';
 import { NonCriticalError } from './errors';
 import InvitesFactory from './models/invitesFactory';
 import PlansFactory from './models/plansFactory';
+import BusinessOperationsFactory from './models/businessOperationsFactory';
 
 /**
  * Option to enable playground
@@ -71,11 +74,24 @@ class HawkAPI {
    */
   constructor() {
     this.app.use(express.json());
-    this.app.post('/billing', billing.notifyCallback);
+    this.app.use(bodyParser.urlencoded({ extended: false }));
     this.app.use('/uploads', express.static(`./${process.env.UPLOADS_DIR || 'uploads'}`));
     this.app.use('/static', express.static(`./static`));
     this.app.use('/voyager', voyagerMiddleware({ endpointUrl: '/graphql' }));
     this.app.use(authRouter);
+
+    /**
+     * Add context to the express request object to use its methods in any requests
+     */
+    this.app.use(async (req, res, next) => {
+      req.context = await HawkAPI.createContext({ req } as ExpressContext);
+
+      next();
+    });
+
+    const billing = new Billing();
+
+    billing.appendRoutes(this.app);
 
     initializeStrategies();
 
@@ -99,7 +115,7 @@ class HawkAPI {
         onConnect: (connectionParams): { headers: { authorization: string } } =>
           HawkAPI.onWebSocketConnection(connectionParams as Record<string, string>),
       },
-      context: (req: ExpressContext): Promise<ResolverContextBase> => HawkAPI.createContext(req),
+      context: ({ req }): ResolverContextBase => req.context,
       formatError: (error): GraphQLError => {
         if (error.originalError instanceof NonCriticalError) {
           return error;
@@ -143,12 +159,16 @@ class HawkAPI {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const plansFactory = new PlansFactory(mongo.databases.hawk!, dataLoaders);
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const businessOperationsFactory = new BusinessOperationsFactory(mongo.databases.hawk!, dataLoaders);
+
     return {
       usersFactory,
       workspacesFactory,
       projectsFactory,
       plansFactory,
       invitesFactory,
+      businessOperationsFactory,
     };
   }
 
@@ -156,6 +176,7 @@ class HawkAPI {
    * Creates request context
    * @param req - Express request
    * @param connection - websocket connection (for subscriptions)
+   * @param billing - hawk billing
    */
   private static async createContext({ req, connection }: ExpressContext): Promise<ResolverContextBase> {
     let userId: string | undefined;
@@ -186,12 +207,28 @@ class HawkAPI {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const dataLoader = new DataLoaders(mongo.databases.hawk!);
 
+    /**
+     * Initializing accounting SDK
+     */
+    let tlsVerify;
+
+    /**
+     * Checking env variables
+     * If at least one path is not transmitted, the variable tlsVerify is undefined
+     */
+    if (
+      ![process.env.TLS_CA_CERT, process.env.TLS_CERT, process.env.TLS_KEY].some(value => value === undefined || value.length === 0)
+    ) {
+      tlsVerify = {
+        tlsCaCertPath: `${process.env.TLS_CA_CERT}`,
+        tlsCertPath: `${process.env.TLS_CERT}`,
+        tlsKeyPath: `${process.env.TLS_KEY}`,
+      };
+    }
+
     const accounting = new Accounting({
       baseURL: `${process.env.CODEX_ACCOUNTING_URL}`,
-      tlsVerify: process.env.TLS_VERIFY === 'true',
-      tlsCaCertPath: `${process.env.TLS_CA_CERT}`,
-      tlsCertPath: `${process.env.TLS_CERT}`,
-      tlsKeyPath: `${process.env.TLS_KEY}`,
+      tlsVerify,
     });
 
     return {

@@ -31,7 +31,7 @@ module.exports = {
 
     const accountingApiConfig = {
       baseURL: process.env.CODEX_ACCOUNTING_URL,
-      tlsVerify: process.env.TLS_VERIFY,
+      tlsVerify: process.env.TLS_VERIFY === 'true',
       tlsCaCertPath: process.env.TLS_CA_CERT,
       tlsCertPath: process.env.TLS_CERT,
       tlsKeyPath: process.env.TLS_KEY,
@@ -89,13 +89,13 @@ module.exports = {
               },
             },
           })
-            .then(response => {
-              return response.data;
+            .then(resp => {
+              return resp.data;
             })
-            .catch(response => {
-              console.error(response);
+            .catch(resp => {
+              console.error(resp);
 
-              return Promise.reject(response);
+              return Promise.reject(resp);
             });
 
           const recordId = response.data.account.create.recordId;

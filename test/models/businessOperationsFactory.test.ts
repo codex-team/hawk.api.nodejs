@@ -3,11 +3,7 @@ import * as mongo from '../../src/mongo';
 import BusinessOperationsFactory from '../../src/models/businessOperationsFactory';
 import DataLoaders from '../../src/dataLoaders';
 import { Db, ObjectId } from 'mongodb';
-import {
-  BusinessOperationStatus,
-  BusinessOperationType,
-  PayloadOfDepositByUser
-} from '../../src/models/businessOperation';
+import { BusinessOperationStatus, BusinessOperationType, PayloadOfDepositByUser } from 'hawk.types';
 
 beforeAll(async () => {
   await mongo.setupConnections();
@@ -34,6 +30,7 @@ describe('Business operation factory', () => {
       transactionId: 'Transaction ID',
       type: BusinessOperationType.DepositByUser,
       status: BusinessOperationStatus.Confirmed,
+      dtCreated: new Date(),
       payload: payloadDepositByUser,
     };
 

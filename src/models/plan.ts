@@ -1,35 +1,6 @@
 import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
-
-/**
- * Plan representation in DataBase
- */
-export interface PlanDBScheme {
-  /**
-   * Plan's id
-   */
-  _id: ObjectId;
-
-  /**
-   * Plan's name
-   */
-  name: string;
-
-  /**
-   * Monthly charge for plan in dollars
-   */
-  monthlyCharge: number;
-
-  /**
-   * Maximum amount of events available for plan
-   */
-  eventsLimit: number;
-
-  /**
-   * Is this plan used by default?
-   */
-  isDefault: boolean;
-}
+import { PlanDBScheme } from 'hawk.types';
 
 /**
  * Plan model

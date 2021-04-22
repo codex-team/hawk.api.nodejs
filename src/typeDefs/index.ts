@@ -73,6 +73,21 @@ const rootSchema = gql`
   scalar JSONObject
 
   """
+  Represents JSON objects encoded (or not) in string format
+  """
+  scalar EncodedJSON
+
+  """
+  Only positive numbers
+  """
+  scalar PositiveInt
+
+  """
+  Big int numbers
+  """
+  scalar Long
+
+  """
   Supported languages for data
   """
   enum Languages {

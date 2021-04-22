@@ -16,7 +16,7 @@ type BillingSession {
   """
   Total payment amount in kopecs
   """
-  amount: Int! @renameFrom(name: "Amount")
+  amount: Long! @renameFrom(name: "Amount")
 
   """
   Payment status
@@ -51,39 +51,116 @@ type CardInfo {
   expDate: String!
 }
 
+
 """
-Transaction object
+Types of business operations
 """
-type Transaction {
+enum BusinessOperationType {
   """
-  Transaction type
+  Workspace plan purchase by payment worker
   """
-  type: String!
+  WORKSPACE_PLAN_PURCHASE
 
   """
-  Workspace for which transaction has been made
+  Workspace deposit balance by user
+  """
+  DEPOSIT_BY_USER
+}
+
+
+"""
+Business operations statuses
+"""
+enum BusinessOperationStatus {
+  """
+  Business operation is pending
+  """
+  PENDING
+
+  """
+  Business operation is confirmed
+  """
+  CONFIRMED
+
+  """
+  Business operation is rejected
+  """
+  REJECTED
+}
+
+"""
+Business operation payload type for 'DepositByUser' operation type
+"""
+type PayloadOfDepositByUser {
+  """
+  Workspace to which the payment is credited
   """
   workspace: Workspace!
 
   """
-  Transaction amount
+  Amount of payment in US cents
   """
-  amount: Int!
+  amount: Long!
 
   """
-  Transaction date
+  User who made the payment
   """
-  date: DateTime!
+  user: User!
 
   """
-  User by whom transaction has been made (income transactions only)
+  PAN of card which user made the payment
   """
-  user: User
+  cardPan: String
+}
+
+"""
+Business operation payload type for 'WorkspacePlanPurchase' operation type
+"""
+type PayloadOfWorkspacePlanPurchase {
+  """
+  Workspace to which the payment is debited
+  """
+  workspace: Workspace!
 
   """
-  PAN of card by which transaction has been made
+  Amount of payment in US cents
   """
-  cardPan: Int!
+  amount: Long!
+}
+
+"""
+All available payload types for different types of operations
+"""
+union BusinessOperationPayload = PayloadOfDepositByUser | PayloadOfWorkspacePlanPurchase
+
+"""
+Business operation object
+"""
+type BusinessOperation {
+  """
+  Id of operation
+  """
+  id: String! @renameFrom(name: "_id")
+
+  """
+  Business operation type
+  """
+  type: BusinessOperationType!
+
+  """
+  Indicates current state of the operation
+  """
+  status: BusinessOperationStatus!
+
+  """
+  Metadata related to the operation type
+  """
+  payload: BusinessOperationPayload!
+
+  """
+  When the operation was registered
+  """
+  dtCreated: DateTime!
 }
 
 """
@@ -93,7 +170,7 @@ input PayOnceInput {
   """
   Total payment amount in kopecs
   """
-  amount: Int!
+  amount: Long!
 
   """
   Workspace id for which the payment will be made
@@ -106,6 +183,7 @@ input PayOnceInput {
   language: SupportedBillingLanguages = RU
 }
 
+
 extend type Query {
   """
   Get attached cards
@@ -113,9 +191,9 @@ extend type Query {
   cardList: [CardInfo!]! @requireAuth
 
   """
-  Get workspace transactions
+  Get workspace billing history
   """
-  transactions("Workspaces IDs" ids: [ID!] = []): [Transaction!]! @requireAuth
+  businessOperations("Workspaces IDs" ids: [ID!] = []): [BusinessOperation!]! @requireAuth @requireAdmin
 }
 
 extend type Mutation {
@@ -131,7 +209,7 @@ extend type Mutation {
     """
     Total payment amount in kopecs
     """
-    amount: Int!
+    amount: Long!
 
     """
     Workspace id for which the payment will be made
@@ -148,13 +226,6 @@ extend type Mutation {
     """
     language: String
   ): Boolean! @requireAuth
-
-  """
-  Initialize single payment
-  """
-  payOnce(
-   input: PayOnceInput!
-  ): BillingSession! @requireAuth
 
   """
   Returns JSON data with payment link and initiate card attach procedure

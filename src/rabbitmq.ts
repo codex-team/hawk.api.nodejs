@@ -7,6 +7,89 @@ let channel: ChannelWrapper;
 let connection: AmqpConnectionManager;
 
 /**
+ * Rabbitmq exchanges
+ */
+export enum Exchanges {
+  Errors = 'errors',
+  Notify = 'notify',
+  Stash = 'stash',
+  Merchant = 'merchant',
+  CronTasks = 'cron-tasks',
+  Empty = '',
+}
+
+/**
+ * Rabbitmq queues
+ */
+export enum Queues {
+  Merchant = 'merchant/initialized',
+  Email = 'sender/email',
+  Telegram = 'notify/telegram',
+  Slack = 'notify/slack',
+  Limiter = 'cron-tasks/limiter',
+}
+
+/**
+ * Contains a rabbitmq exchange and a queue for the worker
+ */
+export interface WorkerPath {
+  /**
+   * Rabbitmq exchange
+   */
+  exchange: string;
+
+  /**
+   * Rabbitmq queue
+   */
+  queue: string;
+}
+
+/**
+ * Paths for workers to send events to the queue
+ */
+export const WorkerPaths: Record<string, WorkerPath> = {
+  /**
+   * Path to merchant worker
+   */
+  Merchant: {
+    exchange: Exchanges.Merchant,
+    queue: Queues.Merchant,
+  },
+
+  /**
+   * Path to email worker
+   */
+  Email: {
+    exchange: Exchanges.Empty,
+    queue: Queues.Email,
+  },
+
+  /**
+   * Path to telegram worker
+   */
+  Telegram: {
+    exchange: Exchanges.Notify,
+    queue: Queues.Telegram,
+  },
+
+  /**
+   * Path to slack worker
+   */
+  Slack: {
+    exchange: Exchanges.Notify,
+    queue: Queues.Slack,
+  },
+
+  /**
+   * Path to limiter worker
+   */
+  Limiter: {
+    exchange: Exchanges.CronTasks,
+    queue: Queues.Limiter,
+  },
+};
+
+/**
  * Setups connection to the RabbitMQ
  */
 export async function setupConnections(): Promise<void> {
@@ -32,9 +115,9 @@ export async function setupConnections(): Promise<void> {
 
 /**
  * Send message to RabbitMQ queue
- * @param exchange
- * @param route
- * @param message
+ * @param exchange - exchange to publish message to
+ * @param route - route to publish message to
+ * @param message - message to publish
  */
 export async function publish(exchange: string, route: string, message: string): Promise<void> {
   try {
@@ -44,4 +127,14 @@ export async function publish(exchange: string, route: string, message: string):
     HawkCatcher.send(err);
     console.log('Message was rejected:', err.stack);
   }
+}
+
+/**
+ * Put a background task into the queue on rabbitmq
+ *
+ * @param workerPath - worker rabbitmq path: exchange and queue
+ * @param task - anything that we can stringify
+ */
+export async function enqueue(workerPath: WorkerPath, task: object): Promise<void> {
+  await publish(workerPath.exchange, workerPath.queue, JSON.stringify(task));
 }

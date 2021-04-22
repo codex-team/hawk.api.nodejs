@@ -25,11 +25,10 @@ jobs:
       - name: Deploy on stage
         if: endsWith(github.ref, '/stage')
         run: |
-          DEPLOY_TOKEN=${{ secrets.DEPLOY_TOKEN }}
-          curl -X POST -H "Content-Type: application/json" --data "{\"branch\":\"stage\",\"secret_token\":\"$DEPLOY_TOKEN\"}" https://stage.hawk.so/deploy
+          curl --user ${{ secrets.DEPLOY_HAWK_STAGE_AUTH }} ${{ secrets.DEPLOY_HAWK_STAGE_ADDRESS }}?image=${{ env.DOCKER_REPO }}:stage
 
       - name: Deploy on prod
         if: endsWith(github.ref, '/prod')
         run: |
           DEPLOY_TOKEN_PROD=${{ secrets.DEPLOY_TOKEN_PROD }}
-          curl -X POST -H "Content-Type: application/json" --data "{\"branch\":\"prod\",\"secret_token\":\"$DEPLOY_TOKEN_PROD\"}" http://beta.hawk.so:7102/deploy
+          curl -X POST -H "Content-Type: application/json" --data "{\"branch\":\"prod\",\"secret_token\":\"$DEPLOY_TOKEN_PROD\"}" https://beta.hawk.so/deploy
