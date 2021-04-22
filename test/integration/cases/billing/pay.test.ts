@@ -441,7 +441,7 @@ describe('Pay webhook', () => {
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
 
-    test.only('Should save user card if shouldSaveCard true', async () => {
+    test('Should save user card if shouldSaveCard true', async () => {
       /**
        * Correct data
        */
@@ -459,7 +459,7 @@ describe('Pay webhook', () => {
       const apiResponse = await apiInstance.post('/billing/pay', request);
       const updatedUser = await usersCollection.findOne({ _id: user._id });
 
-      const expectedCard: BankCard = {
+      const expectedCard = {
         cardExpDate: cardDetails.CardExpDate,
         firstSix: +cardDetails.CardFirstSix,
         lastFour: +cardDetails.CardLastFour,
@@ -468,7 +468,7 @@ describe('Pay webhook', () => {
       };
 
       expect(updatedUser?.bankCards?.length).toBe(1);
-      expect(updatedUser?.bankCards?.shift()).toEqual(expectedCard);
+      expect(updatedUser?.bankCards?.shift()).toMatchObject(expectedCard);
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
   });

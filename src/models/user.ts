@@ -7,6 +7,12 @@ import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
 import { BankCard, UserDBScheme } from 'hawk.types';
+import uuid from 'uuid/v4';
+
+/**
+ * Utility type for making specific fields optional
+ */
+type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 
 /**
  * Tokens pair for User authentication.
@@ -351,7 +357,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * Saves new back card of the user
    * @param cardData - card data to save
    */
-  public async saveNewBankCard(cardData: BankCard): Promise<void> {
+  public async saveNewBankCard(cardData: PartialBy<BankCard, 'id'>): Promise<void> {
     const userWithProvidedCard = await this.collection.findOne({
       _id: this._id,
       'bankCards.token': cardData.token,
@@ -365,7 +371,10 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       _id: this._id,
     }, {
       $push: {
-        bankCards: cardData,
+        bankCards: {
+          id: uuid(),
+          ...cardData,
+        },
       },
     });
   }

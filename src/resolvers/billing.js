@@ -22,18 +22,6 @@ const PaymentTransaction = require('../models/paymentTransaction');
  * See all types and fields here {@link ../typeDefs/billing.graphql}
  */
 module.exports = {
-  Query: {
-    /**
-     * API Query method for getting all attached cards
-     * @param {ResolverObj} _obj
-     * @param {PaymentQuery} paymentQuery
-     * @param {Object} user - current user object
-     * @return {Promise<UserCard[]>}
-     */
-    async cardList(_obj, { paymentQuery }, { user }) {
-      return UserCard.findByUserId(user.id);
-    },
-  },
   Mutation: {
     /**
      * API Mutation method for card detach

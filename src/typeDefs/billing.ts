@@ -34,21 +34,19 @@ type BillingSession {
   paymentURL: String! @renameFrom(name: "PaymentURL")
 }
 
-type CardInfo {
+"""
+User bank card
+"""
+type BankCard {
   """
-  Card number (Pan)
+  Bank card id
   """
-  pan: String!
+  id: ID!
 
   """
-  Card ID
+  Last four numbers of card PAN
   """
-  cardId: String!
-
-  """
-  Card expiration date
-  """
-  expDate: String!
+  lastFour: Int!
 }
 
 
@@ -185,11 +183,6 @@ input PayOnceInput {
 
 
 extend type Query {
-  """
-  Get attached cards
-  """
-  cardList: [CardInfo!]! @requireAuth
-
   """
   Get workspace billing history
   """
