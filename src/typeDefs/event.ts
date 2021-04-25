@@ -17,6 +17,51 @@ type SourceCodeLine {
 }
 
 """
+Release commit
+"""
+type Commit {
+  """
+  Hash of the commit
+  """
+  commitHash: String
+
+  """
+  Commit author
+  """
+  author: String
+
+  """
+  Commit title
+  """
+  title: String
+
+  """
+  Commit creation date
+  """
+  date: String
+}
+
+"""
+Release data of the corresponding event 
+"""
+type Release {
+  """
+  Release id
+  """
+  id: String
+
+  """
+  Project id of the event
+  """
+  projectId: String
+
+  """
+  Release commits
+  """
+  commits: Commit
+}
+
+"""
 Event backtrace representation
 """
 type EventBacktraceFrame {
@@ -267,6 +312,11 @@ type Event {
   Event payload
   """
   payload: EventPayload!
+
+  """
+  Release data
+  """
+  release: Release
 
   """
   Event concrete repetition

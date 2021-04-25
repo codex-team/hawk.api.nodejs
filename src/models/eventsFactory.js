@@ -35,7 +35,7 @@ const { ObjectID } = require('mongodb');
 class EventsFactory extends Factory {
   /**
    * Event types with collections where they stored
-   * @return {{EVENTS: string, DAILY_EVENTS: string, REPETITIONS: string}}
+   * @return {{EVENTS: string, DAILY_EVENTS: string, REPETITIONS: string, RELEASES: string}}
    * @constructor
    */
   get TYPES() {
@@ -43,6 +43,7 @@ class EventsFactory extends Factory {
       EVENTS: 'events',
       REPETITIONS: 'repetitions',
       DAILY_EVENTS: 'dailyEvents',
+      RELEASES: 'releases',
     };
   }
 
@@ -436,6 +437,23 @@ class EventsFactory extends Factory {
     }
 
     return repetitions.shift();
+  }
+
+  /**
+   * Get a release from corresponding to this event
+   *
+   * @param {string} eventId - id of event to get the release
+   * @returns {Release|null}
+   */
+  async getEventRelease(eventId) {
+    const eventOriginal = await this.findById(eventId);
+
+    const release = await mongo.databases.events.collection(this.TYPES.RELEASES).findOne({
+      release: eventOriginal.releaseId,
+      projectId: this.projectId,
+    });
+
+    return release;
   }
 
   /**

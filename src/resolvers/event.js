@@ -103,6 +103,19 @@ module.exports = {
 
       return factory.findChartData(days, timezoneOffset, groupHash);
     },
+
+    /**
+     * Return release data for the event
+     *
+     * @param {string} projectId - event's project
+     * @param {String} eventId - event id
+     * @returns {Promise<Release>}
+     */
+    async release({ projectId, eventId }) {
+      const factory = new EventsFactory(new ObjectID(projectId));
+
+      return factory.getEventRelease(eventId);
+    },
   },
   Subscription: {
     eventOccurred: {
