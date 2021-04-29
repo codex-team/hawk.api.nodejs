@@ -46,9 +46,9 @@ Release data of the corresponding event
 """
 type Release {
   """
-  Release id
+  Release name
   """
-  id: String
+  id: String @renameFrom(name: "release")
 
   """
   Project id of the event

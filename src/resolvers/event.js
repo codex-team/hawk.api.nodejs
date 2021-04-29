@@ -111,10 +111,11 @@ module.exports = {
      * @param {String} eventId - event id
      * @returns {Promise<Release>}
      */
-    async release({ projectId, eventId }) {
+    async release({ projectId, id: eventId }) {
       const factory = new EventsFactory(new ObjectID(projectId));
+      const release = await factory.getEventRelease(eventId);
 
-      return factory.getEventRelease(eventId);
+      return release;
     },
   },
   Subscription: {
