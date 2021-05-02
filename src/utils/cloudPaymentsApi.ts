@@ -5,6 +5,21 @@ interface CloudPaymentsApiSettings {
   secret: string;
 }
 
+interface PayWithTokenPayload {
+  Amount: number;
+  AccountId: string;
+  Token: string;
+  JsonData: unknown;
+  Currency: string;
+}
+
+interface PayWithCardResponse {
+  Success: boolean;
+  Model: {
+    TransactionId: number;
+  };
+}
+
 /**
  * Class for interacting with CloudPayments API
  * @see https://developers.cloudpayments.ru/#api
@@ -51,6 +66,15 @@ class CloudPaymentsApi {
     await this.api.post('/subscriptions/cancel', {
       Id: subscriptionId,
     });
+  }
+
+  /**
+   * Process payment via token
+   *
+   * @param input - data for payment processing
+   */
+  public async payByToken(input: PayWithTokenPayload): Promise<PayWithCardResponse> {
+    return (await this.api.post('/payments/tokens/charge', input)).data;
   }
 }
 

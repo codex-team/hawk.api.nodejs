@@ -189,6 +189,36 @@ extend type Query {
   businessOperations("Workspaces IDs" ids: [ID!] = []): [BusinessOperation!]! @requireAuth @requireAdmin
 }
 
+"""
+Data for processing payment with saved card
+"""
+input PayWithCardInput {
+  """
+  Checksum for data validation
+  """
+  checksum: String!
+
+  """
+  Card id for payment
+  """
+  cardId: String!
+}
+
+"""
+Response of mutation for processing payment with saved card
+"""
+type PayWithCardResponse {
+  """
+  Id of the created business operation
+  """
+  recordId: ID!
+
+  """
+  Created business operation
+  """
+  record: BusinessOperation!
+}
+
 extend type Mutation {
   """
   Remove card
@@ -196,29 +226,11 @@ extend type Mutation {
   removeCard(cardNumber: String!): Boolean! @requireAuth
 
   """
-  Initialize recurrent payment
+  Mutation for processing payment with saved card
   """
   payWithCard(
-    """
-    Total payment amount in kopecs
-    """
-    amount: Long!
-
-    """
-    Workspace id for which the payment will be made
-    """
-    workspaceId: String!
-
-    """
-    Unique card identifier for recurrent payment. Omit this to pay with unattached card
-    """
-    cardId: Int!
-
-    """
-    Payment form language
-    """
-    language: String
-  ): Boolean! @requireAuth
+    input: PayWithCardInput!
+  ): PayWithCardResponse! @requireAuth
 
   """
   Returns JSON data with payment link and initiate card attach procedure
