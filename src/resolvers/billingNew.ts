@@ -3,7 +3,7 @@ import { ResolverContextWithUser } from '../types/graphql';
 import WorkspaceModel from '../models/workspace';
 import UserModel from '../models/user';
 import {
-  BusinessOperationPayloadType, BusinessOperationStatus,
+  BusinessOperationPayloadType,
   PayloadOfDepositByUser,
   PayloadOfWorkspacePlanPurchase
 } from 'hawk.types';
@@ -11,9 +11,22 @@ import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import checksumService from '../utils/checksumService';
 import { UserInputError } from 'apollo-server-express';
 
+/**
+ * Data for processing payment with saved card
+ */
 interface PayWithCardArgs {
+  /**
+   * Input data
+   */
   input: {
+    /**
+     * Checksum for payment validation
+     */
     checksum: string;
+
+    /**
+     * Card id for processing payments
+     */
     cardId: string;
   };
 }

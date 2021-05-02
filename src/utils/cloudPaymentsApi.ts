@@ -1,21 +1,62 @@
 import axios, { AxiosInstance } from 'axios';
 
+/**
+ * Settings for CloudPayments API
+ */
 interface CloudPaymentsApiSettings {
+  /**
+   * Public id for the site
+   */
   publicId: string;
+
+  /**
+   * Site's secret
+   */
   secret: string;
 }
 
+/**
+ * Payload of the API method to process payment via token
+ */
 interface PayWithTokenPayload {
+  /**
+   * Payment amount
+   */
   Amount: number;
+
+  /**
+   * User ID from payment parameters
+   */
   AccountId: string;
+
+  /**
+   * Card token for processing payment
+   */
   Token: string;
+
+  /**
+   * Other data for request
+   */
   JsonData: unknown;
+
+  /**
+   * Currency: RUB/USD
+   */
   Currency: string;
 }
 
+/**
+ * Response of the API method to process payment via token
+ */
 interface PayWithCardResponse {
+  /**
+   * Operation status
+   */
   Success: boolean;
   Model: {
+    /**
+     * Id of the transaction
+     */
     TransactionId: number;
   };
 }
