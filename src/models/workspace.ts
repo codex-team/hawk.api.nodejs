@@ -1,4 +1,5 @@
 import { Collection, ObjectId } from 'mongodb';
+import crypto from 'crypto';
 import AbstractModel from './abstractModel';
 import { OptionalId } from '../mongo';
 import UserModel from './user';
@@ -17,6 +18,11 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Workspace's name
    */
   public name!: string;
+
+  /**
+   * Workspace's invite hash
+   */
+  public inviteHash!: string;
 
   /**
    * Workspace's description
@@ -93,6 +99,18 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    */
   public static isPendingMember(doc: MemberDBScheme): doc is PendingMemberDBScheme {
     return !!(doc as PendingMemberDBScheme).userEmail && !(doc as ConfirmedMemberDBScheme).userId;
+  }
+
+  /**
+   * Generates random string for workspace hash
+   */
+  private static generateInviteHash(): string {
+    const randomNumber = Math.random();
+
+    return crypto
+      .createHash('sha256')
+      .update(randomNumber.toString())
+      .digest('hex');
   }
 
   /**
