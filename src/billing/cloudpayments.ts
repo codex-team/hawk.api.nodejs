@@ -35,6 +35,7 @@ import { SenderWorkerTaskType, PaymentFailedNotificationTask, PaymentSuccessNoti
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';
+import { WebhookData } from './types/request';
 
 /**
  * Class for describing the logic of payment routes
@@ -580,7 +581,9 @@ export default class CloudPaymentsWebhooks {
      * Data field is presented only in one-time payment requests or subscription initial request
      */
     if (body.Data) {
-      return checksumService.parseAndVerifyData(body.Data);
+      const parsedData = JSON.parse(body.Data || '{}') as WebhookData;
+
+      return checksumService.parseAndVerifyChecksum(parsedData.checksum);
     }
 
     const subscriptionId = body.SubscriptionId;
