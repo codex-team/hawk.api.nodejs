@@ -202,6 +202,11 @@ input PayWithCardInput {
   Card id for payment
   """
   cardId: String!
+
+  """
+  Is payment recurrent or not. If payment is recurrent, then the money will be debited every month
+  """
+  isRecurrent: Boolean
 }
 
 """

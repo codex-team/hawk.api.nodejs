@@ -7,7 +7,7 @@ import {
   PayloadOfDepositByUser,
   PayloadOfWorkspacePlanPurchase
 } from 'hawk.types';
-import cloudPaymentsApi from '../utils/cloudPaymentsApi';
+import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import checksumService from '../utils/checksumService';
 import { UserInputError } from 'apollo-server-express';
 
@@ -28,6 +28,11 @@ interface PayWithCardArgs {
      * Card id for processing payments
      */
     cardId: string;
+
+    /**
+     * Is payment recurrent or not. If payment is recurrent, then the money will be debited every month
+     */
+    isRecurrent?: boolean;
   };
 }
 
@@ -144,14 +149,25 @@ export default {
         throw new UserInputError('There is no saved card with provided id');
       }
 
+      const jsonData: CloudPaymentsJsonData = {
+        checksum: args.input.checksum,
+      };
+
+      if (args.input.isRecurrent) {
+        jsonData.cloudPayments = {
+          recurrent: {
+            interval: 'Month',
+            period: 1,
+          },
+        };
+      }
+
       const result = await cloudPaymentsApi.payByToken({
         AccountId: user.id,
         Amount: plan.monthlyCharge,
         Token: token,
         Currency: 'USD',
-        JsonData: {
-          checksum: args.input.checksum,
-        },
+        JsonData: jsonData,
       });
 
       const operation = await factories.businessOperationsFactory.getBusinessOperationByTransactionId(result.Model.TransactionId.toString());

@@ -16,6 +16,48 @@ interface CloudPaymentsApiSettings {
 }
 
 /**
+ * Data for setting up recurrent payments
+ */
+interface RecurrentPaymentData {
+  /**
+   * Payment interval
+   */
+  interval: 'Day' | 'Week' | 'Month';
+
+  /**
+   * Payment period. That is, how often to withdraw money
+   */
+  period: number;
+}
+
+/**
+ * Data for CloudPayments internal purposes
+ */
+interface CloudPaymentsData {
+  /**
+   * Data for recurrent payments
+   *
+   * @see https://developers.cloudpayments.ru/#rekurrentnye-platezhi-podpiska
+   */
+  recurrent: RecurrentPaymentData;
+}
+
+/**
+ * Data to be sent with pay event to and back from payments server
+ */
+export interface CloudPaymentsJsonData {
+  /**
+   * Hash to check data
+   */
+  checksum: string;
+
+  /**
+   * Data for Cloudpayments needs
+   */
+  cloudPayments?: CloudPaymentsData;
+}
+
+/**
  * Payload of the API method to process payment via token
  */
 interface PayWithTokenPayload {
@@ -37,7 +79,7 @@ interface PayWithTokenPayload {
   /**
    * Other data for request
    */
-  JsonData: unknown;
+  JsonData: CloudPaymentsJsonData;
 
   /**
    * Currency: RUB/USD
