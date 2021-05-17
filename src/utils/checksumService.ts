@@ -1,6 +1,5 @@
 import { PlanProlongationPayload } from 'hawk.types';
 import jwt, { Secret } from 'jsonwebtoken';
-import { WebhookData } from '../billing/types/request';
 
 /**
  * Helper class for working with checksums
