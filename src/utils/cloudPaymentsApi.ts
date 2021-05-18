@@ -28,6 +28,16 @@ interface RecurrentPaymentData {
    * Payment period. That is, how often to withdraw money
    */
   period: number;
+
+  /**
+   * Subscription start date (first payment)
+   */
+  startDate?: string;
+
+  /**
+   * Recurring payment amount.
+   */
+  amount?: number;
 }
 
 /**

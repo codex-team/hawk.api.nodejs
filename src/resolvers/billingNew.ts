@@ -153,6 +153,9 @@ export default {
         checksum: args.input.checksum,
       };
 
+      const isBlocked = workspace.isTariffPlanExpired();
+      const dueDate = workspace.getTariffPlanDueDate();
+
       if (args.input.isRecurrent) {
         jsonData.cloudPayments = {
           recurrent: {
@@ -160,11 +163,16 @@ export default {
             period: 1,
           },
         };
+
+        if (!isBlocked) {
+          jsonData.cloudPayments.recurrent.startDate = dueDate.toDateString();
+          jsonData.cloudPayments.recurrent.amount = plan.monthlyCharge;
+        }
       }
 
       const result = await cloudPaymentsApi.payByToken({
         AccountId: user.id,
-        Amount: plan.monthlyCharge,
+        Amount: isBlocked ? plan.monthlyCharge : 1,
         Token: token,
         Currency: 'USD',
         JsonData: jsonData,
