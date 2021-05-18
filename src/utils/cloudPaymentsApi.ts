@@ -176,9 +176,13 @@ class CloudPaymentsApi {
    * @param transactionId - transaction id to cancel
    */
   public async cancelPayment(transactionId: number): Promise<void> {
-    await this.api.post('/payments/void', {
+    const result = await this.api.post('/payments/void', {
       TransactionId: transactionId,
     });
+
+    if (!result.data.Success) {
+      throw new Error(`Error during cancelling transaction: ${result.data.Message}`);
+    }
   }
 }
 

@@ -359,15 +359,22 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    /**
-     * Cancel payment if it is deferred
-     */
-    if (data.cloudPayments?.recurrent?.startDate) {
-      await cloudPaymentsApi.cancelPayment(body.TransactionId);
-    }
+    try {
+      /**
+       * Cancel payment if it is deferred
+       */
+      if (data.cloudPayments?.recurrent?.startDate) {
+        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1$ charged`, TelegramBotURLs.Money));
+        await cloudPaymentsApi.cancelPayment(body.TransactionId);
+        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1$ returned`, TelegramBotURLs.Money));
+      } else {
+        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money));
+      }
+    } catch (e) {
+      this.sendError(res, PayCodes.SUCCESS, e, body);
 
-    telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money)
-      .catch(e => console.error('Error while sending message to Telegram: ' + e));
+      return;
+    }
 
     res.json({
       code: PayCodes.SUCCESS,
@@ -437,8 +444,8 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money)
-      .catch(e => console.error('Error while sending message to Telegram: ' + e));
+    this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money));
+
     HawkCatcher.send(new Error('[Billing / Fail] Transaction failed'), body);
 
     res.json({
@@ -474,8 +481,7 @@ export default class CloudPaymentsWebhooks {
       }
     }
 
-    telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money)
-      .catch(e => console.error('Error while sending message to Telegram: ' + e));
+    this.handleSendingToTelegramError(telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money));
     HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     res.json({
@@ -584,8 +590,8 @@ export default class CloudPaymentsWebhooks {
       code: errorCode,
     });
 
-    telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money)
-      .catch(e => console.error('Error while sending message to Telegram: ' + e));
+    this.handleSendingToTelegramError(telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money));
+
     HawkCatcher.send(new Error(errorText), backtrace);
   }
 
@@ -630,6 +636,14 @@ export default class CloudPaymentsWebhooks {
     }
 
     throw new Error('Invalid request: no necessary data');
+  }
+
+  /**
+   * Wrapper for telegram promise
+   * @param promise - promise to handle
+   */
+  private handleSendingToTelegramError(promise: Promise<void>): void {
+    promise.catch(e => console.error('Error while sending message to Telegram: ' + e));
   }
 
   /**
