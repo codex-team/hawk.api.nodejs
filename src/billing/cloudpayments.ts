@@ -39,6 +39,9 @@ import { WebhookData } from './types/request';
 import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 
+/**
+ * Custom data of the plan prolongation request
+ */
 type PlanProlongationData = PlanProlongationPayload & PaymentData;
 
 /**
@@ -182,6 +185,10 @@ export default class CloudPaymentsWebhooks {
 
     const recurrentPaymentSettings = data.cloudPayments?.recurrent;
 
+    /**
+     * The amount will be considered correct if it is equal to the cost of the tariff plan.
+     * Also, the cost will be correct if it is a payment to activate the subscription.
+     */
     const isRightAmount = +body.Amount === plan.monthlyCharge || recurrentPaymentSettings?.startDate;
 
     if (!isRightAmount) {

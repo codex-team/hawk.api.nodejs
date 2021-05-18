@@ -170,6 +170,10 @@ export default {
           },
         };
 
+        /**
+         * If workspace has active tariff plan (not expired),
+         * we need to withdraw money only after tariff plan expired
+         */
         if (!isBlocked) {
           jsonData.cloudPayments.recurrent.startDate = dueDate.toDateString();
           jsonData.cloudPayments.recurrent.amount = plan.monthlyCharge;
