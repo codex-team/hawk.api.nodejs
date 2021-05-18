@@ -12,6 +12,12 @@ import checksumService from '../utils/checksumService';
 import { UserInputError } from 'apollo-server-express';
 
 /**
+ * The amount we will debit to confirm the subscription.
+ * After confirmation, we will refund the user money.
+ */
+const AMOUNT_FOR_CARD_VALIDATION = 1;
+
+/**
  * Data for processing payment with saved card
  */
 interface PayWithCardArgs {
@@ -172,7 +178,7 @@ export default {
 
       const result = await cloudPaymentsApi.payByToken({
         AccountId: user.id,
-        Amount: isBlocked ? plan.monthlyCharge : 1,
+        Amount: isBlocked ? plan.monthlyCharge : AMOUNT_FOR_CARD_VALIDATION,
         Token: token,
         Currency: 'USD',
         JsonData: jsonData,
