@@ -36,6 +36,10 @@ import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';
 import { WebhookData } from './types/request';
+import { PaymentData } from './types/paymentData';
+import cloudPaymentsApi from '../utils/cloudPaymentsApi';
+
+type PlanProlongationData = PlanProlongationPayload & PaymentData;
 
 /**
  * Class for describing the logic of payment routes
@@ -144,7 +148,7 @@ export default class CloudPaymentsWebhooks {
   private async check(req: express.Request, res: express.Response): Promise<void> {
     const context = req.context;
     const body: CheckRequest = req.body;
-    let data: PlanProlongationPayload;
+    let data;
 
     try {
       data = await this.getDataFromRequest(req);
@@ -176,7 +180,11 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    if (+body.Amount !== plan.monthlyCharge) {
+    const recurrentPaymentSettings = data.cloudPayments?.recurrent;
+
+    const isRightAmount = +body.Amount === plan.monthlyCharge || recurrentPaymentSettings?.startDate;
+
+    if (!isRightAmount) {
       this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
 
       return;
@@ -342,6 +350,13 @@ export default class CloudPaymentsWebhooks {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while saving user card: ${e.toString()}`, body);
 
       return;
+    }
+
+    /**
+     * Cancel payment if it is deferred
+     */
+    if (data.cloudPayments?.recurrent?.startDate) {
+      await cloudPaymentsApi.cancelPayment(body.TransactionId);
     }
 
     telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money)
@@ -572,7 +587,7 @@ export default class CloudPaymentsWebhooks {
    *
    * @param req - request with necessary data
    */
-  private async getDataFromRequest(req: express.Request): Promise<PlanProlongationPayload> {
+  private async getDataFromRequest(req: express.Request): Promise<PlanProlongationData> {
     const context = req.context;
     const body: CheckRequest = req.body;
 
@@ -583,7 +598,10 @@ export default class CloudPaymentsWebhooks {
     if (body.Data) {
       const parsedData = JSON.parse(body.Data || '{}') as WebhookData;
 
-      return checksumService.parseAndVerifyChecksum(parsedData.checksum);
+      return {
+        ...checksumService.parseAndVerifyChecksum(parsedData.checksum),
+        ...parsedData,
+      };
     }
 
     const subscriptionId = body.SubscriptionId;

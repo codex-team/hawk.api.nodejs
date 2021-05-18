@@ -159,6 +159,17 @@ class CloudPaymentsApi {
   public async payByToken(input: PayWithTokenPayload): Promise<PayWithCardResponse> {
     return (await this.api.post('/payments/tokens/charge', input)).data;
   }
+
+  /**
+   * Cancels the payment by transaction ID
+   *
+   * @param transactionId - transaction id to cancel
+   */
+  public async cancelPayment(transactionId: number): Promise<void> {
+    await this.api.post('/payments/void', {
+      TransactionId: transactionId,
+    });
+  }
 }
 
 export default new CloudPaymentsApi({
