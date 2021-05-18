@@ -195,6 +195,10 @@ module.exports = {
       const factory = new EventsFactory(project._id);
       const event = await factory.findById(eventId);
 
+      if (!event) {
+        return null;
+      }
+
       event.projectId = project._id;
 
       return event;
