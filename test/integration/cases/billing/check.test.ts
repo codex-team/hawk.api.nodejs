@@ -266,7 +266,7 @@ describe('Check webhook', () => {
     });
   });
 
-  test('Should allow request if amount in request doesn\'t match with plan monthly charge, in case it is deferred payment', async () => {
+  test('Should allow request with amount = 1$, in case of deferred payment', async () => {
     /**
      * Correct data
      */
