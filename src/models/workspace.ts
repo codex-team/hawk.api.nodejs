@@ -367,4 +367,22 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
       }
     );
   }
+
+  /**
+   * Due date of the current workspace tariff plan
+   */
+  public getTariffPlanDueDate(): Date {
+    const lastChargeDate = new Date(this.lastChargeDate);
+
+    return new Date(lastChargeDate.setMonth(lastChargeDate.getMonth() + 1));
+  }
+
+  /**
+   * Is tariff plan expired or not
+   */
+  public isTariffPlanExpired(): boolean {
+    const date = new Date();
+
+    return date > this.getTariffPlanDueDate();
+  }
 }

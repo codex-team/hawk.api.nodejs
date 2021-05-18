@@ -12,6 +12,12 @@ import checksumService from '../utils/checksumService';
 import { UserInputError } from 'apollo-server-express';
 
 /**
+ * The amount we will debit to confirm the subscription.
+ * After confirmation, we will refund the user money.
+ */
+const AMOUNT_FOR_CARD_VALIDATION = 1;
+
+/**
  * Data for processing payment with saved card
  */
 interface PayWithCardArgs {
@@ -153,6 +159,9 @@ export default {
         checksum: args.input.checksum,
       };
 
+      const isBlocked = workspace.isTariffPlanExpired();
+      const dueDate = workspace.getTariffPlanDueDate();
+
       if (args.input.isRecurrent) {
         jsonData.cloudPayments = {
           recurrent: {
@@ -160,11 +169,20 @@ export default {
             period: 1,
           },
         };
+
+        /**
+         * If workspace has active tariff plan (not expired),
+         * we need to withdraw money only after tariff plan expired
+         */
+        if (!isBlocked) {
+          jsonData.cloudPayments.recurrent.startDate = dueDate.toDateString();
+          jsonData.cloudPayments.recurrent.amount = plan.monthlyCharge;
+        }
       }
 
       const result = await cloudPaymentsApi.payByToken({
         AccountId: user.id,
-        Amount: plan.monthlyCharge,
+        Amount: isBlocked ? plan.monthlyCharge : AMOUNT_FOR_CARD_VALIDATION,
         Token: token,
         Currency: 'USD',
         JsonData: jsonData,
