@@ -449,7 +449,7 @@ class EventsFactory extends Factory {
     const eventOriginal = await this.findById(eventId);
 
     const release = await mongo.databases.events.collection(this.TYPES.RELEASES).findOne({
-      release: eventOriginal.releaseId,
+      release: eventOriginal.release,
       projectId: this.projectId.toString(),
     });
 
