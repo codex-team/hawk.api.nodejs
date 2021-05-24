@@ -448,7 +448,7 @@ class EventsFactory extends Factory {
   async getEventRelease(eventId) {
     const eventOriginal = await this.findById(eventId);
 
-    const release = await mongo.databases.hawk.collection(this.TYPES.RELEASES).findOne({
+    const release = await mongo.databases.events.collection(this.TYPES.RELEASES).findOne({
       release: eventOriginal.releaseId,
       projectId: this.projectId.toString(),
     });
