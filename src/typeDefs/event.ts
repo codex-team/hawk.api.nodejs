@@ -23,7 +23,7 @@ type Commit {
   """
   Hash of the commit
   """
-  commitHash: String
+  hash: String
 
   """
   Commit author
@@ -58,7 +58,7 @@ type Release {
   """
   Release commits
   """
-  commits: [Commit]
+  commits: [Commit!]!
 }
 
 """
