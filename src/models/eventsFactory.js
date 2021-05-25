@@ -448,10 +448,8 @@ class EventsFactory extends Factory {
   async getEventRelease(eventId) {
     const eventOriginal = await this.findById(eventId);
 
-    console.log('Get event release log', eventOriginal, this.projectId.toString());
-
     const release = await mongo.databases.events.collection(this.TYPES.RELEASES).findOne({
-      release: eventOriginal.release,
+      release: eventOriginal.payload.release,
       projectId: this.projectId.toString(),
     });
 
