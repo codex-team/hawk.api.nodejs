@@ -38,7 +38,7 @@ type Commit {
   """
   Commit creation date
   """
-  date: String
+  date: DateTime
 }
 
 """
