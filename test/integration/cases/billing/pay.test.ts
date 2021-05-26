@@ -3,7 +3,6 @@ import { PayCodes, PayRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
 import { Collection, Db, ObjectId } from 'mongodb';
 import {
-  BankCard,
   BusinessOperationDBScheme,
   BusinessOperationStatus,
   BusinessOperationType,
