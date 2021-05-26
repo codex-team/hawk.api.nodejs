@@ -1,4 +1,4 @@
-FROM node:10-alpine as builder
+FROM node:14.17.0-alpine as builder
 
 WORKDIR /usr/src/app
 RUN apk add --no-cache git gcc g++ python make musl-dev
@@ -7,9 +7,16 @@ COPY package.json yarn.lock ./
 
 RUN yarn install
 
-FROM node:10-alpine
+FROM node:14.17.0-alpine
 
 WORKDIR /usr/src/app
+
+RUN apk add --no-cache openssl
+
+ENV DOCKERIZE_VERSION v0.6.1
+RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && tar -C /usr/local/bin -xzvf dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && rm dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 
