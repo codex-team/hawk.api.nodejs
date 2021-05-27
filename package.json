@@ -47,6 +47,7 @@
     "argon2": "^0.26.2",
     "axios": "^0.21.1",
     "body-parser": "^1.19.0",
+    "cloudpayments": "^5.0.4",
     "codex-accounting-sdk": "https://github.com/codex-team/codex-accounting-sdk/",
     "copyfiles": "^2.1.1",
     "dataloader": "^2.0.0",

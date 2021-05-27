@@ -6,14 +6,14 @@ import {
   CheckRequest,
   CheckResponse,
   FailCodes,
+  FailRequest,
   FailResponse,
   PayCodes,
   PayRequest,
   PayResponse,
   RecurrentCodes,
-  RecurrentResponse,
-  FailRequest,
-  RecurrentRequest
+  RecurrentRequest,
+  RecurrentResponse
 } from './types';
 import { ReasonCodesTranscript, SubscriptionStatus } from './types/enums';
 import {
@@ -25,19 +25,24 @@ import {
   PlanDBScheme,
   PlanProlongationPayload
 } from 'hawk.types';
-import { PENNY_MULTIPLIER, AccountType, Currency } from 'codex-accounting-sdk';
+import { AccountType, Currency, PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
-
 import sendNotification from '../utils/personalNotifications';
-import { SenderWorkerTaskType, PaymentFailedNotificationTask, PaymentSuccessNotificationTask } from '../types/personalNotifications';
+import {
+  PaymentFailedNotificationTask,
+  PaymentSuccessNotificationTask,
+  SenderWorkerTaskType
+} from '../types/personalNotifications';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';
 import { WebhookData } from './types/request';
 import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
+import PlanModel from '../models/plan';
+import { ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes } from 'cloudpayments';
 
 /**
  * Custom data of the plan prolongation request
@@ -48,6 +53,23 @@ type PlanProlongationData = PlanProlongationPayload & PaymentData;
  * Class for describing the logic of payment routes
  */
 export default class CloudPaymentsWebhooks {
+  private readonly clientService = new ClientService({
+    publicId: process.env.CLOUDPAYMENTS_PUBLIC_ID || '',
+    privateKey: process.env.CLOUDPAYMENTS_SECRET || '',
+  })
+
+  /**
+   * Receipt API instance to call receipt methods
+   */
+  private readonly receiptApi: ReceiptApi;
+
+  /**
+   * Creates class instance
+   */
+  constructor() {
+    this.receiptApi = this.clientService.getReceiptApi();
+  }
+
   /**
    * Returns router for payments
    *
@@ -123,6 +145,9 @@ export default class CloudPaymentsWebhooks {
         id: tariffPlan._id.toString(),
         name: tariffPlan.name,
         monthlyCharge: tariffPlan.monthlyCharge,
+      },
+      receipt: {
+
       },
       currency: 'USD',
       checksum,
@@ -368,6 +393,8 @@ export default class CloudPaymentsWebhooks {
         await cloudPaymentsApi.cancelPayment(body.TransactionId);
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1$ returned`, TelegramBotURLs.Money));
       } else {
+        await this.sendReceipt(user, workspace, tariffPlan);
+
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money));
       }
     } catch (e) {
@@ -567,7 +594,7 @@ export default class CloudPaymentsWebhooks {
    * @param req - express request
    * @param tariffPlanId - plan id
    */
-  private async getPlan(req: express.Request, tariffPlanId: string): Promise<PlanDBScheme> {
+  private async getPlan(req: express.Request, tariffPlanId: string): Promise<PlanModel> {
     const plan = await req.context.factories.plansFactory.findById(tariffPlanId);
 
     if (!plan) {
@@ -662,5 +689,28 @@ export default class CloudPaymentsWebhooks {
       token: request.Token,
       type: request.CardType,
     };
+  }
+
+  /**
+   * Send receipt to user after successful payment
+   *
+   * @param user - user who pays
+   * @param workspace - workspace for which payment is made
+   * @param tariff - paid tariff plan
+   */
+  private async sendReceipt(user: UserModel, workspace: WorkspaceModel, tariff: PlanModel): Promise<void> {
+    const item: CustomerReceiptItem = {
+      amount: 1,
+      label: `${tariff.name} tariff plan`,
+      price: tariff.monthlyCharge,
+      quantity: tariff.monthlyCharge,
+    };
+
+    await this.receiptApi.createReceipt(
+      { Type: ReceiptTypes.Income },
+      {
+        Items: [ item ],
+      }
+    );
   }
 }
