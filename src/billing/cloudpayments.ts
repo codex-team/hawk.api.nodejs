@@ -42,7 +42,7 @@ import { WebhookData } from './types/request';
 import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import PlanModel from '../models/plan';
-import { ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes } from 'cloudpayments';
+import { ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
 
 /**
  * Custom data of the plan prolongation request
@@ -398,6 +398,7 @@ export default class CloudPaymentsWebhooks {
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money));
       }
     } catch (e) {
+      console.log(e);
       this.sendError(res, PayCodes.SUCCESS, e, body);
 
       return;
@@ -699,17 +700,25 @@ export default class CloudPaymentsWebhooks {
    * @param tariff - paid tariff plan
    */
   private async sendReceipt(user: UserModel, workspace: WorkspaceModel, tariff: PlanModel): Promise<void> {
+    const VALUE_ADDED_TAX = 20;
+
     const item: CustomerReceiptItem = {
-      amount: 1,
+      amount: tariff.monthlyCharge,
       label: `${tariff.name} tariff plan`,
       price: tariff.monthlyCharge,
-      quantity: tariff.monthlyCharge,
+      vat: VALUE_ADDED_TAX,
+      quantity: 1,
     };
 
     await this.receiptApi.createReceipt(
-      { Type: ReceiptTypes.Income },
+      {
+        Type: ReceiptTypes.Income,
+        Inn: Number(process.env.LEGAL_ENTITY_INN),
+      },
       {
         Items: [ item ],
+        email: user.email,
+        taxationSystem: TaxationSystem.GENERAL,
       }
     );
   }
