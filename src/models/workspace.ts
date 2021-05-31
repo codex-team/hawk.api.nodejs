@@ -29,6 +29,11 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   public image?: string;
 
   /**
+   * Randomly generated invite hash for joining to workspace via invite link
+   */
+  public inviteHash!: string;
+
+  /**
    * Workspace account uuid in accounting microservice
    */
   public accountId!: string;
