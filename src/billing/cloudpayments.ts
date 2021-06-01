@@ -707,6 +707,11 @@ export default class CloudPaymentsWebhooks {
    * @param userMail - user email address
    */
   private async sendReceipt(workspace: WorkspaceModel, tariff: PlanModel, userMail?: string): Promise<void> {
+    /**
+     * A general tax that applies to all commercial activities
+     * involving the production and distribution of goods and the provision of services
+     * Also known as "НДС" in Russia
+     */
     const VALUE_ADDED_TAX = 20;
 
     const item: CustomerReceiptItem = {
