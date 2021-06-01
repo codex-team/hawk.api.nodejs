@@ -46,6 +46,7 @@ const workspace = {
   lastChargeDate: new Date(2020, 10, 4),
   name: 'Test workspace',
   tariffPlanId: currentPlan._id,
+  inviteHash: '123456789',
 };
 
 const workspaceAccount = {
