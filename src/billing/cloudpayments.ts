@@ -394,9 +394,14 @@ export default class CloudPaymentsWebhooks {
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1$ returned`, TelegramBotURLs.Money));
       } else {
         /**
+         * Russia code from ISO 3166-1
+         */
+        const RUSSIA_ISO_CODE = 'RU';
+
+        /**
          * Send receipt only in case that user pays from russian card
          */
-        const userEmail = body.IssuerBankCountry === 'RU' ? user.email : undefined;
+        const userEmail = body.IssuerBankCountry === RUSSIA_ISO_CODE ? user.email : undefined;
 
         await this.sendReceipt(workspace, tariffPlan, userEmail);
 
