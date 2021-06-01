@@ -265,4 +265,37 @@ describe('Check webhook', () => {
       expect(createdBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
     });
   });
+
+  test('Should allow request with amount = 1$, in case of deferred payment', async () => {
+    /**
+     * Correct data
+     */
+    const data: CheckRequest = {
+      ...mainRequest,
+      Data: JSON.stringify({
+        checksum: await checksumService.generateChecksum({
+          workspaceId: workspace._id.toString(),
+          userId: admin._id.toString(),
+          tariffPlanId: planToChange._id.toString(),
+          shouldSaveCard: false,
+        }),
+        cloudPayments: {
+          recurrent: {
+            interval: 'Month',
+            period: 1,
+            startDate: new Date().toString(),
+            amount: 1,
+          },
+        },
+      }),
+    };
+
+    const apiResponse = await apiInstance.post('/billing/check', data);
+    const createdBusinessOperation = await businessOperationsCollection.findOne({
+      transactionId: transactionId.toString(),
+    });
+
+    expect(apiResponse.data.code).toBe(CheckCodes.SUCCESS);
+    expect(createdBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+  });
 });

@@ -28,6 +28,16 @@ interface RecurrentPaymentData {
    * Payment period. That is, how often to withdraw money
    */
   period: number;
+
+  /**
+   * Subscription start date (first payment)
+   */
+  startDate?: string;
+
+  /**
+   * Recurring payment amount.
+   */
+  amount?: number;
 }
 
 /**
@@ -158,6 +168,21 @@ class CloudPaymentsApi {
    */
   public async payByToken(input: PayWithTokenPayload): Promise<PayWithCardResponse> {
     return (await this.api.post('/payments/tokens/charge', input)).data;
+  }
+
+  /**
+   * Cancels the payment by transaction ID
+   *
+   * @param transactionId - transaction id to cancel
+   */
+  public async cancelPayment(transactionId: number): Promise<void> {
+    const result = await this.api.post('/payments/void', {
+      TransactionId: transactionId,
+    });
+
+    if (!result.data.Success) {
+      throw new Error(`Error during cancelling transaction: ${result.data.Message}`);
+    }
   }
 }
 

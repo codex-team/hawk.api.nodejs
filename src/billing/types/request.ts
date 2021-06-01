@@ -1,6 +1,7 @@
 import { Currency, OperationType, OperationStatus, SubscriptionStatus, ReasonCode, Interval } from './enums';
 import { CardDetails } from './cardDetails';
 import { IpData } from './ipData';
+import { PaymentData } from './paymentData';
 
 /**
  * Check request body
@@ -412,7 +413,7 @@ export interface RecurrentRequest {
 /**
  * Data that we expect in the request
  */
-export interface WebhookData {
+export interface WebhookData extends PaymentData {
   /**
    * Checksum for validating request and getting data from it
    */

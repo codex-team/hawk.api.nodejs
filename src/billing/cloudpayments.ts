@@ -6,14 +6,14 @@ import {
   CheckRequest,
   CheckResponse,
   FailCodes,
+  FailRequest,
   FailResponse,
   PayCodes,
   PayRequest,
   PayResponse,
   RecurrentCodes,
-  RecurrentResponse,
-  FailRequest,
-  RecurrentRequest
+  RecurrentRequest,
+  RecurrentResponse
 } from './types';
 import { ReasonCodesTranscript, SubscriptionStatus } from './types/enums';
 import {
@@ -25,22 +25,51 @@ import {
   PlanDBScheme,
   PlanProlongationPayload
 } from 'hawk.types';
-import { PENNY_MULTIPLIER, AccountType, Currency } from 'codex-accounting-sdk';
+import { AccountType, Currency, PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
-
 import sendNotification from '../utils/personalNotifications';
-import { SenderWorkerTaskType, PaymentFailedNotificationTask, PaymentSuccessNotificationTask } from '../types/personalNotifications';
+import {
+  PaymentFailedNotificationTask,
+  PaymentSuccessNotificationTask,
+  SenderWorkerTaskType
+} from '../types/personalNotifications';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';
 import { WebhookData } from './types/request';
+import { PaymentData } from './types/paymentData';
+import cloudPaymentsApi from '../utils/cloudPaymentsApi';
+import PlanModel from '../models/plan';
+import { ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
+
+/**
+ * Custom data of the plan prolongation request
+ */
+type PlanProlongationData = PlanProlongationPayload & PaymentData;
 
 /**
  * Class for describing the logic of payment routes
  */
 export default class CloudPaymentsWebhooks {
+  private readonly clientService = new ClientService({
+    publicId: process.env.CLOUDPAYMENTS_PUBLIC_ID || '',
+    privateKey: process.env.CLOUDPAYMENTS_SECRET || '',
+  })
+
+  /**
+   * Receipt API instance to call receipt methods
+   */
+  private readonly receiptApi: ReceiptApi;
+
+  /**
+   * Creates class instance
+   */
+  constructor() {
+    this.receiptApi = this.clientService.getReceiptApi();
+  }
+
   /**
    * Returns router for payments
    *
@@ -144,7 +173,7 @@ export default class CloudPaymentsWebhooks {
   private async check(req: express.Request, res: express.Response): Promise<void> {
     const context = req.context;
     const body: CheckRequest = req.body;
-    let data: PlanProlongationPayload;
+    let data;
 
     try {
       data = await this.getDataFromRequest(req);
@@ -176,7 +205,15 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    if (+body.Amount !== plan.monthlyCharge) {
+    const recurrentPaymentSettings = data.cloudPayments?.recurrent;
+
+    /**
+     * The amount will be considered correct if it is equal to the cost of the tariff plan.
+     * Also, the cost will be correct if it is a payment to activate the subscription.
+     */
+    const isRightAmount = +body.Amount === plan.monthlyCharge || recurrentPaymentSettings?.startDate;
+
+    if (!isRightAmount) {
       this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
 
       return;
@@ -344,8 +381,35 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money)
-      .catch(e => console.error('Error while sending message to Telegram: ' + e));
+    try {
+      /**
+       * Cancel payment if it is deferred
+       */
+      if (data.cloudPayments?.recurrent?.startDate) {
+        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1$ charged`, TelegramBotURLs.Money));
+        await cloudPaymentsApi.cancelPayment(body.TransactionId);
+        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1$ returned`, TelegramBotURLs.Money));
+      } else {
+        /**
+         * Russia code from ISO 3166-1
+         */
+        const RUSSIA_ISO_CODE = 'RU';
+
+        /**
+         * Send receipt only in case that user pays from russian card
+         */
+        const userEmail = body.IssuerBankCountry === RUSSIA_ISO_CODE ? user.email : undefined;
+
+        await this.sendReceipt(workspace, tariffPlan, userEmail);
+
+        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money));
+      }
+    } catch (e) {
+      console.log(e);
+      this.sendError(res, PayCodes.SUCCESS, e, body);
+
+      return;
+    }
 
     res.json({
       code: PayCodes.SUCCESS,
@@ -415,8 +479,8 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money)
-      .catch(e => console.error('Error while sending message to Telegram: ' + e));
+    this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money));
+
     HawkCatcher.send(new Error('[Billing / Fail] Transaction failed'), body);
 
     res.json({
@@ -452,8 +516,7 @@ export default class CloudPaymentsWebhooks {
       }
     }
 
-    telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money)
-      .catch(e => console.error('Error while sending message to Telegram: ' + e));
+    this.handleSendingToTelegramError(telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money));
     HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     res.json({
@@ -539,7 +602,7 @@ export default class CloudPaymentsWebhooks {
    * @param req - express request
    * @param tariffPlanId - plan id
    */
-  private async getPlan(req: express.Request, tariffPlanId: string): Promise<PlanDBScheme> {
+  private async getPlan(req: express.Request, tariffPlanId: string): Promise<PlanModel> {
     const plan = await req.context.factories.plansFactory.findById(tariffPlanId);
 
     if (!plan) {
@@ -562,8 +625,8 @@ export default class CloudPaymentsWebhooks {
       code: errorCode,
     });
 
-    telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money)
-      .catch(e => console.error('Error while sending message to Telegram: ' + e));
+    this.handleSendingToTelegramError(telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money));
+
     HawkCatcher.send(new Error(errorText), backtrace);
   }
 
@@ -572,7 +635,7 @@ export default class CloudPaymentsWebhooks {
    *
    * @param req - request with necessary data
    */
-  private async getDataFromRequest(req: express.Request): Promise<PlanProlongationPayload> {
+  private async getDataFromRequest(req: express.Request): Promise<PlanProlongationData> {
     const context = req.context;
     const body: CheckRequest = req.body;
 
@@ -583,7 +646,10 @@ export default class CloudPaymentsWebhooks {
     if (body.Data) {
       const parsedData = JSON.parse(body.Data || '{}') as WebhookData;
 
-      return checksumService.parseAndVerifyChecksum(parsedData.checksum);
+      return {
+        ...checksumService.parseAndVerifyChecksum(parsedData.checksum),
+        ...parsedData,
+      };
     }
 
     const subscriptionId = body.SubscriptionId;
@@ -608,6 +674,14 @@ export default class CloudPaymentsWebhooks {
   }
 
   /**
+   * Wrapper for telegram promise
+   * @param promise - promise to handle
+   */
+  private handleSendingToTelegramError(promise: Promise<void>): void {
+    promise.catch(e => console.error('Error while sending message to Telegram: ' + e));
+  }
+
+  /**
    * Parses body and returns card data
    * @param request - request body to parse
    */
@@ -623,5 +697,36 @@ export default class CloudPaymentsWebhooks {
       token: request.Token,
       type: request.CardType,
     };
+  }
+
+  /**
+   * Send receipt to user after successful payment
+   *
+   * @param workspace - workspace for which payment is made
+   * @param tariff - paid tariff plan
+   * @param userMail - user email address
+   */
+  private async sendReceipt(workspace: WorkspaceModel, tariff: PlanModel, userMail?: string): Promise<void> {
+    const VALUE_ADDED_TAX = 20;
+
+    const item: CustomerReceiptItem = {
+      amount: tariff.monthlyCharge,
+      label: `${tariff.name} tariff plan`,
+      price: tariff.monthlyCharge,
+      vat: VALUE_ADDED_TAX,
+      quantity: 1,
+    };
+
+    await this.receiptApi.createReceipt(
+      {
+        Type: ReceiptTypes.Income,
+        Inn: Number(process.env.LEGAL_ENTITY_INN),
+      },
+      {
+        Items: [ item ],
+        email: userMail,
+        taxationSystem: TaxationSystem.GENERAL,
+      }
+    );
   }
 }
