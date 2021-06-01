@@ -393,7 +393,12 @@ export default class CloudPaymentsWebhooks {
         await cloudPaymentsApi.cancelPayment(body.TransactionId);
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1$ returned`, TelegramBotURLs.Money));
       } else {
-        await this.sendReceipt(user, workspace, tariffPlan);
+        /**
+         * Send receipt only in case that user pays from russian card
+         */
+        const userEmail = body.IssuerBankCountry === 'RU' ? user.email : undefined;
+
+        await this.sendReceipt(workspace, tariffPlan, userEmail);
 
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money));
       }
@@ -695,11 +700,11 @@ export default class CloudPaymentsWebhooks {
   /**
    * Send receipt to user after successful payment
    *
-   * @param user - user who pays
    * @param workspace - workspace for which payment is made
    * @param tariff - paid tariff plan
+   * @param userMail - user email address
    */
-  private async sendReceipt(user: UserModel, workspace: WorkspaceModel, tariff: PlanModel): Promise<void> {
+  private async sendReceipt(workspace: WorkspaceModel, tariff: PlanModel, userMail?: string): Promise<void> {
     const VALUE_ADDED_TAX = 20;
 
     const item: CustomerReceiptItem = {
@@ -717,7 +722,7 @@ export default class CloudPaymentsWebhooks {
       },
       {
         Items: [ item ],
-        email: user.email,
+        email: userMail,
         taxationSystem: TaxationSystem.GENERAL,
       }
     );
