@@ -180,9 +180,15 @@ export default {
         }
       }
 
+      let amount = plan.monthlyCharge;
+
+      if (args.input.isRecurrent && !isBlocked) {
+        amount = AMOUNT_FOR_CARD_VALIDATION;
+      }
+
       const result = await cloudPaymentsApi.payByToken({
         AccountId: user.id,
-        Amount: isBlocked ? plan.monthlyCharge : AMOUNT_FOR_CARD_VALIDATION,
+        Amount: amount,
         Token: token,
         Currency: 'USD',
         JsonData: jsonData,
