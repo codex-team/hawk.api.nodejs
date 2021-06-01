@@ -146,9 +146,6 @@ export default class CloudPaymentsWebhooks {
         name: tariffPlan.name,
         monthlyCharge: tariffPlan.monthlyCharge,
       },
-      receipt: {
-
-      },
       currency: 'USD',
       checksum,
     });
