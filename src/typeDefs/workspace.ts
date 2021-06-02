@@ -71,6 +71,11 @@ export default gql`
     team: [Member!]!
 
     """
+    Invite hash for joining in workspace via link
+    """
+    inviteHash: String
+
+    """
     Total number of errors since the last charge date
     """
     billingPeriodEventsCount: Int
