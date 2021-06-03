@@ -42,7 +42,7 @@ import { WebhookData } from './types/request';
 import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import PlanModel from '../models/plan';
-import { ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
+import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
 
 /**
  * Custom data of the plan prolongation request
@@ -64,10 +64,16 @@ export default class CloudPaymentsWebhooks {
   private readonly receiptApi: ReceiptApi;
 
   /**
+   * Client API instance to call CloundPayments API
+   */
+  private readonly clientApi: ClientApi;
+
+  /**
    * Creates class instance
    */
   constructor() {
     this.receiptApi = this.clientService.getReceiptApi();
+    this.clientApi = this.clientService.getClientApi();
   }
 
   /**
@@ -299,6 +305,15 @@ export default class CloudPaymentsWebhooks {
       await workspace.changePlan(tariffPlan._id);
 
       const subscriptionId = body.SubscriptionId;
+
+      /**
+       * Cancel subscription if user pays manually
+       */
+      if (!subscriptionId && workspace.subscriptionId) {
+        await this.clientApi.cancelSubscription({
+          Id: workspace.subscriptionId,
+        });
+      }
 
       if (subscriptionId) {
         await workspace.setSubscriptionId(subscriptionId);
