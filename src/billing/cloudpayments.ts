@@ -307,9 +307,14 @@ export default class CloudPaymentsWebhooks {
       const subscriptionId = body.SubscriptionId;
 
       /**
-       * Cancel subscription if user pays manually
+       * Cancellation of the current subscription if:
+       * 1) the user pays manually (the workspace has an active subscription, but the request body does not)
+       * 2) if payment is made for another subscription (subscriptions id are not equal)
        */
-      if (!subscriptionId && workspace.subscriptionId) {
+      if (workspace.subscriptionId) {
+        if (subscriptionId && subscriptionId === workspace.subscriptionId) {
+          return;
+        }
         await this.clientApi.cancelSubscription({
           Id: workspace.subscriptionId,
         });
