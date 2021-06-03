@@ -23,22 +23,22 @@ type Commit {
   """
   Hash of the commit
   """
-  hash: String
+  hash: String!
 
   """
   Commit author
   """
-  author: String
+  author: String!
 
   """
   Commit title
   """
-  title: String
+  title: String!
 
   """
   Commit creation date
   """
-  date: DateTime
+  date: DateTime!
 }
 
 """
@@ -48,12 +48,7 @@ type Release {
   """
   Release name
   """
-  id: String @renameFrom(name: "release")
-
-  """
-  Project id of the event
-  """
-  projectId: String
+  releaseName: String @renameFrom(name: "release")
 
   """
   Release commits
