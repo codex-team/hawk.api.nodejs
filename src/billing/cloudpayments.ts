@@ -518,28 +518,30 @@ export default class CloudPaymentsWebhooks {
   private async recurrent(req: express.Request, res: express.Response): Promise<void> {
     const body: RecurrentRequest = req.body;
     const context = req.context;
-    let workspace;
 
-    try {
-      workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
-
-      if (workspace) {
-        await workspace.setSubscriptionId(null);
-      } else {
-        throw new Error('There is no workspace with provided subscription id');
-      }
-    } catch (e) {
-      this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't get data from database: ${e.toString()}`, {
-        body,
-        workspace,
-      });
-
-      return;
-    }
+    this.handleSendingToTelegramError(telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money));
+    HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     switch (body.Status) {
       case SubscriptionStatus.CANCELLED:
       case SubscriptionStatus.REJECTED: {
+        let workspace;
+
+        try {
+          workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
+        } catch (e) {
+          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't get data from database: ${e.toString()}`, {
+            body,
+            workspace,
+          });
+
+          return;
+        }
+
+        if (!workspace) {
+          return;
+        }
+
         try {
           await workspace.setSubscriptionId(null);
         } catch (e) {
@@ -550,9 +552,6 @@ export default class CloudPaymentsWebhooks {
         }
       }
     }
-
-    this.handleSendingToTelegramError(telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money));
-    HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     res.json({
       code: RecurrentCodes.SUCCESS,
