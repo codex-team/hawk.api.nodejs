@@ -48,7 +48,7 @@ type Release {
   """
   Release name
   """
-  releaseName: String @renameFrom(name: "release")
+  releaseName: String! @renameFrom(name: "release")
 
   """
   Release commits
