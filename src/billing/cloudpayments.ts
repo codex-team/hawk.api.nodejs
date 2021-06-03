@@ -518,20 +518,35 @@ export default class CloudPaymentsWebhooks {
   private async recurrent(req: express.Request, res: express.Response): Promise<void> {
     const body: RecurrentRequest = req.body;
     const context = req.context;
+    let workspace;
+
+    try {
+      workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
+
+      if (workspace) {
+        await workspace.setSubscriptionId(null);
+      } else {
+        throw new Error('There is no workspace with provided subscription id');
+      }
+    } catch (e) {
+      this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't get data from database: ${e.toString()}`, {
+        body,
+        workspace,
+      });
+
+      return;
+    }
 
     switch (body.Status) {
       case SubscriptionStatus.CANCELLED:
       case SubscriptionStatus.REJECTED: {
         try {
-          const workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
-
-          if (workspace) {
-            await workspace.setSubscriptionId(null);
-          } else {
-            throw new Error('There is no workspace with provided subscription id');
-          }
-        } catch {
-          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't remove subscriptionId from workspace`, body);
+          await workspace.setSubscriptionId(null);
+        } catch (e) {
+          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't remove subscriptionId from workspace: ${e.toString()}`, {
+            body,
+            workspace,
+          });
         }
       }
     }
