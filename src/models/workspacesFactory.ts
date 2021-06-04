@@ -6,7 +6,6 @@ import UserModel from './user';
 import PlansFactory from './plansFactory';
 import PlanModel from './plan';
 import { WorkspaceDBScheme } from 'hawk.types';
-import crypto from 'crypto';
 
 /**
  * Workspaces factory to work with WorkspaceModel
@@ -34,15 +33,6 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
   }
 
   /**
-   * Generates SHA-256 hash that used as invite hash
-   */
-  private static generateInviteHash(): string {
-    return crypto
-      .createHash('sha256')
-      .digest('hex');
-  }
-
-  /**
    * Finds workspace by its id
    * @param id - user id
    */
@@ -64,7 +54,7 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
   public async create(workspaceData: WorkspaceDBScheme, ownerModel: UserModel): Promise<WorkspaceModel> {
     workspaceData = {
       ...workspaceData,
-      inviteHash: WorkspacesFactory.generateInviteHash(),
+      inviteHash: WorkspaceModel.generateInviteHash(),
     };
 
     const workspaceId = (await this.collection.insertOne(workspaceData)).insertedId;

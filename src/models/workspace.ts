@@ -3,6 +3,7 @@ import AbstractModel from './abstractModel';
 import { OptionalId } from '../mongo';
 import UserModel from './user';
 import { ConfirmedMemberDBScheme, MemberDBScheme, PendingMemberDBScheme, WorkspaceDBScheme } from 'hawk.types';
+import crypto from 'crypto';
 
 /**
  * Workspace model
@@ -89,6 +90,15 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
     super(workspaceData);
     this.collection = this.dbConnection.collection<WorkspaceDBScheme>('workspaces');
     this.teamCollection = this.dbConnection.collection<MemberDBScheme>('team:' + this._id.toString());
+  }
+
+  /**
+   * Generates SHA-256 hash that used as invite hash
+   */
+  public static generateInviteHash(): string {
+    return crypto
+      .createHash('sha256')
+      .digest('hex');
   }
 
   /**
