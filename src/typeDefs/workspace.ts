@@ -73,7 +73,7 @@ export default gql`
     """
     Invite hash for joining in workspace via link
     """
-    inviteHash: String
+    inviteHash: String!
 
     """
     Total number of errors since the last charge date
