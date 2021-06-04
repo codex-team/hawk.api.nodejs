@@ -312,12 +312,11 @@ export default class CloudPaymentsWebhooks {
        * 2) if payment is made for another subscription (subscriptions id are not equal)
        */
       if (workspace.subscriptionId) {
-        if (subscriptionId && subscriptionId === workspace.subscriptionId) {
-          return;
+        if (!subscriptionId || subscriptionId !== workspace.subscriptionId) {
+          await this.clientApi.cancelSubscription({
+            Id: workspace.subscriptionId,
+          });
         }
-        await this.clientApi.cancelSubscription({
-          Id: workspace.subscriptionId,
-        });
       }
 
       if (subscriptionId) {
@@ -425,7 +424,6 @@ export default class CloudPaymentsWebhooks {
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money));
       }
     } catch (e) {
-      console.log(e);
       this.sendError(res, PayCodes.SUCCESS, e, body);
 
       return;
