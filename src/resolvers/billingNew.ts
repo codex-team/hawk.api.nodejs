@@ -159,7 +159,7 @@ export default {
         checksum: args.input.checksum,
       };
 
-      const isBlocked = workspace.isTariffPlanExpired();
+      const isTariffPlanExpired = workspace.isTariffPlanExpired();
       const dueDate = workspace.getTariffPlanDueDate();
 
       if (args.input.isRecurrent) {
@@ -174,7 +174,7 @@ export default {
          * If workspace has active tariff plan (not expired),
          * we need to withdraw money only after tariff plan expired
          */
-        if (!isBlocked) {
+        if (!isTariffPlanExpired) {
           jsonData.cloudPayments.recurrent.startDate = dueDate.toDateString();
           jsonData.cloudPayments.recurrent.amount = plan.monthlyCharge;
         }
@@ -182,7 +182,14 @@ export default {
 
       let amount = plan.monthlyCharge;
 
-      if (args.input.isRecurrent && !isBlocked) {
+      const isPaymentForCurrentTariffPlan = workspace.tariffPlanId.toString() === plan._id.toString();
+
+      /**
+       * True when we need to withdraw the amount only to validate the subscription
+       */
+      const isOnlyCardValidationNeeded = args.input.isRecurrent && isPaymentForCurrentTariffPlan && !isTariffPlanExpired;
+
+      if (isOnlyCardValidationNeeded) {
         amount = AMOUNT_FOR_CARD_VALIDATION;
       }
 
