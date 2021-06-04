@@ -42,7 +42,7 @@ import { WebhookData } from './types/request';
 import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import PlanModel from '../models/plan';
-import { ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
+import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
 
 /**
  * Custom data of the plan prolongation request
@@ -64,10 +64,16 @@ export default class CloudPaymentsWebhooks {
   private readonly receiptApi: ReceiptApi;
 
   /**
+   * Client API instance to call CloundPayments API
+   */
+  private readonly clientApi: ClientApi;
+
+  /**
    * Creates class instance
    */
   constructor() {
     this.receiptApi = this.clientService.getReceiptApi();
+    this.clientApi = this.clientService.getClientApi();
   }
 
   /**
@@ -300,6 +306,19 @@ export default class CloudPaymentsWebhooks {
 
       const subscriptionId = body.SubscriptionId;
 
+      /**
+       * Cancellation of the current subscription if:
+       * 1) the user pays manually (the workspace has an active subscription, but the request body does not)
+       * 2) if payment is made for another subscription (subscriptions id are not equal)
+       */
+      if (workspace.subscriptionId) {
+        if (!subscriptionId || subscriptionId !== workspace.subscriptionId) {
+          await this.clientApi.cancelSubscription({
+            Id: workspace.subscriptionId,
+          });
+        }
+      }
+
       if (subscriptionId) {
         await workspace.setSubscriptionId(subscriptionId);
       }
@@ -405,7 +424,6 @@ export default class CloudPaymentsWebhooks {
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money));
       }
     } catch (e) {
-      console.log(e);
       this.sendError(res, PayCodes.SUCCESS, e, body);
 
       return;
@@ -499,25 +517,39 @@ export default class CloudPaymentsWebhooks {
     const body: RecurrentRequest = req.body;
     const context = req.context;
 
+    this.handleSendingToTelegramError(telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money));
+    HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
+
     switch (body.Status) {
       case SubscriptionStatus.CANCELLED:
       case SubscriptionStatus.REJECTED: {
-        try {
-          const workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
+        let workspace;
 
-          if (workspace) {
-            await workspace.setSubscriptionId(null);
-          } else {
-            throw new Error('There is no workspace with provided subscription id');
-          }
-        } catch {
-          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't remove subscriptionId from workspace`, body);
+        try {
+          workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
+        } catch (e) {
+          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't get data from database: ${e.toString()}`, {
+            body,
+            workspace,
+          });
+
+          return;
+        }
+
+        if (!workspace) {
+          return;
+        }
+
+        try {
+          await workspace.setSubscriptionId(null);
+        } catch (e) {
+          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't remove subscriptionId from workspace: ${e.toString()}`, {
+            body,
+            workspace,
+          });
         }
       }
     }
-
-    this.handleSendingToTelegramError(telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money));
-    HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     res.json({
       code: RecurrentCodes.SUCCESS,
