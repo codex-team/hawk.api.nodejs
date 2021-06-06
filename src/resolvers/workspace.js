@@ -367,6 +367,32 @@ module.exports = {
   },
   Workspace: {
     /**
+     * Returns workspace invite hash
+     * If workspace has not hash this resolver generates it
+     *
+     * @param {WorkspaceDBScheme} workspaceData - result from resolver above
+     * @param _args - empty list of args
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Promise<string>}
+     */
+    async inviteHash(workspaceData, _args, { factories }) {
+      if (workspaceData.inviteHash && workspaceData.inviteHash !== '') {
+        return workspaceData.inviteHash;
+      }
+      const inviteHash = WorkspaceModel.generateInviteHash();
+      const workspace = await factories.workspacesFactory.findById(workspaceData._id);
+
+      if (!workspace) {
+        throw Error('Can\'t find workspace with this id: ' + workspaceData._id);
+      }
+
+      await workspace.updateInviteHash(inviteHash);
+
+      return workspace.inviteHash;
+    },
+
+    /**
      * Fetch projects in workspace
      * @param {ResolverObj} workspace - result from resolver above
      * @param {String[]} ids - project ids

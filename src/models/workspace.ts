@@ -3,6 +3,7 @@ import AbstractModel from './abstractModel';
 import { OptionalId } from '../mongo';
 import UserModel from './user';
 import { ConfirmedMemberDBScheme, MemberDBScheme, PendingMemberDBScheme, WorkspaceDBScheme } from 'hawk.types';
+import crypto from 'crypto';
 
 /**
  * Workspace model
@@ -92,6 +93,16 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   }
 
   /**
+   * Generates SHA-256 hash that used as invite hash
+   */
+  public static generateInviteHash(): string {
+    return crypto
+      .createHash('sha256')
+      .update(crypto.randomBytes(256))
+      .digest('hex');
+  }
+
+  /**
    * Checks is provided document represents pending member
    *
    * @param doc - doc to check
@@ -111,6 +122,24 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
         { _id: new ObjectId(this._id) },
         workspaceData
       );
+    } catch (e) {
+      throw new Error('Can\'t update workspace');
+    }
+  }
+
+  /**
+   * Update invite hash of workspace
+   * @param inviteHash - new invite hash
+   */
+  public async updateInviteHash(inviteHash: string): Promise<void> {
+    try {
+      await this.collection.updateOne(
+        { _id: new ObjectId(this._id) },
+        {
+          $set: { inviteHash: inviteHash },
+        }
+      );
+      this.inviteHash = inviteHash;
     } catch (e) {
       throw new Error('Can\'t update workspace');
     }
