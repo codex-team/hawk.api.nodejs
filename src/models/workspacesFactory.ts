@@ -52,6 +52,11 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
    * @param ownerModel - owner of the new workspace
    */
   public async create(workspaceData: WorkspaceDBScheme, ownerModel: UserModel): Promise<WorkspaceModel> {
+    workspaceData = {
+      ...workspaceData,
+      inviteHash: WorkspaceModel.generateInviteHash(),
+    };
+
     const workspaceId = (await this.collection.insertOne(workspaceData)).insertedId;
 
     const workspaceModel = new WorkspaceModel({

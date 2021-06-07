@@ -131,6 +131,11 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   public notifications!: UserNotificationsDBScheme;
 
   /**
+   * Saved bank cards for one-click payments
+   */
+  public bankCards?: BankCard[]
+
+  /**
    * Model's collection
    */
   protected collection: Collection<UserDBScheme>;

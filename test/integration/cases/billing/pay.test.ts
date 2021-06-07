@@ -3,7 +3,6 @@ import { PayCodes, PayRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
 import { Collection, Db, ObjectId } from 'mongodb';
 import {
-  BankCard,
   BusinessOperationDBScheme,
   BusinessOperationStatus,
   BusinessOperationType,
@@ -47,6 +46,7 @@ const workspace = {
   lastChargeDate: new Date(2020, 10, 4),
   name: 'Test workspace',
   tariffPlanId: currentPlan._id,
+  inviteHash: '123456789',
 };
 
 const workspaceAccount = {
