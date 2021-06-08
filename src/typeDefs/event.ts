@@ -53,7 +53,7 @@ type Release {
   """
   Release commits
   """
-  commits: [Commit!]!
+  commits: [Commit]!
 }
 
 """
