@@ -118,7 +118,7 @@ class EventsFactory extends Factory {
    * Find event by id
    *
    * @param {string|ObjectID} id - event's id
-   * @returns {Event}
+   * @returns {Event|null}
    */
   async findById(id) {
     const searchResult = await this.getCollection(this.TYPES.EVENTS)
@@ -126,7 +126,7 @@ class EventsFactory extends Factory {
         _id: new ObjectID(id),
       });
 
-    return new Event(searchResult);
+    return searchResult ? new Event(searchResult) : null;
   }
 
   /**

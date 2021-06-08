@@ -1,6 +1,5 @@
 import { PlanProlongationPayload } from 'hawk.types';
 import jwt, { Secret } from 'jsonwebtoken';
-import { WebhookData } from '../billing/types/request';
 
 /**
  * Helper class for working with checksums
@@ -22,12 +21,9 @@ class ChecksumService {
   /**
    * Parses checksum from request data and returns data from it
    *
-   * @param data - data to parse
+   * @param checksum - checksum to parse
    */
-  public parseAndVerifyData(data: string | undefined): PlanProlongationPayload {
-    const parsedData = JSON.parse(data || '{}') as WebhookData;
-    const checksum = parsedData.checksum;
-
+  public parseAndVerifyChecksum(checksum: string): PlanProlongationPayload {
     const payload = jwt.verify(checksum, process.env.JWT_SECRET_BILLING_CHECKSUM as Secret) as PlanProlongationPayload;
 
     /**

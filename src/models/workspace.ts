@@ -3,6 +3,7 @@ import AbstractModel from './abstractModel';
 import { OptionalId } from '../mongo';
 import UserModel from './user';
 import { ConfirmedMemberDBScheme, MemberDBScheme, PendingMemberDBScheme, WorkspaceDBScheme } from 'hawk.types';
+import crypto from 'crypto';
 
 /**
  * Workspace model
@@ -27,6 +28,11 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Workspace's image URL
    */
   public image?: string;
+
+  /**
+   * Randomly generated invite hash for joining to workspace via invite link
+   */
+  public inviteHash!: string;
 
   /**
    * Workspace account uuid in accounting microservice
@@ -87,6 +93,16 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   }
 
   /**
+   * Generates SHA-256 hash that used as invite hash
+   */
+  public static generateInviteHash(): string {
+    return crypto
+      .createHash('sha256')
+      .update(crypto.randomBytes(256))
+      .digest('hex');
+  }
+
+  /**
    * Checks is provided document represents pending member
    *
    * @param doc - doc to check
@@ -106,6 +122,24 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
         { _id: new ObjectId(this._id) },
         workspaceData
       );
+    } catch (e) {
+      throw new Error('Can\'t update workspace');
+    }
+  }
+
+  /**
+   * Update invite hash of workspace
+   * @param inviteHash - new invite hash
+   */
+  public async updateInviteHash(inviteHash: string): Promise<void> {
+    try {
+      await this.collection.updateOne(
+        { _id: new ObjectId(this._id) },
+        {
+          $set: { inviteHash: inviteHash },
+        }
+      );
+      this.inviteHash = inviteHash;
     } catch (e) {
       throw new Error('Can\'t update workspace');
     }
@@ -366,5 +400,23 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
         },
       }
     );
+  }
+
+  /**
+   * Due date of the current workspace tariff plan
+   */
+  public getTariffPlanDueDate(): Date {
+    const lastChargeDate = new Date(this.lastChargeDate);
+
+    return new Date(lastChargeDate.setMonth(lastChargeDate.getMonth() + 1));
+  }
+
+  /**
+   * Is tariff plan expired or not
+   */
+  public isTariffPlanExpired(): boolean {
+    const date = new Date();
+
+    return date > this.getTariffPlanDueDate();
   }
 }
