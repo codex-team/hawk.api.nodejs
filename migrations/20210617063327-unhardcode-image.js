@@ -2,9 +2,13 @@
  * @file Remove hardcoded image URL prefix
  */
  
+require('dotenv').config({
+  path: '../.env',
+});
+ 
 function removePrefix(collection) {
   collection.forEach(function( dcmt ) {
-    newImg = dcmt.image.replace("https://api.hawk.so/uploads/", "/uploads/");
+    newImg = dcmt.image.replace(/https?:\/\/[a-zA-Z0-9.]+\/uploads\//, "/uploads/");
     projects.updateOne(
       { _id: dcmt._id }, 
       { "$set": { "image": newImg } }
@@ -14,7 +18,7 @@ function removePrefix(collection) {
 
 function addPrefixBack(collection) {
   collection.forEach(function( dcmt ) {
-    newImg = "https://api.hawk.so" + dcmt.image;
+    newImg = process.env.API_URL + dcmt.image;
     projects.updateOne(
       { _id: dcmt._id }, 
       { "$set": { "image": newImg } }
