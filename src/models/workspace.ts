@@ -96,11 +96,9 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Generates SHA-256 hash that used as invite hash
    */
   public static generateInviteHash(): string {
-    const randomNumber = Math.random();
-
     return crypto
       .createHash('sha256')
-      .update(randomNumber.toString())
+      .update(crypto.randomBytes(256))
       .digest('hex');
   }
 
