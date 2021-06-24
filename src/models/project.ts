@@ -385,9 +385,15 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
   public async remove(): Promise<void> {
     await this.collection.deleteOne({ _id: this._id });
 
-    /**
-     * Remove users in project collection
-     */
-    await this.dbConnection.collection('users-in-project:' + this._id).drop();
+    try {
+      /**
+       * Remove users in project collection
+       */
+      await this.dbConnection.collection('users-in-project:' + this._id)
+        .drop();
+    } catch (error) {
+      console.log(`Can't remove collection "users-in-project:${this._id}" because it doesn't exist.`);
+      console.log(error);
+    }
   }
 }
