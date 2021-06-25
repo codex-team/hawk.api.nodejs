@@ -62,21 +62,34 @@ const connectionConfig: MongoClientOptions = {
  * Setups connections to the databases (hawk api and events databases)
  */
 export async function setupConnections(): Promise<void> {
+  let eventsMongoClient = null;
+  let hawkMongoClient = null;
+
+  /**
+   * Connect to hawk database
+   * Throws error if API can't connect to db
+   */
   try {
-    const [hawkMongoClient, eventsMongoClient] = await Promise.all([
-      MongoClient.connect(hawkDBUrl, connectionConfig),
-      MongoClient.connect(eventsDBUrl, connectionConfig),
-    ]);
-
+    hawkMongoClient = await MongoClient.connect(hawkDBUrl, connectionConfig);
     mongoClients.hawk = hawkMongoClient;
-    mongoClients.events = eventsMongoClient;
-
     databases.hawk = hawkMongoClient.db();
-    databases.events = eventsMongoClient.db();
   } catch (e) {
     /** Catch start Mongo errors  */
     HawkCatcher.send(e);
     throw e;
+  }
+
+  /**
+   * Connect to hawk events database
+   * Log error, but don't throw it
+   */
+  try {
+    eventsMongoClient = await MongoClient.connect(eventsDBUrl, connectionConfig);
+    mongoClients.events = eventsMongoClient;
+    databases.events = eventsMongoClient.db();
+  } catch (e) {
+    HawkCatcher.send(e);
+    console.log(e);
   }
 }
 
