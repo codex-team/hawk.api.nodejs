@@ -59,7 +59,7 @@ class SMTPProvider extends EmailProvider {
     } catch (e) {
       HawkCatcher.send(e);
       console.error(
-        'Error sending letter. Try to check the environment settings (in .env file).'
+        'Error sending letter. Try to check the environment settings (in .env file):', e
       );
     }
   }
