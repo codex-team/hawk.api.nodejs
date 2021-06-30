@@ -83,12 +83,23 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
   }
 
   /**
-   * Returns workspace bu its subscription id
+   * Returns workspace by its subscription id
    *
    * @param subscriptionId - subscription id from payment system
    */
   public async findBySubscriptionId(subscriptionId: string): Promise<WorkspaceModel | null> {
     const workspaceData = await this.collection.findOne({ subscriptionId });
+
+    return workspaceData && new WorkspaceModel(workspaceData);
+  }
+
+  /**
+   * Returns workspace by its invite hash
+   *
+   * @param inviteHash - workspace invite hash
+   */
+  public async findByInviteHash(inviteHash: string): Promise<WorkspaceModel | null> {
+    const workspaceData = await this.collection.findOne({ inviteHash });
 
     return workspaceData && new WorkspaceModel(workspaceData);
   }

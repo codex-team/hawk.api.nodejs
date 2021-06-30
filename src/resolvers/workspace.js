@@ -126,50 +126,59 @@ module.exports = {
     },
 
     /**
-     * Confirm user invitation
+     * Join to workspace by invite link with invite hash
      *
      * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {String} inviteHash - hash passed to the invite link
-     * @param {string} workspaceId - id of the workspace to which the user is invited
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
+     *
+     * @return {Promise<boolean>} - true if operation is successful
+     */
+    async joinByInviteLink(_obj, { inviteHash }, { user, factories }) {
+      const currentUser = await factories.usersFactory.findById(user.id);
+      const workspace = await factories.workspacesFactory.findByInviteHash(inviteHash);
+
+      if (await workspace.getMemberInfo(user.id)) {
+        throw new ApolloError('You are already member of this workspace');
+      }
+
+      await workspace.addMember(currentUser._id.toString());
+      await currentUser.addWorkspace(workspace._id.toString());
+
+      return true;
+    },
+
+    /**
+     * Confirm user invitation by special link for user (for example, from email invitation)
+     *
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
+     * @param {String} inviteHash - hash passed to the invite link
+     * @param {String} workspaceId - id of the workspace to which the user is invited
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
      * @return {Promise<boolean>} - true if operation is successful
      */
     async confirmInvitation(_obj, { inviteHash, workspaceId }, { user, factories }) {
       const currentUser = await factories.usersFactory.findById(user.id);
-
-      let membershipExists;
       const workspace = await factories.workspacesFactory.findById(workspaceId);
 
-      if (inviteHash) {
-        const hash = crypto
-          .createHash('sha256')
-          .update(`${workspaceId}:${currentUser.email}:${process.env.HASH_SALT}`)
-          .digest('hex');
+      const hash = crypto
+        .createHash('sha256')
+        .update(`${workspaceId}:${currentUser.email}:${process.env.HASH_SALT}`)
+        .digest('hex');
 
-        if (hash !== inviteHash) {
-          throw new ApolloError('The link is broken');
-        }
-
-        membershipExists = await workspace.confirmMembership(currentUser);
-      } else {
-        // @todo check if workspace allows invitations through general link
-
-        if (await workspace.getMemberInfo(user.id)) {
-          throw new ApolloError('You are already member of this workspace');
-        }
-
-        await workspace.addMember(currentUser._id.toString());
-
-        membershipExists = false;
+      if (hash !== inviteHash) {
+        throw new ApolloError('The link is broken');
       }
 
-      const userModel = await factories.usersFactory.findById(user.id);
+      const membershipExists = await workspace.confirmMembership(currentUser);
 
       if (membershipExists) {
-        await userModel.confirmMembership(workspaceId);
+        await currentUser.confirmMembership(workspaceId);
       } else {
-        await userModel.addWorkspace(workspaceId);
+        await currentUser.addWorkspace(workspaceId);
       }
 
       return true;
