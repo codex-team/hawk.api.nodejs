@@ -178,6 +178,16 @@ export default gql`
     ): Boolean! @requireAdmin
 
     """
+    Join to workspace by invite link with hash
+    """
+    joinByInviteLink(
+      """
+      Workspace invite hash from link
+      """
+      inviteHash: String!
+    ): Boolean! @requireAuth
+
+    """
     Confirm invitation to workspace
     Returns true if operation is successful
     """

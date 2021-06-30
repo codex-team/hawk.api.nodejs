@@ -126,6 +126,30 @@ module.exports = {
     },
 
     /**
+     * Join to workspace by invite link with invite hash
+     *
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
+     * @param {String} inviteHash - hash passed to the invite link
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @return {Promise<boolean>} - true if operation is successful
+     */
+    async joinByInviteLink(_obj, { inviteHash }, { user, factories }) {
+      const currentUser = await factories.usersFactory.findById(user.id);
+      const workspace = await factories.workspacesFactory.findByInviteHash(inviteHash);
+
+      if (await workspace.getMemberInfo(user.id)) {
+        throw new ApolloError('You are already member of this workspace');
+      }
+
+      await workspace.addMember(currentUser._id.toString());
+      await currentUser.addWorkspace(workspace._id.toString());
+
+      return true;
+    },
+
+    /**
      * Confirm user invitation
      *
      * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
