@@ -195,9 +195,11 @@ export default gql`
       """
       Hash from invitation link
       """
-      inviteHash: String
+      inviteHash: String!
 
-      "Id of the workspace to which the user was invited"
+      """
+      Id of the workspace to which the user was invited
+      """
       workspaceId: ID!
     ): Boolean! @requireAuth
 
