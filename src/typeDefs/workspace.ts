@@ -2,7 +2,7 @@ import { gql } from 'apollo-server-express';
 
 export default gql`
   """
-  Responce of updated workspace mutations
+  Response of updated workspace mutations
   """
   type UpdateWorkspacePayload {
     """
