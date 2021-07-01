@@ -133,7 +133,7 @@ module.exports = {
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      *
-     * @return {Promise<boolean>} - true if operation is successful
+     * @return {Promise<object>} - true if operation is successful
      */
     async joinByInviteLink(_obj, { inviteHash }, { user, factories }) {
       const currentUser = await factories.usersFactory.findById(user.id);
@@ -146,7 +146,10 @@ module.exports = {
       await workspace.addMember(currentUser._id.toString());
       await currentUser.addWorkspace(workspace._id.toString());
 
-      return true;
+      return {
+        recordId: workspace._id.toString(),
+        record: workspace,
+      };
     },
 
     /**
@@ -158,7 +161,7 @@ module.exports = {
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      *
-     * @return {Promise<boolean>} - true if operation is successful
+     * @return {Promise<object>} - true if operation is successful
      */
     async confirmInvitation(_obj, { inviteHash, workspaceId }, { user, factories }) {
       const currentUser = await factories.usersFactory.findById(user.id);
@@ -181,7 +184,10 @@ module.exports = {
         await currentUser.addWorkspace(workspaceId);
       }
 
-      return true;
+      return {
+        recordId: workspace._id.toString(),
+        record: workspace,
+      };
     },
 
     /**
