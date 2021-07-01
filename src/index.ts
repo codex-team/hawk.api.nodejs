@@ -32,6 +32,8 @@ import { NonCriticalError } from './errors';
 import PlansFactory from './models/plansFactory';
 import BusinessOperationsFactory from './models/businessOperationsFactory';
 
+console.log('test deploying');
+
 /**
  * Option to enable playground
  */
