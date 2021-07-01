@@ -96,7 +96,7 @@ class HawkAPI {
 
     this.server = new ApolloServer({
       typeDefs,
-      debug: true,
+      debug: process.env.NODE_ENV === 'development',
       resolvers,
       playground: PLAYGROUND_ENABLE,
       introspection: PLAYGROUND_ENABLE,
