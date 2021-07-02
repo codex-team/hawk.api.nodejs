@@ -112,7 +112,7 @@ module.exports = {
 
       const linkHash = crypto
         .createHash('sha256')
-        .update(`${workspaceId}:${userEmail}:${process.env.HASH_SALT}`)
+        .update(`${workspaceId}:${userEmail}:${process.env.INVITE_LINK_HASH_SALT}`)
         .digest('hex');
 
       const inviteLink = `${process.env.GARAGE_URL}/join/${workspaceId}/${linkHash}`;
@@ -169,7 +169,7 @@ module.exports = {
 
       const hash = crypto
         .createHash('sha256')
-        .update(`${workspaceId}:${currentUser.email}:${process.env.HASH_SALT}`)
+        .update(`${workspaceId}:${currentUser.email}:${process.env.INVITE_LINK_HASH_SALT}`)
         .digest('hex');
 
       if (hash !== inviteHash) {
