@@ -4,7 +4,7 @@ export default gql`
   """
   Response of updated workspace mutations
   """
-  type UpdateWorkspacePayload {
+  type UpdateWorkspaceResponse {
     """
     Id of updated workspace
     """
@@ -200,7 +200,7 @@ export default gql`
       Workspace invite hash from link
       """
       inviteHash: String!
-    ): UpdateWorkspacePayload! @requireAuth
+    ): UpdateWorkspaceResponse! @requireAuth
 
     """
     Confirm invitation to workspace
@@ -216,7 +216,7 @@ export default gql`
       Id of the workspace to which the user was invited
       """
       workspaceId: ID!
-    ): UpdateWorkspacePayload! @requireAuth
+    ): UpdateWorkspaceResponse! @requireAuth
 
     """
     Grant admin permissions
