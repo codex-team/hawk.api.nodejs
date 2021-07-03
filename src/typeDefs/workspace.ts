@@ -2,6 +2,21 @@ import { gql } from 'apollo-server-express';
 
 export default gql`
   """
+  Response of updated workspace mutations
+  """
+  type UpdateWorkspaceResponse {
+    """
+    Id of updated workspace
+    """
+    recordId: ID!
+
+    """
+    Updated workspace object
+    """
+    record: Workspace!
+  }
+
+  """
   Confirmed member data in workspace
   """
   type ConfirmedMember {
@@ -178,6 +193,16 @@ export default gql`
     ): Boolean! @requireAdmin
 
     """
+    Join to workspace by invite link with hash
+    """
+    joinByInviteLink(
+      """
+      Workspace invite hash from link
+      """
+      inviteHash: String!
+    ): UpdateWorkspaceResponse! @requireAuth
+
+    """
     Confirm invitation to workspace
     Returns true if operation is successful
     """
@@ -185,11 +210,13 @@ export default gql`
       """
       Hash from invitation link
       """
-      inviteHash: String
+      inviteHash: String!
 
-      "Id of the workspace to which the user was invited"
+      """
+      Id of the workspace to which the user was invited
+      """
       workspaceId: ID!
-    ): Boolean! @requireAuth
+    ): UpdateWorkspaceResponse! @requireAuth
 
     """
     Grant admin permissions
