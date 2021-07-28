@@ -6,14 +6,14 @@ import {
   CheckRequest,
   CheckResponse,
   FailCodes,
+  FailRequest,
   FailResponse,
   PayCodes,
   PayRequest,
   PayResponse,
   RecurrentCodes,
-  RecurrentResponse,
-  FailRequest,
-  RecurrentRequest
+  RecurrentRequest,
+  RecurrentResponse
 } from './types';
 import { ReasonCodesTranscript, SubscriptionStatus } from './types/enums';
 import {
@@ -25,19 +25,24 @@ import {
   PlanDBScheme,
   PlanProlongationPayload
 } from 'hawk.types';
-import { PENNY_MULTIPLIER, AccountType, Currency } from 'codex-accounting-sdk';
+import { AccountType, Currency, PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
-
 import sendNotification from '../utils/personalNotifications';
-import { SenderWorkerTaskType, PaymentFailedNotificationTask, PaymentSuccessNotificationTask } from '../types/personalNotifications';
+import {
+  PaymentFailedNotificationTask,
+  PaymentSuccessNotificationTask,
+  SenderWorkerTaskType
+} from '../types/personalNotifications';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';
 import { WebhookData } from './types/request';
 import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
+import PlanModel from '../models/plan';
+import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
 
 /**
  * Custom data of the plan prolongation request
@@ -48,6 +53,29 @@ type PlanProlongationData = PlanProlongationPayload & PaymentData;
  * Class for describing the logic of payment routes
  */
 export default class CloudPaymentsWebhooks {
+  private readonly clientService = new ClientService({
+    publicId: process.env.CLOUDPAYMENTS_PUBLIC_ID || '',
+    privateKey: process.env.CLOUDPAYMENTS_SECRET || '',
+  })
+
+  /**
+   * Receipt API instance to call receipt methods
+   */
+  private readonly receiptApi: ReceiptApi;
+
+  /**
+   * Client API instance to call CloundPayments API
+   */
+  private readonly clientApi: ClientApi;
+
+  /**
+   * Creates class instance
+   */
+  constructor() {
+    this.receiptApi = this.clientService.getReceiptApi();
+    this.clientApi = this.clientService.getClientApi();
+  }
+
   /**
    * Returns router for payments
    *
@@ -278,6 +306,19 @@ export default class CloudPaymentsWebhooks {
 
       const subscriptionId = body.SubscriptionId;
 
+      /**
+       * Cancellation of the current subscription if:
+       * 1) the user pays manually (the workspace has an active subscription, but the request body does not)
+       * 2) if payment is made for another subscription (subscriptions id are not equal)
+       */
+      if (workspace.subscriptionId) {
+        if (!subscriptionId || subscriptionId !== workspace.subscriptionId) {
+          await this.clientApi.cancelSubscription({
+            Id: workspace.subscriptionId,
+          });
+        }
+      }
+
       if (subscriptionId) {
         await workspace.setSubscriptionId(subscriptionId);
       }
@@ -368,6 +409,18 @@ export default class CloudPaymentsWebhooks {
         await cloudPaymentsApi.cancelPayment(body.TransactionId);
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1$ returned`, TelegramBotURLs.Money));
       } else {
+        /**
+         * Russia code from ISO 3166-1
+         */
+        const RUSSIA_ISO_CODE = 'RU';
+
+        /**
+         * Send receipt only in case that user pays from russian card
+         */
+        const userEmail = body.IssuerBankCountry === RUSSIA_ISO_CODE ? user.email : undefined;
+
+        await this.sendReceipt(workspace, tariffPlan, userEmail);
+
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money));
       }
     } catch (e) {
@@ -464,25 +517,39 @@ export default class CloudPaymentsWebhooks {
     const body: RecurrentRequest = req.body;
     const context = req.context;
 
+    this.handleSendingToTelegramError(telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money));
+    HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
+
     switch (body.Status) {
       case SubscriptionStatus.CANCELLED:
       case SubscriptionStatus.REJECTED: {
-        try {
-          const workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
+        let workspace;
 
-          if (workspace) {
-            await workspace.setSubscriptionId(null);
-          } else {
-            throw new Error('There is no workspace with provided subscription id');
-          }
-        } catch {
-          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't remove subscriptionId from workspace`, body);
+        try {
+          workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
+        } catch (e) {
+          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't get data from database: ${e.toString()}`, {
+            body,
+            workspace,
+          });
+
+          return;
+        }
+
+        if (!workspace) {
+          return;
+        }
+
+        try {
+          await workspace.setSubscriptionId(null);
+        } catch (e) {
+          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't remove subscriptionId from workspace: ${e.toString()}`, {
+            body,
+            workspace,
+          });
         }
       }
     }
-
-    this.handleSendingToTelegramError(telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money));
-    HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     res.json({
       code: RecurrentCodes.SUCCESS,
@@ -567,7 +634,7 @@ export default class CloudPaymentsWebhooks {
    * @param req - express request
    * @param tariffPlanId - plan id
    */
-  private async getPlan(req: express.Request, tariffPlanId: string): Promise<PlanDBScheme> {
+  private async getPlan(req: express.Request, tariffPlanId: string): Promise<PlanModel> {
     const plan = await req.context.factories.plansFactory.findById(tariffPlanId);
 
     if (!plan) {
@@ -662,5 +729,41 @@ export default class CloudPaymentsWebhooks {
       token: request.Token,
       type: request.CardType,
     };
+  }
+
+  /**
+   * Send receipt to user after successful payment
+   *
+   * @param workspace - workspace for which payment is made
+   * @param tariff - paid tariff plan
+   * @param userMail - user email address
+   */
+  private async sendReceipt(workspace: WorkspaceModel, tariff: PlanModel, userMail?: string): Promise<void> {
+    /**
+     * A general tax that applies to all commercial activities
+     * involving the production and distribution of goods and the provision of services
+     * Also known as "НДС" in Russia
+     */
+    const VALUE_ADDED_TAX = 20;
+
+    const item: CustomerReceiptItem = {
+      amount: tariff.monthlyCharge,
+      label: `${tariff.name} tariff plan`,
+      price: tariff.monthlyCharge,
+      vat: VALUE_ADDED_TAX,
+      quantity: 1,
+    };
+
+    await this.receiptApi.createReceipt(
+      {
+        Type: ReceiptTypes.Income,
+        Inn: Number(process.env.LEGAL_ENTITY_INN),
+      },
+      {
+        Items: [ item ],
+        email: userMail,
+        taxationSystem: TaxationSystem.GENERAL,
+      }
+    );
   }
 }

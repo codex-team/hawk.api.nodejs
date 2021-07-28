@@ -20,6 +20,7 @@ const workspace: WorkspaceDBScheme = {
   lastChargeDate: new Date(2020, 10, 4),
   name: 'Test workspace',
   tariffPlanId: currentPlan._id,
+  inviteHash: '12345678',
   subscriptionId: '123123',
 };
 
