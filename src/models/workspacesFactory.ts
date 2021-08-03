@@ -68,6 +68,7 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
     await workspaceModel.grantAdmin(ownerModel._id.toString());
     await ownerModel.addWorkspace(workspaceModel._id.toString());
     await workspaceModel.changePlan((await this.getDefaultPlan())._id.toString());
+    await workspaceModel.resetBillingPeriod();
 
     return workspaceModel;
   }
