@@ -1,4 +1,4 @@
-name: Build and deploy
+name: Build and push docker image
 
 on: [push]
 
@@ -21,14 +21,3 @@ jobs:
           tag_with_ref: true
           dockerfile: docker/Dockerfile.prod
           push: ${{ endsWith(github.ref, '/stage') || endsWith(github.ref, '/prod') }}
-
-      - name: Deploy on stage
-        if: endsWith(github.ref, '/stage')
-        run: |
-          curl --user ${{ secrets.DEPLOY_HAWK_STAGE_AUTH }} ${{ secrets.DEPLOY_HAWK_STAGE_ADDRESS }}?image=${{ env.DOCKER_REPO }}:stage
-
-      - name: Deploy on prod
-        if: endsWith(github.ref, '/prod')
-        run: |
-          DEPLOY_TOKEN_PROD=${{ secrets.DEPLOY_TOKEN_PROD }}
-          curl -X POST -H "Content-Type: application/json" --data "{\"branch\":\"prod\",\"secret_token\":\"$DEPLOY_TOKEN_PROD\"}" https://beta.hawk.so/deploy
