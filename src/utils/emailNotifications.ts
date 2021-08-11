@@ -5,7 +5,7 @@ import { Options } from 'amqplib';
 export enum TaskPriorities {
   PRIMARY = 1,
   IMPORTANT = 5,
-} 
+}
 
 /**
  * Send email notification
@@ -14,5 +14,5 @@ export enum TaskPriorities {
  * @param options - rabbitmq options
  */
 export async function emailNotification(task: SenderWorkerTasks, options?: Options.Publish): Promise<void> {
-  enqueue(WorkerPaths.Email, task, options)
+  enqueue(WorkerPaths.Email, task, options);
 }
