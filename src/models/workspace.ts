@@ -287,7 +287,10 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Change plan for current workspace
-   * Reset billing period events count, reset last charge date
+   * - set tariffPlanId
+   * - reset billing period events count
+   * - update last charge date
+   * - unblock workspace
    *
    * @param planId - id of plan to be enabled
    */
@@ -300,6 +303,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
         $set: {
           tariffPlanId: new ObjectId(planId),
           billingPeriodEventsCount: 0,
+          isBlocked: false,
           lastChargeDate: new Date(),
         },
       }
