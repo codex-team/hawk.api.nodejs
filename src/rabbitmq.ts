@@ -119,6 +119,7 @@ export async function setupConnections(): Promise<void> {
  * @param exchange - exchange to publish message to
  * @param route - route to publish message to
  * @param message - message to publish
+ * @param options - rabbitmq task options
  */
 export async function publish(exchange: string, route: string, message: string, options?: Options.Publish): Promise<void> {
   try {

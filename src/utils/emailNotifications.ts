@@ -3,7 +3,7 @@ import { enqueue, WorkerPaths } from '../rabbitmq';
 import { Options } from 'amqplib';
 
 export enum TaskPriorities {
-  PRIMARY = 1,
+  DEFAULT = 1,
   IMPORTANT = 5,
 }
 
