@@ -1,4 +1,5 @@
 import amqplib, { AmqpConnectionManager, ChannelWrapper } from 'amqp-connection-manager';
+import { Options } from 'amqplib';
 import debug from 'debug';
 import HawkCatcher from '@hawk.so/nodejs';
 
@@ -118,10 +119,11 @@ export async function setupConnections(): Promise<void> {
  * @param exchange - exchange to publish message to
  * @param route - route to publish message to
  * @param message - message to publish
+ * @param options - rabbitmq task options
  */
-export async function publish(exchange: string, route: string, message: string): Promise<void> {
+export async function publish(exchange: string, route: string, message: string, options?: Options.Publish): Promise<void> {
   try {
-    await channel.publish(exchange, route, Buffer.from(message));
+    await channel.publish(exchange, route, Buffer.from(message), options);
     debug(`Message sent: ${message}`);
   } catch (err) {
     HawkCatcher.send(err);
@@ -135,6 +137,6 @@ export async function publish(exchange: string, route: string, message: string):
  * @param workerPath - worker rabbitmq path: exchange and queue
  * @param task - anything that we can stringify
  */
-export async function enqueue(workerPath: WorkerPath, task: object): Promise<void> {
-  await publish(workerPath.exchange, workerPath.queue, JSON.stringify(task));
+export async function enqueue(workerPath: WorkerPath, task: object, options?: Options.Publish): Promise<void> {
+  await publish(workerPath.exchange, workerPath.queue, JSON.stringify(task), options);
 }

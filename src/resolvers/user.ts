@@ -6,6 +6,8 @@ import { errorCodes } from '../errors';
 import emailProvider from '../email';
 import { names as emailTemplatesNames } from '../email/templates';
 import Validator from '../utils/validator';
+import { SenderWorkerTaskType } from '../types/userNotifications';
+import { TaskPriorities, emailNotification } from '../utils/emailNotifications';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -43,9 +45,17 @@ export default {
 
       try {
         user = await factories.usersFactory.create(email);
-        emailProvider.send(email, emailTemplatesNames.SUCCESSFUL_SIGN_UP, {
-          email,
-          password: user.generatedPassword,
+
+        const password = user.generatedPassword;
+
+        await emailNotification({
+          type: SenderWorkerTaskType.SignUp,
+          payload: {
+            password: password!,
+            endpoint: email,
+          },
+        }, {
+          priority: TaskPriorities.IMPORTANT,
         });
       } catch (e) {
         if (e.code.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
