@@ -5,14 +5,13 @@ import * as telegram from '../utils/telegram';
 import HawkCatcher from '@hawk.so/nodejs';
 import escapeHTML from 'escape-html';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
+import { emailNotification, TaskPriorities } from '../utils/emailNotifications';
+import { SenderWorkerTaskType } from '../types/userNotifications';
+import ProjectToWorkspace from '../models/projectToWorkspace';
+import { Validator } from '../utils/validator';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
-
-const ProjectToWorkspace = require('../models/projectToWorkspace');
-const Validator = require('../utils/validator');
-const emailProvider = require('../email');
-const { names: emailTemplatesNames } = require('../email/templates');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
@@ -117,9 +116,15 @@ module.exports = {
 
       const inviteLink = `${process.env.GARAGE_URL}/join/${workspaceId}/${linkHash}`;
 
-      emailProvider.send(userEmail, emailTemplatesNames.WORKSPACE_INVITE, {
-        name: workspace.name,
-        inviteLink,
+      await emailNotification({
+        type: SenderWorkerTaskType.WorkspaceInvite,
+        payload: {
+          workspaceName: workspace.name,
+          inviteLink,
+          endpoint: userEmail,
+        },
+      }, {
+        priority: TaskPriorities.IMPORTANT,
       });
 
       return true;
