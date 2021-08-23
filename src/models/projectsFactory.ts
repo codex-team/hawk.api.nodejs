@@ -5,7 +5,6 @@ import ProjectModel from './project';
 import ProjectToWorkspace from './projectToWorkspace';
 import uuid from 'uuid';
 import { ProjectDBScheme } from 'hawk.types';
-import generateIntegrationToken from '../utils/generateIntegrationToken';
 
 /**
  * Users factory to work with User Model
@@ -61,32 +60,25 @@ export default class ProjectsFactory extends AbstractModelFactory<ProjectDBSchem
    * @param projectData - project data for creation
    */
   public async create(projectData: ProjectDBScheme): Promise<ProjectModel> {
-    const projectId = (await this.collection.insertOne(projectData)).insertedId;
-
     const integrationId = uuid.v4();
+    const encodedIntegrationToken = ProjectModel.generateIntegrationToken(integrationId);
+    const data = {
+      ...projectData,
+      integrationId,
+      token: encodedIntegrationToken,
+    };
+    const projectId = (await this.collection.insertOne(data)).insertedId;
 
-    const encodedIntegrationToken = generateIntegrationToken(integrationId);
-
-    const result = await this.collection.findOneAndUpdate(
-      { _id: projectId },
-      {
-        $set: {
-          integrationId,
-          token: encodedIntegrationToken,
-        },
-      },
-      { returnOriginal: false }
-    );
-
-    if (!result.value) {
-      throw new Error('Can\'t create project due to unknown error');
-    }
-
-    // Create Project to Workspace relationship
+    /**
+     * Create Project to Workspace relationship
+     */
     await new ProjectToWorkspace(projectData.workspaceId).add({
       projectId: projectId,
     });
 
-    return new ProjectModel(result.value);
+    return new ProjectModel({
+      ...projectData,
+      _id: projectId,
+    });
   }
 }

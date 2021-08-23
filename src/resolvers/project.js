@@ -1,11 +1,10 @@
-import generateIntegrationToken from '../utils/generateIntegrationToken';
-
 const mongo = require('../mongo');
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 const ProjectToWorkspace = require('../models/projectToWorkspace');
+const ProjectModel = require('../models/project').default;
 
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
@@ -150,7 +149,7 @@ module.exports = {
         throw new ApolloError('There is no project with that id:', id);
       }
 
-      const encodedIntegrationToken = generateIntegrationToken(project.integrationId);
+      const encodedIntegrationToken = ProjectModel.generateIntegrationToken(project.integrationId);
 
       try {
         return project.updateProject({
