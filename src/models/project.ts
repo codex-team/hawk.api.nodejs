@@ -198,11 +198,11 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * @param integrationId - integration id for using in collector URL
    */
   public static generateIntegrationToken(integrationId: string): string {
-    const randomHash = uuid.v4();
+    const secret = uuid.v4();
 
     const decodedIntegrationToken = {
       integrationId,
-      randomHash,
+      secret,
     };
 
     return Buffer
