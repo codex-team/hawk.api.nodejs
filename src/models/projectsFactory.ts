@@ -72,12 +72,12 @@ export default class ProjectsFactory extends AbstractModelFactory<ProjectDBSchem
     /**
      * Create Project to Workspace relationship
      */
-    await new ProjectToWorkspace(projectData.workspaceId).add({
+    await new ProjectToWorkspace(data.workspaceId).add({
       projectId: projectId,
     });
 
     return new ProjectModel({
-      ...projectData,
+      ...data,
       _id: projectId,
     });
   }
