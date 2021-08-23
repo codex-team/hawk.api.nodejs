@@ -1,9 +1,11 @@
 import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
 import DataLoaders from '../dataLoaders';
-import ProjectModel, { ProjectDBScheme } from './project';
+import ProjectModel from './project';
 import ProjectToWorkspace from './projectToWorkspace';
 import uuid from 'uuid';
+import { ProjectDBScheme } from 'hawk.types';
+import generateIntegrationToken from '../utils/generateIntegrationToken';
 
 /**
  * Users factory to work with User Model
@@ -13,11 +15,6 @@ export default class ProjectsFactory extends AbstractModelFactory<ProjectDBSchem
    * DataBase collection to work with
    */
   protected collection: Collection<ProjectDBScheme>;
-
-  /**
-   * Maximum value of random hash in integration token
-   */
-  private static RANDOM_HASH_MAX = 999999;
 
   /**
    * DataLoaders for fetching data from database
@@ -33,24 +30,6 @@ export default class ProjectsFactory extends AbstractModelFactory<ProjectDBSchem
     super(dbConnection, ProjectModel);
     this.collection = dbConnection.collection('projects');
     this.dataLoaders = dataLoaders;
-  }
-
-  /**
-   * Generates new integration token with integration id field
-   *
-   * @param integrationId - integration id for using in collector URL
-   */
-  private static generateIntegrationToken(integrationId: string): string {
-    const randomHash = Math.round(Math.random() * ProjectsFactory.RANDOM_HASH_MAX);
-
-    const decodedIntegrationToken = {
-      integrationId,
-      randomHash,
-    };
-
-    return Buffer
-      .from(JSON.stringify(decodedIntegrationToken))
-      .toString('base64');
   }
 
   /**
@@ -86,7 +65,7 @@ export default class ProjectsFactory extends AbstractModelFactory<ProjectDBSchem
 
     const integrationId = uuid.v4();
 
-    const encodedIntegrationToken = ProjectsFactory.generateIntegrationToken(integrationId);
+    const encodedIntegrationToken = generateIntegrationToken(integrationId);
 
     const result = await this.collection.findOneAndUpdate(
       { _id: projectId },

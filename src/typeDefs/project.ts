@@ -182,6 +182,16 @@ extend type Mutation {
   ): Project! @requireAuth
 
   """
+  Generates new project integration token by id
+  """
+  generateNewIntegrationToken(
+    """
+    What project to regenerate integration token
+    """
+    id: ID!
+  ): Project! @requireAdmin
+
+  """
   Remove project
   """
   removeProject(

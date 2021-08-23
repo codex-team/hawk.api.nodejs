@@ -1,3 +1,5 @@
+import generateIntegrationToken from '../utils/generateIntegrationToken';
+
 const mongo = require('../mongo');
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
@@ -128,6 +130,34 @@ module.exports = {
         return project.updateProject(options);
       } catch (err) {
         throw new ApolloError('Something went wrong');
+      }
+    },
+
+    /**
+     * Generates new project integration token by id
+     *
+     * @param {ResolverObj} _obj - default resolver object
+     * @param {string} id - id of the project in which the token field is being regenerated
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Project}
+     */
+    async generateNewIntegrationToken(_obj, { id }, { factories }) {
+      const project = await factories.projectsFactory.findById(id);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id:', id);
+      }
+
+      const encodedIntegrationToken = generateIntegrationToken(project.integrationId);
+
+      try {
+        return project.updateProject({
+          token: encodedIntegrationToken,
+        });
+      } catch (err) {
+        throw new ApolloError('Can\'t update integration token', err);
       }
     },
 

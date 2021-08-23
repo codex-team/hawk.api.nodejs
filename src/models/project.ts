@@ -1,51 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
-
-/**
- * Structure represents a Project in DataBase
- */
-export interface ProjectDBScheme {
-  /**
-   * Project ID
-   */
-  _id: ObjectId;
-
-  /**
-   * Project Integration Token
-   */
-  token: string;
-
-  /**
-   * Project name
-   */
-  name: string;
-
-  /**
-   * User who created project
-   */
-  uidAdded: ObjectId;
-
-  /**
-   * Workspace id which project is belong
-   */
-  workspaceId: ObjectId;
-
-  /**
-   * Project description
-   */
-  description?: string;
-
-  /**
-   * URL of a project logo
-   */
-  image?: string;
-
-  /**
-   * Project notifications settings
-   */
-  notifications: ProjectNotificationsRuleDBScheme[];
-}
+import { ProjectDBScheme } from 'hawk.types';
 
 /**
  * This structure represents a single rule of notifications settings
@@ -180,6 +136,11 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * Project ID
    */
   public _id!: ObjectId;
+
+  /**
+   * Integration id that's used in collector URL
+   */
+  public integrationId!: string;
 
   /**
    * Project Integration Token
