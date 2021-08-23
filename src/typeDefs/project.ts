@@ -29,6 +29,21 @@ input EventsFiltersInput {
 }
 
 """
+Respose object with updated project and his id
+"""
+type UpdateProjectResponse {
+  """
+  Project id
+  """
+  recordId: ID!
+
+  """
+  Modified project
+  """
+  record: Project!
+}
+
+"""
 Project representation
 """
 type Project {
@@ -189,7 +204,7 @@ extend type Mutation {
     What project to regenerate integration token
     """
     id: ID!
-  ): Project! @requireAdmin
+  ): UpdateProjectResponse! @requireAdmin
 
   """
   Remove project

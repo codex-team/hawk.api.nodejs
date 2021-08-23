@@ -140,7 +140,7 @@ module.exports = {
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
      *
-     * @returns {Project}
+     * @returns {Object}
      */
     async generateNewIntegrationToken(_obj, { id }, { factories }) {
       const project = await factories.projectsFactory.findById(id);
@@ -152,9 +152,14 @@ module.exports = {
       const encodedIntegrationToken = ProjectModel.generateIntegrationToken(project.integrationId);
 
       try {
-        return project.updateProject({
+        const updatedProject = await project.updateProject({
           token: encodedIntegrationToken,
         });
+
+        return {
+          recordId: updatedProject._id,
+          record: updatedProject,
+        };
       } catch (err) {
         throw new ApolloError('Can\'t update integration token', err);
       }
