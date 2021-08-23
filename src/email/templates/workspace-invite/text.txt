@@ -1,4 +1,0 @@
-Hi
-You have been invited to {{name}} workspace.
-Please, follow the link to join:
-{{inviteLink}}

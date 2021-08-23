@@ -3,8 +3,6 @@ import UserModel, { TokensPair } from '../models/user';
 import { AuthenticationError, ApolloError, UserInputError } from 'apollo-server-express';
 import jwt, { Secret } from 'jsonwebtoken';
 import { errorCodes } from '../errors';
-import emailProvider from '../email';
-import { names as emailTemplatesNames } from '../email/templates';
 import Validator from '../utils/validator';
 import { SenderWorkerTaskType } from '../types/userNotifications';
 import { TaskPriorities, emailNotification } from '../utils/emailNotifications';
@@ -145,12 +143,14 @@ export default {
 
         await user.changePassword(newPassword);
 
-        /**
-         * @todo Make email queue
-         */
-        emailProvider.send(email, emailTemplatesNames.PASSWORD_RESET, {
-          email,
-          password: newPassword,
+        await emailNotification({
+          type: SenderWorkerTaskType.PasswordReset,
+          payload: {
+            newPassword: newPassword,
+            endpoint: email,
+          },
+        }, {
+          priority: TaskPriorities.IMPORTANT,
         });
       } catch (err) {
         throw new ApolloError('Something went wrong');

@@ -26,4 +26,14 @@ export enum SenderWorkerTaskType {
    * Task for user registration
    */
   SignUp = 'sign-up',
+
+  /**
+   * Task for password recovering
+   */
+  PasswordReset = 'password-reset',
+
+  /**
+   * Task for sending an invitation to the user to join the workspace
+   */
+  WorkspaceInvite = 'workspace-invite',
 }

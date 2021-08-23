@@ -1,2 +1,0 @@
-Hi!
-Your new password is: {{password}}
