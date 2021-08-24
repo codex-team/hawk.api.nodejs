@@ -34,7 +34,7 @@ import {
   PaymentFailedNotificationTask,
   PaymentSuccessNotificationTask,
   SenderWorkerTaskType
-} from '../types/personalNotifications';
+} from '../types/userNotifications';
 import BusinessOperationModel from '../models/businessOperation';
 import UserModel from '../models/user';
 import checksumService from '../utils/checksumService';
