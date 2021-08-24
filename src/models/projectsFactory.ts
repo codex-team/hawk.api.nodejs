@@ -60,7 +60,7 @@ export default class ProjectsFactory extends AbstractModelFactory<ProjectDBSchem
    * @param projectData - project data for creation
    */
   public async create(projectData: ProjectDBScheme): Promise<ProjectModel> {
-    const integrationId = uuid.v4();
+    const integrationId = ProjectModel.generateIntegrationId();
     const encodedIntegrationToken = ProjectModel.generateIntegrationToken(integrationId);
     const data = {
       ...projectData,

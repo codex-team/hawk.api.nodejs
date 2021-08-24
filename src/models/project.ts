@@ -2,7 +2,7 @@ import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
 import { ProjectDBScheme } from 'hawk.types';
-import uuid from "uuid";
+import uuid from 'uuid';
 
 /**
  * This structure represents a single rule of notifications settings
@@ -190,6 +190,13 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
   constructor(projectData: ProjectDBScheme) {
     super(projectData);
     this.collection = this.dbConnection.collection<ProjectDBScheme>('projects');
+  }
+
+  /**
+   * Generates integration ID that's used in collector URL for sending events
+   */
+  public static generateIntegrationId(): string {
+    return uuid.v4();
   }
 
   /**
