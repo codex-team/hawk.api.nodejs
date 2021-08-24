@@ -3,7 +3,6 @@ import { Collection, Db } from 'mongodb';
 import DataLoaders from '../dataLoaders';
 import ProjectModel from './project';
 import ProjectToWorkspace from './projectToWorkspace';
-import uuid from 'uuid';
 import { ProjectDBScheme } from 'hawk.types';
 
 /**
