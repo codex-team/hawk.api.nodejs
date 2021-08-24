@@ -44,7 +44,7 @@ module.exports = {
      * @param {ContextFactories} factories - factories for working with models
      * @param {Accounting} accounting - SDK for creating account for new workspace
      *
-     * @return {String} created workspace id
+     * @return {WorkspaceModel} created workspace
      */
     async createWorkspace(_obj, { name, description, image }, { user, factories, accounting }) {
       try {

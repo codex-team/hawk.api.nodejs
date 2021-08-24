@@ -42,7 +42,7 @@ type Commit {
 }
 
 """
-Release data of the corresponding event 
+Release data of the corresponding event
 """
 type Release {
   """
@@ -182,13 +182,23 @@ type EventPayload {
 }
 
 """
-Type representing Event payload
+Type representing Event payload. All fields can be omitted if there are no difference with the original
 """
 type RepetitionPayload {
   """
-  Event timestamp
+  Event timestamp. Can be empty if repetition has the same timestamp as original event
   """
   timestamp: Float
+
+  """
+  Event title
+  """
+  title: String
+
+  """
+  Event type: TypeError, ReferenceError etc.
+  """
+  type: String
 
   """
   Event severity level
