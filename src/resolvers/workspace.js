@@ -301,6 +301,8 @@ module.exports = {
         throw new UserInputError('There is no workspace with provided id');
       }
 
+      await workspaceModel.removeMember(userModel);
+
       const memberInfo = await workspaceModel.getMemberInfo(user.id);
 
       if (memberInfo.isAdmin) {
@@ -310,10 +312,9 @@ module.exports = {
         );
 
         if (!isThereOtherAdmins) {
-          throw new ForbiddenError('You can\'t leave this workspace because you are the last admin');
+          // @todo remove workspace
         }
       }
-      await workspaceModel.removeMember(userModel);
 
       return true;
     },
