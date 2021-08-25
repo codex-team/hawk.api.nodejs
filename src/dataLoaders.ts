@@ -1,7 +1,6 @@
 import DataLoader from 'dataloader';
 import { Db, ObjectId } from 'mongodb';
-import { PlanDBScheme, UserDBScheme, WorkspaceDBScheme } from 'hawk.types';
-import { ProjectDBScheme } from './models/project';
+import { PlanDBScheme, UserDBScheme, WorkspaceDBScheme, ProjectDBScheme } from 'hawk.types';
 
 /**
  * Class for setting up data loaders

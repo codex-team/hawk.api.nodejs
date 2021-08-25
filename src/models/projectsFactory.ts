@@ -1,9 +1,9 @@
 import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
 import DataLoaders from '../dataLoaders';
-import ProjectModel, { ProjectDBScheme } from './project';
-import jwt, { Secret } from 'jsonwebtoken';
+import ProjectModel from './project';
 import ProjectToWorkspace from './projectToWorkspace';
+import { ProjectDBScheme } from 'hawk.types';
 
 /**
  * Users factory to work with User Model
@@ -59,25 +59,25 @@ export default class ProjectsFactory extends AbstractModelFactory<ProjectDBSchem
    * @param projectData - project data for creation
    */
   public async create(projectData: ProjectDBScheme): Promise<ProjectModel> {
-    const projectId = (await this.collection.insertOne(projectData)).insertedId;
+    const integrationId = ProjectModel.generateIntegrationId();
+    const encodedIntegrationToken = ProjectModel.generateIntegrationToken(integrationId);
+    const data = {
+      ...projectData,
+      integrationId,
+      token: encodedIntegrationToken,
+    };
+    const projectId = (await this.collection.insertOne(data)).insertedId;
 
-    const token = await jwt.sign({ projectId }, process.env.JWT_SECRET_PROJECT_TOKEN as Secret);
-
-    const result = await this.collection.findOneAndUpdate(
-      { _id: projectId },
-      { $set: { token } },
-      { returnOriginal: false }
-    );
-
-    if (!result.value) {
-      throw new Error('Can\'t create project due to unknown error');
-    }
-
-    // Create Project to Workspace relationship
-    await new ProjectToWorkspace(projectData.workspaceId).add({
+    /**
+     * Create Project to Workspace relationship
+     */
+    await new ProjectToWorkspace(data.workspaceId).add({
       projectId: projectId,
     });
 
-    return new ProjectModel(result.value);
+    return new ProjectModel({
+      ...data,
+      _id: projectId,
+    });
   }
 }
