@@ -333,6 +333,151 @@ class EventsFactory extends Factory {
   }
 
   /**
+   * Aggregates data for affected users chart
+   *
+   * @param days - days to collect
+   * @param groupHash - hash of related event
+   * @param {number} timezoneOffset - user's timezone offset in minutes
+   * @return {Promise<ProjectChartItem[]>}
+   */
+  async findUsersAffectedChartData(days, groupHash, timezoneOffset = 0) {
+    const today = new Date(Date.now() + timezoneOffset * 60 * 1000);
+
+    today.setMilliseconds(0);
+    today.setSeconds(0);
+    today.setMinutes(0);
+    today.setHours(0);
+    today.setDate(today.getDate() - days);
+
+    const since = Math.round( today / 1000);
+    const originalEvent = await this.findOneByQuery({
+      groupHash,
+    });
+    const result = Array.from({ length: days + 1 }, (_, i) => ({
+      timestamp: new Date(+today + i * 24 * 60 * 60 * 1000),
+      count: 0
+    }));
+
+    if (!originalEvent) {
+      return [];
+    }
+
+    const sign = Math.sign(timezoneOffset) > 0 ? '+' : '-';
+    const hours = Math.floor(Math.abs(timezoneOffset) / 60);
+    const minutes = Math.abs(timezoneOffset) % 60;
+    const timezone = `${sign}${`0${hours}`.slice(-2)}:${`0${minutes}`.slice(-2)}`;
+
+    console.log(days, today, timezone);
+
+    const dateFormat = '%Y-%m-%d';
+
+    const pipeline = [
+      /**
+       * Find only related repetitions by groupHash
+       */
+      {
+        $match: {
+          groupHash,
+        },
+      },
+      /**
+       * Project user id and timestamp, replace with original event values if omitted
+       */
+      {
+        $project: {
+          userId: {
+            $ifNull: [
+              '$payload.user.id', originalEvent.payload.user.id,
+            ],
+          },
+          timestamp: {
+            $ifNull: [
+              '$payload.timestamp', originalEvent.payload.timestamp
+            ],
+          },
+        },
+      },
+      /**
+       * Find only relevant events
+       */
+      {
+        $match: {
+          timestamp: {
+            $gt: since,
+          },
+        },
+      },
+      /**
+       * Project timestamp to day timestamp
+       */
+      {
+        $project: {
+          userId: 1,
+          day: {
+            $dateFromString: {
+              dateString: {
+                $dateToString: {
+                  format: dateFormat,
+                  timezone,
+                  date: {
+                    $toDate: {
+                      $multiply: [
+                        '$timestamp', 1000,
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      /**
+       * Group by day timestamp
+       */
+      {
+        $group: {
+          _id: '$day',
+          users: {
+            $addToSet: '$userId',
+          },
+        },
+      },
+      /**
+       * Count users and project to required output
+       */
+      {
+        $project: {
+          timestamp: '$_id',
+          count: {
+            $size: '$users',
+          },
+        },
+      },
+    ];
+
+    const usersAffected = await this.getCollection(this.TYPES.REPETITIONS)
+      .aggregate(pipeline)
+      .toArray()
+
+    return result.map((data, i) => {
+      const { count } = usersAffected.find(({ timestamp }) => {
+        const nextDay = result[i + 1];
+
+        const isAfterYesterday = timestamp >= data.timestamp;
+        const isBeforeNextDay = !nextDay || timestamp < nextDay.timestamp
+
+        return isAfterYesterday && isBeforeNextDay;
+      }) || { count: 0 };
+
+      return {
+        timestamp: Math.floor(data.timestamp / 1000),
+        count
+      };
+    });
+  }
+
+  /**
    * Returns number of documents that occurred after the last visit time
    *
    * @param {Number} lastVisit - user's last visit time on project

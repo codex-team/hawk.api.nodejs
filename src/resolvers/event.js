@@ -105,6 +105,21 @@ module.exports = {
     },
 
     /**
+     * Aggregates fata for affected users chart
+     *
+     * @param {string} projectId - event's project
+     * @param {string} groupHash - event's groupHash
+     * @param {number} days - how many days we need to fetch for displaying in a charts
+     * @param {number} timezoneOffset - user's local timezone offset in minutes
+     * @returns {Promise<ProjectChartItem[]>}
+     */
+    async affectedUsersChartData({ projectId, groupHash }, { days, timezoneOffset }) {
+      const factory = new EventsFactory(new ObjectID(projectId));
+
+      return factory.findUsersAffectedChartData(days, groupHash, timezoneOffset);
+    },
+
+    /**
      * Return release data for the event
      *
      * @param {string} projectId - event's project
