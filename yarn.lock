@@ -356,10 +356,10 @@
   dependencies:
     "@f/map-obj" "^1.2.2"
 
-"@hawk.so/nodejs@^3.0.2":
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-3.0.2.tgz#71ff9695b63162c034c682220afeb982c4e04825"
-  integrity sha512-8A6KfWVUx9mzE5bM5ngL65Uhpqsb/cutOxBwo1Cb6jqMlSUewfPH9I2gwjyYANQKk+3zrXWKPklL4wXceHDBCg==
+"@hawk.so/nodejs@^3.0.3":
+  version "3.0.3"
+  resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-3.0.3.tgz#949efb60563e109b7f23291dc59f8da2f0e824e1"
+  integrity sha512-tHHCuB2jusL7WyBuA1fHCYAlRhKo8dSifzS1+JhFYbmHFRIq1bFjJuJlViCRe8wa6jQrJrhTXKOuiMT7dRemeA==
   dependencies:
     "@hawk.so/types" "^0.1.13"
     axios "^0.21.1"
