@@ -29,6 +29,21 @@ input EventsFiltersInput {
 }
 
 """
+Respose object with updated project and his id
+"""
+type UpdateProjectResponse {
+  """
+  Project id
+  """
+  recordId: ID!
+
+  """
+  Modified project
+  """
+  record: Project!
+}
+
+"""
 Project representation
 """
 type Project {
@@ -180,6 +195,16 @@ extend type Mutation {
     """
     image: Upload @uploadImage
   ): Project! @requireAuth
+
+  """
+  Generates new project integration token by id
+  """
+  generateNewIntegrationToken(
+    """
+    What project to regenerate integration token
+    """
+    id: ID!
+  ): UpdateProjectResponse! @requireAdmin
 
   """
   Remove project

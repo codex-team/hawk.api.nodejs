@@ -4,6 +4,7 @@ const Validator = require('../utils/validator');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 const ProjectToWorkspace = require('../models/projectToWorkspace');
+const ProjectModel = require('../models/project').default;
 
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
@@ -128,6 +129,39 @@ module.exports = {
         return project.updateProject(options);
       } catch (err) {
         throw new ApolloError('Something went wrong');
+      }
+    },
+
+    /**
+     * Generates new project integration token by id
+     *
+     * @param {ResolverObj} _obj - default resolver object
+     * @param {string} id - id of the project in which the token field is being regenerated
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Object}
+     */
+    async generateNewIntegrationToken(_obj, { id }, { factories }) {
+      const project = await factories.projectsFactory.findById(id);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id:', id);
+      }
+
+      const encodedIntegrationToken = ProjectModel.generateIntegrationToken(project.integrationId);
+
+      try {
+        const updatedProject = await project.updateProject({
+          token: encodedIntegrationToken,
+        });
+
+        return {
+          recordId: updatedProject._id,
+          record: updatedProject,
+        };
+      } catch (err) {
+        throw new ApolloError('Can\'t update integration token', err);
       }
     },
 
