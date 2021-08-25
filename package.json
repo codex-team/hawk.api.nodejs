@@ -64,7 +64,7 @@
     "graphql-voyager": "^1.0.0-rc.31",
     "hawk.types": "codex-team/hawk.types",
     "jsonwebtoken": "^8.5.1",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.21",
     "migrate-mongo": "^7.0.1",
     "mime-types": "^2.1.25",
     "mongodb": "^3.4.0",
