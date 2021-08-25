@@ -1,10 +1,10 @@
-import {getMidnightWithTimezoneOffset, getUTCMidnight} from '../utils/dates';
-import {groupBy} from '../utils/grouper';
+import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
+import { groupBy } from '../utils/grouper';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
-const {ObjectID} = require('mongodb');
+const { ObjectID } = require('mongodb');
 
 /**
  * @typedef {Object} RecentEventSchema
@@ -71,7 +71,7 @@ class EventsFactory extends Factory {
    */
   getCollection(type) {
     return mongo.databases.events.collection(
-      type + ':' + this.projectId,
+      type + ':' + this.projectId
     );
   }
 
@@ -83,7 +83,7 @@ class EventsFactory extends Factory {
    * @return {Promise<boolean>}
    */
   isCollectionExists(type) {
-    return mongo.databases.events.listCollections({name: type + ':' + this.projectId}).hasNext();
+    return mongo.databases.events.listCollections({ name: type + ':' + this.projectId }).hasNext();
   }
 
   /**
@@ -100,7 +100,7 @@ class EventsFactory extends Factory {
 
     const cursor = this.getCollection(this.TYPES.EVENTS)
       .find(query)
-      .sort([['_id', -1]])
+      .sort([ ['_id', -1] ])
       .limit(limit)
       .skip(skip);
 
@@ -156,7 +156,7 @@ class EventsFactory extends Factory {
     limit = 10,
     skip = 0,
     sort = 'BY_DATE',
-    filters = {},
+    filters = {}
   ) {
     limit = this.validateLimit(limit);
     sort = sort === 'BY_COUNT' ? 'count' : 'lastRepetitionTime';
@@ -197,32 +197,32 @@ class EventsFactory extends Factory {
             ...Object.fromEntries(
               Object
                 .entries(filters)
-                .map(([mark, exists]) => [`event.marks.${mark}`, {$exists: exists}]),
+                .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
             ),
           },
         },
-        {$skip: skip},
-        {$limit: limit},
+        { $skip: skip },
+        { $limit: limit },
         {
           $group: {
             _id: null,
-            dailyInfo: {$push: '$$ROOT'},
-            events: {$push: '$event'},
+            dailyInfo: { $push: '$$ROOT' },
+            events: { $push: '$event' },
           },
         },
         {
           $unset: 'dailyInfo.event',
-        },
+        }
       );
     } else {
       pipeline.push(
-        {$skip: skip},
-        {$limit: limit},
+        { $skip: skip },
+        { $limit: limit },
         {
           $group: {
             _id: null,
-            groupHash: {$addToSet: '$groupHash'},
-            dailyInfo: {$push: '$$ROOT'},
+            groupHash: { $addToSet: '$groupHash' },
+            dailyInfo: { $push: '$$ROOT' },
           },
         },
         {
@@ -232,7 +232,7 @@ class EventsFactory extends Factory {
             foreignField: 'groupHash',
             as: 'events',
           },
-        },
+        }
       );
     }
 
@@ -381,7 +381,7 @@ class EventsFactory extends Factory {
       .find({
         groupHash: eventOriginal.groupHash,
       })
-      .sort({_id: -1})
+      .sort({ _id: -1 })
       .limit(limit)
       .skip(skip)
       .toArray();
@@ -467,8 +467,8 @@ class EventsFactory extends Factory {
   async visitEvent(eventId, userId) {
     return this.getCollection(this.TYPES.EVENTS)
       .updateOne(
-        {_id: new ObjectID(eventId)},
-        {$addToSet: {visitedBy: new ObjectID(userId)}},
+        { _id: new ObjectID(eventId) },
+        { $addToSet: { visitedBy: new ObjectID(userId) } }
       );
   }
 
@@ -482,7 +482,7 @@ class EventsFactory extends Factory {
    */
   async toggleEventMark(eventId, mark) {
     const collection = this.getCollection(this.TYPES.EVENTS);
-    const query = {_id: new ObjectID(eventId)};
+    const query = { _id: new ObjectID(eventId) };
 
     const event = await collection.findOne(query);
     const markKey = `marks.${mark}`;
@@ -491,11 +491,11 @@ class EventsFactory extends Factory {
 
     if (event.marks && event.marks[mark]) {
       update = {
-        $unset: {[markKey]: ''},
+        $unset: { [markKey]: '' },
       };
     } else {
       update = {
-        $set: {[markKey]: Math.floor(Date.now() / 1000)},
+        $set: { [markKey]: Math.floor(Date.now() / 1000) },
       };
     }
 
@@ -534,9 +534,9 @@ class EventsFactory extends Factory {
    */
   async updateAssignee(eventId, assignee) {
     const collection = this.getCollection(this.TYPES.EVENTS);
-    const query = {_id: new ObjectID(eventId)};
+    const query = { _id: new ObjectID(eventId) };
     const update = {
-      $set: {assignee: assignee},
+      $set: { assignee: assignee },
     };
 
     return collection.updateOne(query, update);
