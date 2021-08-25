@@ -356,13 +356,21 @@
   dependencies:
     "@f/map-obj" "^1.2.2"
 
-"@hawk.so/nodejs@^3.0.1":
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-3.0.1.tgz#816db050b9cb5f02c13d57b7aeca1e44c42415e9"
-  integrity sha512-jnyLHhUBIVE5u5xOLfPwody9Cuk1EYYuMFhpk3kLVS8Yw73dSmetx+RNNu2YZwFjzzMLKTVKCmdT15qsopN7Jg==
+"@hawk.so/nodejs@^3.0.2":
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-3.0.2.tgz#71ff9695b63162c034c682220afeb982c4e04825"
+  integrity sha512-8A6KfWVUx9mzE5bM5ngL65Uhpqsb/cutOxBwo1Cb6jqMlSUewfPH9I2gwjyYANQKk+3zrXWKPklL4wXceHDBCg==
   dependencies:
+    "@hawk.so/types" "^0.1.13"
     axios "^0.21.1"
     stack-trace "^0.0.10"
+
+"@hawk.so/types@^0.1.13":
+  version "0.1.13"
+  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.1.13.tgz#5a6a52a78c79e2ab99d8d5d339cb937b4442166d"
+  integrity sha512-vu0mWNWTr/WSQQqwmPbSQqrJmiXHiw90m8zkWjYLYYvaUgMahNsooG6FlonkmuYRR15kvMViuSTY55P4YEnNQg==
+  dependencies:
+    "@types/mongodb" "^3.5.34"
 
 "@istanbuljs/load-nyc-config@^1.0.0":
   version "1.1.0"
