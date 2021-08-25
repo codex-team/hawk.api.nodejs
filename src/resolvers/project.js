@@ -149,11 +149,14 @@ module.exports = {
         throw new ApolloError('There is no project with that id:', id);
       }
 
-      const encodedIntegrationToken = ProjectModel.generateIntegrationToken(project.integrationId);
+      const integrationId = project.integrationId || ProjectModel.generateIntegrationId();
+
+      const encodedIntegrationToken = ProjectModel.generateIntegrationToken(integrationId);
 
       try {
         const updatedProject = await project.updateProject({
           token: encodedIntegrationToken,
+          integrationId,
         });
 
         return {
