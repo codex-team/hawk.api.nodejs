@@ -349,13 +349,13 @@ class EventsFactory extends Factory {
     today.setHours(0);
     today.setDate(today.getDate() - days);
 
-    const since = Math.round( today / 1000);
+    const since = Math.round(today / 1000);
     const originalEvent = await this.findOneByQuery({
       groupHash,
     });
     const result = Array.from({ length: days + 1 }, (_, i) => ({
       timestamp: new Date(+today + i * 24 * 60 * 60 * 1000),
-      count: 0
+      count: 0,
     }));
 
     if (!originalEvent) {
@@ -392,7 +392,7 @@ class EventsFactory extends Factory {
           },
           timestamp: {
             $ifNull: [
-              '$payload.timestamp', originalEvent.payload.timestamp
+              '$payload.timestamp', originalEvent.payload.timestamp,
             ],
           },
         },
@@ -458,21 +458,21 @@ class EventsFactory extends Factory {
 
     const usersAffected = await this.getCollection(this.TYPES.REPETITIONS)
       .aggregate(pipeline)
-      .toArray()
+      .toArray();
 
     return result.map((data, i) => {
       const { count } = usersAffected.find(({ timestamp }) => {
         const nextDay = result[i + 1];
 
         const isAfterYesterday = timestamp >= data.timestamp;
-        const isBeforeNextDay = !nextDay || timestamp < nextDay.timestamp
+        const isBeforeNextDay = !nextDay || timestamp < nextDay.timestamp;
 
         return isAfterYesterday && isBeforeNextDay;
       }) || { count: 0 };
 
       return {
         timestamp: Math.floor(data.timestamp / 1000),
-        count
+        count,
       };
     });
   }
