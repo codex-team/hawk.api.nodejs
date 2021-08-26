@@ -1,4 +1,4 @@
-import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
+import {getMidnightWithTimezoneOffset, getUTCMidnight, inDatesRange, subtractDays} from '../utils/dates';
 import { groupBy } from '../utils/grouper';
 
 const Factory = require('./modelFactory');
@@ -341,35 +341,28 @@ class EventsFactory extends Factory {
    * @return {Promise<ProjectChartItem[]>}
    */
   async findUsersAffectedChartData(days, groupHash, timezoneOffset = 0) {
-    const today = new Date(Date.now() + timezoneOffset * 60 * 1000);
-
-    today.setMilliseconds(0);
-    today.setSeconds(0);
-    today.setMinutes(0);
-    today.setHours(0);
-    today.setDate(today.getDate() - days);
-
-    const since = Math.round(today / 1000);
     const originalEvent = await this.findOneByQuery({
       groupHash,
     });
-    const result = Array.from({ length: days + 1 }, (_, i) => ({
-      timestamp: new Date(+today + i * 24 * 60 * 60 * 1000),
-      count: 0,
-    }));
 
     if (!originalEvent) {
-      return [];
+      return []
     }
+
+    const today = new Date(Date.now() + timezoneOffset * 60 * 1000);
+    const since = subtractDays(days, today)
+    const result = Array.from({ length: days + 1 }, (_, i) => ({
+      timestamp: new Date(+since + i * 24 * 60 * 60 * 1000),
+      count: 0,
+    }));
 
     const sign = Math.sign(timezoneOffset) > 0 ? '+' : '-';
     const hours = Math.floor(Math.abs(timezoneOffset) / 60);
     const minutes = Math.abs(timezoneOffset) % 60;
     const timezone = `${sign}${`0${hours}`.slice(-2)}:${`0${minutes}`.slice(-2)}`;
-
-    console.log(days, today, timezone);
-
     const dateFormat = '%Y-%m-%d';
+
+    console.log(+since, groupHash);
 
     const pipeline = [
       /**
@@ -378,41 +371,18 @@ class EventsFactory extends Factory {
       {
         $match: {
           groupHash,
-        },
-      },
-      /**
-       * Project user id and timestamp, replace with original event values if omitted
-       */
-      {
-        $project: {
-          userId: {
-            $ifNull: [
-              '$payload.user.id', originalEvent.payload.user.id,
-            ],
-          },
-          timestamp: {
-            $ifNull: [
-              '$payload.timestamp', originalEvent.payload.timestamp,
-            ],
+          'payload.timestamp': {
+            $gt: Math.round(since / 1000),
           },
         },
       },
-      /**
-       * Find only relevant events
-       */
-      {
-        $match: {
-          timestamp: {
-            $gt: since,
-          },
-        },
-      },
+
       /**
        * Project timestamp to day timestamp
        */
       {
         $project: {
-          userId: 1,
+          userId: '$payload.user.id',
           day: {
             $dateFromString: {
               dateString: {
@@ -422,7 +392,7 @@ class EventsFactory extends Factory {
                   date: {
                     $toDate: {
                       $multiply: [
-                        '$timestamp', 1000,
+                        '$payload.timestamp', 1000,
                       ],
                     },
                   },
@@ -439,7 +409,9 @@ class EventsFactory extends Factory {
         $group: {
           _id: '$day',
           users: {
-            $addToSet: '$userId',
+            $addToSet: {
+              $ifNull: ['$userId', originalEvent.payload.user.id]
+            },
           },
         },
       },
@@ -461,18 +433,17 @@ class EventsFactory extends Factory {
       .toArray();
 
     return result.map((data, i) => {
+      const nextDay = result[i + 1];
+      const isOriginalEventToday = inDatesRange(originalEvent.payload.timestamp, data.timestamp, nextDay?.timestamp);
+
       const { count } = usersAffected.find(({ timestamp }) => {
-        const nextDay = result[i + 1];
 
-        const isAfterYesterday = timestamp >= data.timestamp;
-        const isBeforeNextDay = !nextDay || timestamp < nextDay.timestamp;
-
-        return isAfterYesterday && isBeforeNextDay;
+        return inDatesRange(timestamp, data.timestamp, nextDay?.timestamp);
       }) || { count: 0 };
 
       return {
         timestamp: Math.floor(data.timestamp / 1000),
-        count,
+        count: isOriginalEventToday ? count + 1 : count,
       };
     });
   }

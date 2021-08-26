@@ -67,3 +67,46 @@ export function getMidnightWithTimezoneOffset(utcOccurrenceTime: number, utcMidn
 
   return localMidnight / milliseconds;
 }
+
+/**
+ * Subtract given amount of days from date and truncate date to midnight
+ *
+ * @param days - amount of days to subtract
+ * @param [date] - original date
+ */
+export function subtractDays(days: number, date = new Date()) {
+  const clone = new Date(date);
+
+  clone.setHours(0, 0, 0, 0);
+  clone.setDate(clone.getDate() - days);
+
+  return clone;
+}
+
+/**
+ * Return true if date is between given dates
+ *
+ * @param dateOrTmstmp - date to check
+ * @param dateOrTmstmpA - left border
+ * @param dateOrTmstmpB - right border
+ */
+export function inDatesRange(dateOrTmstmp: number | Date, dateOrTmstmpA: number | Date, dateOrTmstmpB: number | Date): boolean {
+  const timestamp = new Date(dateOrTmstmp);
+  const today = new Date(dateOrTmstmpA);
+  const tomorrow = dateOrTmstmpB ? new Date(dateOrTmstmpB) : null;
+
+  /**
+   * Check if repetition timestamp is greater than left date timestamp
+   */
+  const isAfterToday = timestamp >= today;
+
+  /**
+   * Check if repetition timestamp is less than right date timestamp
+   */
+  const isBeforeTomorrow = !tomorrow || timestamp < tomorrow;
+
+  /**
+   * If both conditions are true it means repetition date is equals to current
+   */
+  return isAfterToday && isBeforeTomorrow;
+}
