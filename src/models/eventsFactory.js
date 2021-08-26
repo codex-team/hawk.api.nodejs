@@ -362,8 +362,6 @@ class EventsFactory extends Factory {
     const timezone = `${sign}${`0${hours}`.slice(-2)}:${`0${minutes}`.slice(-2)}`;
     const dateFormat = '%Y-%m-%d';
 
-    console.log(+since, groupHash);
-
     const pipeline = [
       /**
        * Find only related repetitions by groupHash
