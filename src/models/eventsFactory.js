@@ -408,7 +408,7 @@ class EventsFactory extends Factory {
           _id: '$day',
           users: {
             $addToSet: {
-              $ifNull: ['$userId', originalEvent.payload.user.id],
+              $ifNull: ['$userId', (originalEvent.payload.user || { id: 'unknown' }).id],
             },
           },
         },
