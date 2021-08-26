@@ -23,7 +23,7 @@ import {
   ConfirmedMemberDBScheme, Json,
   PayloadOfWorkspacePlanPurchase,
   PlanDBScheme,
-  PlanProlongationPayload,
+  PlanProlongationPayload
 } from 'hawk.types';
 import { AccountType, Currency, PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
