@@ -1,3 +1,4 @@
+const isE2E = require('../utils/isE2E').default
 const { merge } = require('lodash');
 const { GraphQLDateTime } = require('graphql-iso-date');
 const { LongResolver, PositiveIntResolver } = require('graphql-scalars');
@@ -11,6 +12,7 @@ const projectNotifications = require('./projectNotifications').default;
 const userNotifications = require('./userNotifications').default;
 const billing = require('./billingNew').default;
 const EncodedJSON = require('./encodedJSON').default;
+const seed = require('./seed').default;
 
 /**
  * @typedef ResolverObj
@@ -58,7 +60,7 @@ const indexResolver = {
   Long: LongResolver,
 };
 
-module.exports = merge(
+const resolvers = [
   indexResolver,
   user,
   workspace,
@@ -67,5 +69,11 @@ module.exports = merge(
   projectNotifications,
   userNotifications,
   plans,
-  billing
-);
+  billing,
+];
+
+if (isE2E) {
+  resolvers.push(seed);
+}
+
+module.exports = merge(...resolvers);

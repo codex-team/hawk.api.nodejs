@@ -6,6 +6,7 @@ import { errorCodes } from '../errors';
 import Validator from '../utils/validator';
 import { SenderWorkerTaskType } from '../types/userNotifications';
 import { TaskPriorities, emailNotification } from '../utils/emailNotifications';
+import isE2E from '../utils/isE2E';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -38,23 +39,25 @@ export default {
       _obj: undefined,
       { email }: {email: string},
       { factories }: ResolverContextBase
-    ): Promise<boolean> {
+    ): Promise<boolean | string> {
       let user;
 
       try {
         user = await factories.usersFactory.create(email);
 
-        const password = user.generatedPassword;
+        const password = user.generatedPassword!;
 
         await emailNotification({
           type: SenderWorkerTaskType.SignUp,
           payload: {
-            password: password!,
+            password: password,
             endpoint: email,
           },
         }, {
           priority: TaskPriorities.IMPORTANT,
         });
+
+        return isE2E ? password : true;
       } catch (e) {
         if (e.code.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
           throw new AuthenticationError(

@@ -14,6 +14,8 @@ import workspace from './workspace';
 import workspaceMutations from './workspaceMutations';
 import chart from './chart';
 import plans from './plans';
+import seed from './seed';
+import isE2E from '../utils/isE2E';
 
 const rootSchema = gql`
   """
@@ -116,22 +118,26 @@ const rootSchema = gql`
   }
 `;
 
-export default concatenateTypeDefs(
-  [
-    rootSchema,
-    billing,
-    event,
-    notifications,
-    notificationsInput,
-    projectNotifications,
-    projectNotificationsMutations,
-    project,
-    user,
-    userNotifications,
-    userNotificationsMutations,
-    workspace,
-    workspaceMutations,
-    chart,
-    plans,
-  ]
-);
+const typeDefinitions = [
+  rootSchema,
+  billing,
+  event,
+  notifications,
+  notificationsInput,
+  projectNotifications,
+  projectNotificationsMutations,
+  project,
+  user,
+  userNotifications,
+  userNotificationsMutations,
+  workspace,
+  workspaceMutations,
+  chart,
+  plans,
+];
+
+if (isE2E) {
+  typeDefinitions.push(seed);
+}
+
+export default concatenateTypeDefs(typeDefinitions);
