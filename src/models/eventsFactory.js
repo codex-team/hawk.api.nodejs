@@ -434,7 +434,7 @@ class EventsFactory extends Factory {
 
     return result.map((data, i) => {
       const nextDay = result[i + 1];
-      const isOriginalEventToday = inDatesRange(originalEvent.payload.timestamp, data.timestamp, nextDay?.timestamp);
+      const isOriginalEventToday = inDatesRange(originalEvent.payload.timestamp * 1000, data.timestamp, nextDay?.timestamp);
 
       const { count } = usersAffected.find(({ timestamp }) => {
 
