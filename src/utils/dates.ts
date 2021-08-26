@@ -74,7 +74,7 @@ export function getMidnightWithTimezoneOffset(utcOccurrenceTime: number, utcMidn
  * @param days - amount of days to subtract
  * @param [date] - original date
  */
-export function subtractDays(days: number, date = new Date()) {
+export function subtractDays(days: number, date = new Date()): Date {
   const clone = new Date(date);
 
   clone.setHours(0, 0, 0, 0);

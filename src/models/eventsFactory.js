@@ -1,4 +1,4 @@
-import {getMidnightWithTimezoneOffset, getUTCMidnight, inDatesRange, subtractDays} from '../utils/dates';
+import { getMidnightWithTimezoneOffset, getUTCMidnight, inDatesRange, subtractDays } from '../utils/dates';
 import { groupBy } from '../utils/grouper';
 
 const Factory = require('./modelFactory');
@@ -346,11 +346,11 @@ class EventsFactory extends Factory {
     });
 
     if (!originalEvent) {
-      return []
+      return [];
     }
 
     const today = new Date(Date.now() + timezoneOffset * 60 * 1000);
-    const since = subtractDays(days, today)
+    const since = subtractDays(days, today);
     const result = Array.from({ length: days + 1 }, (_, i) => ({
       timestamp: new Date(+since + i * 24 * 60 * 60 * 1000),
       count: 0,
@@ -410,7 +410,7 @@ class EventsFactory extends Factory {
           _id: '$day',
           users: {
             $addToSet: {
-              $ifNull: ['$userId', originalEvent.payload.user.id]
+              $ifNull: ['$userId', originalEvent.payload.user.id],
             },
           },
         },
@@ -434,11 +434,14 @@ class EventsFactory extends Factory {
 
     return result.map((data, i) => {
       const nextDay = result[i + 1];
-      const isOriginalEventToday = inDatesRange(originalEvent.payload.timestamp * 1000, data.timestamp, nextDay?.timestamp);
+      const isOriginalEventToday = inDatesRange(
+        originalEvent.payload.timestamp * 1000,
+        data.timestamp,
+        nextDay ? nextDay.timestamp : undefined
+      );
 
       const { count } = usersAffected.find(({ timestamp }) => {
-
-        return inDatesRange(timestamp, data.timestamp, nextDay?.timestamp);
+        return inDatesRange(timestamp, data.timestamp, nextDay ? nextDay.timestamp : undefined);
       }) || { count: 0 };
 
       return {
