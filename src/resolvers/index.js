@@ -1,4 +1,4 @@
-const isE2E = require('../utils/isE2E').default
+const isE2E = require('../utils/isE2E').default;
 const { merge } = require('lodash');
 const { GraphQLDateTime } = require('graphql-iso-date');
 const { LongResolver, PositiveIntResolver } = require('graphql-scalars');

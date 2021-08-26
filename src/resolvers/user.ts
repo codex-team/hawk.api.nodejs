@@ -66,8 +66,6 @@ export default {
         }
         throw e;
       }
-
-      return true;
     },
 
     /**
