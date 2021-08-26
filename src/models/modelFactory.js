@@ -25,10 +25,6 @@ class Factory {
   validateSkip(skip) {
     skip = Math.max(0, skip);
 
-    if (skip > 100) {
-      throw Error('Invalid skip value');
-    }
-
     return skip;
   }
 }

@@ -331,7 +331,7 @@ type Event {
   """
   Event repetitions
   """
-  repetitions(limit: Int = 10): [Repetition!]
+  repetitions(skip: Int = 0, limit: Int = 10): [Repetition!]
 
   """
   Array of users who visited event

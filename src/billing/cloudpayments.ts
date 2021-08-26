@@ -20,7 +20,7 @@ import {
   BankCard,
   BusinessOperationStatus,
   BusinessOperationType,
-  ConfirmedMemberDBScheme,
+  ConfirmedMemberDBScheme, Json,
   PayloadOfWorkspacePlanPurchase,
   PlanDBScheme,
   PlanProlongationPayload
@@ -249,7 +249,7 @@ export default class CloudPaymentsWebhooks {
 
     telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully «${workspace.name}»`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
-    HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body);
+    HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body as any);
 
     res.json({
       code: CheckCodes.SUCCESS,
@@ -499,7 +499,7 @@ export default class CloudPaymentsWebhooks {
 
     this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money));
 
-    HawkCatcher.send(new Error('[Billing / Fail] Transaction failed'), body);
+    HawkCatcher.send(new Error('[Billing / Fail] Transaction failed'), body as any);
 
     res.json({
       code: FailCodes.SUCCESS,
