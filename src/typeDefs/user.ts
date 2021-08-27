@@ -1,4 +1,5 @@
 import { gql } from 'apollo-server-express';
+import isE2E from '../utils/isE2E';
 
 export default gql`
   """
@@ -66,7 +67,7 @@ export default gql`
       Registration email
       """
       email: String! @validate(isEmail: true)
-    ): Boolean!
+    ): ${isE2E ? 'String!' : 'Boolean!'}
 
     """
     Login user with provided email and password
