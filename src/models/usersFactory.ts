@@ -60,9 +60,10 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
   /**
    * Creates new user in DB and returns it
    * @param email - user email
+   * @param password - user password
    */
-  public async create(email: string): Promise<UserModel> {
-    const generatedPassword = await UserModel.generatePassword();
+  public async create(email: string, password?: string): Promise<UserModel> {
+    const generatedPassword = password || await UserModel.generatePassword();
     const hashedPassword = await UserModel.hashPassword(generatedPassword);
 
     const userData = {
@@ -117,5 +118,16 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
     return (await this.dataLoaders.userById.loadMany(ids))
       .map((data) => !data || data instanceof Error ? null : new UserModel(data))
       .filter(Boolean) as UserModel[];
+  }
+
+  /**
+   * Delete's user by email
+   *
+   * @param email - user email
+   */
+  public async deleteByEmail(email: string): Promise<boolean> {
+    const { result } = await this.collection.deleteOne({ email: email });
+
+    return !!result.ok;
   }
 }
