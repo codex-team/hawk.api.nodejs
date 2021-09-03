@@ -71,12 +71,10 @@ export function getMidnightWithTimezoneOffset(utcOccurrenceTime: number, utcMidn
 }
 
 /**
- * Returns timestamp parsed from object id
+ * Returns date parsed from object id
  *
- * @param objectId - id of entity for getting timestamp
+ * @param objectId - id of entity for getting date
  */
-export function timestampFromObjectId(objectId: ObjectId): number {
-  const date = new Date(objectId.getTimestamp());
-
-  return date.getTime();
+export function dateFromObjectId(objectId: ObjectId): Date {
+  return objectId.getTimestamp();
 }

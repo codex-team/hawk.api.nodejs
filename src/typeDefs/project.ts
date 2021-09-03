@@ -68,6 +68,12 @@ type Project {
   description: String
 
   """
+  Date of creating project
+  Timestamp like
+  """
+  creationDate: DateTime!
+
+  """
   Project domain
   """
   domain: String
