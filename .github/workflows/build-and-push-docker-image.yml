@@ -23,7 +23,7 @@ jobs:
         uses: codex-team/action-nodejs-package-info@v1
 
       - name: Send release data
-        uses: codex-team/hawk.releases@v0
+        uses: codex-team/hawk.releases@v1
         with:
           release: ${{ steps.packageInfo.outputs.name }}-${{ steps.packageInfo.outputs.version }}
           token: ${{ secrets.HAWK_TOKEN }}
