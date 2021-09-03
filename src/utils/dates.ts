@@ -1,3 +1,5 @@
+import { ObjectId } from 'mongodb';
+
 /**
  * Return timestamp for UTC midnight of the passed date
  *
@@ -66,4 +68,15 @@ export function getMidnightWithTimezoneOffset(utcOccurrenceTime: number, utcMidn
   const localMidnight = getUTCMidnight(localDate);
 
   return localMidnight / milliseconds;
+}
+
+/**
+ * Returns timestamp parsed from object id
+ *
+ * @param objectId - id of entity for getting timestamp
+ */
+export function timestampFromObjectId(objectId: ObjectId): number {
+  const date = new Date(objectId.getTimestamp());
+
+  return date.getTime();
 }
