@@ -247,7 +247,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
     /**
      * In case user was invited via email instead of invite link
      */
-    if (matchedCount > 0) {
+    if (matchedCount === 0) {
       await this.collection.updateOne(
         {
           userEmail: member.email,
