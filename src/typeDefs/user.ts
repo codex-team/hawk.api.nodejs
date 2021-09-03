@@ -36,6 +36,11 @@ export default gql`
     name: String
 
     """
+    Date of registration
+    """
+    registrationDate: DateTime!
+
+    """
     User's image
     """
     image: String

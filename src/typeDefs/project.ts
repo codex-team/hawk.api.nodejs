@@ -69,7 +69,6 @@ type Project {
 
   """
   Date of creating project
-  Timestamp like
   """
   creationDate: DateTime!
 

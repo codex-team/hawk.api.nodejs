@@ -76,6 +76,11 @@ export default gql`
     description: String
 
     """
+    Date of creating workspace
+    """
+    creationDate: DateTime!
+
+    """
     Workspace logo image
     """
     image: String

@@ -226,9 +226,9 @@ module.exports = {
      *
      * @param {ProjectDBScheme} project - result of parent resolver
      *
-     * @returns {number}
+     * @returns {Date}
      */
-    async creationDate(project) {
+    creationDate(project) {
       return dateFromObjectId(project._id);
     },
 
