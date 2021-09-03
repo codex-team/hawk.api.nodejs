@@ -17,7 +17,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Get package new version name
       - name: Get package info
         id: packageInfo
         uses: codex-team/action-nodejs-package-info@v1
