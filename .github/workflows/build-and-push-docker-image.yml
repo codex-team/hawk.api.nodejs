@@ -22,12 +22,11 @@ jobs:
         id: packageInfo
         uses: codex-team/action-nodejs-package-info@v1
 
-      - name: Send commits to Hawk
-        run: |
-          curl https://raw.githubusercontent.com/codex-team/hawk.release/feature/commits-sending-script/scripts/commits.sh -O
-          chmod +x ./commits.sh
-          ./commits.sh -r=${{ steps.package.outputs.name }}-${{ steps.package.outputs.version }} -t=${{ env.HAWK_TOKEN }}
-          rm ./commits.sh
+      - name: Send release data
+        uses: codex-team/hawk.releases@v0
+        with:
+          release: ${{ steps.packageInfo.outputs.name }}-${{ steps.packageInfo.outputs.version }}
+          token: ${{ secrets.HAWK_TOKEN }}
 
       - name: Build and push docker image
         uses: docker/build-push-action@v1

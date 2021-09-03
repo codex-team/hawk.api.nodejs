@@ -9,6 +9,8 @@ if (process.env.HAWK_CATCHER_TOKEN) {
     token: process.env.HAWK_CATCHER_TOKEN,
     release: `${name}-${version}`,
   });
+
+  HawkCatcher.send(new Error('API is started'));
 }
 
 const app = new HawkAPI();
