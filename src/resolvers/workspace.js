@@ -9,6 +9,7 @@ import { emailNotification, TaskPriorities } from '../utils/emailNotifications';
 import { SenderWorkerTaskType } from '../types/userNotifications';
 import ProjectToWorkspace from '../models/projectToWorkspace';
 import { Validator } from '../utils/validator';
+import { dateFromObjectId } from '../utils/dates';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -386,6 +387,17 @@ module.exports = {
     workspace: () => ({}),
   },
   Workspace: {
+    /**
+     * Returns workspace creation date
+     *
+     * @param {WorkspaceDBScheme} workspace - result of parent resolver
+     *
+     * @returns {Date}
+     */
+    creationDate(workspace) {
+      return dateFromObjectId(workspace._id);
+    },
+
     /**
      * Returns workspace invite hash
      * If workspace has not hash this resolver generates it
