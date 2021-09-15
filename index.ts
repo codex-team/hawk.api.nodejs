@@ -1,10 +1,14 @@
 import './src/env';
 import HawkAPI from './src';
 import HawkCatcher from '@hawk.so/nodejs';
+import { name, version } from './package.json';
 
 /** Enable HawkCatcher */
 if (process.env.HAWK_CATCHER_TOKEN) {
-  HawkCatcher.init(process.env.HAWK_CATCHER_TOKEN);
+  HawkCatcher.init({
+    token: process.env.HAWK_CATCHER_TOKEN,
+    release: `${name}-${version}`,
+  });
 }
 
 const app = new HawkAPI();

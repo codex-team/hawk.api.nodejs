@@ -1,9 +1,14 @@
 name: Build and push docker image
 
-on: [push]
+on:
+  push:
+    branches:
+      - prod
+      - stage
 
 env:
   DOCKER_REPO: ${{ secrets.DOCKER_USERNAME }}/hawk-api
+  HAWK_TOKEN: ${{ secrets.HAWK_TOKEN }}
 
 jobs:
   build:
@@ -11,6 +16,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
+      - name: Get package info
+        id: packageInfo
+        uses: codex-team/action-nodejs-package-info@v1
+
+      - name: Send release data
+        uses: codex-team/hawk.releases@v1
+        with:
+          release: ${{ steps.packageInfo.outputs.name }}-${{ steps.packageInfo.outputs.version }}
+          token: ${{ secrets.HAWK_TOKEN }}
 
       - name: Build and push docker image
         uses: docker/build-push-action@v1
