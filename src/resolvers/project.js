@@ -4,6 +4,7 @@ const Validator = require('../utils/validator');
 const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 const ProjectToWorkspace = require('../models/projectToWorkspace');
+const { dateFromObjectId } = require('../utils/dates');
 const ProjectModel = require('../models/project').default;
 
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
@@ -220,6 +221,17 @@ module.exports = {
     },
   },
   Project: {
+    /**
+     * Returns project creation date
+     *
+     * @param {ProjectDBScheme} project - result of parent resolver
+     *
+     * @returns {Date}
+     */
+    creationDate(project) {
+      return dateFromObjectId(project._id);
+    },
+
     /**
      * Find project's event
      *
