@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "index.ts",
   "license": "UNLICENSED",
   "scripts": {
@@ -46,7 +46,7 @@
     "amqplib": "^0.5.5",
     "apollo-server-express": "^2.14.2",
     "argon2": "^0.26.2",
-    "axios": "^0.21.1",
+    "axios": "^0.21.2",
     "body-parser": "^1.19.0",
     "cloudpayments": "^5.0.4",
     "codex-accounting-sdk": "https://github.com/codex-team/codex-accounting-sdk/",
