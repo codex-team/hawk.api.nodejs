@@ -62,7 +62,7 @@ export default gql`
 
   extend type Mutation {
     """
-    Mutation in order to switch workspace tariff plan to Free
+    Mutation in order to switch workspace tariff plan to default
     Returns updated workspace
     """
     changeWorkspacePlanToDefault(
