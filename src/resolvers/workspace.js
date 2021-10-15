@@ -320,13 +320,13 @@ module.exports = {
     },
 
     /**
-     * Change workspace plan for free plan mutation implementation
+     * Change workspace plan for default plan mutation implementation
      *
      * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
      * @param {string} workspaceId - id of workspace to change plan
      * @param {ContextFactories} factories - factories to work with models
      */
-    async changeWorkspacePlanForFreePlan(
+    async changeWorkspacePlanToDefault(
       _obj,
       {
         input: { workspaceId },
