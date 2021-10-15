@@ -339,10 +339,10 @@ module.exports = {
         throw new UserInputError('There is no workspace with provided id');
       }
 
-      const freePlan = await factories.plansFactory.getDefaultPlan();
+      const defaultPlan = await factories.plansFactory.getDefaultPlan();
 
-      if (workspaceModel.tariffPlanId === freePlan.id) {
-        throw new UserInputError('User plan is already Free');
+      if (workspaceModel.tariffPlanId === defaultPlan.id) {
+        throw new UserInputError('You already use default plan');
       }
 
       const oldPlanModel = await factories.plansFactory.findById(workspaceModel.tariffPlanId);
@@ -358,7 +358,7 @@ module.exports = {
         await workspaceModel.updateLastChargeDate(date);
 
         // Change workspace plan
-        await workspaceModel.changePlan(freePlan._id);
+        await workspaceModel.changePlan(defaultPlan._id);
       } catch (err) {
         console.error('\nლ(´ڡ`ლ) Error [resolvers:workspace:changeWorkspacePlan]: \n\n', err, '\n\n');
         HawkCatcher.send(err);
@@ -369,7 +369,7 @@ module.exports = {
       // Send a message of a succesfully plan changed to the telegram bot
       const message = `🤑 <b>${escapeHTML(userModel.name || userModel.email)}</b> changed plan of «<b>${escapeHTML(workspaceModel.name)}</b>» workspace
 
-⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${freePlan.name} $${freePlan.monthlyCharge}</b> `;
+⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${defaultPlan.name} $${defaultPlan.monthlyCharge}</b> `;
 
       telegram.sendMessage(message);
 
