@@ -32,6 +32,12 @@ export default class PlanModel extends AbstractModel<PlanDBScheme> implements Pl
   public isDefault!: boolean;
 
   /**
+   * Special plans to be selected manually
+   * No one cannot be switched to this plan by api
+   */
+  public isHidden!: boolean;
+
+  /**
    * Model's collection
    */
   protected collection: Collection<PlanDBScheme>;

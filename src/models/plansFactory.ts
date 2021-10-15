@@ -33,7 +33,12 @@ export default class PlansFactory extends AbstractModelFactory<PlanDBScheme, Pla
    *  Returns all tariff plans
    */
   public async findAll(): Promise<PlanModel[]> {
-    const plans = await this.collection.find().toArray();
+    const plans = await this.collection.find({
+      /**
+       * Do not show hidden plans ¯\_(ツ)_/¯
+       */
+      isHidden: { $ne: true },
+    }).toArray();
 
     return plans.map((dbResult: PlanDBScheme) => new PlanModel(dbResult));
   }
