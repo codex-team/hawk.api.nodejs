@@ -7,6 +7,8 @@ import Validator from '../utils/validator';
 import { SenderWorkerTaskType } from '../types/userNotifications';
 import { TaskPriorities, emailNotification } from '../utils/emailNotifications';
 import isE2E from '../utils/isE2E';
+import { dateFromObjectId } from '../utils/dates';
+import { UserDBScheme } from 'hawk.types';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -239,6 +241,18 @@ export default {
       }
 
       return true;
+    },
+  },
+  User: {
+    /**
+     * Returns user registration date
+     *
+     * @param {UserDBScheme} user - result of parent resolver
+     *
+     * @returns {Date}
+     */
+    registrationDate(user: UserDBScheme): Date {
+      return dateFromObjectId(user._id);
     },
   },
 };
