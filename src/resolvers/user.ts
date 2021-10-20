@@ -10,7 +10,6 @@ import isE2E from '../utils/isE2E';
 import { dateFromObjectId } from '../utils/dates';
 import { UserDBScheme } from 'hawk.types';
 
-
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
  */
