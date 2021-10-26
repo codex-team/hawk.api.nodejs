@@ -88,7 +88,7 @@ module.exports = {
      */
     async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user, factories }) {
       const userModel = await factories.usersFactory.findById(user.id);
-      const [ isWorkspaceBelongsToUser ] = await userModel.getWorkspacesIds([ workspaceId ]);
+      const [isWorkspaceBelongsToUser] = await userModel.getWorkspacesIds([workspaceId]);
 
       if (!isWorkspaceBelongsToUser) {
         throw new ApolloError('There is no workspace with that id');
@@ -100,7 +100,7 @@ module.exports = {
       if (!invitedUser) {
         await workspace.addUnregisteredMember(userEmail);
       } else {
-        const [ isUserInThatWorkspace ] = await invitedUser.getWorkspacesIds([ workspaceId ]);
+        const [isUserInThatWorkspace] = await invitedUser.getWorkspacesIds([workspaceId]);
 
         if (isUserInThatWorkspace) {
           throw new ApolloError('User already invited to this workspace');
@@ -316,6 +316,64 @@ module.exports = {
       }
       await workspaceModel.removeMember(userModel);
 
+      return true;
+    },
+    /**
+     * Mutation in order to leave workspace
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
+     * @param {string} workspaceId - id of the workspace where the user should be removed
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     * @return {Promise<boolean>} - true if operation is successful
+     */
+    async deleteWorkspace(_obj, { workspaceId }, { user, factories }) {
+      console.log("Yay! It's Working");
+      const userModel = await factories.usersFactory.findById(user.id);
+      const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
+
+      if (!workspaceModel) {
+        throw new UserInputError('There is no workspace with provided id');
+      }
+
+      const memberInfo = await workspaceModel.getMemberInfo(user.id);
+
+      if (memberInfo.isAdmin) {
+        const membersInfo = (await workspaceModel.getMembers());
+        const isThereOtherAdmins = !!membersInfo.find(
+          member => member.isAdmin && member.userId.toString() !== user.id
+        );
+
+        if (!isThereOtherAdmins) {
+          // const projectToWorkspace = new ProjectToWorkspace(workspaceId);
+
+          // return projectToWorkspace.getProjects(ids);
+          //     const project = await factories.projectsFactory.findById(projectId);
+
+          // if (!project) {
+          //   throw new ApolloError('There is no project with that id');
+          // }
+
+          // const workspaceModel = await factories.workspacesFactory.findById(project.workspaceId.toString());
+
+          // /**
+          //  * Remove project events
+          //  */
+          // await new EventsFactory(project._id).remove();
+
+          // /**
+          //  * Remove project from workspace
+          //  */
+          // await new ProjectToWorkspace(workspaceModel._id.toString()).remove(project._id);
+
+          // /**
+          //  * Remove project
+          //  */
+          // await project.remove();
+
+          // return true;
+        }
+      }
+      await workspaceModel.removeMember(userModel);
       return true;
     },
 
