@@ -13,6 +13,7 @@ import { dateFromObjectId } from '../utils/dates';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
+const EventsFactory = require('../models/eventsFactory');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
@@ -328,7 +329,6 @@ module.exports = {
      */
     async deleteWorkspace(_obj, { workspaceId }, { user, factories }) {
       console.log("Yay! It's Working");
-      const userModel = await factories.usersFactory.findById(user.id);
       const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
 
       if (!workspaceModel) {
@@ -339,41 +339,31 @@ module.exports = {
 
       if (memberInfo.isAdmin) {
         const membersInfo = (await workspaceModel.getMembers());
-        const isThereOtherAdmins = !!membersInfo.find(
-          member => member.isAdmin && member.userId.toString() !== user.id
-        );
+        for (const member of membersInfo) {
+          const userModel = await factories.usersFactory.findById(member.userId.toString());
+          await workspaceModel.removeMember(userModel);
+        }
 
-        if (!isThereOtherAdmins) {
-          // const projectToWorkspace = new ProjectToWorkspace(workspaceId);
-
-          // return projectToWorkspace.getProjects(ids);
-          //     const project = await factories.projectsFactory.findById(projectId);
-
-          // if (!project) {
-          //   throw new ApolloError('There is no project with that id');
-          // }
-
-          // const workspaceModel = await factories.workspacesFactory.findById(project.workspaceId.toString());
-
-          // /**
-          //  * Remove project events
-          //  */
-          // await new EventsFactory(project._id).remove();
-
-          // /**
-          //  * Remove project from workspace
-          //  */
-          // await new ProjectToWorkspace(workspaceModel._id.toString()).remove(project._id);
-
-          // /**
-          //  * Remove project
-          //  */
-          // await project.remove();
-
-          // return true;
+        const projectToWorkspace = new ProjectToWorkspace(workspaceId);
+        const projectsInfo = await projectToWorkspace.getProjects();
+        if (projectsInfo.length) {
+          for (const project of projectsInfo) {
+            /**
+             * Remove project events
+             */
+            await new EventsFactory(project._id).remove();
+            /**
+             * Remove project from workspace
+             */
+            await projectToWorkspace.remove(project._id);
+            /**
+             * Remove project
+             */
+            const projectModel = await factories.projectsFactory.findById(project.id.toString());
+            await projectModel.remove();
+          }
         }
       }
-      await workspaceModel.removeMember(userModel);
       return true;
     },
 
