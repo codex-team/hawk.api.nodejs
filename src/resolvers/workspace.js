@@ -8,7 +8,7 @@ import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import { emailNotification, TaskPriorities } from '../utils/emailNotifications';
 import { SenderWorkerTaskType } from '../types/userNotifications';
 import ProjectToWorkspace from '../models/projectToWorkspace';
-import { Validator } from '../utils/validator';
+import Validator from '../utils/validator';
 import { dateFromObjectId } from '../utils/dates';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
