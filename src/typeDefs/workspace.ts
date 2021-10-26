@@ -275,5 +275,16 @@ export default gql`
       """
       workspaceId: ID!
     ): Boolean! @requireAuth
+
+    """
+    Mutation in order to delete workspace
+    Returns true if operation is successful
+    """
+    deleteWorkspace(
+      """
+      Workspace ID
+      """
+      workspaceId: ID!
+    ): Boolean! @requireAuth
   }
 `;
