@@ -3,7 +3,7 @@ import { Collection, Db } from 'mongodb';
 import DataLoaders from '../dataLoaders';
 import ProjectModel from './project';
 import ProjectToWorkspace from './projectToWorkspace';
-import { ProjectDBScheme } from 'hawk.types';
+import { ProjectDBScheme } from '@hawk.so/types';
 
 /**
  * Users factory to work with User Model

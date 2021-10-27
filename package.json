@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@hawk.so/nodejs": "^3.1.1",
+    "@hawk.so/types": "^0.1.17",
     "@types/amqp-connection-manager": "^2.0.4",
     "@types/debug": "^4.1.5",
     "@types/escape-html": "^1.0.0",
@@ -62,7 +63,6 @@
     "graphql-type-json": "^0.3.0",
     "graphql-upload": "^9.0.0",
     "graphql-voyager": "^1.0.0-rc.31",
-    "hawk.types": "codex-team/hawk.types",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.15",
     "migrate-mongo": "^7.0.1",

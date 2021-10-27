@@ -2,7 +2,7 @@ import AbstractModelFactory from './abstactModelFactory';
 import { Collection, Db } from 'mongodb';
 import PlanModel from './plan';
 import DataLoaders from '../dataLoaders';
-import { PlanDBScheme } from 'hawk.types';
+import { PlanDBScheme } from '@hawk.so/types';
 
 /**
  * Plans factory to work with Plan Model

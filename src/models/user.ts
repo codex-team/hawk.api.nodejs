@@ -6,7 +6,7 @@ import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
-import { BankCard, UserDBScheme } from 'hawk.types';
+import { BankCard, UserDBScheme } from '@hawk.so/types';
 import uuid from 'uuid/v4';
 
 /**

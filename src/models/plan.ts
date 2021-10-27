@@ -1,6 +1,6 @@
 import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
-import { PlanDBScheme } from 'hawk.types';
+import { PlanDBScheme } from '@hawk.so/types';
 
 /**
  * Plan model

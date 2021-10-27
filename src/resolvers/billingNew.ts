@@ -6,7 +6,7 @@ import {
   BusinessOperationPayloadType,
   PayloadOfDepositByUser,
   PayloadOfWorkspacePlanPurchase
-} from 'hawk.types';
+} from '@hawk.so/types';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import checksumService from '../utils/checksumService';
 import { UserInputError } from 'apollo-server-express';
