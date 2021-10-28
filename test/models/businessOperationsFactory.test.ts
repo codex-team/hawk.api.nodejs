@@ -3,7 +3,7 @@ import * as mongo from '../../src/mongo';
 import BusinessOperationsFactory from '../../src/models/businessOperationsFactory';
 import DataLoaders from '../../src/dataLoaders';
 import { Db, ObjectId } from 'mongodb';
-import { BusinessOperationStatus, BusinessOperationType, PayloadOfDepositByUser } from 'hawk.types';
+import { BusinessOperationStatus, BusinessOperationType, PayloadOfDepositByUser } from '@hawk.so/types';
 
 beforeAll(async () => {
   await mongo.setupConnections();

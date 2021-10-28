@@ -24,7 +24,7 @@ import {
   PayloadOfWorkspacePlanPurchase,
   PlanDBScheme,
   PlanProlongationPayload
-} from 'hawk.types';
+} from '@hawk.so/types';
 import { AccountType, Currency, PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';

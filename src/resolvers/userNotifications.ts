@@ -1,7 +1,7 @@
 import { ResolverContextWithUser } from '../types/graphql';
 import { UserNotificationsDBScheme, UserNotificationType } from '../models/user';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
-import { UserDBScheme } from 'hawk.types';
+import { UserDBScheme } from '@hawk.so/types';
 
 /**
  * We will get this structure from the client to update Channel settings

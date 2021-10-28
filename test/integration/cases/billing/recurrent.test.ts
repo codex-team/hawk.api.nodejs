@@ -1,5 +1,5 @@
 import { Collection, Db, ObjectId } from 'mongodb';
-import { PlanDBScheme, WorkspaceDBScheme } from 'hawk.types';
+import { PlanDBScheme, WorkspaceDBScheme } from '@hawk.so/types';
 import { RecurrentCodes, RecurrentRequest } from '../../../../src/billing/types';
 import { Currency, Interval, SubscriptionStatus } from '../../../../src/billing/types/enums';
 import { apiInstance } from '../../utils';
