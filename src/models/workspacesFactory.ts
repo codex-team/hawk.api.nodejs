@@ -5,7 +5,7 @@ import DataLoaders from '../dataLoaders';
 import UserModel from './user';
 import PlansFactory from './plansFactory';
 import PlanModel from './plan';
-import { WorkspaceDBScheme } from 'hawk.types';
+import { WorkspaceDBScheme } from '@hawk.so/types';
 
 /**
  * Workspaces factory to work with WorkspaceModel

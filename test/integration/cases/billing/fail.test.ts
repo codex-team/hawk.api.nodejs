@@ -2,7 +2,7 @@ import { apiInstance } from '../../utils';
 import { FailCodes, FailRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationType, ReasonCode, ReasonCodesTranscript } from '../../../../src/billing/types/enums';
 import { Collection, ObjectId, Db } from 'mongodb';
-import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, BusinessOperationType, UserDBScheme, WorkspaceDBScheme, UserNotificationType, PlanProlongationPayload } from 'hawk.types';
+import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, BusinessOperationType, UserDBScheme, WorkspaceDBScheme, UserNotificationType, PlanProlongationPayload } from '@hawk.so/types';
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import { PaymentFailedNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
 import checksumService from '../../../../src/utils/checksumService';

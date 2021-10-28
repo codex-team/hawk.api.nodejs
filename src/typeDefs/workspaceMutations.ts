@@ -4,7 +4,7 @@ export default gql`
   """
   Payload for changing workspace tariff plan
   """
-  input ChangeWorkspacePlanForFreePlanInput {
+  input changeWorkspacePlanToDefaultInput {
     """
     Workspace ID
     """
@@ -14,7 +14,7 @@ export default gql`
   """
   Workspace tariff plan change mutation response
   """
-  type ChangeWorkspacePlanForFreePlanResponse {
+  type changeWorkspacePlanToDefaultResponse {
     """
     Workspace id which plan changed
     """
@@ -62,12 +62,12 @@ export default gql`
 
   extend type Mutation {
     """
-    Mutation in order to switch workspace tariff plan to Free
+    Mutation in order to switch workspace tariff plan to default
     Returns updated workspace
     """
-    changeWorkspacePlanForFreePlan(
-        input: ChangeWorkspacePlanForFreePlanInput
-    ): ChangeWorkspacePlanForFreePlanResponse! @requireAdmin
+    changeWorkspacePlanToDefault(
+        input: changeWorkspacePlanToDefaultInput
+    ): changeWorkspacePlanToDefaultResponse! @requireAdmin
 
     """
     Namespace for workspaces mutations

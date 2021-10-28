@@ -2,7 +2,7 @@ import AbstractModelFactory from './abstactModelFactory';
 import BusinessOperationModel from './businessOperation';
 import { Collection, Db, ObjectId } from 'mongodb';
 import DataLoaders from '../dataLoaders';
-import { BusinessOperationDBScheme, BusinessOperationPayloadType } from 'hawk.types';
+import { BusinessOperationDBScheme, BusinessOperationPayloadType } from '@hawk.so/types';
 
 /**
  * Business operations factory to work with Business operation model
