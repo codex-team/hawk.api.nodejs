@@ -8,7 +8,7 @@ import {
   PlanDBScheme,
   UserDBScheme,
   WorkspaceDBScheme
-} from 'hawk.types';
+} from '@hawk.so/types';
 import checksumService from '../../../../src/utils/checksumService';
 import { getRequestWithSubscription, mainRequest, transactionId } from '../../billingMocks';
 

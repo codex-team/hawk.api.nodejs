@@ -1,4 +1,4 @@
-import { UserDBScheme, UserNotificationType } from 'hawk.types';
+import { UserDBScheme, UserNotificationType } from '@hawk.so/types';
 import { ObjectId } from 'mongodb';
 import { CheckRequest } from '../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../src/billing/types/enums';

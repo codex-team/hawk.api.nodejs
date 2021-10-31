@@ -5,7 +5,7 @@ import {
   BusinessOperationPayloadType,
   BusinessOperationStatus,
   BusinessOperationType
-} from 'hawk.types';
+} from '@hawk.so/types';
 
 /**
  * Model representing business operation object

@@ -8,7 +8,7 @@ import {
   BusinessOperationType,
   PayloadOfDepositByUser,
   PayloadOfWorkspacePlanPurchase
-} from 'hawk.types';
+} from '@hawk.so/types';
 
 beforeAll(async () => {
   await mongo.setupConnections();

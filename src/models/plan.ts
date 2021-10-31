@@ -1,6 +1,6 @@
 import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
-import { PlanDBScheme } from 'hawk.types';
+import { PlanDBScheme } from '@hawk.so/types';
 
 /**
  * Plan model
@@ -30,6 +30,12 @@ export default class PlanModel extends AbstractModel<PlanDBScheme> implements Pl
    * Is this plan used by default?
    */
   public isDefault!: boolean;
+
+  /**
+   * Special plans to be selected manually
+   * No one cannot be switched to this plan by api
+   */
+  public isHidden!: boolean;
 
   /**
    * Model's collection

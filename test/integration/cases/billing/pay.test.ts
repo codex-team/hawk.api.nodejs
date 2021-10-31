@@ -9,7 +9,7 @@ import {
   PlanDBScheme,
   UserDBScheme,
   WorkspaceDBScheme
-} from 'hawk.types';
+} from '@hawk.so/types';
 import {
   PaymentSuccessNotificationPayload,
   PaymentSuccessNotificationTask,
