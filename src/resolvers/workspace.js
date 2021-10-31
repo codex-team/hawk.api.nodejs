@@ -363,6 +363,8 @@ module.exports = {
             await projectModel.remove();
           }
         }
+
+        await workspaceModel.deleteWorkspace();
       }
       return true;
     },

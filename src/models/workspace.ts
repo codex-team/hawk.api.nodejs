@@ -128,6 +128,24 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   }
 
   /**
+   * Delete workspace data
+   *
+   * @param workspace - member to remove
+   */
+  public async deleteWorkspace(): Promise<void> {
+    /**
+     * Delete the workspace data.
+     */
+    await this.collection.deleteOne({
+      _id: new ObjectId(this._id),
+    });
+    /**
+     * Delete the team collection.
+     */
+    await this.teamCollection.drop();
+  }
+
+  /**
    * Update invite hash of workspace
    * @param inviteHash - new invite hash
    */
