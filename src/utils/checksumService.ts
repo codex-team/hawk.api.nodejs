@@ -1,4 +1,4 @@
-import { PlanProlongationPayload } from 'hawk.types';
+import { PlanProlongationPayload } from '@hawk.so/types';
 import jwt, { Secret } from 'jsonwebtoken';
 
 /**

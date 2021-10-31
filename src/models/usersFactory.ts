@@ -2,7 +2,7 @@ import AbstractModelFactory from './abstactModelFactory';
 import UserModel from './user';
 import { Collection, Db } from 'mongodb';
 import DataLoaders from '../dataLoaders';
-import { UserDBScheme } from 'hawk.types';
+import { UserDBScheme } from '@hawk.so/types';
 
 /**
  * Users factory to work with User Model

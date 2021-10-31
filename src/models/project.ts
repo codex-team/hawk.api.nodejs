@@ -1,7 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
-import { ProjectDBScheme } from 'hawk.types';
+import { ProjectDBScheme } from '@hawk.so/types';
 import uuid from 'uuid';
 
 /**

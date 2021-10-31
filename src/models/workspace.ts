@@ -2,7 +2,7 @@ import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import { OptionalId } from '../mongo';
 import UserModel from './user';
-import { ConfirmedMemberDBScheme, MemberDBScheme, PendingMemberDBScheme, WorkspaceDBScheme } from 'hawk.types';
+import { ConfirmedMemberDBScheme, MemberDBScheme, PendingMemberDBScheme, WorkspaceDBScheme } from '@hawk.so/types';
 import crypto from 'crypto';
 
 /**
