@@ -344,26 +344,6 @@ module.exports = {
           await workspaceModel.removeMember(userModel);
         }
 
-        const projectToWorkspace = new ProjectToWorkspace(workspaceId);
-        const projectsInfo = await projectToWorkspace.getProjects();
-        if (projectsInfo.length) {
-          for (const project of projectsInfo) {
-            /**
-             * Remove project events
-             */
-            await new EventsFactory(project._id).remove();
-            /**
-             * Remove project from workspace
-             */
-            await projectToWorkspace.remove(project._id);
-            /**
-             * Remove project
-             */
-            const projectModel = await factories.projectsFactory.findById(project.id.toString());
-            await projectModel.remove();
-          }
-        }
-
         await workspaceModel.deleteWorkspace();
       }
       return true;
