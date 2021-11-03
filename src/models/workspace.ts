@@ -128,15 +128,16 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   }
 
   /**
-   * Delete workspace data 
+   * Delete workspace data.
    */
   public async deleteWorkspace(): Promise<void> {
     /**
      * Delete the workspace data.
      */
-    await this.collection.updateOne({
-      _id: new ObjectId(this._id),
-    },
+    await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
       {
         $set: { isRemoved: true },
       }
