@@ -285,6 +285,6 @@ export default gql`
       Workspace ID
       """
       workspaceId: ID!
-    ): Boolean! @requireAuth
+    ): Boolean! @requireAdmin
   }
 `;
