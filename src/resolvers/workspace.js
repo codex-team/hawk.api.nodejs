@@ -13,6 +13,7 @@ import { dateFromObjectId } from '../utils/dates';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
+const EventsFactory = require('../models/eventsFactory');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
@@ -88,7 +89,7 @@ module.exports = {
      */
     async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user, factories }) {
       const userModel = await factories.usersFactory.findById(user.id);
-      const [ isWorkspaceBelongsToUser ] = await userModel.getWorkspacesIds([ workspaceId ]);
+      const [isWorkspaceBelongsToUser] = await userModel.getWorkspacesIds([workspaceId]);
 
       if (!isWorkspaceBelongsToUser) {
         throw new ApolloError('There is no workspace with that id');
@@ -100,7 +101,7 @@ module.exports = {
       if (!invitedUser) {
         await workspace.addUnregisteredMember(userEmail);
       } else {
-        const [ isUserInThatWorkspace ] = await invitedUser.getWorkspacesIds([ workspaceId ]);
+        const [isUserInThatWorkspace] = await invitedUser.getWorkspacesIds([workspaceId]);
 
         if (isUserInThatWorkspace) {
           throw new ApolloError('User already invited to this workspace');
@@ -318,6 +319,7 @@ module.exports = {
 
       return true;
     },
+
     /**
      * Mutation in order to leave workspace
      * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
@@ -337,13 +339,39 @@ module.exports = {
 
       if (memberInfo.isAdmin) {
         const membersInfo = (await workspaceModel.getMembers());
+
         for (const member of membersInfo) {
           const userModel = await factories.usersFactory.findById(member.userId.toString());
+
           await workspaceModel.removeMember(userModel);
+        }
+
+        const projectToWorkspace = new ProjectToWorkspace(workspaceId);
+
+        const projectsInfo = await projectToWorkspace.getProjects();
+
+        if (projectsInfo.length) {
+          for (const project of projectsInfo) {
+            /**
+             * Remove project events
+             */
+            await new EventsFactory(project._id).remove();
+            /**
+             * Remove project from workspace
+             */
+            await projectToWorkspace.remove(project._id);
+            /**
+             * Remove project
+             */
+            const projectModel = await factories.projectsFactory.findById(project.id.toString());
+
+            await projectModel.remove();
+          }
         }
 
         await workspaceModel.deleteWorkspace();
       }
+
       return true;
     },
 

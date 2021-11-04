@@ -134,14 +134,9 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
     /**
      * Delete the workspace data.
      */
-    await this.collection.updateOne(
-      {
-        _id: new ObjectId(this._id),
-      },
-      {
-        $set: { isRemoved: true },
-      }
-    );
+    await this.collection.deleteOne({
+      _id: new ObjectId(this._id),
+    });
     /**
      * Delete the team collection.
      */
