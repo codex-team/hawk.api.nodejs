@@ -235,14 +235,14 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
     await this.collection.updateOne({
       _id: this._id,
     },
-      {
-        $push: {
-          notifications: {
-            $each: [rule],
-            $position: 0,
-          },
+    {
+      $push: {
+        notifications: {
+          $each: [ rule ],
+          $position: 0,
         },
-      });
+      },
+    });
 
     return rule;
   }
