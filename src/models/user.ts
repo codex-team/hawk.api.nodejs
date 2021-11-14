@@ -62,7 +62,7 @@ export interface UserNotificationsDBScheme {
   /**
    * Types of notifications to receive
    */
-  whatToReceive: {[key in UserNotificationType]: boolean};
+  whatToReceive: { [key in UserNotificationType]: boolean };
 }
 
 /**
@@ -317,9 +317,25 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * Remove workspace from membership collection
    * @param workspaceId - id of workspace to remove
    */
-  public async removeWorkspace(workspaceId: string): Promise<{workspaceId: string}> {
+  public async removeWorkspace(workspaceId: string): Promise<{ workspaceId: string }> {
     await this.membershipCollection.deleteOne({
       workspaceId: new ObjectId(workspaceId),
+    });
+
+    return {
+      workspaceId,
+    };
+  }
+
+  /**
+   * Remove workspace from membership collection by using isRemovedFlag.
+   * @param workspaceId - id of workspace to remove
+   */
+  public async removeWorkspaceByFlag(workspaceId: string): Promise<{ workspaceId: string }> {
+    await this.membershipCollection.updateOne({
+      workspaceId: new ObjectId(workspaceId),
+    }, {
+      $set: { isRemoved: true },
     });
 
     return {
@@ -351,7 +367,8 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       workspaceId: {
         $in: idsAsObjectId,
       },
-    } : {};
+      isRemoved: { $exists: false },
+    } : { isRemoved: { $exists: false } };
 
     const membershipDocuments = await this.membershipCollection.find(searchQuery).toArray();
 
