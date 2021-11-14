@@ -89,7 +89,7 @@ module.exports = {
      */
     async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user, factories }) {
       const userModel = await factories.usersFactory.findById(user.id);
-      const [ isWorkspaceBelongsToUser ] = await userModel.getWorkspacesIds([ workspaceId ]);
+      const [isWorkspaceBelongsToUser] = await userModel.getWorkspacesIds([workspaceId]);
 
       if (!isWorkspaceBelongsToUser) {
         throw new ApolloError('There is no workspace with that id');
@@ -101,7 +101,7 @@ module.exports = {
       if (!invitedUser) {
         await workspace.addUnregisteredMember(userEmail);
       } else {
-        const [ isUserInThatWorkspace ] = await invitedUser.getWorkspacesIds([ workspaceId ]);
+        const [isUserInThatWorkspace] = await invitedUser.getWorkspacesIds([workspaceId]);
 
         if (isUserInThatWorkspace) {
           throw new ApolloError('User already invited to this workspace');
@@ -349,7 +349,10 @@ module.exports = {
       for (const member of membersInfo) {
         const userModel = await factories.usersFactory.findById(member.userId.toString());
 
-        await userModel.removeWorkspace(workspaceId.toString());
+        /**
+         * remove workspace by using isRemoved flag.
+         */
+        await userModel.removeWorkspaceByFlag(workspaceId.toString());
       }
 
       const projectToWorkspace = new ProjectToWorkspace(workspaceId.toString());
@@ -367,15 +370,11 @@ module.exports = {
            */
           const projectModel = await factories.projectsFactory.findById(project.id.toString());
 
-          await projectModel.remove();
+          await projectModel.removeByFlag();
         }
       }
-      /**
-       * Delete projects.
-       */
-      await projectToWorkspace.delete();
 
-      await workspaceModel.deleteWorkspace();
+      await workspaceModel.removeWorkspaceByFlag();
 
       return true;
     },
