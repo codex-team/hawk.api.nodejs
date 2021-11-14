@@ -94,15 +94,6 @@ class ProjectToWorkspace {
   }
 
   /**
-   * delete project collection.
-   *
-   * @return {Promise<void>}
-   */
-  async delete() {
-    await this.collection.drop();
-  }
-
-  /**
    * Gets projects in workspace.
    * If ids were not passed, returns all projects in workspace.
    *
