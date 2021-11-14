@@ -235,14 +235,14 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
     await this.collection.updateOne({
       _id: this._id,
     },
-    {
-      $push: {
-        notifications: {
-          $each: [ rule ],
-          $position: 0,
+      {
+        $push: {
+          notifications: {
+            $each: [rule],
+            $position: 0,
+          },
         },
-      },
-    });
+      });
 
     return rule;
   }
@@ -371,6 +371,26 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    */
   public async remove(): Promise<void> {
     await this.collection.deleteOne({ _id: this._id });
+
+    try {
+      /**
+       * Remove users in project collection
+       */
+      await this.dbConnection.collection('users-in-project:' + this._id)
+        .drop();
+    } catch (error) {
+      console.log(`Can't remove collection "users-in-project:${this._id}" because it doesn't exist.`);
+      console.log(error);
+    }
+  }
+
+  /**
+   * Remove project data using isRemoved flag.
+   */
+  public async removeByFlag(): Promise<void> {
+    await this.collection.updateOne({ _id: this._id }, {
+      $set: { isRemoved: true },
+    });
 
     try {
       /**
