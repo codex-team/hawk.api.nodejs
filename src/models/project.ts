@@ -235,14 +235,14 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
     await this.collection.updateOne({
       _id: this._id,
     },
-    {
-      $push: {
-        notifications: {
-          $each: [ rule ],
-          $position: 0,
+      {
+        $push: {
+          notifications: {
+            $each: [rule],
+            $position: 0,
+          },
         },
-      },
-    });
+      });
 
     return rule;
   }
@@ -385,9 +385,9 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
   }
 
   /**
-   * Remove project data using isRemoved flag.
+   * Mark project as removed.
    */
-  public async removeByFlag(): Promise<void> {
+  public async markProjectAsRemoved(): Promise<void> {
     await this.collection.updateOne({ _id: this._id }, {
       $set: { isRemoved: true },
     });

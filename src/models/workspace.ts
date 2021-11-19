@@ -128,9 +128,9 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   }
 
   /**
-   * remove workspace data using isRemoved Flag.
+   * Mark workspace as removed.
    */
-  public async removeWorkspaceByFlag(): Promise<void> {
+  public async markWorkspaceAsRemoved(): Promise<void> {
     /**
      * Delete the workspace data.
      */

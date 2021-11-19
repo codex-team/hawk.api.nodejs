@@ -328,10 +328,10 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   }
 
   /**
-   * Remove workspace from membership collection by using isRemovedFlag.
+   * Mark workspace as removed.
    * @param workspaceId - id of workspace to remove
    */
-  public async removeWorkspaceByFlag(workspaceId: string): Promise<{ workspaceId: string }> {
+  public async markWorkspaceAsRemoved(workspaceId: string): Promise<{ workspaceId: string }> {
     await this.membershipCollection.updateOne({
       workspaceId: new ObjectId(workspaceId),
     }, {
