@@ -98,16 +98,30 @@ module.exports = {
       const workspace = await factories.workspacesFactory.findById(workspaceId);
 
       if (!invitedUser) {
+        /**
+         * If user with this email is not exists then try
+         * to add it by calling workspace.addUnregisteredMember()
+         *
+         * If invitation was already sent to this email for this
+         * workspace then we will get an error
+         */
         await workspace.addUnregisteredMember(userEmail);
       } else {
+        /**
+         * If user with this email already has an account then check for a membership
+         */
         const [ isUserInThatWorkspace ] = await invitedUser.getWorkspacesIds([ workspaceId ]);
 
         if (isUserInThatWorkspace) {
           throw new ApolloError('User already invited to this workspace');
         }
 
+        /**
+         * User is not in the workspace team then we need
+         * to add his email to list of members
+         */
         await invitedUser.addWorkspace(workspaceId, true);
-        await workspace.addMember(invitedUser._id.toString(), true);
+        await workspace.addMember(invitedUser.email);
       }
 
       const linkHash = crypto
