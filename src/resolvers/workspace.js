@@ -97,18 +97,12 @@ module.exports = {
       const invitedUser = await factories.usersFactory.findByEmail(userEmail);
       const workspace = await factories.workspacesFactory.findById(workspaceId);
 
-      if (!invitedUser) {
+      /**
+       * If user is already uses Hawk
+       */
+      if (invitedUser) {
         /**
-         * If user with this email is not exists then try
-         * to add it by calling workspace.addUnregisteredMember()
-         *
-         * If invitation was already sent to this email for this
-         * workspace then we will get an error
-         */
-        await workspace.addUnregisteredMember(userEmail);
-      } else {
-        /**
-         * If user with this email already has an account then check for a membership
+         * Check for a membership
          */
         const [ isUserInThatWorkspace ] = await invitedUser.getWorkspacesIds([ workspaceId ]);
 
@@ -121,8 +115,9 @@ module.exports = {
          * to add his email to list of members
          */
         await invitedUser.addWorkspace(workspaceId, true);
-        await workspace.addMember(invitedUser.email);
       }
+
+      await workspace.addMemberByEmail(invitedUser.email);
 
       const linkHash = crypto
         .createHash('sha256')
