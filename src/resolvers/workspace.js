@@ -88,7 +88,7 @@ module.exports = {
      */
     async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user, factories }) {
       const userModel = await factories.usersFactory.findById(user.id);
-      const [isWorkspaceBelongsToUser] = await userModel.getWorkspacesIds([workspaceId]);
+      const [ isWorkspaceBelongsToUser ] = await userModel.getWorkspacesIds([ workspaceId ]);
 
       if (!isWorkspaceBelongsToUser) {
         throw new ApolloError('There is no workspace with that id');
@@ -100,7 +100,7 @@ module.exports = {
       if (!invitedUser) {
         await workspace.addUnregisteredMember(userEmail);
       } else {
-        const [isUserInThatWorkspace] = await invitedUser.getWorkspacesIds([workspaceId]);
+        const [ isUserInThatWorkspace ] = await invitedUser.getWorkspacesIds([ workspaceId ]);
 
         if (isUserInThatWorkspace) {
           throw new ApolloError('User already invited to this workspace');
@@ -116,7 +116,7 @@ module.exports = {
         .digest('hex');
 
       const inviteLink = `${process.env.GARAGE_URL}/join/${workspaceId}/${linkHash}`;
-      s
+
       await emailNotification({
         type: SenderWorkerTaskType.WorkspaceInvite,
         payload: {
