@@ -117,7 +117,7 @@ module.exports = {
         await invitedUser.addWorkspace(workspaceId, true);
       }
 
-      await workspace.addMemberByEmail(invitedUser.email);
+      await workspace.addMemberByEmail(userEmail);
 
       const linkHash = crypto
         .createHash('sha256')
