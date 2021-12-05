@@ -349,6 +349,21 @@ type Event {
   usersAffected: Int
 
   """
+  Return affected users chart data for the last few days
+  """
+  usersAffectedChart(
+    """
+    How many days we need to fetch for displaying in a chart
+    """
+    days: Int! = 0
+
+    """
+    User's local timezone offset in minutes
+    """
+    timezoneOffset: Int! = 0
+  ): [ChartDataItem!]! @requireAuth
+
+  """
   Return graph of the error rate for the last few days
   """
   chartData(
@@ -392,6 +407,12 @@ type DailyEventInfo {
   Last event occurrence timestamp
   """
   lastRepetitionTime: Float!
+
+
+  """
+  Array of user's ids affected this day
+  """
+  affectedUsers: [String!]
 }
 
 type Subscription {

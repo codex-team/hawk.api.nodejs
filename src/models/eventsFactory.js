@@ -258,16 +258,21 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Fetch timestamps and total count of errors (or target error) for each day since
+   * Get daily events for last few days grouped by user timezone days
    *
-   * @param {number} days - how many days we need to fetch for displaying in a chart
-   * @param {number} timezoneOffset - user's local timezone offset in minutes
-   * @param {string} groupHash - event's group hash for showing only target event
-   * @return {ProjectChartItem[]}
+   * @param {number} days - days to get
+   * @param {number} [timezoneOffset] - user timezone offset in minutes
+   * @param {string} [groupHash] - event group hash
+   * @return {Promise<object>}
    */
-  async findChartData(days, timezoneOffset = 0, groupHash = '') {
+  async getGroupedDailyEvents(days, timezoneOffset = 0, groupHash) {
     const today = new Date();
-    const since = today.setDate(today.getDate() - days) / 1000;
+
+    today.setHours(0, 0, 0, 0);
+
+    const since = new Date();
+
+    since.setTime(today.getTime() + timezoneOffset * 60 * 1000 - days * 24 * 60 * 60 * 1000);
 
     /**
      * Compose options for find method
@@ -275,7 +280,7 @@ class EventsFactory extends Factory {
      */
     const options = {
       groupingTimestamp: {
-        $gt: since,
+        $gt: since / 1000,
       },
     };
 
@@ -296,8 +301,12 @@ class EventsFactory extends Factory {
      * Convert UTC midnight to midnights in user's timezone
      */
     dailyEvents = dailyEvents.map((item) => {
+      const groupingTimestamp = new Date(item.groupingTimestamp * 1000);
+
+      groupingTimestamp.setTime(groupingTimestamp.getTime() + timezoneOffset * 60 * 1000);
+
       return Object.assign({}, item, {
-        groupingTimestamp: getMidnightWithTimezoneOffset(item.lastRepetitionTime, item.groupingTimestamp, timezoneOffset),
+        groupingTimestamp: groupingTimestamp / 1000,
       });
     });
 
@@ -305,7 +314,19 @@ class EventsFactory extends Factory {
      * Group events using 'groupByTimestamp:NNNNNNNN' key
      * @type {ProjectChartItem[]}
      */
-    const groupedData = groupBy('groupingTimestamp')(dailyEvents);
+    return groupBy('groupingTimestamp')(dailyEvents);
+  }
+
+  /**
+   * Fetch timestamps and count of affected users for each day since
+   *
+   * @param {number} days - how many days we need to fetch for displaying in a chart
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @param {string} groupHash - event's group hash for showing only target event
+   * @return {AffectedUsersChartItem[]}
+   */
+  async findAffectedUsersChart(days, timezoneOffset = 0, groupHash = '') {
+    const groupedData = await this.getGroupedDailyEvents(days, timezoneOffset, groupHash);
 
     /**
      * Now fill all requested days
@@ -314,12 +335,53 @@ class EventsFactory extends Factory {
 
     for (let i = 0; i < days; i++) {
       const now = new Date();
-      const day = new Date(now.setDate(now.getDate() - i));
-      const dayMidnight = getUTCMidnight(day) / 1000;
-      const groupedEvents = groupedData[`groupingTimestamp:${dayMidnight}`];
+
+      now.setHours(0, 0, 0, 0);
+      now.setTime(now.getTime() + timezoneOffset * 60 * 1000 - i * 24 * 60 * 60 * 1000);
+
+      const groupedEvents = groupedData[`groupingTimestamp:${now / 1000}`];
+      const affectedUsers = groupedEvents ? groupedEvents.reduce((set, value) => new Set([...set, ...value.affectedUsers]), new Set()) : new Set();
 
       result.push({
-        timestamp: dayMidnight,
+        timestamp: now / 1000,
+        count: affectedUsers.size,
+      });
+    }
+
+    /**
+     * Order by time ascendance
+     */
+    result = result.sort((a, b) => a.timestamp - b.timestamp);
+
+    return result;
+  }
+
+  /**
+   * Fetch timestamps and total count of errors (or target error) for each day since
+   *
+   * @param {number} days - how many days we need to fetch for displaying in a chart
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @param {string} groupHash - event's group hash for showing only target event
+   * @return {ProjectChartItem[]}
+   */
+  async findChartData(days, timezoneOffset = 0, groupHash = '') {
+    const groupedData = await this.getGroupedDailyEvents(days, timezoneOffset, groupHash);
+
+    /**
+     * Now fill all requested days
+     */
+    let result = [];
+
+    for (let i = 0; i < days; i++) {
+      const now = new Date();
+
+      now.setHours(0, 0, 0, 0);
+      now.setTime(now.getTime() + timezoneOffset * 60 * 1000 - i * 24 * 60 * 60 * 1000);
+
+      const groupedEvents = groupedData[`groupingTimestamp:${now / 1000}`];
+
+      result.push({
+        timestamp: now / 1000,
         count: groupedEvents ? groupedEvents.reduce((sum, value) => sum + value.count, 0) : 0,
       });
     }
