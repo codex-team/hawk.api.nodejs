@@ -1,4 +1,3 @@
-import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 import { groupBy } from '../utils/grouper';
 
 const Factory = require('./modelFactory');
