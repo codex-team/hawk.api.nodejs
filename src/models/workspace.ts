@@ -139,10 +139,6 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
     }, {
       $set: { isRemoved: true },
     });
-    /**
-     * Delete the team collection.
-     */
-    await this.teamCollection.drop();
   }
 
   /**
