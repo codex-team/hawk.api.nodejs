@@ -13,7 +13,6 @@ import { dateFromObjectId } from '../utils/dates';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
-const EventsFactory = require('../models/eventsFactory');
 
 /**
  * See all types and fields here {@see ../typeDefs/workspace.graphql}
@@ -89,7 +88,7 @@ module.exports = {
      */
     async inviteToWorkspace(_obj, { userEmail, workspaceId }, { user, factories }) {
       const userModel = await factories.usersFactory.findById(user.id);
-      const [isWorkspaceBelongsToUser] = await userModel.getWorkspacesIds([workspaceId]);
+      const [ isWorkspaceBelongsToUser ] = await userModel.getWorkspacesIds([ workspaceId ]);
 
       if (!isWorkspaceBelongsToUser) {
         throw new ApolloError('There is no workspace with that id');
@@ -101,7 +100,7 @@ module.exports = {
       if (!invitedUser) {
         await workspace.addUnregisteredMember(userEmail);
       } else {
-        const [isUserInThatWorkspace] = await invitedUser.getWorkspacesIds([workspaceId]);
+        const [ isUserInThatWorkspace ] = await invitedUser.getWorkspacesIds([ workspaceId ]);
 
         if (isUserInThatWorkspace) {
           throw new ApolloError('User already invited to this workspace');
