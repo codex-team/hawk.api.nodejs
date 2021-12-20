@@ -208,7 +208,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    *
    * @param memberEmail - invited member`s email
    */
-  public async addUnregisteredMember(memberEmail: string): Promise<PendingMemberDBScheme> {
+  public async addMemberByEmail(memberEmail: string): Promise<PendingMemberDBScheme> {
     const foundDocument = await this.teamCollection.findOne({ userEmail: memberEmail });
 
     if (foundDocument) {
