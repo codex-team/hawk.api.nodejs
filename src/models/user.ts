@@ -367,8 +367,20 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       workspaceId: {
         $in: idsAsObjectId,
       },
-      isRemoved: { $ne: true },
-    } : { isRemoved: { $ne: true } };
+      isRemoved: { 
+        $ne: true,
+      },
+      isPending: {
+        $ne: true,
+      },
+    } : { 
+      isRemoved: { 
+        $ne: true,
+      },
+      isPending: {
+        $ne: true,
+      },
+    };
 
     const membershipDocuments = await this.membershipCollection.find(searchQuery).toArray();
 
