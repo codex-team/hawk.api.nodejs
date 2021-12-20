@@ -72,6 +72,16 @@ class HawkAPI {
    * Requires PORT and MONGO_URL env vars to be set.
    */
   constructor() {
+    /**
+     * Allow CORS requests.
+     */
+    this.app.use(async (req, res, next) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,POST,PUT');
+      res.setHeader('Access-Control-Allow-Headers', 'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers');
+      next();
+    });
     this.app.use(express.json());
     this.app.use(bodyParser.urlencoded({ extended: false }));
     this.app.use('/uploads', express.static(`./${process.env.UPLOADS_DIR || 'uploads'}`));
@@ -84,7 +94,6 @@ class HawkAPI {
      */
     this.app.use(async (req, res, next) => {
       req.context = await HawkAPI.createContext({ req } as ExpressContext);
-
       next();
     });
 
@@ -261,13 +270,11 @@ class HawkAPI {
     return new Promise((resolve) => {
       this.httpServer.listen({ port: this.serverPort }, () => {
         console.log(
-          `🚀 Server ready at http://localhost:${this.serverPort}${
-            this.server.graphqlPath
+          `🚀 Server ready at http://localhost:${this.serverPort}${this.server.graphqlPath
           }`
         );
         console.log(
-          `🚀 Subscriptions ready at ws://localhost:${this.serverPort}${
-            this.server.subscriptionsPath
+          `🚀 Subscriptions ready at ws://localhost:${this.serverPort}${this.server.subscriptionsPath
           }`
         );
         resolve();
