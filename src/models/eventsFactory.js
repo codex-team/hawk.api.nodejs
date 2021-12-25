@@ -1,3 +1,4 @@
+import { addTimezoneOffset, getMidnightWithTimezoneOffset, setUTCMidnight } from '../utils/dates';
 import { groupBy } from '../utils/grouper';
 
 const Factory = require('./modelFactory');
@@ -266,12 +267,7 @@ class EventsFactory extends Factory {
    */
   async getGroupedDailyEvents(days, timezoneOffset = 0, groupHash) {
     const today = new Date();
-
-    today.setHours(0, 0, 0, 0);
-
-    const since = new Date();
-
-    since.setTime(today.getTime() + timezoneOffset * 60 * 1000 - days * 24 * 60 * 60 * 1000);
+    const since = today.setDate(today.getDate() - days) / 1000;
 
     /**
      * Compose options for find method
@@ -279,7 +275,7 @@ class EventsFactory extends Factory {
      */
     const options = {
       groupingTimestamp: {
-        $gt: since / 1000,
+        $gt: since,
       },
     };
 
@@ -300,12 +296,8 @@ class EventsFactory extends Factory {
      * Convert UTC midnight to midnights in user's timezone
      */
     dailyEvents = dailyEvents.map((item) => {
-      const groupingTimestamp = new Date(item.groupingTimestamp * 1000);
-
-      groupingTimestamp.setTime(groupingTimestamp.getTime() + timezoneOffset * 60 * 1000);
-
       return Object.assign({}, item, {
-        groupingTimestamp: groupingTimestamp / 1000,
+        groupingTimestamp: getMidnightWithTimezoneOffset(item.lastRepetitionTime, item.groupingTimestamp, timezoneOffset),
       });
     });
 
@@ -333,16 +325,31 @@ class EventsFactory extends Factory {
     let result = [];
 
     for (let i = 0; i < days; i++) {
-      const now = new Date();
+      const day = new Date();
 
-      now.setHours(0, 0, 0, 0);
-      now.setTime(now.getTime() + timezoneOffset * 60 * 1000 - i * 24 * 60 * 60 * 1000);
+      /**
+       * Subtract timezone offset to get user`s local day
+       *
+       * @example 22:00 UTC 25.12 === 01:00 GMT+03 26.12, so local date is 26
+       */
+      addTimezoneOffset(day, -timezoneOffset);
 
-      const groupedEvents = groupedData[`groupingTimestamp:${now / 1000}`];
+      /**
+       * Set midnight for user`s local date
+       */
+      setUTCMidnight(day);
+
+      /**
+       * Get date for the chart
+       */
+      day.setDate(day.getDate() - i);
+
+      const dayMidnight = day / 1000;
+      const groupedEvents = groupedData[`groupingTimestamp:${dayMidnight}`];
       const affectedUsers = groupedEvents ? groupedEvents.reduce((set, value) => new Set([...set, ...value.affectedUsers]), new Set()) : new Set();
 
       result.push({
-        timestamp: now / 1000,
+        timestamp: dayMidnight,
         count: affectedUsers.size,
       });
     }
@@ -365,22 +372,36 @@ class EventsFactory extends Factory {
    */
   async findChartData(days, timezoneOffset = 0, groupHash = '') {
     const groupedData = await this.getGroupedDailyEvents(days, timezoneOffset, groupHash);
-
     /**
      * Now fill all requested days
      */
     let result = [];
 
     for (let i = 0; i < days; i++) {
-      const now = new Date();
+      const day = new Date();
 
-      now.setHours(0, 0, 0, 0);
-      now.setTime(now.getTime() + timezoneOffset * 60 * 1000 - i * 24 * 60 * 60 * 1000);
+      /**
+       * Subtract timezone offset to get user`s local day
+       *
+       * @example 22:00 UTC 25.12 === 01:00 GMT+03 26.12, so local date is 26
+       */
+      addTimezoneOffset(day, -timezoneOffset);
 
-      const groupedEvents = groupedData[`groupingTimestamp:${now / 1000}`];
+      /**
+       * Set midnight for user`s local date
+       */
+      setUTCMidnight(day);
+
+      /**
+       * Get date for the chart
+       */
+      day.setDate(day.getDate() - i);
+
+      const dayMidnight = day / 1000;
+      const groupedEvents = groupedData[`groupingTimestamp:${dayMidnight}`];
 
       result.push({
-        timestamp: now / 1000,
+        timestamp: dayMidnight,
         count: groupedEvents ? groupedEvents.reduce((sum, value) => sum + value.count, 0) : 0,
       });
     }
