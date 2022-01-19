@@ -268,6 +268,7 @@ export default gql`
     """
     Mutation in order to leave workspace
     Returns true if operation is successful
+    Returns false if there is no other admin lefts
     """
     leaveWorkspace(
       """

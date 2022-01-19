@@ -11,7 +11,7 @@ import ProjectToWorkspace from '../models/projectToWorkspace';
 import Validator from '../utils/validator';
 import { dateFromObjectId } from '../utils/dates';
 
-const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
+const { ApolloError, UserInputError } = require('apollo-server-express');
 const crypto = require('crypto');
 
 /**
@@ -301,7 +301,7 @@ module.exports = {
      * @param {string} workspaceId - id of the workspace where the user should be removed
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
-     * @return {Promise<boolean>} - true if operation is successful
+     * @return {Promise<boolean>} - true if operation is successful, false if there is no other admin left.
      */
     async leaveWorkspace(_obj, { workspaceId }, { user, factories }) {
       const userModel = await factories.usersFactory.findById(user.id);
@@ -320,7 +320,7 @@ module.exports = {
         );
 
         if (!isThereOtherAdmins) {
-          throw new ForbiddenError('You can\'t leave this workspace because you are the last admin');
+          return false;
         }
       }
       await workspaceModel.removeMember(userModel);
