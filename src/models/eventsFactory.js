@@ -1,4 +1,4 @@
-import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
+import { addTimezoneOffset, getMidnightWithTimezoneOffset, setUTCMidnight } from '../utils/dates';
 import { groupBy } from '../utils/grouper';
 
 const Factory = require('./modelFactory');
@@ -258,14 +258,14 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Fetch timestamps and total count of errors (or target error) for each day since
+   * Get daily events for last few days grouped by user timezone days
    *
-   * @param {number} days - how many days we need to fetch for displaying in a chart
-   * @param {number} timezoneOffset - user's local timezone offset in minutes
-   * @param {string} groupHash - event's group hash for showing only target event
-   * @return {ProjectChartItem[]}
+   * @param {number} days - days to get
+   * @param {number} [timezoneOffset] - user timezone offset in minutes
+   * @param {string} [groupHash] - event group hash
+   * @return {Promise<object>}
    */
-  async findChartData(days, timezoneOffset = 0, groupHash = '') {
+  async getGroupedDailyEvents(days, timezoneOffset = 0, groupHash) {
     const today = new Date();
     const since = today.setDate(today.getDate() - days) / 1000;
 
@@ -305,7 +305,19 @@ class EventsFactory extends Factory {
      * Group events using 'groupByTimestamp:NNNNNNNN' key
      * @type {ProjectChartItem[]}
      */
-    const groupedData = groupBy('groupingTimestamp')(dailyEvents);
+    return groupBy('groupingTimestamp')(dailyEvents);
+  }
+
+  /**
+   * Fetch timestamps and count of affected users for each day since
+   *
+   * @param {number} days - how many days we need to fetch for displaying in a chart
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @param {string} groupHash - event's group hash for showing only target event
+   * @return {AffectedUsersChartItem[]}
+   */
+  async findAffectedUsersChart(days, timezoneOffset = 0, groupHash = '') {
+    const groupedData = await this.getGroupedDailyEvents(days, timezoneOffset, groupHash);
 
     /**
      * Now fill all requested days
@@ -313,9 +325,79 @@ class EventsFactory extends Factory {
     let result = [];
 
     for (let i = 0; i < days; i++) {
-      const now = new Date();
-      const day = new Date(now.setDate(now.getDate() - i));
-      const dayMidnight = getUTCMidnight(day) / 1000;
+      const day = new Date();
+
+      /**
+       * Subtract timezone offset to get user`s local day
+       *
+       * @example 22:00 UTC 25.12 === 01:00 GMT+03 26.12, so local date is 26
+       */
+      addTimezoneOffset(day, -timezoneOffset);
+
+      /**
+       * Set midnight for user`s local date
+       */
+      setUTCMidnight(day);
+
+      /**
+       * Get date for the chart
+       */
+      day.setDate(day.getDate() - i);
+
+      const dayMidnight = day / 1000;
+      const groupedEvents = groupedData[`groupingTimestamp:${dayMidnight}`];
+      const affectedUsers = groupedEvents ? groupedEvents.reduce((set, value) => new Set([...set, ...value.affectedUsers]), new Set()) : new Set();
+
+      result.push({
+        timestamp: dayMidnight,
+        count: affectedUsers.size,
+      });
+    }
+
+    /**
+     * Order by time ascendance
+     */
+    result = result.sort((a, b) => a.timestamp - b.timestamp);
+
+    return result;
+  }
+
+  /**
+   * Fetch timestamps and total count of errors (or target error) for each day since
+   *
+   * @param {number} days - how many days we need to fetch for displaying in a chart
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @param {string} groupHash - event's group hash for showing only target event
+   * @return {ProjectChartItem[]}
+   */
+  async findChartData(days, timezoneOffset = 0, groupHash = '') {
+    const groupedData = await this.getGroupedDailyEvents(days, timezoneOffset, groupHash);
+    /**
+     * Now fill all requested days
+     */
+    let result = [];
+
+    for (let i = 0; i < days; i++) {
+      const day = new Date();
+
+      /**
+       * Subtract timezone offset to get user`s local day
+       *
+       * @example 22:00 UTC 25.12 === 01:00 GMT+03 26.12, so local date is 26
+       */
+      addTimezoneOffset(day, -timezoneOffset);
+
+      /**
+       * Set midnight for user`s local date
+       */
+      setUTCMidnight(day);
+
+      /**
+       * Get date for the chart
+       */
+      day.setDate(day.getDate() - i);
+
+      const dayMidnight = day / 1000;
       const groupedEvents = groupedData[`groupingTimestamp:${dayMidnight}`];
 
       result.push({

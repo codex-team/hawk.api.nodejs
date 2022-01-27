@@ -6,7 +6,28 @@ import { ObjectId } from 'mongodb';
  * @param {Date} date - date object
  */
 export function getUTCMidnight(date: Date): number {
-  return date.setUTCHours(0, 0, 0, 0);
+  const copy = new Date(date);
+
+  return copy.setUTCHours(0, 0, 0, 0);
+}
+
+/**
+ * Sets UTC midnight for a given date
+ *
+ * @param {Date} date — date to set midnight
+ */
+export function setUTCMidnight(date: Date): void {
+  date.setHours(0, 0, 0, 0);
+}
+
+/**
+ * Adds passed offset in minutes to a given date
+ *
+ * @param {Date} date — date to change
+ * @param {number} offset — offset in minutes
+ */
+export function addTimezoneOffset(date: Date, offset: number): void {
+  date.setTime(date.getTime() + offset * 60 * 1000);
 }
 
 /**
