@@ -165,6 +165,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
 
   /**
    * Generate 16bytes password
+   * @returns generated password.
    */
   public static generatePassword(): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -172,7 +173,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
         if (err) {
           return reject(err);
         }
-
+        console.log(buff.toString('hex'));
         resolve(buff.toString('hex'));
       });
     });
@@ -182,6 +183,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * Compose default notifications settings for new users.
    *
    * @param email - user email from the sign-up form will be used as email-channel endpoint
+   * @returns default notification settings for new users.
    */
   public static generateDefaultNotificationsSettings(email: string): UserNotificationsDBScheme {
     return {
@@ -212,7 +214,6 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * Change user's password
    * Hashes new password and updates the document
    *
-   * @param userId - user ID
    * @param newPassword - new user password
    */
   public async changePassword(newPassword: string): Promise<void> {
@@ -230,7 +231,6 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
 
   /**
    * Update user profile data
-   * @param userId - user ID
    * @param  user – user object
    */
   public async updateProfile(user: Partial<UserDBScheme>): Promise<void> {

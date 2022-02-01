@@ -94,6 +94,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Generates SHA-256 hash that used as invite hash
+   * @returns invitation hash as string.
    */
   public static generateInviteHash(): string {
     return crypto
@@ -106,6 +107,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * Checks is provided document represents pending member
    *
    * @param doc - doc to check
+   * @returns status of is current member pending.
    */
   public static isPendingMember(doc: MemberDBScheme): doc is PendingMemberDBScheme {
     return !!(doc as PendingMemberDBScheme).userEmail && !(doc as ConfirmedMemberDBScheme).userId;
@@ -427,6 +429,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Due date of the current workspace tariff plan
+   * @returns Date object of due date.
    */
   public getTariffPlanDueDate(): Date {
     const lastChargeDate = new Date(this.lastChargeDate);
@@ -435,7 +438,8 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   }
 
   /**
-   * Is tariff plan expired or not
+   * Is tariff plan expired or not.
+   * @returns current status of tariff plan.
    */
   public isTariffPlanExpired(): boolean {
     const date = new Date();

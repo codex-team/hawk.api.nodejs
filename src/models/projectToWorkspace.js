@@ -15,7 +15,7 @@ const { ObjectID } = require('mongodb');
 class ProjectToWorkspace {
   /**
    * Creates an instance of ProjectToWorkspace
-   * @param {string|ObjectID} workspaceId
+   * @param {string|ObjectID} workspaceId workspace.
    */
   constructor(workspaceId) {
     this.workspaceId = new ObjectID(workspaceId);
@@ -53,6 +53,9 @@ class ProjectToWorkspace {
   async findById(projectWorkspaceId) {
     const projectWorkspace = await this.collection.findOne({
       _id: new ObjectID(projectWorkspaceId),
+      isRemoved: {
+        $ne: true,
+      },
     });
 
     if (!projectWorkspace) {

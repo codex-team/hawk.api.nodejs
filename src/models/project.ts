@@ -194,6 +194,7 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
 
   /**
    * Generates integration ID that's used in collector URL for sending events
+   * @returns integration ID as string.
    */
   public static generateIntegrationId(): string {
     return uuid.v4();
@@ -203,6 +204,7 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * Generates new integration token with integration id field
    *
    * @param integrationId - integration id for using in collector URL
+   * @returns  generated integration token.
    */
   public static generateIntegrationToken(integrationId: string): string {
     const secret = uuid.v4();
