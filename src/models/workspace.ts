@@ -287,13 +287,15 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * @param planId - id of plan to be enabled
    */
   public async changePlan(planId: ObjectId | string): Promise<number> {
+    this.tariffPlanId = new ObjectId(planId);
+
     return (await this.collection.updateOne(
       {
         _id: new ObjectId(this._id),
       },
       {
         $set: {
-          tariffPlanId: new ObjectId(planId),
+          tariffPlanId: this.tariffPlanId,
           billingPeriodEventsCount: 0,
           isBlocked: false,
           lastChargeDate: new Date(),
