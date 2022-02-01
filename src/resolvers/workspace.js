@@ -125,7 +125,7 @@ module.exports = {
         .digest('hex');
 
       const inviteLink = `${process.env.GARAGE_URL}/join/${workspaceId}/${linkHash}`;
-      console.log(inviteLink);
+
       await emailNotification({
         type: SenderWorkerTaskType.WorkspaceInvite,
         payload: {
@@ -154,6 +154,10 @@ module.exports = {
       const currentUser = await factories.usersFactory.findById(user.id);
       const workspace = await factories.workspacesFactory.findByInviteHash(inviteHash);
 
+      if (!workspace) {
+        throw new ApolloError('There is no workspace with provided id');
+      }
+
       if (await workspace.getMemberInfo(user.id)) {
         throw new ApolloError('You are already member of this workspace');
       }
@@ -181,6 +185,10 @@ module.exports = {
     async confirmInvitation(_obj, { inviteHash, workspaceId }, { user, factories }) {
       const currentUser = await factories.usersFactory.findById(user.id);
       const workspace = await factories.workspacesFactory.findById(workspaceId);
+
+      if (!workspace) {
+        throw new ApolloError('There is no workspace with provided id');
+      }
 
       const hash = crypto
         .createHash('sha256')
@@ -346,9 +354,32 @@ module.exports = {
       const membersInfo = (await workspaceModel.getMembers());
 
       for (const member of membersInfo) {
-        const userModel = await factories.usersFactory.findById(member.userId.toString());
+        /**
+         * remove members from workspace.
+         */
+        if (member.userId) {
+          const userModel = await factories.usersFactory.findById(member.userId.toString());
 
-        await userModel.markWorkspaceAsRemoved(workspaceId.toString());
+          await userModel.markWorkspaceAsRemoved(workspaceId.toString());
+        }
+        /**
+         * remove the members who's invitation is pending.
+         */
+        if (member.userEmail) {
+          const invitedUser = await factories.usersFactory.findByEmail(member.userEmail);
+
+          /**
+           * If user is already uses Hawk
+           */
+          if (invitedUser) {
+            await invitedUser.removeWorkspace(workspaceId);
+          }
+
+          /**
+           * Remove User's invitation from workspace.
+           */
+          await workspaceModel.removeMemberByEmail(member.userEmail);
+        }
       }
 
       const projectToWorkspace = new ProjectToWorkspace(workspaceId.toString());
@@ -435,6 +466,7 @@ module.exports = {
 
     /**
      * Return empty object to call resolver for specific mutation
+     * @returns Empty object.
      */
     workspace: () => ({}),
   },
@@ -524,6 +556,7 @@ module.exports = {
     /**
      * Returns type of the team member
      * @param {MemberDBScheme} memberData - result from resolver above
+     * @returns type of member.
      */
     __resolveType(memberData) {
       return WorkspaceModel.isPendingMember(memberData) ? 'PendingMember' : 'ConfirmedMember';
@@ -539,6 +572,7 @@ module.exports = {
      * @param {ConfirmedMemberDBScheme} memberData - result from resolver above
      * @param _args - empty list of args
      * @param {ContextFactories} factories - factories for working with models
+     * @returns user data of the workspace
      */
     user(memberData, _args, { factories }) {
       return factories.usersFactory.findById(memberData.userId.toString());
@@ -547,6 +581,7 @@ module.exports = {
     /**
      * True if user has admin permissions
      * @param {ConfirmedMemberDBScheme} memberData - result from resolver above
+     * @returns status of is user admin
      */
     isAdmin(memberData) {
       return !WorkspaceModel.isPendingMember(memberData) && (memberData.isAdmin || false);
