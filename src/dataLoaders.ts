@@ -83,6 +83,9 @@ export default class DataLoaders {
     const queryResult = await this.dbConnection.collection(collectionName)
       .find({
         [fieldName]: { $in: values },
+        isRemoved: {
+          $ne: true,
+        },
       })
       .toArray();
 
