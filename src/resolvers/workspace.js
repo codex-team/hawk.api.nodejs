@@ -199,13 +199,8 @@ module.exports = {
         throw new ApolloError('The link is broken');
       }
 
-      const membershipExists = await workspace.confirmMembership(currentUser);
-
-      if (membershipExists) {
-        await currentUser.confirmMembership(workspaceId);
-      } else {
-        await currentUser.addWorkspace(workspaceId);
-      }
+      await workspace.confirmMembership(currentUser);
+      await currentUser.addWorkspace(workspaceId);
 
       return {
         recordId: workspace._id.toString(),
