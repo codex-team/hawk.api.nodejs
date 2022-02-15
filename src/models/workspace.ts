@@ -230,41 +230,33 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    *
    * @param member - member for whom confirm membership
    */
-  public async confirmMembership(member: UserModel): Promise<boolean> {
-    const { matchedCount, modifiedCount } = await this.collection.updateOne(
-      {
-        userId: new ObjectId(member._id.toString()),
-      },
-      { $unset: { isPending: '' } }
-    );
-
-    const isUserAlreadyConfirmedInvitation = matchedCount > 0 && modifiedCount === 0;
+  public async confirmMembership(member: UserModel): Promise<void> {
+    /**
+     * Check if user is already a member of workspace or not.
+     */
+    const isUserAlreadyConfirmedInvitation = await this.teamCollection.findOne({
+      userId: new ObjectId(member._id.toString()),
+    });
 
     if (isUserAlreadyConfirmedInvitation) {
       throw new Error('User is already confirmed the invitation');
     }
 
     /**
-     * In case user was invited via email instead of invite link
+     * If user is not member of workspace
+     * then edit team collection.
      */
-    if (matchedCount === 0) {
-      await this.collection.updateOne(
-        {
-          userEmail: member.email,
+    await this.teamCollection.updateOne(
+      {
+        userEmail: member.email,
+      },
+      {
+        $set: { userId: new ObjectId(member._id.toString()) },
+        $unset: {
+          userEmail: '',
         },
-        {
-          $set: { userId: new ObjectId(member._id.toString()) },
-          $unset: {
-            userEmail: '',
-            isPending: '',
-          },
-        }
-      );
-
-      return false;
-    }
-
-    return true;
+      }
+    );
   }
 
   /**
