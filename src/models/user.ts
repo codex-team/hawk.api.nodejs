@@ -230,7 +230,6 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
 
   /**
    * Update user profile data
-   * @param userId - user ID
    * @param  user – user object
    */
   public async updateProfile(user: Partial<UserDBScheme>): Promise<void> {
@@ -239,6 +238,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       email: true,
       image: true,
       notifications: true,
+      'notifications.channels.email.endpoint': true
     })) {
       throw new Error('User object has invalid properties');
     }
@@ -249,6 +249,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
         user
       );
     } catch (e) {
+      console.error(e);
       throw new Error('Can\'t update profile');
     }
   }
