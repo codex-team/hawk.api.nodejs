@@ -60,7 +60,7 @@ export default {
           priority: TaskPriorities.IMPORTANT,
         });
 
-        telegram.sendMessage('🚶 User signed up');
+        telegram.sendMessage(`🚶 User "${email}" signed up`);
 
         return isE2E ? password : true;
       } catch (e) {

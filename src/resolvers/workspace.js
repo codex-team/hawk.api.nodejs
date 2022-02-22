@@ -163,7 +163,7 @@ module.exports = {
       await workspace.addMember(currentUser._id.toString());
       await currentUser.addWorkspace(workspace._id.toString());
 
-      telegram.sendMessage(`🤝 User "${user?.email || user?.name}" joined to "${workspace?.name}"`);
+      telegram.sendMessage(`🤝 User "${user.email || user.name}" joined to "${workspace.name}"`);
 
       return {
         recordId: workspace._id.toString(),
@@ -460,9 +460,9 @@ module.exports = {
           {
             _id: user.id,
             userId: user.id,
-            isAdmin: true
-          }
-        ]
+            isAdmin: true,
+          },
+        ];
       }
 
       const workspaceModel = await factories.workspacesFactory.findById(workspaceData._id.toString());

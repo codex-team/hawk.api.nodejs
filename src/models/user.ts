@@ -238,7 +238,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       email: true,
       image: true,
       notifications: true,
-      'notifications.channels.email.endpoint': true
+      'notifications.channels.email.endpoint': true,
     })) {
       throw new Error('User object has invalid properties');
     }
