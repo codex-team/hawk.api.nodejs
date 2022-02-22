@@ -6,6 +6,7 @@ const EventsFactory = require('../models/eventsFactory');
 const ProjectToWorkspace = require('../models/projectToWorkspace');
 const { dateFromObjectId } = require('../utils/dates');
 const ProjectModel = require('../models/project').default;
+import * as telegram from '../utils/telegram';
 
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
@@ -85,6 +86,8 @@ module.exports = {
         name: REPETITIONS_USER_ID_INDEX_NAME,
         sparse: true,
       });
+
+      telegram.sendMessage(`🤯 Project ${name} was created`);
 
       return project;
     },

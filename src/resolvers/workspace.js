@@ -70,6 +70,8 @@ module.exports = {
 
         const ownerModel = await factories.usersFactory.findById(user.id);
 
+        telegram.sendMessage(`🌌 Workspace "${name}" was created`);
+
         return await factories.workspacesFactory.create(options, ownerModel);
       } catch (err) {
         console.log('\nლ(´ڡ`ლ) Error [resolvers:workspace:createWorkspace]: \n\n', err, '\n\n');

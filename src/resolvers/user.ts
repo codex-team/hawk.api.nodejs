@@ -9,6 +9,7 @@ import { TaskPriorities, emailNotification } from '../utils/emailNotifications';
 import isE2E from '../utils/isE2E';
 import { dateFromObjectId } from '../utils/dates';
 import { UserDBScheme } from '@hawk.so/types';
+import * as telegram from '../utils/telegram';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -58,6 +59,8 @@ export default {
         }, {
           priority: TaskPriorities.IMPORTANT,
         });
+
+        telegram.sendMessage('🚶 User signed up');
 
         return isE2E ? password : true;
       } catch (e) {
