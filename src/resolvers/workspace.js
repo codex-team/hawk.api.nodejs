@@ -447,7 +447,20 @@ module.exports = {
      * @param {ContextFactories} factories - factories for working with models
      * @return {Promise<MemberDBScheme[]>}
      */
-    async team(workspaceData, _args, { factories }) {
+    async team(workspaceData, _args, { factories, user }) {
+      /**
+       * Crunch for Demo Workspace
+       */
+      if (workspaceData._id.toString() === '6213b6a01e6281087467cc7a') {
+        return [
+          {
+            _id: user.id,
+            userId: user.id,
+            isAdmin: true
+          }
+        ]
+      }
+
       const workspaceModel = await factories.workspacesFactory.findById(workspaceData._id.toString());
 
       return workspaceModel.getMembers();
