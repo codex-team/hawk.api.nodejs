@@ -1,3 +1,4 @@
+import * as telegram from '../utils/telegram';
 const mongo = require('../mongo');
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
@@ -85,6 +86,8 @@ module.exports = {
         name: REPETITIONS_USER_ID_INDEX_NAME,
         sparse: true,
       });
+
+      telegram.sendMessage(`🤯 Project ${name} was created`);
 
       return project;
     },
