@@ -69,7 +69,7 @@ module.exports = {
       /**
        * Crutch for Demo Workspace
        */
-      const project = await factories.projectsFactory.findById(projectId)
+      const project = await factories.projectsFactory.findById(projectId);
 
       if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
         return [ await factories.usersFactory.findById(user.id) ];
