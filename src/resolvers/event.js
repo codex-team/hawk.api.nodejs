@@ -65,7 +65,16 @@ module.exports = {
      * @param factories - factories for working with models
      * @return {Promise<UserModel[]> | null}
      */
-    async visitedBy({ visitedBy }, _args, { factories }) {
+    async visitedBy({ visitedBy, projectId }, _args, { factories, user }) {
+      /**
+       * Crutch for Demo Workspace
+       */
+      const project = await factories.projectsFactory.findById(projectId)
+
+      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+        return [ await factories.usersFactory.findById(user.id) ];
+      }
+
       if (!visitedBy || !visitedBy.length) {
         return [];
       }
