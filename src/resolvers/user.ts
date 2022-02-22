@@ -192,11 +192,7 @@ export default {
         const options: {[key: string]: string | object} = {
           name,
           email,
-          notifications: {
-            channels: {
-              email: { endpoint: email },
-            },
-          },
+          'notifications.channels.email.endpoint': email,
         };
 
         if (image) {
@@ -205,7 +201,7 @@ export default {
 
         await currentUser!.updateProfile(options);
       } catch (err) {
-        throw new ApolloError('Something went wrong');
+        throw new ApolloError(err);
       }
 
       return true;
