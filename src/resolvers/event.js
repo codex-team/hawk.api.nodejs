@@ -67,7 +67,7 @@ module.exports = {
      */
     async visitedBy({ visitedBy, projectId }, _args, { factories, user }) {
       /**
-       * Crunch for Demo Workspace
+       * Crutch for Demo Workspace
        */
       const project = await factories.projectsFactory.findById(projectId)
 
