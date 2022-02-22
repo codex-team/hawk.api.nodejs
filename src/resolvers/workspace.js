@@ -163,7 +163,7 @@ module.exports = {
       await workspace.addMember(currentUser._id.toString());
       await currentUser.addWorkspace(workspace._id.toString());
 
-      telegram.sendMessage(`🤝 User "${user.email || user.name}" joined to "${workspace.name}"`);
+      telegram.sendMessage(`🤝 User "${currentUser.email || currentUser.name}" joined to "${workspace.name}"`);
 
       return {
         recordId: workspace._id.toString(),
