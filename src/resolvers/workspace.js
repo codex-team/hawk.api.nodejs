@@ -449,7 +449,7 @@ module.exports = {
      */
     async team(workspaceData, _args, { factories, user }) {
       /**
-       * Crunch for Demo Workspace
+       * Crutch for Demo Workspace
        */
       if (workspaceData._id.toString() === '6213b6a01e6281087467cc7a') {
         return [
