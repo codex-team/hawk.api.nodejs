@@ -120,6 +120,10 @@ module.exports = {
         throw new ApolloError('There is no project with that id');
       }
 
+      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+        throw new ApolloError('Unable to update demo project');
+      }
+
       try {
         const options = {
           name,
@@ -190,7 +194,7 @@ module.exports = {
       }
 
       if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
-        throw new ApolloError('Can\'t remove demo project', err);
+        throw new ApolloError('Unable to remove demo project');
       }
 
       const workspaceModel = await factories.workspacesFactory.findById(project.workspaceId.toString());
