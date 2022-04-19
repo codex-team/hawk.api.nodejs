@@ -32,6 +32,7 @@
     "typescript": "^3.7.5"
   },
   "dependencies": {
+    "@amplitude/node": "^1.10.0",
     "@hawk.so/nodejs": "^3.1.1",
     "@hawk.so/types": "^0.1.18",
     "@types/amqp-connection-manager": "^2.0.4",
