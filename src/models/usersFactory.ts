@@ -3,6 +3,7 @@ import UserModel from './user';
 import { Collection, Db } from 'mongodb';
 import DataLoaders from '../dataLoaders';
 import { UserDBScheme } from '@hawk.so/types';
+import { Analytics, AnalyticsEventTypes } from '../utils/analytics';
 
 /**
  * Users factory to work with User Model
@@ -79,6 +80,12 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
     });
 
     user.generatedPassword = generatedPassword;
+
+    await Analytics.logEvent({
+      event_type: AnalyticsEventTypes.NEW_USER_REGISTERED,
+      user_id: userId.toString(),
+      time: Date.now(),
+    });
 
     return user;
   }
