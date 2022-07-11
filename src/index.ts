@@ -18,7 +18,6 @@ import DataLoaders from './dataLoaders';
 import HawkCatcher from '@hawk.so/nodejs';
 import { express as voyagerMiddleware } from 'graphql-voyager/middleware';
 import Accounting from 'codex-accounting-sdk';
-import Billing from './billing';
 import bodyParser from 'body-parser';
 
 import UploadImageDirective from './directives/uploadImageDirective';
@@ -96,10 +95,6 @@ class HawkAPI {
       req.context = await HawkAPI.createContext({ req } as ExpressContext);
       next();
     });
-
-    const billing = new Billing();
-
-    billing.appendRoutes(this.app);
 
     initializeStrategies();
 
@@ -180,7 +175,6 @@ class HawkAPI {
    * Creates request context
    * @param req - Express request
    * @param connection - websocket connection (for subscriptions)
-   * @param billing - hawk billing
    */
   private static async createContext({ req, connection }: ExpressContext): Promise<ResolverContextBase> {
     let userId: string | undefined;

@@ -10,7 +10,6 @@ const event = require('./event');
 const plans = require('./plans').default;
 const projectNotifications = require('./projectNotifications').default;
 const userNotifications = require('./userNotifications').default;
-const billing = require('./billingNew').default;
 const EncodedJSON = require('./encodedJSON').default;
 const seed = require('./seed').default;
 
@@ -69,7 +68,6 @@ const resolvers = [
   projectNotifications,
   userNotifications,
   plans,
-  billing,
 ];
 
 if (isE2E) {

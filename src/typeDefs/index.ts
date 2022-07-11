@@ -1,6 +1,5 @@
 import { gql, concatenateTypeDefs } from 'apollo-server-express';
 
-import billing from './billing';
 import event from './event';
 import notifications from './notifications';
 import notificationsInput from './notificationsInput';
@@ -120,7 +119,6 @@ const rootSchema = gql`
 
 const typeDefinitions = [
   rootSchema,
-  billing,
   event,
   notifications,
   notificationsInput,

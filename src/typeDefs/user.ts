@@ -49,11 +49,6 @@ export default gql`
     User notifications settings
     """
     notifications: UserNotificationsSettings
-
-    """
-    Saved bank cards for one-click payments
-    """
-    bankCards: [BankCard!]
   }
 
   extend type Query {

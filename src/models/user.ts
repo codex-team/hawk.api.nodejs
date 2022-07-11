@@ -6,8 +6,7 @@ import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
-import { BankCard, UserDBScheme } from '@hawk.so/types';
-import uuid from 'uuid/v4';
+import { UserDBScheme } from '@hawk.so/types';
 
 /**
  * Utility type for making specific fields optional
@@ -129,11 +128,6 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * User notifications settings
    */
   public notifications!: UserNotificationsDBScheme;
-
-  /**
-   * Saved bank cards for one-click payments
-   */
-  public bankCards?: BankCard[]
 
   /**
    * Model's collection
@@ -364,31 +358,5 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
     const membershipDocuments = await this.membershipCollection.find(searchQuery).toArray();
 
     return membershipDocuments.map(doc => doc.workspaceId.toString());
-  }
-
-  /**
-   * Saves new back card of the user
-   * @param cardData - card data to save
-   */
-  public async saveNewBankCard(cardData: PartialBy<BankCard, 'id'>): Promise<void> {
-    const userWithProvidedCard = await this.collection.findOne({
-      _id: this._id,
-      'bankCards.token': cardData.token,
-    });
-
-    if (userWithProvidedCard) {
-      return;
-    }
-
-    await this.collection.updateOne({
-      _id: this._id,
-    }, {
-      $push: {
-        bankCards: {
-          id: uuid(),
-          ...cardData,
-        },
-      },
-    });
   }
 }
