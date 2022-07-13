@@ -2,7 +2,13 @@ import fs from 'fs';
 import path from 'path';
 import uuid from 'uuid';
 import mime from 'mime-types';
-import { Readable } from 'stream';
+import { Readable, PassThrough } from 'stream';
+import AWS from 'aws-sdk';
+
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY,
+});
 
 const uploadDirPath = process.env.UPLOAD_DIR || 'uploads';
 
@@ -17,6 +23,7 @@ export function createUploadsDir(): void {
   fs.mkdirSync(uploadDirPath);
 };
 
+
 /**
  * Save file to uploads dir
  *
@@ -25,8 +32,8 @@ export function createUploadsDir(): void {
  *
  * @return {string} - url to saved file
  */
-export function save(file: Readable, mimetype: string): string {
-  createUploadsDir();
+export async function save(file: Readable, mimetype: string): Promise<string> {
+  // createUploadsDir();
 
   const extension = mime.extension(mimetype);
   const name = uuid() + '.' + extension;
@@ -42,6 +49,19 @@ export function save(file: Readable, mimetype: string): string {
       writeStream.write(chunk);
     }
   });
+  const pass = new PassThrough();
+
+  file.pipe(pass);
+
+  if (process.env.AWS_S3_BUCKET_NAME) {
+    await s3.upload({
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: name,
+      Body: pass,
+    }).promise();
+  }
+  const baseurl = process.env.AWS_S3_BUCKET_BASE_URL || '';
+  console.log("uploaded image:", baseurl + '/' + name);
 
   return process.env.API_URL + path.join('/uploads', name);
 };
