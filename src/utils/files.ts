@@ -8,6 +8,8 @@ import AWS from 'aws-sdk';
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY,
+  s3BucketEndpoint: true,
+  endpoint: process.env.AWS_S3_BUCKET_ENDPOINT,
 });
 
 const uploadDirPath = process.env.UPLOAD_DIR || 'uploads';
@@ -63,5 +65,5 @@ export async function save(file: Readable, mimetype: string): Promise<string> {
   const baseurl = process.env.AWS_S3_BUCKET_BASE_URL || '';
   console.log("uploaded image:", baseurl + '/' + name);
 
-  return process.env.API_URL + path.join('/uploads', name);
+  return baseurl + path.join('/', name);
 };
