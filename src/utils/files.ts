@@ -1,69 +1,61 @@
-import fs from 'fs';
 import path from 'path';
 import uuid from 'uuid';
 import mime from 'mime-types';
 import { Readable, PassThrough } from 'stream';
-import AWS from 'aws-sdk';
-
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY,
-  s3BucketEndpoint: true,
-  endpoint: process.env.AWS_S3_BUCKET_ENDPOINT,
-});
-
-const uploadDirPath = process.env.UPLOAD_DIR || 'uploads';
+import S3 from 'aws-sdk/clients/s3';
 
 /**
- * Creates upload dir in project root
+ * Initialize the AWS bucket connection.
  */
-export function createUploadsDir(): void {
-  if (fs.existsSync(uploadDirPath)) {
-    return;
-  }
+let s3Client: S3;
 
-  fs.mkdirSync(uploadDirPath);
-};
-
+if (process.env.AWS_S3_ACCESS_KEY_ID && process.env.AWS_S3_SECRET_ACCESS_KEY && process.env.AWS_S3_BUCKET_ENDPOINT) {
+  s3Client = new S3({
+    accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY,
+    s3BucketEndpoint: true,
+    endpoint: process.env.AWS_S3_BUCKET_ENDPOINT,
+  });
+} else {
+  console.log('\n [Error] [Image upload] Check the AWS S3 bucket environmental variables. \n\n');
+}
 
 /**
- * Save file to uploads dir
+ * Save file to AWS S3 bucket.
  *
  * @param {Readable} file - ReadStream with file contents
  * @param {string} mimetype - file mimetype
  *
- * @return {string} - url to saved file
+ * @return {Promise<string>} - bucket url of saved file.
  */
 export async function save(file: Readable, mimetype: string): Promise<string> {
-  // createUploadsDir();
+  /**
+   * Return if bucket name, base url and s3 client is not initialized.
+   */
+  if (!process.env.AWS_S3_BUCKET_NAME) {
+    console.log('\n [Error] [Image upload] Check the AWS S3 bucket environmental variables. \n\n');
 
+    return '';
+  }
+  if (!process.env.AWS_S3_BUCKET_BASE_URL && !s3Client) {
+    console.log('\n [Error] [Image upload] Check the AWS S3 bucket environmental variables. \n\n');
+
+    return '';
+  }
   const extension = mime.extension(mimetype);
   const name = uuid() + '.' + extension;
-
-  const uploadPath = path.join(uploadDirPath, name);
-
-  const writeStream = fs.createWriteStream(uploadPath);
-
-  file.on('readable', () => {
-    let chunk: string;
-
-    while ((chunk = file.read()) !== null) {
-      writeStream.write(chunk);
-    }
-  });
   const pass = new PassThrough();
 
+  /**
+   * Pipe the readable stream to passthrough stream.
+   */
   file.pipe(pass);
 
-  if (process.env.AWS_S3_BUCKET_NAME) {
-    await s3.upload({
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Key: name,
-      Body: pass,
-    }).promise();
-  }
-  const baseurl = process.env.AWS_S3_BUCKET_BASE_URL || '';
-  console.log("uploaded image:", baseurl + '/' + name);
+  await s3Client.upload({
+    Bucket: process.env.AWS_S3_BUCKET_NAME,
+    Key: name,
+    Body: pass,
+  }).promise();
 
-  return baseurl + path.join('/', name);
+  return process.env.AWS_S3_BUCKET_BASE_URL + path.join('/', name);
 };
