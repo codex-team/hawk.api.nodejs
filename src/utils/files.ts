@@ -10,12 +10,18 @@ import S3 from 'aws-sdk/clients/s3';
 let s3Client: S3;
 
 if (process.env.AWS_S3_ACCESS_KEY_ID && process.env.AWS_S3_SECRET_ACCESS_KEY) {
-  s3Client = new S3({
+  const s3Config: S3.ClientConfiguration = {
     accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY,
-    s3BucketEndpoint: !!process.env.AWS_S3_BUCKET_ENDPOINT,
-    endpoint: process.env.AWS_S3_BUCKET_ENDPOINT,
-  });
+    s3BucketEndpoint: false,
+  };
+
+  if (process.env.AWS_S3_BUCKET_ENDPOINT) {
+    s3Config.s3BucketEndpoint = true;
+    s3Config.endpoint = process.env.AWS_S3_BUCKET_ENDPOINT;
+  }
+
+  s3Client = new S3(s3Config);
 } else {
   console.log('\n [Error] [Image upload] Check the AWS S3 bucket environmental variables. \n\n');
 }
