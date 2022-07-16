@@ -9,11 +9,11 @@ import S3 from 'aws-sdk/clients/s3';
  */
 let s3Client: S3;
 
-if (process.env.AWS_S3_ACCESS_KEY_ID && process.env.AWS_S3_SECRET_ACCESS_KEY && process.env.AWS_S3_BUCKET_ENDPOINT) {
+if (process.env.AWS_S3_ACCESS_KEY_ID && process.env.AWS_S3_SECRET_ACCESS_KEY) {
   s3Client = new S3({
     accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY,
-    s3BucketEndpoint: true,
+    s3BucketEndpoint: !!process.env.AWS_S3_BUCKET_ENDPOINT,
     endpoint: process.env.AWS_S3_BUCKET_ENDPOINT,
   });
 } else {
