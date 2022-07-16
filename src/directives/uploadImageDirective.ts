@@ -25,7 +25,7 @@ export default class UploadImageDirective extends SchemaDirectiveVisitor {
       if (args[argument.name]) {
         const imageMeta = await (args[argument.name] as Promise<FileUpload>);
 
-        args[argument.name] = save(imageMeta.createReadStream(), imageMeta.mimetype);
+        args[argument.name] = await save(imageMeta.createReadStream(), imageMeta.mimetype);
       }
 
       return resolve.call(this, object, args, context, info);
