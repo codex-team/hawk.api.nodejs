@@ -1,7 +1,6 @@
 import { SchemaDirectiveVisitor } from 'apollo-server-express';
 import { defaultFieldResolver, GraphQLArgument, GraphQLField, GraphQLInterfaceType, GraphQLObjectType } from 'graphql';
 import { save } from '../utils/files';
-import { FileUpload } from 'graphql-upload';
 
 /**
  * Defines directive uploading images
@@ -23,7 +22,7 @@ export default class UploadImageDirective extends SchemaDirectiveVisitor {
 
     details.field.resolve = async (object, args, context, info): Promise<void> => {
       if (args[argument.name]) {
-        const imageMeta = await (args[argument.name] as Promise<FileUpload>);
+        const imageMeta = await (args[argument.name] as Promise<any>);
 
         args[argument.name] = await save(imageMeta.createReadStream(), imageMeta.mimetype);
       }
