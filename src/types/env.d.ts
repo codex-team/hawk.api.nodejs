@@ -27,3 +27,6 @@ declare namespace NodeJS {
     JWT_SECRET_AUTH: string;
   }
 }
+
+declare module 'graphql-upload';
+

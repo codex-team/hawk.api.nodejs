@@ -3,7 +3,6 @@ import PlanModel from '../models/plan';
 import * as telegram from '../utils/telegram';
 import HawkCatcher from '@hawk.so/nodejs';
 import escapeHTML from 'escape-html';
-import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import { emailNotification, TaskPriorities } from '../utils/emailNotifications';
 import { SenderWorkerTaskType } from '../types/userNotifications';
 import ProjectToWorkspace from '../models/projectToWorkspace';

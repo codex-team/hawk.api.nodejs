@@ -5,8 +5,6 @@ import * as mongo from './mongo';
 import * as rabbitmq from './rabbitmq';
 import jwt, { Secret } from 'jsonwebtoken';
 import http from 'http';
-import { initializeStrategies } from './passport';
-import { authRouter } from './auth';
 import resolvers from './resolvers';
 import typeDefs from './typeDefs';
 import { ExpressContext } from 'apollo-server-express/dist/ApolloServer';
@@ -16,7 +14,6 @@ import { GraphQLError } from 'graphql';
 import WorkspacesFactory from './models/workspacesFactory';
 import DataLoaders from './dataLoaders';
 import HawkCatcher from '@hawk.so/nodejs';
-import { express as voyagerMiddleware } from 'graphql-voyager/middleware';
 import bodyParser from 'body-parser';
 
 import UploadImageDirective from './directives/uploadImageDirective';
@@ -82,10 +79,7 @@ class HawkAPI {
     });
     this.app.use(express.json());
     this.app.use(bodyParser.urlencoded({ extended: false }));
-    this.app.use('/uploads', express.static(`./${process.env.UPLOADS_DIR || 'uploads'}`));
     this.app.use('/static', express.static(`./static`));
-    this.app.use('/voyager', voyagerMiddleware({ endpointUrl: '/graphql' }));
-    this.app.use(authRouter);
 
     /**
      * Add context to the express request object to use its methods in any requests
@@ -94,8 +88,6 @@ class HawkAPI {
       req.context = await HawkAPI.createContext({ req } as ExpressContext);
       next();
     });
-
-    initializeStrategies();
 
     this.server = new ApolloServer({
       typeDefs,
@@ -111,11 +103,6 @@ class HawkAPI {
         default: DefaultValueDirective,
         validate: ValidateDirective,
         requireUserInWorkspace: RequireUserInWorkspaceDirective,
-      },
-      subscriptions: {
-        path: '/subscriptions',
-        onConnect: (connectionParams): { headers: { authorization: string } } =>
-          HawkAPI.onWebSocketConnection(connectionParams as Record<string, string>),
       },
       context: ({ req }): ResolverContextBase => req.context,
       formatError: (error): GraphQLError => {
@@ -215,21 +202,6 @@ class HawkAPI {
   }
 
   /**
-   * Fires when coming new Websocket connection
-   * Returns authorization headers for building request context
-   * @param connectionParams - websocket connection params (actually, headers only)
-   * @return - context for subscription request
-   */
-  private static onWebSocketConnection(connectionParams: Record<string, string>): { headers: { authorization: string } } {
-    return {
-      headers: {
-        authorization:
-          connectionParams['authorization'] || connectionParams['Authorization'],
-      },
-    };
-  }
-
-  /**
    * Start API server
    */
   public async start(): Promise<void> {
@@ -240,10 +212,6 @@ class HawkAPI {
       this.httpServer.listen({ port: this.serverPort }, () => {
         console.log(
           `🚀 Server ready at http://localhost:${this.serverPort}${this.server.graphqlPath
-          }`
-        );
-        console.log(
-          `🚀 Subscriptions ready at ws://localhost:${this.serverPort}${this.server.subscriptionsPath
           }`
         );
         resolve();
