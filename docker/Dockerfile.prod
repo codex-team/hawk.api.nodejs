@@ -1,7 +1,7 @@
 FROM node:12-alpine as builder
 
 WORKDIR /usr/src/app
-RUN apk add --no-cache git gcc g++ python make musl-dev
+RUN apk add --no-cache git gcc g++ python3 make musl-dev
 
 COPY package.json yarn.lock ./
 
