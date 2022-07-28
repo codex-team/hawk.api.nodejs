@@ -1,5 +1,4 @@
 import WorkspaceModel from '../models/workspace';
-import { AccountType, Currency } from 'codex-accounting-sdk/types';
 import PlanModel from '../models/plan';
 import * as telegram from '../utils/telegram';
 import HawkCatcher from '@hawk.so/nodejs';
@@ -43,20 +42,11 @@ module.exports = {
      * @param {string} image - workspace image
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
-     * @param {Accounting} accounting - SDK for creating account for new workspace
      *
      * @return {WorkspaceModel} created workspace
      */
-    async createWorkspace(_obj, { name, description, image }, { user, factories, accounting }) {
+    async createWorkspace(_obj, { name, description, image }, { user, factories }) {
       try {
-        // Create workspace account and set account id to workspace
-        const accountResponse = await accounting.createAccount({
-          name: 'WORKSPACE:' + name,
-          type: AccountType.LIABILITY,
-          currency: Currency.USD,
-        });
-
-        const accountId = accountResponse.recordId;
 
         /**
          * @type {WorkspaceDBScheme}
@@ -65,7 +55,7 @@ module.exports = {
           name,
           description,
           image,
-          accountId,
+          accountId: '0',
         };
 
         const ownerModel = await factories.usersFactory.findById(user.id);

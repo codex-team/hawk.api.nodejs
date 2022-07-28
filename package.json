@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "main": "index.ts",
   "license": "UNLICENSED",
   "scripts": {
@@ -15,17 +15,14 @@
     "migrations:create": "docker-compose exec api yarn migrate-mongo create",
     "migrations:up": "docker-compose exec api yarn migrate-mongo up",
     "migrations:down": "docker-compose exec api yarn migrate-mongo down",
-    "test": "jest --coverage",
-    "test:integration": "docker-compose -f docker-compose.test.yml up --exit-code-from tests tests"
+    "test": "jest --coverage"
   },
   "devDependencies": {
-    "@shelf/jest-mongodb": "^1.2.2",
     "@types/jest": "^26.0.8",
     "eslint": "^6.7.2",
     "eslint-config-codex": "1.2.4",
     "eslint-plugin-import": "^2.19.1",
     "jest": "^26.2.2",
-    "mongodb-memory-server": "^6.6.1",
     "nodemon": "^2.0.2",
     "ts-jest": "^26.1.4",
     "ts-node": "^8.6.2",
@@ -51,8 +48,6 @@
     "aws-sdk": "^2.1174.0",
     "axios": "^0.21.2",
     "body-parser": "^1.19.0",
-    "cloudpayments": "^5.0.4",
-    "codex-accounting-sdk": "https://github.com/codex-team/codex-accounting-sdk/",
     "copyfiles": "^2.1.1",
     "dataloader": "^2.0.0",
     "dotenv": "^8.2.0",
