@@ -17,8 +17,6 @@ import WorkspacesFactory from './models/workspacesFactory';
 import DataLoaders from './dataLoaders';
 import HawkCatcher from '@hawk.so/nodejs';
 import { express as voyagerMiddleware } from 'graphql-voyager/middleware';
-import Accounting from 'codex-accounting-sdk';
-import Billing from './billing';
 import bodyParser from 'body-parser';
 
 import UploadImageDirective from './directives/uploadImageDirective';
@@ -96,10 +94,6 @@ class HawkAPI {
       req.context = await HawkAPI.createContext({ req } as ExpressContext);
       next();
     });
-
-    const billing = new Billing();
-
-    billing.appendRoutes(this.app);
 
     initializeStrategies();
 
@@ -211,37 +205,12 @@ class HawkAPI {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const dataLoader = new DataLoaders(mongo.databases.hawk!);
 
-    /**
-     * Initializing accounting SDK
-     */
-    let tlsVerify;
-
-    /**
-     * Checking env variables
-     * If at least one path is not transmitted, the variable tlsVerify is undefined
-     */
-    if (
-      ![process.env.TLS_CA_CERT, process.env.TLS_CERT, process.env.TLS_KEY].some(value => value === undefined || value.length === 0)
-    ) {
-      tlsVerify = {
-        tlsCaCertPath: `${process.env.TLS_CA_CERT}`,
-        tlsCertPath: `${process.env.TLS_CERT}`,
-        tlsKeyPath: `${process.env.TLS_KEY}`,
-      };
-    }
-
-    const accounting = new Accounting({
-      baseURL: `${process.env.CODEX_ACCOUNTING_URL}`,
-      tlsVerify,
-    });
-
     return {
       factories: HawkAPI.setupFactories(dataLoader),
       user: {
         id: userId,
         accessTokenExpired: isAccessTokenExpired,
       },
-      accounting,
     };
   }
 
