@@ -34,11 +34,6 @@ const rootSchema = gql`
   directive @uploadImage on ARGUMENT_DEFINITION
 
   """
-  Directive for checking a field for empty space
-  """
-  directive @validate(notEmpty: Boolean, isEmail: Boolean) on ARGUMENT_DEFINITION
-
-  """
   Directive for checking user in workspace
   """
   directive @requireUserInWorkspace on FIELD_DEFINITION
