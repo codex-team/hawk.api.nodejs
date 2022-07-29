@@ -29,22 +29,6 @@ const rootSchema = gql`
   directive @requireAdmin on FIELD_DEFINITION
 
   """
-  Directive for field renaming
-  """
-  directive @renameFrom(
-    "Parent's field name"
-    name: String!
-  ) on FIELD_DEFINITION
-
- """
-  Directive for setting field default value
-  """
-  directive @default(
-    "Default field value encoded in JSON"
-    value: String!
-  ) on FIELD_DEFINITION
-
-  """
   Directive for automatically image uploading
   """
   directive @uploadImage on ARGUMENT_DEFINITION
