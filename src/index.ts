@@ -5,8 +5,6 @@ import * as mongo from './mongo';
 import * as rabbitmq from './rabbitmq';
 import jwt, { Secret } from 'jsonwebtoken';
 import http from 'http';
-import resolvers from './resolvers';
-import typeDefs from './typeDefs';
 import { ExpressContext } from 'apollo-server-express/dist/ApolloServer';
 import { ContextFactories, ResolverContextBase, UserJWTData } from './types/graphql';
 import UsersFactory from './models/usersFactory';
@@ -15,17 +13,12 @@ import WorkspacesFactory from './models/workspacesFactory';
 import DataLoaders from './dataLoaders';
 import HawkCatcher from '@hawk.so/nodejs';
 import bodyParser from 'body-parser';
-
-import UploadImageDirective from './directives/uploadImageDirective';
-import RequireAuthDirective from './directives/requireAuthDirective';
-import RequireAdminDirective from './directives/requireAdminDirective';
-import DefaultValueDirective from './directives/defaultValue';
-import ValidateDirective from './directives/validate';
-import RequireUserInWorkspaceDirective from './directives/requireUserInWorkspace';
+import { ApolloServerPluginLandingPageGraphQLPlayground, ApolloServerPluginLandingPageDisabled } from 'apollo-server-core';
 import ProjectsFactory from './models/projectsFactory';
 import { NonCriticalError } from './errors';
 import PlansFactory from './models/plansFactory';
 import BusinessOperationsFactory from './models/businessOperationsFactory';
+import schema from "./schema";
 
 /**
  * Option to enable playground
@@ -89,21 +82,25 @@ class HawkAPI {
       next();
     });
 
+
     this.server = new ApolloServer({
-      typeDefs,
+      schema,
       debug: process.env.NODE_ENV === 'development',
-      resolvers,
-      playground: PLAYGROUND_ENABLE,
       introspection: PLAYGROUND_ENABLE,
-      schemaDirectives: {
-        requireAuth: RequireAuthDirective,
-        renameFrom: require('./directives/renameFrom'),
-        uploadImage: UploadImageDirective,
-        requireAdmin: RequireAdminDirective,
-        default: DefaultValueDirective,
-        validate: ValidateDirective,
-        requireUserInWorkspace: RequireUserInWorkspaceDirective,
-      },
+      // schemaDirectives: {
+      //   requireAuth: RequireAuthDirective,
+      //   renameFrom: require('./directives_old/renameFrom'),
+      //   uploadImage: UploadImageDirective,
+      //   requireAdmin: RequireAdminDirective,
+      //   default: DefaultValueDirective,
+      //   validate: ValidateDirective,
+      //   requireUserInWorkspace: RequireUserInWorkspaceDirective,
+      // },
+      plugins: [
+        process.env.NODE_ENV === 'production'
+          ? ApolloServerPluginLandingPageDisabled()
+          : ApolloServerPluginLandingPageGraphQLPlayground(),
+        ],
       context: ({ req }): ResolverContextBase => req.context,
       formatError: (error): GraphQLError => {
         if (error.originalError instanceof NonCriticalError) {
@@ -119,13 +116,11 @@ class HawkAPI {
       },
     });
 
-    this.server.applyMiddleware({ app: this.app });
     /**
      * In apollo-server-express integration it is necessary to use existing HTTP server to use GraphQL subscriptions
      * {@see https://www.apollographql.com/docs/apollo-server/features/subscriptions/#subscriptions-with-additional-middleware}
      */
     this.httpServer = http.createServer(this.app);
-    this.server.installSubscriptionHandlers(this.httpServer);
   }
 
   /**
@@ -161,15 +156,12 @@ class HawkAPI {
    * Creates request context
    * @param req - Express request
    * @param connection - websocket connection (for subscriptions)
-   * @param billing - hawk billing
    */
-  private static async createContext({ req, connection }: ExpressContext): Promise<ResolverContextBase> {
+  private static async createContext({ req }: ExpressContext): Promise<ResolverContextBase> {
     let userId: string | undefined;
     let isAccessTokenExpired = false;
 
-    const authorizationHeader = connection
-      ? connection.context.headers.authorization
-      : req.headers.authorization;
+    const authorizationHeader = req.headers.authorization;
 
     if (
       authorizationHeader &&
@@ -207,6 +199,8 @@ class HawkAPI {
   public async start(): Promise<void> {
     await mongo.setupConnections();
     await rabbitmq.setupConnections();
+    await this.server.start();
+    this.server.applyMiddleware({ app: this.app });
 
     return new Promise((resolve) => {
       this.httpServer.listen({ port: this.serverPort }, () => {

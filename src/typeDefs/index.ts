@@ -1,4 +1,4 @@
-import { gql, concatenateTypeDefs } from 'apollo-server-express';
+import { gql } from 'apollo-server-express';
 
 import billing from './billing';
 import event from './event';
@@ -90,6 +90,11 @@ const rootSchema = gql`
   scalar Long
 
   """
+  Uploading file
+  """
+  scalar Upload
+
+  """
   Supported languages for data
   """
   enum Languages {
@@ -140,4 +145,4 @@ if (isE2E) {
   typeDefinitions.push(seed);
 }
 
-export default concatenateTypeDefs(typeDefinitions);
+export default typeDefinitions;
