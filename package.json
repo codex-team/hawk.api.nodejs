@@ -24,7 +24,7 @@
     "jest": "^26.2.2",
     "nodemon": "^2.0.2",
     "ts-jest": "^26.1.4",
-    "ts-node": "^8.6.2",
+    "ts-node": "^10.9.1",
     "typescript": "^3.7.5"
   },
   "dependencies": {
@@ -40,17 +40,17 @@
     "@types/mongodb": "^3.6.20",
     "@types/node": "^14.0.13",
     "@types/node-fetch": "^2.5.4",
-    "@types/uuid": "^3.4.6",
+    "@types/uuid": "^8.3.4",
     "amqp-connection-manager": "^3.1.0",
     "amqplib": "^0.5.5",
     "apollo-server-express": "^2.14.2",
-    "argon2": "^0.26.2",
+    "argon2": "^0.28.7",
     "aws-sdk": "^2.1174.0",
-    "axios": "^0.21.2",
+    "axios": "^0.27.2",
     "body-parser": "^1.19.0",
     "bson": "^4.6.5",
     "dataloader": "^2.0.0",
-    "dotenv": "^8.2.0",
+    "dotenv": "^16.0.1",
     "escape-html": "^1.0.3",
     "express": "^4.17.1",
     "graphql": "^14.5.8",
@@ -64,7 +64,7 @@
     "migrate-mongo": "^7.0.1",
     "mime-types": "^2.1.25",
     "mongodb": "^3.7.3",
-    "ts-node-dev": "^1.0.0-pre.44",
-    "uuid": "^3.3.3"
+    "ts-node-dev": "^2.0.0",
+    "uuid": "^8.3.2"
   }
 }
