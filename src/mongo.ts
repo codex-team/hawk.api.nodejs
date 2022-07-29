@@ -75,7 +75,7 @@ export async function setupConnections(): Promise<void> {
     databases.events = eventsMongoClient.db();
   } catch (e) {
     /** Catch start Mongo errors  */
-    HawkCatcher.send(e);
+    HawkCatcher.send(e as Error);
     throw e;
   }
 }

@@ -126,8 +126,8 @@ export async function publish(exchange: string, route: string, message: string, 
     await channel.publish(exchange, route, Buffer.from(message), options);
     debug(`Message sent: ${message}`);
   } catch (err) {
-    HawkCatcher.send(err);
-    console.log('Message was rejected:', err.stack);
+    HawkCatcher.send(err as Error);
+    console.log('Message was rejected:', (err as Error).stack);
   }
 }
 
