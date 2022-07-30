@@ -5,11 +5,13 @@ import renameFromDirective from "./directives/renameFrom";
 import { mergeTypeDefs } from '@graphql-tools/merge'
 import defaultValueDirective from "./directives/defaultValue";
 import validateDirective from "./directives/validate";
+import uploadImageDirective from "./directives/uploadImageDirective";
 
 
 const { renameFromDirectiveTypeDefs, renameFromDirectiveTransformer } = renameFromDirective()
 const { defaultValueDirectiveTypeDefs, defaultValueDirectiveTransformer } = defaultValueDirective()
 const { validateDirectiveTypeDefs, validateDirectiveTransformer } = validateDirective()
+const { uploadImageDirectiveTypeDefs, uploadImageDirectiveTransformer } = uploadImageDirective()
 
 
 let schema = makeExecutableSchema({
@@ -17,6 +19,7 @@ let schema = makeExecutableSchema({
     renameFromDirectiveTypeDefs,
     defaultValueDirectiveTypeDefs,
     validateDirectiveTypeDefs,
+    uploadImageDirectiveTypeDefs,
     ...typeDefs
   ]),
   resolvers,
@@ -25,5 +28,6 @@ let schema = makeExecutableSchema({
 schema = renameFromDirectiveTransformer(schema);
 schema = defaultValueDirectiveTransformer(schema);
 schema = validateDirectiveTransformer(schema);
+schema = uploadImageDirectiveTransformer(schema);
 
 export default schema;

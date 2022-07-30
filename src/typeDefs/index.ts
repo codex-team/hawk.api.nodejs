@@ -29,11 +29,6 @@ const rootSchema = gql`
   directive @requireAdmin on FIELD_DEFINITION
 
   """
-  Directive for automatically image uploading
-  """
-  directive @uploadImage on ARGUMENT_DEFINITION
-
-  """
   Directive for checking user in workspace
   """
   directive @requireUserInWorkspace on FIELD_DEFINITION

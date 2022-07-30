@@ -1,8 +1,12 @@
 const isE2E = require('../utils/isE2E').default;
 const { merge } = require('lodash');
-const { GraphQLDateTime } = require('graphql-iso-date');
-const { LongResolver, PositiveIntResolver } = require('graphql-scalars');
-const { GraphQLJSON, GraphQLJSONObject } = require('graphql-type-json');
+const {
+  LongResolver,
+  PositiveIntResolver,
+  DateTimeResolver,
+  JSONResolver,
+  JSONObjectResolver
+} = require('graphql-scalars');
 const user = require('./user').default;
 const workspace = require('./workspace');
 const project = require('./project');
@@ -42,13 +46,13 @@ const indexResolver = {
     health: () => 'ok',
   },
   // DateTime scalar resolver
-  DateTime: GraphQLDateTime,
+  DateTime: DateTimeResolver,
 
   // JSON values resolver
-  JSON: GraphQLJSON,
+  JSON: JSONResolver,
 
   // JSON object resolver
-  JSONObject: GraphQLJSONObject,
+  JSONObject: JSONObjectResolver,
 
   // Represents JSON objects encoded (or not) in string format
   EncodedJSON,
