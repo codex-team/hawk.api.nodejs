@@ -60,7 +60,7 @@
     "graphql": "^16.5.0",
     "graphql-scalars": "^1.17.0",
     "graphql-type-json": "^0.3.0",
-    "graphql-upload": "^16.0.0",
+    "graphql-upload": "^13",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.15",
     "migrate-mongo": "^7.0.1",

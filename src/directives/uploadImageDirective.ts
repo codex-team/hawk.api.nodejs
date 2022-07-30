@@ -25,7 +25,7 @@ export default function uploadImageDirective(directiveName = 'uploadImage') {
                     if (args[arg.name.value]) {
                       const imageMeta = await (args[arg.name.value] as Promise<any>);
 
-                      args[arg.name.value] = await save(imageMeta.createReadStream(), imageMeta.mimetype);
+                      args[arg.name.value] = await save(imageMeta.file.createReadStream(), imageMeta.mimetype);
                     }
                     return resolve(object, args, context, info);
                   };

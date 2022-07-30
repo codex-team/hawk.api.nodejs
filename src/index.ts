@@ -18,8 +18,8 @@ import ProjectsFactory from './models/projectsFactory';
 import { NonCriticalError } from './errors';
 import PlansFactory from './models/plansFactory';
 import BusinessOperationsFactory from './models/businessOperationsFactory';
-import schema from "./schema";
-// import {graphqlUploadExpress} from 'graphql-upload'
+import schema from './schema';
+import {graphqlUploadExpress} from 'graphql-upload'
 
 /**
  * Option to enable playground
@@ -86,13 +86,13 @@ class HawkAPI {
     this.server = new ApolloServer({
       schema,
       debug: process.env.NODE_ENV === 'development',
-      csrfPrevention: true,
+      // csrfPrevention: true,
       introspection: PLAYGROUND_ENABLE,
       plugins: [
         process.env.NODE_ENV === 'production'
           ? ApolloServerPluginLandingPageDisabled()
           : ApolloServerPluginLandingPageGraphQLPlayground(),
-        ],
+      ],
       context: ({ req }): ResolverContextBase => req.context,
       formatError: (error): GraphQLError => {
         if (error.originalError instanceof NonCriticalError) {
@@ -192,7 +192,7 @@ class HawkAPI {
     await mongo.setupConnections();
     await rabbitmq.setupConnections();
     await this.server.start();
-    // this.app.use(graphqlUploadExpress());
+    this.app.use(graphqlUploadExpress());
     this.server.applyMiddleware({ app: this.app });
 
     return new Promise((resolve) => {
