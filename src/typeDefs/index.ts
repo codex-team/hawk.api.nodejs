@@ -19,21 +19,6 @@ import isE2E from '../utils/isE2E';
 
 const rootSchema = gql`
   """
-  Access to the field only to authorized users
-  """
-  directive @requireAuth on FIELD_DEFINITION
-
-  """
-  Access to the field only for admins
-  """
-  directive @requireAdmin on FIELD_DEFINITION
-
-  """
-  Directive for checking user in workspace
-  """
-  directive @requireUserInWorkspace on FIELD_DEFINITION
-
-  """
   Type for date and time representation
   """
   scalar DateTime

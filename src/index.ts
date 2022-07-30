@@ -83,21 +83,11 @@ class HawkAPI {
       next();
     });
 
-
     this.server = new ApolloServer({
       schema,
       debug: process.env.NODE_ENV === 'development',
       csrfPrevention: true,
       introspection: PLAYGROUND_ENABLE,
-      // schemaDirectives: {
-      //   requireAuth: RequireAuthDirective,
-      //   renameFrom: require('./directives_old/renameFrom'),
-      //   uploadImage: UploadImageDirective,
-      //   requireAdmin: RequireAdminDirective,
-      //   default: DefaultValueDirective,
-      //   validate: ValidateDirective,
-      //   requireUserInWorkspace: RequireUserInWorkspaceDirective,
-      // },
       plugins: [
         process.env.NODE_ENV === 'production'
           ? ApolloServerPluginLandingPageDisabled()
