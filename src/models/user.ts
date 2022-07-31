@@ -7,7 +7,7 @@ import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
 import { BankCard, UserDBScheme } from '@hawk.so/types';
-import uuid from 'uuid/v4';
+import { v4 as uuid } from 'uuid';
 
 /**
  * Utility type for making specific fields optional

@@ -10,6 +10,7 @@ import isE2E from '../utils/isE2E';
 import { dateFromObjectId } from '../utils/dates';
 import { UserDBScheme } from '@hawk.so/types';
 import * as telegram from '../utils/telegram';
+import {MongoError} from "mongodb";
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -64,7 +65,7 @@ export default {
 
         return isE2E ? password : true;
       } catch (e) {
-        if (e.code.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
+        if ((e as MongoError).code?.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
           throw new AuthenticationError(
             'User with this email already registered'
           );
@@ -204,7 +205,7 @@ export default {
 
         await currentUser!.updateProfile(options);
       } catch (err) {
-        throw new ApolloError(err);
+        throw new ApolloError((err as Error).toString());
       }
 
       return true;

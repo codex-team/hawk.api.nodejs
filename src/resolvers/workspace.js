@@ -207,7 +207,6 @@ module.exports = {
      * @returns {Promise<Boolean>}
      */
     async updateWorkspace(_obj, { workspaceId, name, description, image }, { user, factories }) {
-      // @makeAnIssue Create directives for arguments validation
       if (!Validator.string(name)) {
         throw new UserInputError('Invalid name length');
       }

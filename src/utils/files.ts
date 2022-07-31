@@ -1,5 +1,5 @@
 import path from 'path';
-import uuid from 'uuid';
+import { v4 as uuid } from 'uuid';
 import mime from 'mime-types';
 import { Readable, PassThrough } from 'stream';
 import S3 from 'aws-sdk/clients/s3';
