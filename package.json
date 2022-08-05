@@ -5,14 +5,16 @@
   "scripts": {
     "compile": "tsc",
     "lint": "eslint \"**/*.ts\" --fix",
-    "lint:test": "eslint \"**/*.ts\" --max-warnings=0"
+    "lint:test": "eslint \"**/*.ts\" --max-warnings=0",
+    "start": "yarn node dist/index.js"
   },
   "dependencies": {
+    "@fastify/accepts": "^4.0.0",
+    "@fastify/cors": "^8.1.0",
     "@graphql-tools/merge": "^8.3.1",
     "@graphql-tools/schema": "^8.5.1",
     "apollo-server-core": "^3.10.0",
-    "apollo-server-fastify": "^3.10.0",
-    "fastify": "^3",
+    "fastify": "^4.3.0",
     "graphql": "^16.5.0"
   },
   "devDependencies": {
