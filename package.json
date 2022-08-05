@@ -5,7 +5,7 @@
   "scripts": {
     "compile": "tsc",
     "lint": "eslint \"**/*.ts\" --fix",
-    "lint:test": "eslint \"**/*.ts\""
+    "lint:test": "eslint \"**/*.ts\" --max-warnings=0"
   },
   "dependencies": {
     "fastify": "^4.3.0"
