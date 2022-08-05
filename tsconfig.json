@@ -1,7 +1,10 @@
 {
   "extends": "@tsconfig/node16-strictest-esm/tsconfig.json",
   "compilerOptions": {
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "lib": [
+      "esnext"
+    ],
   },
   "include": ["src", "index.ts"],
   "exclude": ["node_modules"]

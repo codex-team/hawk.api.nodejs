@@ -9,7 +9,7 @@ import {
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import accepts from '@fastify/accepts';
 import fastifyCors from '@fastify/cors';
-import HttpStatusCode from '../lib/http-status-codes.js';
+import HttpStatusCode from './http-status-codes.js';
 
 export interface ServerRegistration {
     path?: string;

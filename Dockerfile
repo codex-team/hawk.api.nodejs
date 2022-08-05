@@ -5,6 +5,8 @@ WORKDIR /app
 COPY .yarn .yarn
 COPY package.json yarn.lock .yarnrc.yml .pnp.cjs .pnp.loader.mjs .yarnrc.yml tsconfig.json ./
 
+RUN yarn install
+
 COPY index.ts .
 COPY src ./src
 
