@@ -8,7 +8,12 @@
     "lint:test": "eslint \"**/*.ts\" --max-warnings=0"
   },
   "dependencies": {
-    "fastify": "^4.3.0"
+    "@graphql-tools/merge": "^8.3.1",
+    "@graphql-tools/schema": "^8.5.1",
+    "apollo-server-core": "^3.10.0",
+    "apollo-server-fastify": "^3.10.0",
+    "fastify": "^3",
+    "graphql": "^16.5.0"
   },
   "devDependencies": {
     "@tsconfig/node16-strictest-esm": "^1.0.3",
@@ -16,6 +21,7 @@
     "@types/node": "16",
     "@typescript-eslint/eslint-plugin": "^5.32.0",
     "@typescript-eslint/parser": "^5.32.0",
+    "apollo-server-plugin-base": "^3.6.2",
     "eslint": "^8.21.0",
     "eslint-config-codex": "https://github.com/codex-team/eslint-config.git#f523bbe05a46aa278e77a6b4e4a44fb0a805d2bb",
     "eslint-plugin-jsdoc": "^39.3.4",
