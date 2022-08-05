@@ -7,5 +7,5 @@
     ],
   },
   "include": ["src", "index.ts"],
-  "exclude": ["node_modules", "src/directives/**/*"]
+  "exclude": ["node_modules"]
 }
