@@ -4,18 +4,26 @@
   "type": "module",
   "scripts": {
     "compile": "tsc",
+    "dev": "nodemon --watch './**/*.ts' --exec 'yarn start:dev' index.ts",
     "lint": "eslint \"**/*.ts\" --fix",
     "lint:test": "eslint \"**/*.ts\" --max-warnings=0",
-    "start": "yarn node dist/index.js"
+    "start": "yarn node dist/index.js",
+    "start:dev": "yarn compile && yarn node dist/index.js"
   },
   "dependencies": {
     "@fastify/accepts": "^4.0.0",
     "@fastify/cors": "^8.1.0",
     "@graphql-tools/merge": "^8.3.1",
     "@graphql-tools/schema": "^8.5.1",
+    "@graphql-tools/utils": "^8.9.0",
+    "@hawk.so/types": "https://github.com/codex-team/hawk.types.git#0ab27b8cf002d851ae672d4f64f80f373fa0aca9",
     "apollo-server-core": "^3.10.0",
+    "argon2": "^0.28.7",
     "fastify": "^4.3.0",
-    "graphql": "^16.5.0"
+    "graphql": "^16.5.0",
+    "graphql-scalars": "^1.17.0",
+    "jose": "^4.8.3",
+    "mongodb": "^4.8.1"
   },
   "devDependencies": {
     "@tsconfig/node16-strictest-esm": "^1.0.3",
@@ -28,6 +36,7 @@
     "eslint-config-codex": "https://github.com/codex-team/eslint-config.git#f523bbe05a46aa278e77a6b4e4a44fb0a805d2bb",
     "eslint-plugin-jsdoc": "^39.3.4",
     "eslint-plugin-n": "^15.2.4",
+    "nodemon": "^2.0.19",
     "typescript": "^4.7.4"
   }
 }

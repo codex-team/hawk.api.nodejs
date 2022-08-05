@@ -1,3 +1,4 @@
+import userResolver from './user.js';
 const indexResolver = {
   Query: {
     /**
@@ -9,6 +10,7 @@ const indexResolver = {
 
 const resolvers = [
   indexResolver,
+  userResolver,
 ];
 
 export default resolvers;

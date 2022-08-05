@@ -5,7 +5,7 @@ import {
 import type { ApolloServerPlugin } from 'apollo-server-plugin-base';
 import fastify, { FastifyInstance } from 'fastify';
 import schema from './schema.js';
-import { ApolloServer } from './apollo-server-fastify/apollo-server.js';
+import { ApolloServer } from './lib/apollo-server.js';
 
 
 /**
@@ -30,10 +30,17 @@ function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
  */
 export default async function startApolloServer(): Promise<void> {
   const app = fastify();
+
+
+  // const createContext = (ctx: FastifyContext) => {
+  //
+  // };
+
   const server = new ApolloServer({
     schema,
     csrfPrevention: true,
     cache: 'bounded',
+    // context: createContext,
     plugins: [
       fastifyAppClosePlugin(app),
       ApolloServerPluginDrainHttpServer({ httpServer: app.server }),
