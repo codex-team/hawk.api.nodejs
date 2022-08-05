@@ -1,4 +1,16 @@
 {
-  "name": "api",
-  "packageManager": "yarn@3.2.2"
+  "name": "hawk.api",
+  "packageManager": "yarn@3.2.2",
+  "type": "module",
+  "scripts": {
+    "compile": "tsc"
+  },
+  "dependencies": {
+    "fastify": "^4.3.0"
+  },
+  "devDependencies": {
+    "@tsconfig/node16-strictest-esm": "^1.0.3",
+    "@types/node": "16",
+    "typescript": "^4.7.4"
+  }
 }
