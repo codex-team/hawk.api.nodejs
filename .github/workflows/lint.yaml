@@ -1,0 +1,14 @@
+name: Build and push docker image
+
+on:
+  push:
+
+jobs:
+  lint:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Lint code
+        run: yarn lint
+
