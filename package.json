@@ -3,14 +3,22 @@
   "packageManager": "yarn@3.2.2",
   "type": "module",
   "scripts": {
-    "compile": "tsc"
+    "compile": "tsc",
+    "lint": "eslint \"**/*.ts\" --fix"
   },
   "dependencies": {
     "fastify": "^4.3.0"
   },
   "devDependencies": {
     "@tsconfig/node16-strictest-esm": "^1.0.3",
+    "@types/eslint": "^8",
     "@types/node": "16",
+    "@typescript-eslint/eslint-plugin": "^5.32.0",
+    "@typescript-eslint/parser": "^5.32.0",
+    "eslint": "^8.21.0",
+    "eslint-config-codex": "https://github.com/codex-team/eslint-config.git#f523bbe05a46aa278e77a6b4e4a44fb0a805d2bb",
+    "eslint-plugin-jsdoc": "^39.3.4",
+    "eslint-plugin-n": "^15.2.4",
     "typescript": "^4.7.4"
   }
 }
