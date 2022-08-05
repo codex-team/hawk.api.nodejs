@@ -5,13 +5,13 @@ import { generateTokensPair } from '../lib/auth-tokens.js';
 import { comparePasswords, generatePassword, hashPassword } from '../lib/crypto.js';
 
 /**
- *
+ * Represents user and all actions for user
  */
 class UserModel {
   /**
    * Collection with users
    */
-  public static usersCollections = accountsMongoDb.db().collection<UserDBScheme>('users');
+  public static usersCollection = accountsMongoDb.db().collection<UserDBScheme>('users');
 
   /**
    * User data
@@ -33,7 +33,7 @@ class UserModel {
    * @param id - user id to find
    */
   public static async findById(id: string): Promise<UserModel | null> {
-    const data = await this.usersCollections.findOne({ _id: new ObjectId(id) });
+    const data = await this.usersCollection.findOne({ _id: new ObjectId(id) });
 
     if (!data) {
       return null;
@@ -68,7 +68,7 @@ class UserModel {
     };
 
     try {
-      const userId = (await this.usersCollections.insertOne(userData as UserDBScheme)).insertedId;
+      const userId = (await this.usersCollection.insertOne(userData as UserDBScheme)).insertedId;
 
       const user = new UserModel({
         _id: userId,

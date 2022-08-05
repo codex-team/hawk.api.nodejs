@@ -1,5 +1,6 @@
 import { gql } from 'apollo-server-core';
 import userSchema from './user.js';
+
 const rootSchema = gql`
   """
   Access to the field only to authorized users
