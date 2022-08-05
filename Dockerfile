@@ -6,6 +6,7 @@ COPY .yarn .yarn
 COPY package.json yarn.lock .yarnrc.yml .pnp.cjs .pnp.loader.mjs .yarnrc.yml tsconfig.json ./
 
 COPY index.ts .
+COPY src ./src
 
 RUN yarn compile
 
