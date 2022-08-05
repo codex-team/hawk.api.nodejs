@@ -5,7 +5,7 @@ const Mutation = {
 };
 
 const UserMutations = {
-  signUp: async (_root: {}, { email }: {email: string}) => {
+  signUp: async (_root: Record<string, never>, { email }: {email: string}) => {
     await UserModel.createByEmail(email);
 
     return true;
