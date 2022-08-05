@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "compile": "tsc",
-    "lint": "eslint \"**/*.ts\" --fix"
+    "lint": "eslint \"**/*.ts\" --fix",
+    "lint:test": "eslint \"**/*.ts\""
   },
   "dependencies": {
     "fastify": "^4.3.0"
