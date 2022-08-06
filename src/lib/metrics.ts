@@ -1,7 +1,9 @@
-import fastify, { FastifyInstance } from 'fastify';
+import fastify from 'fastify';
 import promClient from 'prom-client';
 import HttpStatusCode from './http-status-codes.js';
 import logger from './logger.js';
+import config from './config.js';
+import { accountsMongoDb } from './mongodb.js';
 
 const collectDefaultMetrics = promClient.collectDefaultMetrics;
 const Registry = promClient.Registry;
@@ -20,9 +22,9 @@ const homePage = `
 `;
 
 /**
- * Returns a fastify instance with the metrics server.
+ * Creates and runs the metrics server.
  */
-export default function createMetricsServer(): FastifyInstance {
+export default async function runMetricsServer(): Promise<void> {
   const metricsServer = fastify({
     logger,
   });
@@ -39,14 +41,20 @@ export default function createMetricsServer(): FastifyInstance {
   });
 
   metricsServer.get('/health', async (_request, reply) => {
+    const mongodbAccountsPing = await accountsMongoDb.db().command({ ping: 1 }, { maxTimeMS: 1 });
     const data = {
       uptime: process.uptime(),
       message: 'ok',
       date: new Date(),
+      mongodbAccountsPing,
     };
 
     reply.status(HttpStatusCode.SuccessOK).send(data);
   });
 
-  return metricsServer;
+  await metricsServer.listen({
+    port: config.metrics.port,
+    host: config.metrics.host,
+  });
+  logger.info(`🚀 Metrics server ready at http://${config.metrics.host}:${config.metrics.port}`);
 }
