@@ -80,7 +80,7 @@ interface MetricsConfig {
     /**
      * Prometheus metrics server port
      */
-    port: string
+    port: number
 }
 
 const args = arg({ /* eslint-disable @typescript-eslint/naming-convention */

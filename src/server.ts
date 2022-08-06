@@ -54,7 +54,8 @@ export default async function startApolloServer(): Promise<void> {
     const metricsServer = createMetricsServer();
 
     await metricsServer.listen({
-      port: 9090,
+      port: config.metrics.port,
+      host: config.metrics.host,
     });
     logger.info(`🚀 Metrics server ready at http://${config.metrics.host}:${config.metrics.port}`);
   }
