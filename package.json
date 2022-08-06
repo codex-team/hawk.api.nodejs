@@ -40,6 +40,7 @@
     "eslint-plugin-jsdoc": "^39.3.4",
     "eslint-plugin-n": "^15.2.4",
     "nodemon": "^2.0.19",
+    "pino-pretty": "^8.1.0",
     "typescript": "^4.7.4"
   }
 }
