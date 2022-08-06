@@ -59,6 +59,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["jose", "npm:4.8.3"],\
             ["mongodb", "npm:4.8.1"],\
             ["nodemon", "npm:2.0.19"],\
+            ["pino", "npm:8.4.0"],\
             ["typescript", "patch:typescript@npm%3A4.7.4#~builtin<compat/typescript>::version=4.7.4&hash=f456af"]\
           ],\
           "linkType": "SOFT"\
@@ -3154,6 +3155,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["jose", "npm:4.8.3"],\
             ["mongodb", "npm:4.8.1"],\
             ["nodemon", "npm:2.0.19"],\
+            ["pino", "npm:8.4.0"],\
             ["typescript", "patch:typescript@npm%3A4.7.4#~builtin<compat/typescript>::version=4.7.4&hash=f456af"]\
           ],\
           "linkType": "SOFT"\

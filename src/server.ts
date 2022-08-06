@@ -7,6 +7,7 @@ import fastify, { FastifyInstance } from 'fastify';
 import schema from './schema.js';
 import { ApolloServer } from './lib/apollo-server.js';
 import config from './lib/config.js';
+import logger from './lib/logger.js';
 
 
 /**
@@ -50,5 +51,5 @@ export default async function startApolloServer(): Promise<void> {
     port: config.port,
     host: config.host,
   });
-  console.log(`🚀 Server ready at http://${config.host}:${config.port}${server.graphqlPath}`);
+  logger.info(`🚀 Server ready at http://${config.host}:${config.port}${server.graphqlPath}`);
 }
