@@ -25,7 +25,8 @@
     "graphql": "^16.5.0",
     "graphql-scalars": "^1.17.0",
     "jose": "^4.8.3",
-    "mongodb": "^4.8.1"
+    "mongodb": "^4.8.1",
+    "pino": "^8.4.0"
   },
   "devDependencies": {
     "@tsconfig/node16-strictest-esm": "^1.0.3",
@@ -39,6 +40,7 @@
     "eslint-plugin-jsdoc": "^39.3.4",
     "eslint-plugin-n": "^15.2.4",
     "nodemon": "^2.0.19",
+    "pino-pretty": "^8.1.0",
     "typescript": "^4.7.4"
   }
 }

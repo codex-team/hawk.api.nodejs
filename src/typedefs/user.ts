@@ -14,7 +14,7 @@ export default gql`
     """
     refreshToken: String!
   }
-  
+
   """
   Mutations for manipulating with User and authentication
   """
@@ -87,7 +87,7 @@ export default gql`
     Mutations for manipulating with User and authentication
     """
     user: UserMutations!
-    
+
     """
     Update user's tokens pair
     """

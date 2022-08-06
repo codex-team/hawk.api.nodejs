@@ -8,4 +8,6 @@ parserOptions:
   sourceType: module
 plugins:
   - '@typescript-eslint'
-rules: {}
+  - eslint-plugin-n
+rules:
+  n/file-extension-in-import: ["error", "always"]
