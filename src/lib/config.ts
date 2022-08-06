@@ -26,6 +26,11 @@ interface AppConfig {
      * Databases configuration
      */
     databases: DatabasesConfig;
+
+    /**
+     * Prometheus configuration
+     */
+    metrics: MetricsConfig;
 }
 
 /**
@@ -58,6 +63,25 @@ interface DatabasesConfig {
     mongodbEventsUri: string;
 }
 
+/**
+ * Prometheus configuration
+ */
+interface MetricsConfig {
+    /**
+     * Whether to enable Prometheus metrics
+     */
+    enabled: boolean
+
+    /**
+     * Prometheus metrics server host
+     */
+    host: string
+
+    /**
+     * Prometheus metrics server port
+     */
+    port: number
+}
 
 const args = arg({ /* eslint-disable @typescript-eslint/naming-convention */
   '--config': [ String ],

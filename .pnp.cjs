@@ -61,6 +61,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["nodemon", "npm:2.0.19"],\
             ["pino", "npm:8.4.0"],\
             ["pino-pretty", "npm:8.1.0"],\
+            ["prom-client", "npm:14.0.1"],\
             ["typescript", "patch:typescript@npm%3A4.7.4#~builtin<compat/typescript>::version=4.7.4&hash=f456af"]\
           ],\
           "linkType": "SOFT"\
@@ -1578,6 +1579,15 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageLocation": "./.yarn/cache/binary-extensions-npm-2.2.0-180c33fec7-ccd267956c.zip/node_modules/binary-extensions/",\
           "packageDependencies": [\
             ["binary-extensions", "npm:2.2.0"]\
+          ],\
+          "linkType": "HARD"\
+        }]\
+      ]],\
+      ["bintrees", [\
+        ["npm:1.0.2", {\
+          "packageLocation": "./.yarn/cache/bintrees-npm-1.0.2-b28feeda03-56a52b7d36.zip/node_modules/bintrees/",\
+          "packageDependencies": [\
+            ["bintrees", "npm:1.0.2"]\
           ],\
           "linkType": "HARD"\
         }]\
@@ -3204,6 +3214,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["nodemon", "npm:2.0.19"],\
             ["pino", "npm:8.4.0"],\
             ["pino-pretty", "npm:8.1.0"],\
+            ["prom-client", "npm:14.0.1"],\
             ["typescript", "patch:typescript@npm%3A4.7.4#~builtin<compat/typescript>::version=4.7.4&hash=f456af"]\
           ],\
           "linkType": "SOFT"\
@@ -4448,6 +4459,16 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "linkType": "HARD"\
         }]\
       ]],\
+      ["prom-client", [\
+        ["npm:14.0.1", {\
+          "packageLocation": "./.yarn/cache/prom-client-npm-14.0.1-82ca2c155b-864c19b708.zip/node_modules/prom-client/",\
+          "packageDependencies": [\
+            ["prom-client", "npm:14.0.1"],\
+            ["tdigest", "npm:0.1.2"]\
+          ],\
+          "linkType": "HARD"\
+        }]\
+      ]],\
       ["promise-inflight", [\
         ["npm:1.0.1", {\
           "packageLocation": "./.yarn/cache/promise-inflight-npm-1.0.1-5bb925afac-2274948309.zip/node_modules/promise-inflight/",\
@@ -5079,6 +5100,16 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["minizlib", "npm:2.1.2"],\
             ["mkdirp", "npm:1.0.4"],\
             ["yallist", "npm:4.0.0"]\
+          ],\
+          "linkType": "HARD"\
+        }]\
+      ]],\
+      ["tdigest", [\
+        ["npm:0.1.2", {\
+          "packageLocation": "./.yarn/cache/tdigest-npm-0.1.2-b73cfcf726-44de824675.zip/node_modules/tdigest/",\
+          "packageDependencies": [\
+            ["tdigest", "npm:0.1.2"],\
+            ["bintrees", "npm:1.0.2"]\
           ],\
           "linkType": "HARD"\
         }]\

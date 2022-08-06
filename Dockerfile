@@ -14,4 +14,6 @@ RUN yarn compile
 
 EXPOSE 3000
 
+ENV NODE_ENV=production
+
 CMD ["yarn", "node", "dist/index.js"]

@@ -1,6 +1,11 @@
 port: 3000
 host: "localhost"
 
+metrics:
+  enabled: true
+  host: localhost
+  port: 9090
+
 auth:
   accessTokenSecret: "secret"
   refreshTokenSecret: "secret"

@@ -26,7 +26,8 @@
     "graphql-scalars": "^1.17.0",
     "jose": "^4.8.3",
     "mongodb": "^4.8.1",
-    "pino": "^8.4.0"
+    "pino": "^8.4.0",
+    "prom-client": "^14.0.1"
   },
   "devDependencies": {
     "@tsconfig/node16-strictest-esm": "^1.0.3",

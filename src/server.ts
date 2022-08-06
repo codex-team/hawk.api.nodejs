@@ -8,6 +8,7 @@ import schema from './schema.js';
 import { ApolloServer } from './lib/apollo-server.js';
 import config from './lib/config.js';
 import logger from './lib/logger.js';
+import runMetricsServer from './lib/metrics.js';
 
 
 /**
@@ -48,6 +49,11 @@ export default async function startApolloServer(): Promise<void> {
 
   await server.start();
   app.register(server.createHandler());
+
+  if (config.metrics.enabled) {
+    await runMetricsServer();
+  }
+
 
   await app.listen({
     port: config.port,
