@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
-import { MONGODB_ACCOUNTS_URI } from './config.js';
+import config from './config.js';
 
-const accountsMongoDb = await MongoClient.connect(MONGODB_ACCOUNTS_URI);
+const accountsMongoDb = await MongoClient.connect(config.databases.mongodbAccountsUri);
 
 export {
   accountsMongoDb

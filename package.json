@@ -8,7 +8,7 @@
     "lint": "eslint \"**/*.ts\" --fix",
     "lint:test": "eslint \"**/*.ts\" --max-warnings=0",
     "start": "yarn node dist/index.js",
-    "start:dev": "yarn compile && yarn node dist/index.js"
+    "start:dev": "yarn compile && yarn node dist/index.js -c app-config.yaml -c app-config.local.yaml"
   },
   "dependencies": {
     "@fastify/accepts": "^4.0.0",
@@ -18,7 +18,9 @@
     "@graphql-tools/utils": "^8.9.0",
     "@hawk.so/types": "https://github.com/codex-team/hawk.types.git#0ab27b8cf002d851ae672d4f64f80f373fa0aca9",
     "apollo-server-core": "^3.10.0",
+    "arg": "^5.0.2",
     "argon2": "^0.28.7",
+    "config-loader": "https://github.com/codex-team/config-loader#081ad636684e9d1e5efa6dd757e1e0535f0a2b26",
     "fastify": "^4.3.0",
     "graphql": "^16.5.0",
     "graphql-scalars": "^1.17.0",
