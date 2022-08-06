@@ -31,7 +31,9 @@ function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
  * Creates and starts server instance
  */
 export default async function startApolloServer(): Promise<void> {
-  const app = fastify();
+  const app = fastify({
+    logger,
+  });
 
   const server = new ApolloServer({
     schema,
