@@ -6,6 +6,7 @@ import type { ApolloServerPlugin } from 'apollo-server-plugin-base';
 import fastify, { FastifyInstance } from 'fastify';
 import schema from './schema.js';
 import { ApolloServer } from './lib/apollo-server.js';
+import config from './lib/config.js';
 
 
 /**
@@ -31,16 +32,10 @@ function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
 export default async function startApolloServer(): Promise<void> {
   const app = fastify();
 
-
-  // const createContext = (ctx: FastifyContext) => {
-  //
-  // };
-
   const server = new ApolloServer({
     schema,
     csrfPrevention: true,
     cache: 'bounded',
-    // context: createContext,
     plugins: [
       fastifyAppClosePlugin(app),
       ApolloServerPluginDrainHttpServer({ httpServer: app.server }),
@@ -50,11 +45,10 @@ export default async function startApolloServer(): Promise<void> {
 
   await server.start();
   app.register(server.createHandler());
-  const PORT = 3000;
 
   await app.listen({
-    port: PORT,
-    host: '0.0.0.0',
+    port: config.port,
+    host: config.host,
   });
-  console.log(`🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`);
+  console.log(`🚀 Server ready at http://${config.host}:${config.port}${server.graphqlPath}`);
 }
