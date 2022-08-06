@@ -13,7 +13,8 @@ const homePage = `
 <!DOCTYPE html>
 <html lang="en">
 <body>
-    <a href="/metrics">metrics</a>
+    <a href="/metrics">metrics</a> <br>
+    <a href="/health">health</a> <br>
 </body>
 </html>
 `;
@@ -35,6 +36,16 @@ export default function createMetricsServer(): FastifyInstance {
 
   metricsServer.get('/metrics', async (_request, reply) => {
     reply.code(HttpStatusCode.SuccessOK).send(await register.metrics());
+  });
+
+  metricsServer.get('/health', async (_request, reply) => {
+    const data = {
+      uptime: process.uptime(),
+      message: 'ok',
+      date: new Date(),
+    };
+
+    reply.status(HttpStatusCode.SuccessOK).send(data);
   });
 
   return metricsServer;
