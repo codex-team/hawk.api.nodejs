@@ -10,5 +10,8 @@
 !.yarn/cache
 #.pnp.*
 
-
+# Ignore directories with build artifacts
 dist
+
+# Ignore local config overrides
+app-config.local.yaml
