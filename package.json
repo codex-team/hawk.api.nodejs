@@ -8,11 +8,13 @@
     "lint": "eslint \"**/*.ts\" --fix",
     "lint:test": "eslint \"**/*.ts\" --max-warnings=0",
     "start": "yarn node dist/index.js",
-    "start:dev": "yarn compile && yarn node dist/index.js -c app-config.yaml -c app-config.local.yaml"
+    "start:dev": "yarn compile && yarn node dist/index.js -c app-config.yaml -c app-config.local.yaml",
+    "codegen": "graphql-codegen --config codegen.yml"
   },
   "dependencies": {
     "@fastify/accepts": "^4.0.0",
     "@fastify/cors": "^8.1.0",
+    "@graphql-codegen/add": "^3.2.0",
     "@graphql-tools/merge": "^8.3.1",
     "@graphql-tools/schema": "^8.5.1",
     "@graphql-tools/utils": "^8.9.0",
@@ -30,6 +32,10 @@
     "prom-client": "^14.0.1"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "2.11.3",
+    "@graphql-codegen/introspection": "2.2.0",
+    "@graphql-codegen/typescript": "2.7.2",
+    "@graphql-codegen/typescript-resolvers": "2.7.2",
     "@tsconfig/node16-strictest-esm": "^1.0.3",
     "@types/eslint": "^8",
     "@types/node": "16",
