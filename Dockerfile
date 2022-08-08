@@ -12,7 +12,7 @@ COPY src ./src
 
 RUN yarn compile
 
-EXPOSE 3000
+EXPOSE 4000
 
 ENV NODE_ENV=production
 
