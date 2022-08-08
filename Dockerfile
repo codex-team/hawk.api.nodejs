@@ -33,6 +33,7 @@ WORKDIR /app
 COPY package.json package.json
 COPY --from=builder /app/dist ./dist
 COPY --from=prod-deps /app/node_modules ./node_modules
+COPY .yarn .yarn
 
 EXPOSE 4000
 
