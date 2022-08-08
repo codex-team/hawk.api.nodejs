@@ -1,2 +1,4 @@
 dist
 .yarn/unplugged
+node_modules
+.git
