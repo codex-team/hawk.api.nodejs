@@ -43,6 +43,21 @@ class UserModel {
   }
 
   /**
+   * Return user by his email
+   *
+   * @param email - email to find
+   */
+  public static async findByEmail(email: string): Promise<UserModel | null> {
+    const data = await this.usersCollection.findOne({ email });
+
+    if (!data) {
+      return null;
+    }
+
+    return new UserModel(data);
+  }
+
+  /**
    * Hash password
    *
    * @param password - password to hash
@@ -137,6 +152,25 @@ class UserModel {
     }
 
     return comparePasswords(this.data.password, password);
+  }
+
+
+  /**
+   * Sets new password for user
+   *
+   * @param newPassword - password to set (optional, will be generated if not provided)
+   */
+  public async changePassword(newPassword?: string): Promise<void> {
+    if (!newPassword) {
+      newPassword = await UserModel.generatePassword();
+    }
+
+    const hashedPassword = await UserModel.hashPassword(newPassword);
+
+    await UserModel.usersCollection.updateOne(
+      { _id: new ObjectId(this.data._id) },
+      { password: hashedPassword }
+    );
   }
 }
 

@@ -1,146 +1,182 @@
 import { gql } from 'apollo-server-core';
 
 export default gql`
-  """
-  Authentication tokens
-  """
-  type TokenPair {
     """
-    User's access token
+    Authentication tokens
     """
-    accessToken: String!
-    """
-    User's refresh token for getting new token pair
-    """
-    refreshToken: String!
-  }
+    type TokenPair {
+        """
+        User's access token
+        """
+        accessToken: String!
+        """
+        User's refresh token for getting new token pair
+        """
+        refreshToken: String!
+    }
 
-  """
-  Mutations for manipulating with User and authentication
-  """
-  type UserMutations {
-      """
-      Register user with provided email. Returns true if registered
-      """
-      signUp(
-          """
-          Registration email
-          """
-          email: String! @validate(isEmail: true)
-      ): Boolean!
-
-      """
-      Login user with provided email and password
-      """
-      login(
-          """
-          User email
-          """
-          email: String! @validate(isEmail: true)
-
-          """
-          User password
-          """
-          password: String! @validate(notEmpty: true)
-      ): TokenPair!
-  }
-
-  """
-  Represent User type
-  """
-  type User {
-    """
-    User's id
-    """
-    id: ID! @renameFrom(name: "_id")
-
-    """
-    User's email
-    """
-    email: String
-
-    """
-    User's name
-    """
-    name: String
-
-    """
-    Date of registration
-    """
-    registrationDate: DateTime!
-
-    """
-    User's image
-    """
-    image: String
-  }
-
-  extend type Query {
-    """
-    Returns authenticated user data
-    """
-    me: User @requireAuth
-  }
-
-  extend type Mutation {
     """
     Mutations for manipulating with User and authentication
     """
-    user: UserMutations!
+    type UserMutations {
+        """
+        Register user with provided email. Returns true if registered
+        """
+        signUp(
+            """
+            Registration email
+            """
+            email: String! @validate(isEmail: true)
+        ): Boolean!
+
+        """
+        Login user with provided email and password
+        """
+        login(
+            """
+            User email
+            """
+            email: String! @validate(isEmail: true)
+
+            """
+            User password
+            """
+            password: String! @validate(notEmpty: true)
+        ): TokenPair!
+
+
+        """
+        Update user's tokens pair
+        """
+        refreshTokens(
+            """
+            Refresh token for getting new token pair
+            """
+            refreshToken: String!
+        ): TokenPair!
+
+        """
+        Reset user's password
+        """
+        resetPassword(
+            """
+            User email
+            """
+            email: String! @validate(isEmail: true)
+        ): Boolean!
+
+        """
+        Change user password
+        """
+        changePassword(
+            """
+            Current user password
+            """
+            oldPassword: String! @validate(notEmpty: true)
+
+            """
+            New user password
+            """
+            newPassword: String! @validate(notEmpty: true)
+        ): Boolean! @requireAuth
+    }
 
     """
-    Update user's tokens pair
+    Represent User type
     """
-    refreshTokens(
-      """
-      Refresh token for getting new token pair
-      """
-      refreshToken: String!
-    ): TokenPair!
+    type User {
+        """
+        User's id
+        """
+        id: ID! @renameFrom(name: "_id")
 
-    """
-    Reset user's password
-    """
-    resetPassword(
-      """
-      User email
-      """
-      email: String! @validate(isEmail: true)
-    ): Boolean!
+        """
+        User's email
+        """
+        email: String
 
-    """
-    Update user's profile
-    """
-    updateProfile(
-      """
-      User name
-      """
-      name: String! @validate(notEmpty: true)
+        """
+        User's name
+        """
+        name: String
 
-      """
-      User email
-      """
-      email: String! @validate(isEmail: true)
+        """
+        Date of registration
+        """
+        registrationDate: DateTime!
 
-      """
-      User image file
-      """
-      image: Upload @uploadImage
-    ): Boolean! @requireAuth
+        """
+        User's image
+        """
+        image: String
+    }
 
-    """
-    Change user password
-    """
-    changePassword(
-      """
-      Current user password
-      """
-      oldPassword: String! @validate(notEmpty: true)
+    extend type Query {
+        """
+        Returns authenticated user data
+        """
+        me: User @requireAuth
+    }
 
-      """
-      New user password
-      """
-      newPassword: String! @validate(notEmpty: true)
-    ): Boolean! @requireAuth
-  }
+    extend type Mutation {
+        """
+        Mutations for manipulating with User and authentication
+        """
+        user: UserMutations!
+
+        """
+        Update user's tokens pair
+        """
+        refreshTokens(
+            """
+            Refresh token for getting new token pair
+            """
+            refreshToken: String!
+        ): TokenPair!
+
+        """
+        Reset user's password
+        """
+        resetPassword(
+            """
+            User email
+            """
+            email: String! @validate(isEmail: true)
+        ): Boolean!
+
+        """
+        Update user's profile
+        """
+        updateProfile(
+            """
+            User name
+            """
+            name: String! @validate(notEmpty: true)
+
+            """
+            User email
+            """
+            email: String! @validate(isEmail: true)
+
+            """
+            User image file
+            """
+            image: Upload @uploadImage
+        ): Boolean! @requireAuth
+
+        """
+        Change user password
+        """
+        changePassword(
+            """
+            Current user password
+            """
+            oldPassword: String! @validate(notEmpty: true)
+
+            """
+            New user password
+            """
+            newPassword: String! @validate(notEmpty: true)
+        ): Boolean! @requireAuth
+    }
 `;
