@@ -11,9 +11,8 @@ const Mutation = {
 
 const Query: QueryResolvers = {
   me: async (_, __, ctx) => {
-    console.log('kek');
     console.log(ctx);
-    const user = await UserModel.findByEmail('nikmel2803');
+    const user = await UserModel.findByEmail('fake'); // todo implement this resolver
 
     if (!user) {
       throw new Error('User not found');
