@@ -8,7 +8,13 @@ metrics:
 
 auth:
   accessTokenSecret: "secret"
-  refreshTokenSecret: "secret"
+  refreshTokenSecret: "secret_refresh"
+
+logging:
+  global: info
+  metricsServer: silent
+  appServer: silent
+  database: info
 
 databases:
   mongodbAccountsUri: "mongodb://mongodb:27017/hawk"

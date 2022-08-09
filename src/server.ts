@@ -5,10 +5,12 @@ import {
 import type { ApolloServerPlugin } from 'apollo-server-plugin-base';
 import fastify, { FastifyInstance } from 'fastify';
 import schema from './schema.js';
-import { ApolloServer } from './lib/apollo-server.js';
+import { ApolloServer, FastifyContext } from './lib/apollo-server.js';
 import config from './lib/config.js';
-import logger from './lib/logger.js';
+import logger, { getLogger } from './lib/logger.js';
 import runMetricsServer from './lib/metrics.js';
+import type { ResolverContextBase } from './types/graphql.js';
+import { verifyAccessToken } from './lib/auth-tokens.js';
 
 
 /**
@@ -29,17 +31,50 @@ function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
 }
 
 /**
+ * Creates context for request
+ *
+ * @param context - Fastify context
+ */
+async function createContext({ request }: FastifyContext): Promise<ResolverContextBase> {
+  const authHeader = request.headers.authorization;
+  const accessToken = authHeader?.slice('Bearer '.length) || '';
+
+  let userId: string | undefined;
+  let isAccessTokenExpired = false;
+
+  try {
+    const data = await verifyAccessToken(accessToken);
+
+    userId = data.userId;
+  } catch (err) {
+    logger.error(err);
+    isAccessTokenExpired = true;
+  }
+
+
+  return {
+    user: {
+      id: userId,
+      accessTokenExpired: isAccessTokenExpired,
+    },
+  };
+}
+
+/**
  * Creates and starts server instance
  */
 export default async function startApolloServer(): Promise<void> {
+  const appServerLogger = getLogger('appServer');
+
   const app = fastify({
-    logger,
+    logger: appServerLogger,
   });
 
   const server = new ApolloServer({
     schema,
     csrfPrevention: true,
     cache: 'bounded',
+    context: createContext,
     plugins: [
       fastifyAppClosePlugin(app),
       ApolloServerPluginDrainHttpServer({ httpServer: app.server }),
@@ -59,5 +94,5 @@ export default async function startApolloServer(): Promise<void> {
     port: config.port,
     host: config.host,
   });
-  logger.info(`🚀 Server ready at http://${config.host}:${config.port}${server.graphqlPath}`);
+  appServerLogger.info(`🚀 Server ready at http://${config.host}:${config.port}${server.graphqlPath}`);
 }
