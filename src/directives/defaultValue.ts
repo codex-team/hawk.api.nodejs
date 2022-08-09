@@ -19,6 +19,7 @@ interface DefaultValueDirectiveResult {
 }
 
 /**
+ * Directive function for applying default value
  *
  * @param directiveName - directive name in the schema
  */

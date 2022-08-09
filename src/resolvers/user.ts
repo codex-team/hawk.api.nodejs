@@ -10,8 +10,7 @@ const Mutation = {
 
 
 const Query: QueryResolvers = {
-  me: async (_, __, ctx) => {
-    console.log(ctx);
+  me: async () => {
     const user = await UserModel.findByEmail('fake'); // todo implement this resolver
 
     if (!user) {
