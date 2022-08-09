@@ -1,6 +1,10 @@
 /* eslint-disable */
 // @ts-ignore
-import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
+// AUTO GENERATED FILE - DO NOT EDIT
+// USE `yarn codegen` command
+
+import type { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
+import type { ResolverContextBase } from './graphql.js';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -212,36 +216,36 @@ export type DefaultDirectiveArgs = {
   value: Scalars['String'];
 };
 
-export type DefaultDirectiveResolver<Result, Parent, ContextType = any, Args = DefaultDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
+export type DefaultDirectiveResolver<Result, Parent, ContextType = ResolverContextBase, Args = DefaultDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type RenameFromDirectiveArgs = {
   name: Scalars['String'];
 };
 
-export type RenameFromDirectiveResolver<Result, Parent, ContextType = any, Args = RenameFromDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
+export type RenameFromDirectiveResolver<Result, Parent, ContextType = ResolverContextBase, Args = RenameFromDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type RequireAdminDirectiveArgs = { };
 
-export type RequireAdminDirectiveResolver<Result, Parent, ContextType = any, Args = RequireAdminDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
+export type RequireAdminDirectiveResolver<Result, Parent, ContextType = ResolverContextBase, Args = RequireAdminDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type RequireAuthDirectiveArgs = { };
 
-export type RequireAuthDirectiveResolver<Result, Parent, ContextType = any, Args = RequireAuthDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
+export type RequireAuthDirectiveResolver<Result, Parent, ContextType = ResolverContextBase, Args = RequireAuthDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type RequireUserInWorkspaceDirectiveArgs = { };
 
-export type RequireUserInWorkspaceDirectiveResolver<Result, Parent, ContextType = any, Args = RequireUserInWorkspaceDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
+export type RequireUserInWorkspaceDirectiveResolver<Result, Parent, ContextType = ResolverContextBase, Args = RequireUserInWorkspaceDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type UploadImageDirectiveArgs = { };
 
-export type UploadImageDirectiveResolver<Result, Parent, ContextType = any, Args = UploadImageDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
+export type UploadImageDirectiveResolver<Result, Parent, ContextType = ResolverContextBase, Args = UploadImageDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type ValidateDirectiveArgs = {
   isEmail?: Maybe<Scalars['Boolean']>;
   notEmpty?: Maybe<Scalars['Boolean']>;
 };
 
-export type ValidateDirectiveResolver<Result, Parent, ContextType = any, Args = ValidateDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
+export type ValidateDirectiveResolver<Result, Parent, ContextType = ResolverContextBase, Args = ValidateDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
@@ -255,17 +259,17 @@ export interface JsonObjectScalarConfig extends GraphQLScalarTypeConfig<Resolver
   name: 'JSONObject';
 }
 
-export type MutationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
+export type MutationResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
   _?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   user?: Resolver<ResolversTypes['UserMutations'], ParentType, ContextType>;
 };
 
-export type QueryResolvers<ContextType = any, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
+export type QueryResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
   health?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
 };
 
-export type TokenPairResolvers<ContextType = any, ParentType extends ResolversParentTypes['TokenPair'] = ResolversParentTypes['TokenPair']> = {
+export type TokenPairResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['TokenPair'] = ResolversParentTypes['TokenPair']> = {
   accessToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   refreshToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -275,7 +279,7 @@ export interface UploadScalarConfig extends GraphQLScalarTypeConfig<ResolversTyp
   name: 'Upload';
 }
 
-export type UserResolvers<ContextType = any, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
+export type UserResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
   email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   image?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -284,7 +288,7 @@ export type UserResolvers<ContextType = any, ParentType extends ResolversParentT
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type UserMutationsResolvers<ContextType = any, ParentType extends ResolversParentTypes['UserMutations'] = ResolversParentTypes['UserMutations']> = {
+export type UserMutationsResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['UserMutations'] = ResolversParentTypes['UserMutations']> = {
   changePassword?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType, RequireFields<UserMutationsChangePasswordArgs, 'newPassword' | 'oldPassword'>>;
   login?: Resolver<ResolversTypes['TokenPair'], ParentType, ContextType, RequireFields<UserMutationsLoginArgs, 'email' | 'password'>>;
   refreshTokens?: Resolver<ResolversTypes['TokenPair'], ParentType, ContextType, RequireFields<UserMutationsRefreshTokensArgs, 'refreshToken'>>;
@@ -293,7 +297,7 @@ export type UserMutationsResolvers<ContextType = any, ParentType extends Resolve
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type Resolvers<ContextType = any> = {
+export type Resolvers<ContextType = ResolverContextBase> = {
   DateTime?: GraphQLScalarType;
   JSON?: GraphQLScalarType;
   JSONObject?: GraphQLScalarType;
@@ -305,7 +309,7 @@ export type Resolvers<ContextType = any> = {
   UserMutations?: UserMutationsResolvers<ContextType>;
 };
 
-export type DirectiveResolvers<ContextType = any> = {
+export type DirectiveResolvers<ContextType = ResolverContextBase> = {
   default?: DefaultDirectiveResolver<any, any, ContextType>;
   renameFrom?: RenameFromDirectiveResolver<any, any, ContextType>;
   requireAdmin?: RequireAdminDirectiveResolver<any, any, ContextType>;

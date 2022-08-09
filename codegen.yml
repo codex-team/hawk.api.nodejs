@@ -2,7 +2,10 @@ overwrite: true
 schema: "http://localhost:4000/graphql"
 documents: null
 generates:
-  src/generated/graphql.ts:
+  src/types/schema.ts:
+    config:
+      contextType: ./graphql.js#ResolverContextBase
+      useTypeImports: true
     plugins:
       - "typescript"
       - "typescript-resolvers"
@@ -10,6 +13,7 @@ generates:
           content: "/* eslint-disable */"
       - add:
           content: "// @ts-ignore"
-  ./graphql.schema.json:
-    plugins:
-      - "introspection"
+      - add:
+            content: |
+              // AUTO GENERATED FILE - DO NOT EDIT
+              // USE `yarn codegen` command
