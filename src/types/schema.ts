@@ -113,7 +113,8 @@ export type UserMutationsSignUpArgs = {
   email: Scalars['String'];
 };
 
-
+export type WithIndex<TObject> = TObject & Record<string, any>;
+export type ResolversObject<TObject> = WithIndex<TObject>;
 
 export type ResolverTypeWrapper<T> = Promise<T> | T;
 
@@ -181,36 +182,36 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 ) => TResult | Promise<TResult>;
 
 /** Mapping between all available schema types and the resolvers types */
-export type ResolversTypes = {
-  Boolean: ResolverTypeWrapper<Scalars['Boolean']>;
-  DateTime: ResolverTypeWrapper<Scalars['DateTime']>;
-  ID: ResolverTypeWrapper<Scalars['ID']>;
-  JSON: ResolverTypeWrapper<Scalars['JSON']>;
-  JSONObject: ResolverTypeWrapper<Scalars['JSONObject']>;
+export type ResolversTypes = ResolversObject<{
+  Boolean: ResolverTypeWrapper<Partial<Scalars['Boolean']>>;
+  DateTime: ResolverTypeWrapper<Partial<Scalars['DateTime']>>;
+  ID: ResolverTypeWrapper<Partial<Scalars['ID']>>;
+  JSON: ResolverTypeWrapper<Partial<Scalars['JSON']>>;
+  JSONObject: ResolverTypeWrapper<Partial<Scalars['JSONObject']>>;
   Mutation: ResolverTypeWrapper<{}>;
   Query: ResolverTypeWrapper<{}>;
-  String: ResolverTypeWrapper<Scalars['String']>;
-  TokenPair: ResolverTypeWrapper<TokenPair>;
-  Upload: ResolverTypeWrapper<Scalars['Upload']>;
-  User: ResolverTypeWrapper<User>;
-  UserMutations: ResolverTypeWrapper<UserMutations>;
-};
+  String: ResolverTypeWrapper<Partial<Scalars['String']>>;
+  TokenPair: ResolverTypeWrapper<Partial<TokenPair>>;
+  Upload: ResolverTypeWrapper<Partial<Scalars['Upload']>>;
+  User: ResolverTypeWrapper<Partial<User>>;
+  UserMutations: ResolverTypeWrapper<Partial<UserMutations>>;
+}>;
 
 /** Mapping between all available schema types and the resolvers parents */
-export type ResolversParentTypes = {
-  Boolean: Scalars['Boolean'];
-  DateTime: Scalars['DateTime'];
-  ID: Scalars['ID'];
-  JSON: Scalars['JSON'];
-  JSONObject: Scalars['JSONObject'];
+export type ResolversParentTypes = ResolversObject<{
+  Boolean: Partial<Scalars['Boolean']>;
+  DateTime: Partial<Scalars['DateTime']>;
+  ID: Partial<Scalars['ID']>;
+  JSON: Partial<Scalars['JSON']>;
+  JSONObject: Partial<Scalars['JSONObject']>;
   Mutation: {};
   Query: {};
-  String: Scalars['String'];
-  TokenPair: TokenPair;
-  Upload: Scalars['Upload'];
-  User: User;
-  UserMutations: UserMutations;
-};
+  String: Partial<Scalars['String']>;
+  TokenPair: Partial<TokenPair>;
+  Upload: Partial<Scalars['Upload']>;
+  User: Partial<User>;
+  UserMutations: Partial<UserMutations>;
+}>;
 
 export type DefaultDirectiveArgs = {
   value: Scalars['String'];
@@ -259,45 +260,45 @@ export interface JsonObjectScalarConfig extends GraphQLScalarTypeConfig<Resolver
   name: 'JSONObject';
 }
 
-export type MutationResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
+export type MutationResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
   _?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   user?: Resolver<ResolversTypes['UserMutations'], ParentType, ContextType>;
-};
+}>;
 
-export type QueryResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
+export type QueryResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   health?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-};
+}>;
 
-export type TokenPairResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['TokenPair'] = ResolversParentTypes['TokenPair']> = {
+export type TokenPairResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['TokenPair'] = ResolversParentTypes['TokenPair']> = ResolversObject<{
   accessToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   refreshToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+}>;
 
 export interface UploadScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Upload'], any> {
   name: 'Upload';
 }
 
-export type UserResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
+export type UserResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
   email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   image?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registrationDate?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+}>;
 
-export type UserMutationsResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['UserMutations'] = ResolversParentTypes['UserMutations']> = {
+export type UserMutationsResolvers<ContextType = ResolverContextBase, ParentType extends ResolversParentTypes['UserMutations'] = ResolversParentTypes['UserMutations']> = ResolversObject<{
   changePassword?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType, RequireFields<UserMutationsChangePasswordArgs, 'newPassword' | 'oldPassword'>>;
   login?: Resolver<ResolversTypes['TokenPair'], ParentType, ContextType, RequireFields<UserMutationsLoginArgs, 'email' | 'password'>>;
   refreshTokens?: Resolver<ResolversTypes['TokenPair'], ParentType, ContextType, RequireFields<UserMutationsRefreshTokensArgs, 'refreshToken'>>;
   resetPassword?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType, RequireFields<UserMutationsResetPasswordArgs, 'email'>>;
   signUp?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType, RequireFields<UserMutationsSignUpArgs, 'email'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+}>;
 
-export type Resolvers<ContextType = ResolverContextBase> = {
+export type Resolvers<ContextType = ResolverContextBase> = ResolversObject<{
   DateTime?: GraphQLScalarType;
   JSON?: GraphQLScalarType;
   JSONObject?: GraphQLScalarType;
@@ -307,9 +308,9 @@ export type Resolvers<ContextType = ResolverContextBase> = {
   Upload?: GraphQLScalarType;
   User?: UserResolvers<ContextType>;
   UserMutations?: UserMutationsResolvers<ContextType>;
-};
+}>;
 
-export type DirectiveResolvers<ContextType = ResolverContextBase> = {
+export type DirectiveResolvers<ContextType = ResolverContextBase> = ResolversObject<{
   default?: DefaultDirectiveResolver<any, any, ContextType>;
   renameFrom?: RenameFromDirectiveResolver<any, any, ContextType>;
   requireAdmin?: RequireAdminDirectiveResolver<any, any, ContextType>;
@@ -317,4 +318,4 @@ export type DirectiveResolvers<ContextType = ResolverContextBase> = {
   requireUserInWorkspace?: RequireUserInWorkspaceDirectiveResolver<any, any, ContextType>;
   uploadImage?: UploadImageDirectiveResolver<any, any, ContextType>;
   validate?: ValidateDirectiveResolver<any, any, ContextType>;
-};
+}>;

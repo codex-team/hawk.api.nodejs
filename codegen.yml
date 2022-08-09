@@ -6,6 +6,8 @@ generates:
     config:
       contextType: ./graphql.js#ResolverContextBase
       useTypeImports: true
+      useIndexSignature: true
+      defaultMapper: Partial<{T}>
     plugins:
       - "typescript"
       - "typescript-resolvers"

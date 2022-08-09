@@ -12,6 +12,9 @@ interface JwtPayload {
   userId: string;
 }
 
+const accessTokenKey = Uint8Array.from(config.auth.accessTokenSecret, c => c.charCodeAt(0));
+const refreshTokenKey = Uint8Array.from(config.auth.refreshTokenSecret, c => c.charCodeAt(0));
+
 /**
  * Generates tokens pair for authentication
  *
@@ -19,17 +22,16 @@ interface JwtPayload {
  */
 export async function generateTokensPair(userId: string): Promise<TokensPair> {
   const accessToken = await new jose.SignJWT({ userId })
-    .setProtectedHeader({ alg: 'ES256' })
+    .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('15m')
-    .sign(Uint8Array.from(config.auth.accessTokenSecret, c => c.charCodeAt(0)));
-
+    .sign(accessTokenKey);
 
   const refreshToken = await new jose.SignJWT({ userId })
-    .setProtectedHeader({ alg: 'ES256' })
+    .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('30d')
-    .sign(Uint8Array.from(config.auth.refreshTokenSecret, c => c.charCodeAt(0)));
+    .sign(refreshTokenKey);
 
   return {
     accessToken,
@@ -38,12 +40,32 @@ export async function generateTokensPair(userId: string): Promise<TokensPair> {
 }
 
 /**
- * Verify JWT and return its payload
+ * Verifies auth token and returns its payload
+ *
+ * @param token - token to verify
+ * @param secret - secret for verification
+ */
+async function verifyJwt(token: string, secret: Uint8Array): Promise<JwtPayload> {
+  const data = await jose.jwtVerify(token, secret);
+
+  return data.payload as unknown as JwtPayload;
+}
+
+/**
+ * Verify refresh token and return its payload
  *
  * @param token - token to verify
  */
 export async function verifyRefreshToken(token: string): Promise<JwtPayload> {
-  const data = await jose.jwtVerify(token, Uint8Array.from(config.auth.refreshTokenSecret, c => c.charCodeAt(0)));
+  return verifyJwt(token, refreshTokenKey);
+}
 
-  return data.payload as unknown as JwtPayload;
+
+/**
+ * Verify access token and return its payload
+ *
+ * @param token - token to verify
+ */
+export async function verifyAccessToken(token: string): Promise<JwtPayload> {
+  return verifyJwt(token, refreshTokenKey);
 }

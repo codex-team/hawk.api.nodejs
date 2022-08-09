@@ -2,10 +2,25 @@ import UserModel from '../models/user.js';
 import { ApolloError, AuthenticationError } from 'apollo-server-core';
 import type { TokensPair } from '@hawk.so/types';
 import { verifyRefreshToken } from '../lib/auth-tokens.js';
-import type { UserMutationsResolvers } from '../types/schema.js';
+import type { QueryResolvers, UserMutationsResolvers } from '../types/schema.js';
 
 const Mutation = {
   user: () => ({}),
+};
+
+
+const Query: QueryResolvers = {
+  me: async (_, __, ctx) => {
+    console.log('kek');
+    console.log(ctx);
+    const user = await UserModel.findByEmail('nikmel2803');
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return user.data;
+  },
 };
 
 const UserMutations: UserMutationsResolvers = {
@@ -109,4 +124,5 @@ const UserMutations: UserMutationsResolvers = {
 export default {
   Mutation,
   UserMutations,
+  Query,
 };
