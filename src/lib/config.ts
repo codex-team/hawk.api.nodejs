@@ -2,6 +2,7 @@ import { loadConfig } from 'config-loader';
 import * as process from 'process';
 import arg from 'arg';
 import path from 'path';
+import type { LevelWithSilent as LogLevel } from 'pino';
 
 /**
  * Application configuration
@@ -31,6 +32,11 @@ interface AppConfig {
      * Prometheus configuration
      */
     metrics: MetricsConfig;
+
+    /**
+     * Logging configuration
+     */
+    logging: LoggingConfig;
 }
 
 /**
@@ -81,6 +87,13 @@ interface MetricsConfig {
      * Prometheus metrics server port
      */
     port: number
+}
+
+export interface LoggingConfig {
+    global: LogLevel | boolean;
+    metricsServer: LogLevel | boolean;
+    appServer: LogLevel | boolean;
+    database: LogLevel | boolean;
 }
 
 const args = arg({ /* eslint-disable @typescript-eslint/naming-convention */

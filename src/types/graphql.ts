@@ -15,7 +15,7 @@ export interface UserInContext {
     /**
      * User id
      */
-    id?: string;
+    id?: string | undefined;
 
     /**
      * True if token is expired

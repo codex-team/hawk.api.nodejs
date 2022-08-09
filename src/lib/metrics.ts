@@ -1,7 +1,7 @@
 import fastify from 'fastify';
 import promClient from 'prom-client';
 import HttpStatusCode from './http-status-codes.js';
-import logger from './logger.js';
+import logger, { getLogger } from './logger.js';
 import config from './config.js';
 import { accountsMongoDb } from './mongodb.js';
 
@@ -25,8 +25,9 @@ const homePage = `
  * Creates and runs the metrics server.
  */
 export default async function runMetricsServer(): Promise<void> {
+  const metricsServerLogger = getLogger('metricsServer');
   const metricsServer = fastify({
-    logger,
+    logger: metricsServerLogger,
   });
 
   metricsServer.get('/', (_request, reply) => {
