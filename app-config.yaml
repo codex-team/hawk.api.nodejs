@@ -12,8 +12,8 @@ auth:
 
 logging:
   global: info
-  metricsServer: silent
-  appServer: silent
+  metricsServer: error
+  appServer: error
   database: info
 
 databases:

@@ -2,16 +2,18 @@ import UserModel from '../models/user.js';
 import { ApolloError, AuthenticationError } from 'apollo-server-core';
 import type { TokensPair } from '@hawk.so/types';
 import { verifyRefreshToken } from '../lib/auth-tokens.js';
-import type { QueryResolvers, UserMutationsResolvers } from '../types/schema.js';
+import type { MutationResolvers, QueryResolvers, UserMutationsResolvers } from '../types/schema.js';
+import ensureAuthedUser from '../lib/ensure-authed-user.js';
 
-const Mutation = {
+const Mutation: MutationResolvers = {
   user: () => ({}),
 };
 
 
 const Query: QueryResolvers = {
-  me: async () => {
-    const user = await UserModel.findByEmail('fake'); // todo implement this resolver
+  me: async (_, __, ctx) => {
+    const userId = ensureAuthedUser(ctx);
+    const user = await UserModel.findById(userId);
 
     if (!user) {
       throw new Error('User not found');
