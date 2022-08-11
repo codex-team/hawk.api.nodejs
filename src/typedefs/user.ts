@@ -1,6 +1,6 @@
 import { gql } from 'apollo-server-core';
 
-export default gql`
+const userTypedefs = gql`
     """
     Authentication tokens
     """
@@ -125,3 +125,5 @@ export default gql`
         user: UserMutations!
     }
 `;
+
+export default userTypedefs;

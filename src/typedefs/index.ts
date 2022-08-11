@@ -1,7 +1,8 @@
 import { gql } from 'apollo-server-core';
-import userSchema from './user.js';
+import userTypedefs from './user.js';
+import workspaceTypedefs from './workspace.js';
 
-const rootSchema = gql`
+const rootTypedefs = gql`
   """
   Access to the field only to authorized users
   """
@@ -77,8 +78,9 @@ const rootSchema = gql`
 `;
 
 const typeDefinitions = [
-  rootSchema,
-  userSchema,
+  rootTypedefs,
+  userTypedefs,
+  workspaceTypedefs,
 ];
 
 export default typeDefinitions;
