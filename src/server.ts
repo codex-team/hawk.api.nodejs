@@ -94,5 +94,5 @@ export default async function startApolloServer(): Promise<void> {
     port: config.port,
     host: config.host,
   });
-  appServerLogger.info(`🚀 Server ready at http://${config.host}:${config.port}${server.graphqlPath}`);
+  logger.info(`🚀 Server ready at http://${config.host}:${config.port}${server.graphqlPath}`);
 }
