@@ -47,7 +47,6 @@ async function createContext({ request }: FastifyContext): Promise<ResolverConte
 
     userId = data.userId;
   } catch (err) {
-    logger.debug(accessToken);
     logger.error(err);
     isAccessTokenExpired = true;
   }
