@@ -121,7 +121,7 @@ const workspaceTypedefs =  gql`
     Returns workspace(s) info
     If ids = [] returns all user's workspaces
     """
-    workspaces("Workspace(s) id(s)" ids: [ID] = []): [Workspace] @requireAuth
+    allWorkspaces: [Workspace] @requireAuth
   }
 `;
 

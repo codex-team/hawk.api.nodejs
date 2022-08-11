@@ -1,5 +1,6 @@
 env:
   es2021: true
+  node: true
 extends:
   - codex/ts
 parser: '@typescript-eslint/parser'

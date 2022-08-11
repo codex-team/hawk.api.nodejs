@@ -1,19 +1,19 @@
-import type { ResolverContextBase } from '../types/graphql.js';
+import type { UserInContext } from '../types/graphql.js';
 import { AuthenticationError } from 'apollo-server-core';
 
 /**
  * Checks if user is authenticated
  *
- * @param ctx - resolver context
+ * @param ctxUser - user data in request context
  */
-export default function ensureAuthedUser(ctx: ResolverContextBase): string {
-  if (!ctx.user.id) {
+export default function ensureAuthedUser(ctxUser: UserInContext): string {
+  if (!ctxUser.id) {
     throw new AuthenticationError('You are not authorized');
   }
 
-  if (ctx.user.accessTokenExpired) {
+  if (ctxUser.accessTokenExpired) {
     throw new AuthenticationError('Your access token is expired');
   }
 
-  return ctx.user.id;
+  return ctxUser.id;
 }

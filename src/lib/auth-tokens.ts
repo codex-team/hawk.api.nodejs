@@ -12,8 +12,8 @@ interface JwtPayload {
   userId: string;
 }
 
-const accessTokenKey = Uint8Array.from(config.auth.accessTokenSecret, c => c.charCodeAt(0));
-const refreshTokenKey = Uint8Array.from(config.auth.refreshTokenSecret, c => c.charCodeAt(0));
+const accessTokenKey = Buffer.from(config.auth.accessTokenSecret, 'utf-8');
+const refreshTokenKey = Buffer.from(config.auth.refreshTokenSecret, 'utf-8');
 
 /**
  * Generates tokens pair for authentication
@@ -67,5 +67,5 @@ export async function verifyRefreshToken(token: string): Promise<JwtPayload> {
  * @param token - token to verify
  */
 export async function verifyAccessToken(token: string): Promise<JwtPayload> {
-  return verifyJwt(token, refreshTokenKey);
+  return verifyJwt(token, accessTokenKey);
 }

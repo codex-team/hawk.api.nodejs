@@ -12,7 +12,7 @@ const Mutation: MutationResolvers = {
 
 const Query: QueryResolvers = {
   me: async (_, __, ctx) => {
-    const userId = ensureAuthedUser(ctx);
+    const userId = ensureAuthedUser(ctx.user);
     const user = await UserModel.findById(userId);
 
     if (!user) {
@@ -121,8 +121,10 @@ const UserMutations: UserMutationsResolvers = {
   },
 };
 
-export default {
+const userResolvers = {
   Mutation,
   UserMutations,
   Query,
 };
+
+export default userResolvers;
