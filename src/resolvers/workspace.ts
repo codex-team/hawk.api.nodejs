@@ -6,8 +6,6 @@ const Query: QueryResolvers = {
   allWorkspaces: async (_, __, ctx) => {
     const userId = ensureAuthedUser(ctx.user);
 
-    console.log(userId);
-
     return WorkspaceModel.findAllByUserId(userId, true);
   },
 };
