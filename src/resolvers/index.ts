@@ -1,5 +1,7 @@
-import userResolver from './user.js';
-const indexResolver = {
+import userResolvers from './user.js';
+import workspaceResolvers from './workspace.js';
+
+const indexResolvers = {
   Query: {
     /**
      * Healthcheck endpoint
@@ -9,8 +11,9 @@ const indexResolver = {
 };
 
 const resolvers = [
-  indexResolver,
-  userResolver,
+  indexResolvers,
+  userResolvers,
+  workspaceResolvers,
 ];
 
 export default resolvers;

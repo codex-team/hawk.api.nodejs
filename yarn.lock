@@ -1360,12 +1360,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hawk.so/types@https://github.com/codex-team/hawk.types.git#0ab27b8cf002d851ae672d4f64f80f373fa0aca9":
+"@hawk.so/types@https://github.com/codex-team/hawk.types.git#46fa89515851b86991785b7c9b89e7099467c168":
   version: 0.1.19
-  resolution: "@hawk.so/types@https://github.com/codex-team/hawk.types.git#commit=0ab27b8cf002d851ae672d4f64f80f373fa0aca9"
+  resolution: "@hawk.so/types@https://github.com/codex-team/hawk.types.git#commit=46fa89515851b86991785b7c9b89e7099467c168"
   dependencies:
     "@types/mongodb": ^4.0.7
-  checksum: 3008d13391e3b3c05b013a7509ad55d463c8e98d8409ec62de9627e7597c0c3e5a00e48ebbf7553644d4eba1e1c9bf19d712e2c0a0d809b3ef320d6ab8805225
+  checksum: 0913a2863ed52f76a137c257984ce1470170c6d4ff627e3bd6564b9ab652a5f8146b2ed8f11ef4dfd5be169856bc181bd54e02c39138cb08ad2fee889dfee57e
   languageName: node
   linkType: hard
 
@@ -4317,7 +4317,7 @@ __metadata:
     "@graphql-tools/merge": ^8.3.1
     "@graphql-tools/schema": ^8.5.1
     "@graphql-tools/utils": ^8.9.0
-    "@hawk.so/types": "https://github.com/codex-team/hawk.types.git#0ab27b8cf002d851ae672d4f64f80f373fa0aca9"
+    "@hawk.so/types": "https://github.com/codex-team/hawk.types.git#46fa89515851b86991785b7c9b89e7099467c168"
     "@tsconfig/node16-strictest-esm": ^1.0.3
     "@types/eslint": ^8
     "@types/node": 16
