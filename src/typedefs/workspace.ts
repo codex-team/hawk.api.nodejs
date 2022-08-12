@@ -118,8 +118,7 @@ const workspaceTypedefs =  gql`
 
   extend type Query {
     """
-    Returns workspace(s) info
-    If ids = [] returns all user's workspaces
+    Returns all workspaces user is member of
     """
     allWorkspaces: [Workspace] @requireAuth
   }
