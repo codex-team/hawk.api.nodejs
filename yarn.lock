@@ -1448,7 +1448,7 @@ __metadata:
   resolution: "@hawk.so/types@https://github.com/codex-team/hawk.types.git#commit=46fa89515851b86991785b7c9b89e7099467c168"
   dependencies:
     "@types/mongodb": ^4.0.7
-  checksum: 0913a2863ed52f76a137c257984ce1470170c6d4ff627e3bd6564b9ab652a5f8146b2ed8f11ef4dfd5be169856bc181bd54e02c39138cb08ad2fee889dfee57e
+  checksum: 76e8fae3c8cafa046aba59aca49ea9d0a55653620d80d15bdc354b6f1684384daa5ea00b0293341a2a7585adb964f7f37f4c1df23b1fe3fc8fbe5744bdcbc97b
   languageName: node
   linkType: hard
 
@@ -3019,7 +3019,7 @@ __metadata:
     js-yaml: ^4.1.0
     lodash.isarray: ^4.0.0
     lodash.merge: ^4.6.2
-  checksum: cbfeafd0bd275c97636a6e2c2ccda73a5eb9a76e1f266eaa12b4100a48ddf5fefe91085c2a127a799e27d214ed5f3eb9041dcdf5793db9e3a1ded2c5dae69c68
+  checksum: bd60161a67826c00b637901b89ed883ddba1277608ee60327eac5bb8c5633316c9c941b73458696e65a0dd13861b1d60360c8e96b73a4674069380c1b9119430
   languageName: node
   linkType: hard
 
@@ -3466,7 +3466,7 @@ __metadata:
     eslint-plugin-standard: 5.0.0
   peerDependencies:
     eslint: ">= 5.3.0"
-  checksum: 420f38687ac79e2e80a905ba55589e45f00e0bd18aa05fd95bfacb07cdf6b9c7cd10a97d82dd9eaca159a5a121175f4db6b7161c1cd36b0538539ee634eed73a
+  checksum: b993a7fe53617d3a736f46f72b0d3a64439665d5a0795881a7d6799a05ef021a4b1a4d674c502b7b6e730c3a0d16fe17b3726bc0c59f511c3b6b3d9941be0c02
   languageName: node
   linkType: hard
 
