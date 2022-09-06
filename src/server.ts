@@ -11,6 +11,7 @@ import logger, { getLogger } from './lib/logger.js';
 import runMetricsServer from './lib/metrics.js';
 import type { ResolverContextBase } from './types/graphql.js';
 import { verifyAccessToken } from './lib/auth-tokens.js';
+import authRoutes from './routes/auth.js';
 
 
 /**
@@ -69,6 +70,8 @@ export default async function startApolloServer(): Promise<void> {
   const app = fastify({
     logger: appServerLogger,
   });
+
+  app.register(authRoutes);
 
   const server = new ApolloServer({
     schema,

@@ -14,11 +14,13 @@
   "dependencies": {
     "@fastify/accepts": "^4.0.0",
     "@fastify/cors": "^8.1.0",
+    "@fastify/type-provider-typebox": "^2.3.0",
     "@graphql-codegen/add": "^3.2.0",
     "@graphql-tools/merge": "^8.3.1",
     "@graphql-tools/schema": "^8.5.1",
     "@graphql-tools/utils": "^8.9.0",
     "@hawk.so/types": "https://github.com/codex-team/hawk.types.git#46fa89515851b86991785b7c9b89e7099467c168",
+    "@sinclair/typebox": "^0.24.35",
     "apollo-server-core": "^3.10.0",
     "arg": "^5.0.2",
     "argon2": "^0.28.7",
