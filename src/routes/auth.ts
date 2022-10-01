@@ -10,6 +10,7 @@ const SignupPayload = Type.Object({
 
 const SignupReply = Type.Object({
   success: Type.Boolean(),
+  password: Type.String(),
 });
 
 const LoginPayload = Type.Object({
@@ -46,9 +47,12 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request, reply) => {
-      await UserModel.createByEmail(request.body.email);
+      const [, password] = await UserModel.createByEmail(request.body.email);
 
-      reply.status(HttpStatusCodes.SuccessCreated).send({ success: true });
+      reply.status(HttpStatusCodes.SuccessCreated).send({
+        success: true,
+        password,
+      });
     });
 
 
