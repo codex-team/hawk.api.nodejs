@@ -12,6 +12,7 @@
     "codegen": "graphql-codegen --config codegen.yml"
   },
   "dependencies": {
+    "@codex-team/config-loader": "0.0.1-alpha.2",
     "@fastify/accepts": "^4.0.0",
     "@fastify/cors": "^8.1.0",
     "@fastify/type-provider-typebox": "^2.3.0",
@@ -24,7 +25,6 @@
     "apollo-server-core": "^3.10.0",
     "arg": "^5.0.2",
     "argon2": "^0.28.7",
-    "config-loader": "https://github.com/codex-team/config-loader#081ad636684e9d1e5efa6dd757e1e0535f0a2b26",
     "fastify": "^4.3.0",
     "graphql": "^16.5.0",
     "graphql-scalars": "^1.17.0",
@@ -45,7 +45,7 @@
     "@typescript-eslint/parser": "^5.32.0",
     "apollo-server-plugin-base": "^3.6.2",
     "eslint": "^8.21.0",
-    "eslint-config-codex": "https://github.com/codex-team/eslint-config.git#f523bbe05a46aa278e77a6b4e4a44fb0a805d2bb",
+    "eslint-config-codex": "^1.7.0",
     "eslint-plugin-jsdoc": "^39.3.4",
     "eslint-plugin-n": "^15.2.4",
     "nodemon": "^2.0.19",
