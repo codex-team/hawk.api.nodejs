@@ -3,7 +3,7 @@ import {
   ApolloServerPluginLandingPageLocalDefault
 } from 'apollo-server-core';
 import type { ApolloServerPlugin } from 'apollo-server-plugin-base';
-import fastify, { FastifyInstance } from 'fastify';
+import fastify, { FastifyInstance, FastifyRequest } from 'fastify';
 import schema from './schema.js';
 import { ApolloServer, FastifyContext } from './lib/apollo-server.js';
 import config from './lib/config.js';
@@ -12,7 +12,8 @@ import runMetricsServer from './lib/metrics.js';
 import type { ResolverContextBase } from './types/graphql.js';
 import { verifyAccessToken } from './lib/auth-tokens.js';
 import authRoutes from './routes/auth.js';
-
+import type { FastifyCookieOptions } from '@fastify/cookie';
+import cookie from '@fastify/cookie';
 
 /**
  * Plugin for draining the HTTP server.
@@ -32,13 +33,29 @@ function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
 }
 
 /**
+ * Extracts access token from request (from cookie or from header)
+ *
+ * @param request - fastify request
+ */
+function getAccessToken(request: FastifyRequest): string {
+  const authHeader = request.headers.authorization;
+
+  if (authHeader) {
+    return authHeader?.slice('Bearer '.length) || '';
+  }
+
+  const accessToken = request.cookies['accessToken'];
+
+  return accessToken || '';
+}
+
+/**
  * Creates context for request
  *
  * @param context - Fastify context
  */
 async function createContext({ request }: FastifyContext): Promise<ResolverContextBase> {
-  const authHeader = request.headers.authorization;
-  const accessToken = authHeader?.slice('Bearer '.length) || '';
+  const accessToken = getAccessToken(request);
 
   let userId: string | undefined;
   let isAccessTokenExpired = false;
@@ -71,6 +88,10 @@ export default async function startApolloServer(): Promise<void> {
     logger: appServerLogger,
   });
 
+  app.register(cookie, {
+    secret: 'my-secret',
+    // parseOptions: {},
+  } as FastifyCookieOptions);
   app.register(authRoutes);
 
   const server = new ApolloServer({

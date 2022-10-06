@@ -863,6 +863,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fastify/cookie@npm:^8.3.0":
+  version: 8.3.0
+  resolution: "@fastify/cookie@npm:8.3.0"
+  dependencies:
+    cookie: ^0.5.0
+    fastify-plugin: ^4.0.0
+  checksum: d5dfb5c85d4ae02188aad63c8cf055d3b904287bc2750964ee0b8589c5b5ae32850e8fc9456a8830e9f4e9f24d5059e54dac084835d6ef4cbba7fa4b9c4673b3
+  languageName: node
+  linkType: hard
+
 "@fastify/cors@npm:^8.1.0":
   version: 8.1.0
   resolution: "@fastify/cors@npm:8.1.0"
@@ -4548,6 +4558,7 @@ __metadata:
   dependencies:
     "@codex-team/config-loader": 0.0.1-alpha.2
     "@fastify/accepts": ^4.0.0
+    "@fastify/cookie": ^8.3.0
     "@fastify/cors": ^8.1.0
     "@fastify/type-provider-typebox": ^2.3.0
     "@graphql-codegen/add": ^3.2.0

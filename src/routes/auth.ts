@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import UserModel from '../models/user.js';
 import { Static, Type } from '@sinclair/typebox';
 import HttpStatusCodes from '../lib/http-status-codes.js';
@@ -16,6 +16,7 @@ const SignupReply = Type.Object({
 const LoginPayload = Type.Object({
   email: Type.String({ format: 'email' }),
   password: Type.String(),
+  setCookie: Type.Optional(Type.Boolean()),
 });
 
 const TokensPair = Type.Object({
@@ -24,7 +25,7 @@ const TokensPair = Type.Object({
 });
 
 const RefreshTokensPayload = Type.Object({
-  refreshToken: Type.String(),
+  refreshToken: Type.Optional(Type.String()),
 });
 
 export type SignupPayloadType = Static<typeof SignupPayload>;
@@ -34,6 +35,25 @@ export type LoginPayloadType = Static<typeof LoginPayload>;
 export type TokensPairType = Static<typeof TokensPair>;
 
 export type RefreshTokensPayloadType = Static<typeof RefreshTokensPayload>;
+
+/**
+ * Sets cookie with access and refresh tokens
+ *
+ * @param reply - fastify reply
+ * @param tokens - tokens pair to set
+ */
+function setAuthCookies(reply: FastifyReply, tokens: TokensPairType): void {
+  reply.setCookie('accessToken', tokens.accessToken, {
+    httpOnly: true,
+    path: '/',
+    sameSite: 'strict',
+  });
+  reply.setCookie('refreshToken', tokens.refreshToken, {
+    httpOnly: true,
+    path: '/refresh-tokens',
+    sameSite: 'strict',
+  });
+}
 
 const authRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{Body: SignupPayloadType, Reply: SignupReplyType}>(
@@ -73,7 +93,14 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         throw new Error('Wrong email or password');
       }
 
-      reply.status(HttpStatusCodes.SuccessOK).send(await user.generateTokensPair());
+      const tokens = await user.generateTokensPair();
+
+      if (request.query.setCookie) {
+        setAuthCookies(reply, tokens);
+        reply.status(HttpStatusCodes.SuccessOK);
+      } else {
+        reply.status(HttpStatusCodes.SuccessOK).send(tokens);
+      }
     });
 
   fastify.get<{Querystring: RefreshTokensPayloadType, Reply: TokensPairType}>(
@@ -89,8 +116,16 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       let userId;
 
+      const cookieRefreshToken = request.cookies['refreshToken'];
+
+      const refreshToken = request.query.refreshToken || cookieRefreshToken;
+
+      if (!refreshToken) {
+        throw new Error('Auth token is not provided');
+      }
+
       try {
-        const data = await verifyRefreshToken(request.query.refreshToken);
+        const data = await verifyRefreshToken(refreshToken);
 
         userId = data.userId;
       } catch (err) {
@@ -103,7 +138,14 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         throw new Error('There is no users with that id');
       }
 
-      reply.status(HttpStatusCodes.SuccessOK).send(await user.generateTokensPair());
+      const tokens = await user.generateTokensPair();
+
+      if (cookieRefreshToken) {
+        setAuthCookies(reply, tokens);
+        reply.status(HttpStatusCodes.SuccessOK);
+      } else {
+        reply.status(HttpStatusCodes.SuccessOK).send(tokens);
+      }
     });
 };
 
