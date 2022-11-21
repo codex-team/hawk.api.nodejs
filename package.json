@@ -25,7 +25,7 @@
     "apollo-server-core": "^3.10.0",
     "arg": "^5.0.2",
     "argon2": "^0.28.7",
-    "fastify": "^4.3.0",
+    "fastify": "^4.10.2",
     "graphql": "^16.5.0",
     "graphql-scalars": "^1.17.0",
     "jose": "^4.8.3",
