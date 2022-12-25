@@ -268,6 +268,7 @@ export default gql`
     """
     Mutation in order to leave workspace
     Returns true if operation is successful
+    Returns false if there is no other admin lefts
     """
     leaveWorkspace(
       """
@@ -275,5 +276,16 @@ export default gql`
       """
       workspaceId: ID!
     ): Boolean! @requireAuth
+
+    """
+    Mutation in order to delete workspace
+    Returns true if operation is successful
+    """
+    deleteWorkspace(
+      """
+      Workspace ID
+      """
+      workspaceId: ID!
+    ): Boolean! @requireAdmin
   }
 `;

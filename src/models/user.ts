@@ -62,7 +62,7 @@ export interface UserNotificationsDBScheme {
   /**
    * Types of notifications to receive
    */
-  whatToReceive: {[key in UserNotificationType]: boolean};
+  whatToReceive: { [key in UserNotificationType]: boolean };
 }
 
 /**
@@ -165,6 +165,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
 
   /**
    * Generate 16bytes password
+   * @returns generated password.
    */
   public static generatePassword(): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -172,7 +173,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
         if (err) {
           return reject(err);
         }
-
+        console.log(buff.toString('hex'));
         resolve(buff.toString('hex'));
       });
     });
@@ -182,6 +183,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * Compose default notifications settings for new users.
    *
    * @param email - user email from the sign-up form will be used as email-channel endpoint
+   * @returns default notification settings for new users.
    */
   public static generateDefaultNotificationsSettings(email: string): UserNotificationsDBScheme {
     return {
@@ -212,7 +214,6 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * Change user's password
    * Hashes new password and updates the document
    *
-   * @param userId - user ID
    * @param newPassword - new user password
    */
   public async changePassword(newPassword: string): Promise<void> {
@@ -318,9 +319,25 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * Remove workspace from membership collection
    * @param workspaceId - id of workspace to remove
    */
-  public async removeWorkspace(workspaceId: string): Promise<{workspaceId: string}> {
+  public async removeWorkspace(workspaceId: string): Promise<{ workspaceId: string }> {
     await this.membershipCollection.deleteOne({
       workspaceId: new ObjectId(workspaceId),
+    });
+
+    return {
+      workspaceId,
+    };
+  }
+
+  /**
+   * Mark workspace as removed.
+   * @param workspaceId - id of workspace to remove
+   */
+  public async markWorkspaceAsRemoved(workspaceId: string): Promise<{ workspaceId: string }> {
+    await this.membershipCollection.updateOne({
+      workspaceId: new ObjectId(workspaceId),
+    }, {
+      $set: { isRemoved: true },
     });
 
     return {
@@ -352,10 +369,16 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       workspaceId: {
         $in: idsAsObjectId,
       },
+      isRemoved: {
+        $ne: true,
+      },
       isPending: {
         $ne: true,
       },
     } : {
+      isRemoved: {
+        $ne: true,
+      },
       isPending: {
         $ne: true,
       },

@@ -106,7 +106,16 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
    * @param inviteHash - workspace invite hash
    */
   public async findByInviteHash(inviteHash: string): Promise<WorkspaceModel | null> {
-    const workspaceData = await this.collection.findOne({ inviteHash });
+    const workspaceData = await this.collection.findOne({
+      inviteHash,
+      isRemoved: {
+        $ne: true,
+      },
+    });
+
+    if (!workspaceData) {
+      return null;
+    }
 
     return workspaceData && new WorkspaceModel(workspaceData);
   }

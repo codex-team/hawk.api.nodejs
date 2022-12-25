@@ -194,6 +194,7 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
 
   /**
    * Generates integration ID that's used in collector URL for sending events
+   * @returns integration ID as string.
    */
   public static generateIntegrationId(): string {
     return uuid();
@@ -203,6 +204,7 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * Generates new integration token with integration id field
    *
    * @param integrationId - integration id for using in collector URL
+   * @returns  generated integration token.
    */
   public static generateIntegrationToken(integrationId: string): string {
     const secret = uuid();
@@ -371,6 +373,26 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    */
   public async remove(): Promise<void> {
     await this.collection.deleteOne({ _id: this._id });
+
+    try {
+      /**
+       * Remove users in project collection
+       */
+      await this.dbConnection.collection('users-in-project:' + this._id)
+        .drop();
+    } catch (error) {
+      console.log(`Can't remove collection "users-in-project:${this._id}" because it doesn't exist.`);
+      console.log(error);
+    }
+  }
+
+  /**
+   * Mark project as removed.
+   */
+  public async markProjectAsRemoved(): Promise<void> {
+    await this.collection.updateOne({ _id: this._id }, {
+      $set: { isRemoved: true },
+    });
 
     try {
       /**

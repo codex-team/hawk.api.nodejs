@@ -9,7 +9,7 @@ import ProjectToWorkspace from '../models/projectToWorkspace';
 import Validator from '../utils/validator';
 import { dateFromObjectId } from '../utils/dates';
 
-const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
+const { ApolloError, UserInputError } = require('apollo-server-express');
 const crypto = require('crypto');
 
 /**
@@ -145,6 +145,10 @@ module.exports = {
       const currentUser = await factories.usersFactory.findById(user.id);
       const workspace = await factories.workspacesFactory.findByInviteHash(inviteHash);
 
+      if (!workspace) {
+        throw new ApolloError('There is no workspace with provided id');
+      }
+
       if (await workspace.getMemberInfo(user.id)) {
         throw new ApolloError('You are already member of this workspace');
       }
@@ -174,6 +178,10 @@ module.exports = {
     async confirmInvitation(_obj, { inviteHash, workspaceId }, { user, factories }) {
       const currentUser = await factories.usersFactory.findById(user.id);
       const workspace = await factories.workspacesFactory.findById(workspaceId);
+
+      if (!workspace) {
+        throw new ApolloError('There is no workspace with provided id');
+      }
 
       const hash = crypto
         .createHash('sha256')
@@ -288,7 +296,7 @@ module.exports = {
      * @param {string} workspaceId - id of the workspace where the user should be removed
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
-     * @return {Promise<boolean>} - true if operation is successful
+     * @return {Promise<boolean>} - true if operation is successful, false if there is no other admin left.
      */
     async leaveWorkspace(_obj, { workspaceId }, { user, factories }) {
       const userModel = await factories.usersFactory.findById(user.id);
@@ -307,10 +315,76 @@ module.exports = {
         );
 
         if (!isThereOtherAdmins) {
-          throw new ForbiddenError('You can\'t leave this workspace because you are the last admin');
+          return false;
         }
       }
       await workspaceModel.removeMember(userModel);
+
+      return true;
+    },
+
+    /**
+     * Mutation in order to leave workspace
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
+     * @param {string} workspaceId - id of the workspace where the user should be removed
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     * @return {Promise<boolean>} - true if operation is successful
+     */
+    async deleteWorkspace(_obj, { workspaceId }, { user, factories }) {
+      const workspaceModel = await factories.workspacesFactory.findById(workspaceId);
+
+      if (!workspaceModel) {
+        throw new UserInputError('There is no workspace with provided id');
+      }
+
+      const membersInfo = (await workspaceModel.getMembers());
+
+      for (const member of membersInfo) {
+        /**
+         * remove members from workspace.
+         */
+        if (member.userId) {
+          const userModel = await factories.usersFactory.findById(member.userId.toString());
+
+          await userModel.markWorkspaceAsRemoved(workspaceId.toString());
+        }
+        /**
+         * remove the members who's invitation is pending.
+         */
+        if (member.userEmail) {
+          const invitedUser = await factories.usersFactory.findByEmail(member.userEmail);
+
+          /**
+           * If user is already uses Hawk
+           */
+          if (invitedUser) {
+            await invitedUser.removeWorkspace(workspaceId);
+          }
+
+          /**
+           * Remove User's invitation from workspace.
+           */
+          await workspaceModel.removeMemberByEmail(member.userEmail);
+        }
+      }
+
+      const projectToWorkspace = new ProjectToWorkspace(workspaceId.toString());
+
+      const projectsInfo = await projectToWorkspace.getProjects();
+
+      if (projectsInfo.length) {
+        for (const project of projectsInfo) {
+          /**
+           * Remove project
+           */
+          const projectModel = await factories.projectsFactory.findById(project.id.toString());
+
+          await projectModel.markProjectAsRemoved();
+        }
+      }
+
+      await workspaceModel.markWorkspaceAsRemoved();
 
       return true;
     },
@@ -379,6 +453,7 @@ module.exports = {
 
     /**
      * Return empty object to call resolver for specific mutation
+     * @returns Empty object.
      */
     workspace: () => ({}),
   },
@@ -481,6 +556,7 @@ module.exports = {
     /**
      * Returns type of the team member
      * @param {MemberDBScheme} memberData - result from resolver above
+     * @returns type of member.
      */
     __resolveType(memberData) {
       return WorkspaceModel.isPendingMember(memberData) ? 'PendingMember' : 'ConfirmedMember';
@@ -496,6 +572,7 @@ module.exports = {
      * @param {ConfirmedMemberDBScheme} memberData - result from resolver above
      * @param _args - empty list of args
      * @param {ContextFactories} factories - factories for working with models
+     * @returns user data of the workspace
      */
     user(memberData, _args, { factories }) {
       return factories.usersFactory.findById(memberData.userId.toString());
@@ -504,6 +581,7 @@ module.exports = {
     /**
      * True if user has admin permissions
      * @param {ConfirmedMemberDBScheme} memberData - result from resolver above
+     * @returns status of is user admin
      */
     isAdmin(memberData) {
       return !WorkspaceModel.isPendingMember(memberData) && (memberData.isAdmin || false);
