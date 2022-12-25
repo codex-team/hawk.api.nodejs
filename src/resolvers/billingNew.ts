@@ -7,7 +7,6 @@ import {
   PayloadOfDepositByUser,
   PayloadOfWorkspacePlanPurchase
 } from '@hawk.so/types';
-import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import checksumService from '../utils/checksumService';
 import { UserInputError } from 'apollo-server-express';
 
@@ -155,7 +154,7 @@ export default {
         throw new UserInputError('There is no saved card with provided id');
       }
 
-      const jsonData: CloudPaymentsJsonData = {
+      const jsonData: any = {
         checksum: args.input.checksum,
       };
 
@@ -193,15 +192,7 @@ export default {
         amount = AMOUNT_FOR_CARD_VALIDATION;
       }
 
-      const result = await cloudPaymentsApi.payByToken({
-        AccountId: user.id,
-        Amount: amount,
-        Token: token,
-        Currency: 'USD',
-        JsonData: jsonData,
-      });
-
-      const operation = await factories.businessOperationsFactory.getBusinessOperationByTransactionId(result.Model.TransactionId.toString());
+      const operation = await factories.businessOperationsFactory.getBusinessOperationByTransactionId("foo");
 
       return {
         recordId: operation?._id,

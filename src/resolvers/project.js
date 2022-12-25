@@ -1,3 +1,4 @@
+import * as telegram from '../utils/telegram';
 const mongo = require('../mongo');
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
@@ -86,6 +87,8 @@ module.exports = {
         sparse: true,
       });
 
+      telegram.sendMessage(`🤯 Project ${name} was created`);
+
       return project;
     },
 
@@ -115,6 +118,10 @@ module.exports = {
 
       if (!project) {
         throw new ApolloError('There is no project with that id');
+      }
+
+      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+        throw new ApolloError('Unable to update demo project');
       }
 
       try {
@@ -184,6 +191,10 @@ module.exports = {
 
       if (!project) {
         throw new ApolloError('There is no project with that id');
+      }
+
+      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+        throw new ApolloError('Unable to remove demo project');
       }
 
       const workspaceModel = await factories.workspacesFactory.findById(project.workspaceId.toString());

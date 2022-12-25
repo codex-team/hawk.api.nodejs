@@ -394,13 +394,6 @@ type DailyEventInfo {
   lastRepetitionTime: Float!
 }
 
-type Subscription {
-  """
-  Sends new events from all user projects
-  """
-  eventOccurred: Event! @requireAuth
-}
-
 """
 Event information per day with these events
 """

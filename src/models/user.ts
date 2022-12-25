@@ -7,7 +7,7 @@ import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
 import { BankCard, UserDBScheme } from '@hawk.so/types';
-import uuid from 'uuid/v4';
+import { v4 as uuid } from 'uuid';
 
 /**
  * Utility type for making specific fields optional
@@ -239,6 +239,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       email: true,
       image: true,
       notifications: true,
+      'notifications.channels.email.endpoint': true,
     })) {
       throw new Error('User object has invalid properties');
     }
@@ -249,6 +250,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
         user
       );
     } catch (e) {
+      console.error(e);
       throw new Error('Can\'t update profile');
     }
   }

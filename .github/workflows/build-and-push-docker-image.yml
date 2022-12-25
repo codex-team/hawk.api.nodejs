@@ -3,11 +3,13 @@ name: Build and push docker image
 on:
   push:
     branches:
-      - prod
-      - stage
+      - '*'
+    tags:
+      - 'v*'
 
 env:
-  DOCKER_REPO: ${{ secrets.DOCKER_USERNAME }}/hawk-api
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
   HAWK_TOKEN: ${{ secrets.HAWK_TOKEN }}
 
 jobs:
@@ -15,7 +17,14 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+
+      - name: Login to GitHub registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get package info
         id: packageInfo
@@ -27,12 +36,23 @@ jobs:
           release: ${{ steps.packageInfo.outputs.name }}-${{ steps.packageInfo.outputs.version }}
           token: ${{ secrets.HAWK_TOKEN }}
 
-      - name: Build and push docker image
-        uses: docker/build-push-action@v1
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: ${{ env.DOCKER_REPO }}
-          tag_with_ref: true
-          dockerfile: docker/Dockerfile.prod
-          push: ${{ endsWith(github.ref, '/stage') || endsWith(github.ref, '/prod') }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=raw,value={{branch}}-{{sha}}-{{date 'X'}},enable=${{ startsWith(github.ref, 'refs/heads') }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: docker/Dockerfile.prod
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          push: ${{ startsWith(github.ref, 'refs/tags/v') || endsWith(github.ref, '/stage') }}

@@ -1,34 +1,40 @@
-import { SchemaDirectiveVisitor } from 'apollo-server-express';
-import { defaultFieldResolver, GraphQLArgument, GraphQLField, GraphQLInterfaceType, GraphQLObjectType } from 'graphql';
-import { save } from '../utils/files';
-import { FileUpload } from 'graphql-upload';
+import {defaultFieldResolver, GraphQLSchema, InputValueDefinitionNode} from "graphql";
+import {mapSchema, MapperKind, getDirective} from '@graphql-tools/utils'
+import {BooleanValueNode} from "graphql/language/ast";
+import {save} from "../utils/files";
 
-/**
- * Defines directive uploading images
- * This directive will automatically upload image and returns links for accessing it
- */
-export default class UploadImageDirective extends SchemaDirectiveVisitor {
-  /**
-   * Method to be called on arguments visiting
-   * Patches the resolver function to automatic download image
-   * @param argument - information about argument where is image to upload
-   * @param details - details about field to resolve
-   */
-  public visitArgumentDefinition(argument: GraphQLArgument, details: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    field: GraphQLField<any, any>;
-    objectType: GraphQLObjectType | GraphQLInterfaceType;
-  }): GraphQLArgument | void | null {
-    const { resolve = defaultFieldResolver } = details.field;
+export default function uploadImageDirective(directiveName = 'uploadImage') {
+  return {
+    uploadImageDirectiveTypeDefs: `
+    """
+    Directive for automatically image uploading
+    """
+    directive @${directiveName} on ARGUMENT_DEFINITION
+    `,
+    uploadImageDirectiveTransformer: (schema: GraphQLSchema) =>
+      mapSchema(schema, {
+        [MapperKind.MUTATION_ROOT_FIELD]: (fieldConfig) => {
+          const fieldArgs = fieldConfig.astNode?.arguments;
+          if (fieldArgs) {
+            fieldArgs.forEach(arg => {
+              const directives = arg.directives;
+              directives?.forEach(directive => {
+                if (directive.name.value === directiveName) {
+                  const {resolve = defaultFieldResolver} = fieldConfig;
+                  fieldConfig.resolve = async (object, args, context, info) => {
+                    if (args[arg.name.value]) {
+                      const imageMeta = await (args[arg.name.value] as Promise<any>);
 
-    details.field.resolve = async (object, args, context, info): Promise<void> => {
-      if (args[argument.name]) {
-        const imageMeta = await (args[argument.name] as Promise<FileUpload>);
-
-        args[argument.name] = save(imageMeta.createReadStream(), imageMeta.mimetype);
-      }
-
-      return resolve.call(this, object, args, context, info);
-    };
+                      args[arg.name.value] = await save(imageMeta.file.createReadStream(), imageMeta.mimetype);
+                    }
+                    return resolve(object, args, context, info);
+                  };
+                }
+              })
+            })
+          }
+          return fieldConfig;
+        }
+      })
   }
 }

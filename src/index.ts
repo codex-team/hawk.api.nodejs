@@ -5,10 +5,6 @@ import * as mongo from './mongo';
 import * as rabbitmq from './rabbitmq';
 import jwt, { Secret } from 'jsonwebtoken';
 import http from 'http';
-import { initializeStrategies } from './passport';
-import { authRouter } from './auth';
-import resolvers from './resolvers';
-import typeDefs from './typeDefs';
 import { ExpressContext } from 'apollo-server-express/dist/ApolloServer';
 import { ContextFactories, ResolverContextBase, UserJWTData } from './types/graphql';
 import UsersFactory from './models/usersFactory';
@@ -16,21 +12,14 @@ import { GraphQLError } from 'graphql';
 import WorkspacesFactory from './models/workspacesFactory';
 import DataLoaders from './dataLoaders';
 import HawkCatcher from '@hawk.so/nodejs';
-import { express as voyagerMiddleware } from 'graphql-voyager/middleware';
-import Accounting from 'codex-accounting-sdk';
-import Billing from './billing';
 import bodyParser from 'body-parser';
-
-import UploadImageDirective from './directives/uploadImageDirective';
-import RequireAuthDirective from './directives/requireAuthDirective';
-import RequireAdminDirective from './directives/requireAdminDirective';
-import DefaultValueDirective from './directives/defaultValue';
-import ValidateDirective from './directives/validate';
-import RequireUserInWorkspaceDirective from './directives/requireUserInWorkspace';
+import { ApolloServerPluginLandingPageGraphQLPlayground, ApolloServerPluginLandingPageDisabled } from 'apollo-server-core';
 import ProjectsFactory from './models/projectsFactory';
 import { NonCriticalError } from './errors';
 import PlansFactory from './models/plansFactory';
 import BusinessOperationsFactory from './models/businessOperationsFactory';
+import schema from './schema';
+import {graphqlUploadExpress} from 'graphql-upload'
 
 /**
  * Option to enable playground
@@ -84,10 +73,7 @@ class HawkAPI {
     });
     this.app.use(express.json());
     this.app.use(bodyParser.urlencoded({ extended: false }));
-    this.app.use('/uploads', express.static(`./${process.env.UPLOADS_DIR || 'uploads'}`));
     this.app.use('/static', express.static(`./static`));
-    this.app.use('/voyager', voyagerMiddleware({ endpointUrl: '/graphql' }));
-    this.app.use(authRouter);
 
     /**
      * Add context to the express request object to use its methods in any requests
@@ -97,32 +83,16 @@ class HawkAPI {
       next();
     });
 
-    const billing = new Billing();
-
-    billing.appendRoutes(this.app);
-
-    initializeStrategies();
-
     this.server = new ApolloServer({
-      typeDefs,
+      schema,
       debug: process.env.NODE_ENV === 'development',
-      resolvers,
-      playground: PLAYGROUND_ENABLE,
+      // csrfPrevention: true,
       introspection: PLAYGROUND_ENABLE,
-      schemaDirectives: {
-        requireAuth: RequireAuthDirective,
-        renameFrom: require('./directives/renameFrom'),
-        uploadImage: UploadImageDirective,
-        requireAdmin: RequireAdminDirective,
-        default: DefaultValueDirective,
-        validate: ValidateDirective,
-        requireUserInWorkspace: RequireUserInWorkspaceDirective,
-      },
-      subscriptions: {
-        path: '/subscriptions',
-        onConnect: (connectionParams): { headers: { authorization: string } } =>
-          HawkAPI.onWebSocketConnection(connectionParams as Record<string, string>),
-      },
+      plugins: [
+        process.env.NODE_ENV === 'production'
+          ? ApolloServerPluginLandingPageDisabled()
+          : ApolloServerPluginLandingPageGraphQLPlayground(),
+      ],
       context: ({ req }): ResolverContextBase => req.context,
       formatError: (error): GraphQLError => {
         if (error.originalError instanceof NonCriticalError) {
@@ -138,13 +108,11 @@ class HawkAPI {
       },
     });
 
-    this.server.applyMiddleware({ app: this.app });
     /**
      * In apollo-server-express integration it is necessary to use existing HTTP server to use GraphQL subscriptions
      * {@see https://www.apollographql.com/docs/apollo-server/features/subscriptions/#subscriptions-with-additional-middleware}
      */
     this.httpServer = http.createServer(this.app);
-    this.server.installSubscriptionHandlers(this.httpServer);
   }
 
   /**
@@ -180,15 +148,12 @@ class HawkAPI {
    * Creates request context
    * @param req - Express request
    * @param connection - websocket connection (for subscriptions)
-   * @param billing - hawk billing
    */
-  private static async createContext({ req, connection }: ExpressContext): Promise<ResolverContextBase> {
+  private static async createContext({ req }: ExpressContext): Promise<ResolverContextBase> {
     let userId: string | undefined;
     let isAccessTokenExpired = false;
 
-    const authorizationHeader = connection
-      ? connection.context.headers.authorization
-      : req.headers.authorization;
+    const authorizationHeader = req.headers.authorization;
 
     if (
       authorizationHeader &&
@@ -211,51 +176,11 @@ class HawkAPI {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const dataLoader = new DataLoaders(mongo.databases.hawk!);
 
-    /**
-     * Initializing accounting SDK
-     */
-    let tlsVerify;
-
-    /**
-     * Checking env variables
-     * If at least one path is not transmitted, the variable tlsVerify is undefined
-     */
-    if (
-      ![process.env.TLS_CA_CERT, process.env.TLS_CERT, process.env.TLS_KEY].some(value => value === undefined || value.length === 0)
-    ) {
-      tlsVerify = {
-        tlsCaCertPath: `${process.env.TLS_CA_CERT}`,
-        tlsCertPath: `${process.env.TLS_CERT}`,
-        tlsKeyPath: `${process.env.TLS_KEY}`,
-      };
-    }
-
-    const accounting = new Accounting({
-      baseURL: `${process.env.CODEX_ACCOUNTING_URL}`,
-      tlsVerify,
-    });
-
     return {
       factories: HawkAPI.setupFactories(dataLoader),
       user: {
         id: userId,
         accessTokenExpired: isAccessTokenExpired,
-      },
-      accounting,
-    };
-  }
-
-  /**
-   * Fires when coming new Websocket connection
-   * Returns authorization headers for building request context
-   * @param connectionParams - websocket connection params (actually, headers only)
-   * @return - context for subscription request
-   */
-  private static onWebSocketConnection(connectionParams: Record<string, string>): { headers: { authorization: string } } {
-    return {
-      headers: {
-        authorization:
-          connectionParams['authorization'] || connectionParams['Authorization'],
       },
     };
   }
@@ -266,15 +191,14 @@ class HawkAPI {
   public async start(): Promise<void> {
     await mongo.setupConnections();
     await rabbitmq.setupConnections();
+    await this.server.start();
+    this.app.use(graphqlUploadExpress());
+    this.server.applyMiddleware({ app: this.app });
 
     return new Promise((resolve) => {
       this.httpServer.listen({ port: this.serverPort }, () => {
         console.log(
           `🚀 Server ready at http://localhost:${this.serverPort}${this.server.graphqlPath
-          }`
-        );
-        console.log(
-          `🚀 Subscriptions ready at ws://localhost:${this.serverPort}${this.server.subscriptionsPath
           }`
         );
         resolve();

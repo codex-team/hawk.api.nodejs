@@ -9,6 +9,8 @@ import { TaskPriorities, emailNotification } from '../utils/emailNotifications';
 import isE2E from '../utils/isE2E';
 import { dateFromObjectId } from '../utils/dates';
 import { UserDBScheme } from '@hawk.so/types';
+import * as telegram from '../utils/telegram';
+import {MongoError} from "mongodb";
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -59,9 +61,11 @@ export default {
           priority: TaskPriorities.IMPORTANT,
         });
 
+        telegram.sendMessage(`🚶 User "${email}" signed up`);
+
         return isE2E ? password : true;
       } catch (e) {
-        if (e.code.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
+        if ((e as MongoError).code?.toString() === errorCodes.DB_DUPLICATE_KEY_ERROR) {
           throw new AuthenticationError(
             'User with this email already registered'
           );
@@ -192,11 +196,7 @@ export default {
         const options: {[key: string]: string | object} = {
           name,
           email,
-          notifications: {
-            channels: {
-              email: { endpoint: email },
-            },
-          },
+          'notifications.channels.email.endpoint': email,
         };
 
         if (image) {
@@ -205,7 +205,7 @@ export default {
 
         await currentUser!.updateProfile(options);
       } catch (err) {
-        throw new ApolloError('Something went wrong');
+        throw new ApolloError((err as Error).toString());
       }
 
       return true;

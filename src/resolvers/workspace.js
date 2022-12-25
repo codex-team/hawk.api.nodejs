@@ -1,10 +1,8 @@
 import WorkspaceModel from '../models/workspace';
-import { AccountType, Currency } from 'codex-accounting-sdk/types';
 import PlanModel from '../models/plan';
 import * as telegram from '../utils/telegram';
 import HawkCatcher from '@hawk.so/nodejs';
 import escapeHTML from 'escape-html';
-import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import { emailNotification, TaskPriorities } from '../utils/emailNotifications';
 import { SenderWorkerTaskType } from '../types/userNotifications';
 import ProjectToWorkspace from '../models/projectToWorkspace';
@@ -43,20 +41,11 @@ module.exports = {
      * @param {string} image - workspace image
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
-     * @param {Accounting} accounting - SDK for creating account for new workspace
      *
      * @return {WorkspaceModel} created workspace
      */
-    async createWorkspace(_obj, { name, description, image }, { user, factories, accounting }) {
+    async createWorkspace(_obj, { name, description, image }, { user, factories }) {
       try {
-        // Create workspace account and set account id to workspace
-        const accountResponse = await accounting.createAccount({
-          name: 'WORKSPACE:' + name,
-          type: AccountType.LIABILITY,
-          currency: Currency.USD,
-        });
-
-        const accountId = accountResponse.recordId;
 
         /**
          * @type {WorkspaceDBScheme}
@@ -65,10 +54,12 @@ module.exports = {
           name,
           description,
           image,
-          accountId,
+          accountId: '0',
         };
 
         const ownerModel = await factories.usersFactory.findById(user.id);
+
+        telegram.sendMessage(`🌌 Workspace "${name}" was created`);
 
         return await factories.workspacesFactory.create(options, ownerModel);
       } catch (err) {
@@ -165,6 +156,8 @@ module.exports = {
       await workspace.addMember(currentUser._id.toString());
       await currentUser.addWorkspace(workspace._id.toString());
 
+      telegram.sendMessage(`🤝 User "${currentUser.email || currentUser.name}" joined to "${workspace.name}"`);
+
       return {
         recordId: workspace._id.toString(),
         record: workspace,
@@ -222,7 +215,6 @@ module.exports = {
      * @returns {Promise<Boolean>}
      */
     async updateWorkspace(_obj, { workspaceId, name, description, image }, { user, factories }) {
-      // @makeAnIssue Create directives for arguments validation
       if (!Validator.string(name)) {
         throw new UserInputError('Invalid name length');
       }
@@ -522,7 +514,20 @@ module.exports = {
      * @param {ContextFactories} factories - factories for working with models
      * @return {Promise<MemberDBScheme[]>}
      */
-    async team(workspaceData, _args, { factories }) {
+    async team(workspaceData, _args, { factories, user }) {
+      /**
+       * Crutch for Demo Workspace
+       */
+      if (workspaceData._id.toString() === '6213b6a01e6281087467cc7a') {
+        return [
+          {
+            _id: user.id,
+            userId: user.id,
+            isAdmin: true,
+          },
+        ];
+      }
+
       const workspaceModel = await factories.workspacesFactory.findById(workspaceData._id.toString());
 
       return workspaceModel.getMembers();
