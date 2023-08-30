@@ -22,7 +22,7 @@
     "@graphql-tools/utils": "^8.9.0",
     "@hawk.so/types": "https://github.com/codex-team/hawk.types.git#46fa89515851b86991785b7c9b89e7099467c168",
     "@sinclair/typebox": "^0.24.35",
-    "apollo-server-core": "^3.10.0",
+    "apollo-server-core": "^3.12.1",
     "arg": "^5.0.2",
     "argon2": "^0.28.7",
     "fastify": "^4.3.0",
