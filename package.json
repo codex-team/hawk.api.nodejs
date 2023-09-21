@@ -26,7 +26,7 @@
     "arg": "^5.0.2",
     "argon2": "^0.28.7",
     "fastify": "^4.3.0",
-    "graphql": "^16.5.0",
+    "graphql": "^16.8.1",
     "graphql-scalars": "^1.17.0",
     "jose": "^4.8.3",
     "mongodb": "^4.8.1",
