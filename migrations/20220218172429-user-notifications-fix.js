@@ -8,7 +8,7 @@ module.exports = {
    */
   async up(db) {
     await db
-      .getCollection('users')
+      .collection('users')
       .updateMany(
         {
           'notifications.channels.email.isEnabled': { $exists: false }
