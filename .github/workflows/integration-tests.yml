@@ -1,0 +1,14 @@
+name: Run integration tests on push
+
+on:
+  - push
+
+jobs:
+  tests:
+    name: Run integration tests
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run tests
+        run: yarn test:integration
