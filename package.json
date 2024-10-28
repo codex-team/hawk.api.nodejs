@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "main": "index.ts",
   "license": "UNLICENSED",
   "scripts": {
@@ -72,10 +72,10 @@
     "migrate-mongo": "^7.0.1",
     "mime-types": "^2.1.25",
     "mongodb": "^3.7.3",
-    "ts-node-dev": "^2.0.0",
-    "uuid": "^8.3.2",
     "passport": "^0.4.1",
     "passport-github": "^1.1.0",
-    "passport-jwt": "^4.0.0"
+    "passport-jwt": "^4.0.0",
+    "ts-node-dev": "^2.0.0",
+    "uuid": "^8.3.2"
   }
 }
