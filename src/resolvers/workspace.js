@@ -9,6 +9,8 @@ import { SenderWorkerTaskType } from '../types/userNotifications';
 import ProjectToWorkspace from '../models/projectToWorkspace';
 import Validator from '../utils/validator';
 import { dateFromObjectId } from '../utils/dates';
+import cloudPaymentsApi from '../utils/cloudPaymentsApi';
+
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -52,7 +54,7 @@ module.exports = {
         const accountResponse = await accounting.createAccount({
           name: 'WORKSPACE:' + name,
           type: AccountType.LIABILITY,
-          currency: Currency.USD,
+          currency: Currency.RUB,
         });
 
         const accountId = accountResponse.recordId;
