@@ -158,7 +158,7 @@ export default class CloudPaymentsWebhooks {
         name: tariffPlan.name,
         monthlyCharge: tariffPlan.monthlyCharge,
       },
-      currency: 'USD',
+      currency: 'RUB',
       checksum,
     });
   }
@@ -347,7 +347,7 @@ export default class CloudPaymentsWebhooks {
         accountId = (await context.accounting.createAccount({
           name: `WORKSPACE:${workspace.name}`,
           type: AccountType.LIABILITY,
-          currency: Currency.USD,
+          currency: Currency.RUB,
         })).recordId;
         await workspace.setAccountId(accountId);
       }
