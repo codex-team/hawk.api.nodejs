@@ -451,10 +451,16 @@
     axios "^0.21.1"
     stack-trace "^0.0.10"
 
-"@hawk.so/types@^0.1.15", "@hawk.so/types@^0.1.18":
+"@hawk.so/types@^0.1.15":
   version "0.1.18"
   resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.1.18.tgz#746537634756825f066182737429d11ea124d5c5"
   integrity sha512-SvECLGmLb5t90OSpk3n8DCjJsUoyjrq/Z6Ioil80tVkbMXRdGjaHZpn/0w1gBqtgNWBfW2cSbsQPqmyDj1NsqQ==
+  dependencies:
+    "@types/mongodb" "^3.5.34"
+
+"@hawk.so/types@https://github.com/codex-team/hawk.types.git#feat/revert-removing-accounting":
+  version "0.1.21"
+  resolved "https://github.com/codex-team/hawk.types.git#5ee9fddca168db83313dccde239eaf2bb3afb50f"
   dependencies:
     "@types/mongodb" "^3.5.34"
 
@@ -2125,9 +2131,9 @@ co@^4.6.0:
   resolved "https://registry.yarnpkg.com/co/-/co-4.6.0.tgz#6ea6bdf3d853ae54ccb8e47bfa0bf3f9031fb184"
   integrity sha512-QVb0dM5HvG+uaxitm8wONl7jltx8dqhfU33DcqtOZcLSVIKSDDLDi7+0LbAKiyI8hD9u42m2YxXSkMGWThaecQ==
 
-"codex-accounting-sdk@https://github.com/codex-team/codex-accounting-sdk/":
+"codex-accounting-sdk@https://github.com/codex-team/codex-accounting-sdk.git#feat/revert-removing-accounting":
   version "1.2.4"
-  resolved "https://github.com/codex-team/codex-accounting-sdk/#e68563b29f0fb11f5a9ff7e151e5919a5801278e"
+  resolved "https://github.com/codex-team/codex-accounting-sdk.git#c52431530e12f1e23804c0ede9f39fd4f2545994"
   dependencies:
     "@types/node" "^14.6.4"
     axios "^0.20.0"
