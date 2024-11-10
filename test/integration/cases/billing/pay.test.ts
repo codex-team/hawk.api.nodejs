@@ -27,6 +27,7 @@ const currentPlan: PlanDBScheme = {
   eventsLimit: 1000,
   isDefault: true,
   monthlyCharge: 1000,
+  monthlyChargeCurrency: 'USD',
   name: 'Test plan',
 };
 
@@ -62,6 +63,7 @@ const planToChange: PlanDBScheme = {
   eventsLimit: 10000,
   isDefault: true,
   monthlyCharge: 100,
+  monthlyChargeCurrency: 'USD',
   name: 'Test plan',
 };
 

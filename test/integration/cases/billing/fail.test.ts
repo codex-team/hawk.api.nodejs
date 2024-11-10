@@ -44,6 +44,7 @@ const tariffPlan: PlanDBScheme = {
   eventsLimit: 10000,
   isDefault: true,
   monthlyCharge: 100,
+  monthlyChargeCurrency: 'USD',
   name: 'Test plan',
 };
 

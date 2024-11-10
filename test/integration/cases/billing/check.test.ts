@@ -40,6 +40,7 @@ describe('Check webhook', () => {
     const currentPlan = (await plans.insertOne({
       name: 'CurrentTestPlan',
       monthlyCharge: 10,
+      monthlyChargeCurrency: 'USD',
       eventsLimit: 1000,
       isDefault: false,
     })).ops[0];
@@ -65,6 +66,7 @@ describe('Check webhook', () => {
     planToChange = (await plans.insertOne({
       name: 'BasicTest',
       monthlyCharge: 20,
+      monthlyChargeCurrency: 'USD',
       eventsLimit: 10000,
       isDefault: false,
     })).ops[0];

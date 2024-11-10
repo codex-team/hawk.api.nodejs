@@ -9,6 +9,7 @@ const currentPlan: PlanDBScheme = {
   eventsLimit: 1000,
   isDefault: true,
   monthlyCharge: 1000,
+  monthlyChargeCurrency: 'USD',
   name: 'Test plan',
 };
 
