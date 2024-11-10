@@ -244,6 +244,8 @@ export default class CloudPaymentsWebhooks {
         payload: {
           workspaceId: workspace._id,
           amount: +body.Amount * PENNY_MULTIPLIER,
+          // @ts-ignore
+          currency: body.Currency,
           userId: member._id,
           tariffPlanId: plan._id,
         },
