@@ -549,6 +549,8 @@ module.exports = {
 
       await cloudPaymentsApi.cancelSubscription(workspaceModel.subscriptionId);
 
+      await workspaceModel.setSubscriptionId(null)
+
       return {
         recordId: workspaceModel._id,
         record: {
