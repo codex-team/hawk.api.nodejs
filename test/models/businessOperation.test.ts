@@ -43,6 +43,7 @@ describe('Business operation model', () => {
       amount: 100,
       userId: new ObjectId(),
       tariffPlanId: new ObjectId(),
+      currency: 'RUB',
     };
 
     const data: BusinessOperationDBScheme<PayloadOfWorkspacePlanPurchase> = {

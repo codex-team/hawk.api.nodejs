@@ -458,9 +458,10 @@
   dependencies:
     "@types/mongodb" "^3.5.34"
 
-"@hawk.so/types@https://github.com/codex-team/hawk.types.git#feat/revert-removing-accounting":
+"@hawk.so/types@^0.1.21":
   version "0.1.21"
-  resolved "https://github.com/codex-team/hawk.types.git#5ee9fddca168db83313dccde239eaf2bb3afb50f"
+  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.1.21.tgz#8979b1aff670317e5d092aaefcd879729df88adc"
+  integrity sha512-Jjy1qznAB7SprVtdgWJS9tdGAaK7rTNWEVWG05m6u3Qd3tTXkgty4D0oAmhTFBnJ/MElPVuundYnDB1r4dHZQQ==
   dependencies:
     "@types/mongodb" "^3.5.34"
 
@@ -2131,9 +2132,9 @@ co@^4.6.0:
   resolved "https://registry.yarnpkg.com/co/-/co-4.6.0.tgz#6ea6bdf3d853ae54ccb8e47bfa0bf3f9031fb184"
   integrity sha512-QVb0dM5HvG+uaxitm8wONl7jltx8dqhfU33DcqtOZcLSVIKSDDLDi7+0LbAKiyI8hD9u42m2YxXSkMGWThaecQ==
 
-"codex-accounting-sdk@https://github.com/codex-team/codex-accounting-sdk.git#feat/revert-removing-accounting":
-  version "1.2.4"
-  resolved "https://github.com/codex-team/codex-accounting-sdk.git#c52431530e12f1e23804c0ede9f39fd4f2545994"
+"codex-accounting-sdk@https://github.com/codex-team/codex-accounting-sdk.git":
+  version "1.2.5"
+  resolved "https://github.com/codex-team/codex-accounting-sdk.git#7de756db49aea72eebc7e45d8f9c458c9c2d8dce"
   dependencies:
     "@types/node" "^14.6.4"
     axios "^0.20.0"

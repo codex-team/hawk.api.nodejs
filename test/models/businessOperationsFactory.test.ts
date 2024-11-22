@@ -24,6 +24,7 @@ describe('Business operation factory', () => {
       amount: 100,
       userId: new ObjectId('5eb9034a1ccc4421e2623dc2'),
       cardPan: '4455',
+      currency: 'RUB',
     };
 
     const data = {
