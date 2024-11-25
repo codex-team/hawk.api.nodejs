@@ -51,13 +51,14 @@ module.exports = {
     async createWorkspace(_obj, { name, description, image }, { user, factories, accounting }) {
       try {
         // Create workspace account and set account id to workspace
-        const accountResponse = await accounting.createAccount({
-          name: 'WORKSPACE:' + name,
-          type: AccountType.LIABILITY,
-          currency: Currency.RUB,
-        });
+        // const accountResponse = await accounting.createAccount({
+        //   name: 'WORKSPACE:' + name,
+        //   type: AccountType.LIABILITY,
+        //   currency: Currency.RUB,
+        // });
 
-        const accountId = accountResponse.recordId;
+        // const accountId = accountResponse.recordId;
+        const accountId = null;
 
         /**
          * @type {WorkspaceDBScheme}
