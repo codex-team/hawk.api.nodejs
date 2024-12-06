@@ -12,7 +12,6 @@ beforeAll(async () => {
 describe('Business operation factory', () => {
 
   it('should create factory instance', () => {
-    console.log(mongo.databases.hawk)
     const factory = new BusinessOperationsFactory(mongo.databases.hawk as Db, new DataLoaders(mongo.databases.hawk as Db));
 
     expect(factory).not.toBe(undefined);
