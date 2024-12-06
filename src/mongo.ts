@@ -63,7 +63,7 @@ const connectionConfig: MongoClientOptions = {
  */
 export async function setupConnections(): Promise<void> {
   try {
-    console.log('hawkDBUrl', hawkDBUrl)
+    console.log(MongoClient)
     const [hawkMongoClient, eventsMongoClient] = await Promise.all([
       MongoClient.connect(hawkDBUrl, connectionConfig),
       MongoClient.connect(eventsDBUrl, connectionConfig),
