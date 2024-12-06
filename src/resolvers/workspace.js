@@ -1,5 +1,4 @@
 import WorkspaceModel from '../models/workspace';
-import { AccountType, Currency } from 'codex-accounting-sdk/types';
 import PlanModel from '../models/plan';
 import * as telegram from '../utils/telegram';
 import HawkCatcher from '@hawk.so/nodejs';
@@ -10,7 +9,6 @@ import ProjectToWorkspace from '../models/projectToWorkspace';
 import Validator from '../utils/validator';
 import { dateFromObjectId } from '../utils/dates';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
-
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -50,12 +48,14 @@ module.exports = {
      */
     async createWorkspace(_obj, { name, description, image }, { user, factories, accounting }) {
       try {
-        // Create workspace account and set account id to workspace
-        // const accountResponse = await accounting.createAccount({
-        //   name: 'WORKSPACE:' + name,
-        //   type: AccountType.LIABILITY,
-        //   currency: Currency.RUB,
-        // });
+        /*
+         * Create workspace account and set account id to workspace
+         * const accountResponse = await accounting.createAccount({
+         *   name: 'WORKSPACE:' + name,
+         *   type: AccountType.LIABILITY,
+         *   currency: Currency.RUB,
+         * });
+         */
 
         // const accountId = accountResponse.recordId;
         const accountId = null;
@@ -550,7 +550,7 @@ module.exports = {
 
       await cloudPaymentsApi.cancelSubscription(workspaceModel.subscriptionId);
 
-      await workspaceModel.setSubscriptionId(null)
+      await workspaceModel.setSubscriptionId(null);
 
       return {
         recordId: workspaceModel._id,

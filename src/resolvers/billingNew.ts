@@ -192,7 +192,7 @@ export default {
         amount = AMOUNT_FOR_CARD_VALIDATION;
       }
 
-      const operation = await factories.businessOperationsFactory.getBusinessOperationByTransactionId("foo");
+      const operation = await factories.businessOperationsFactory.getBusinessOperationByTransactionId('foo');
 
       return {
         recordId: operation?._id,
