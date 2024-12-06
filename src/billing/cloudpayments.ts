@@ -341,36 +341,36 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    let accountId = workspace.accountId;
+    // let accountId = workspace.accountId;
 
-    try {
-      if (!workspace.accountId) {
-        accountId = (await context.accounting.createAccount({
-          name: `WORKSPACE:${workspace.name}`,
-          type: AccountType.LIABILITY,
-          currency: Currency.RUB,
-        })).recordId;
-        await workspace.setAccountId(accountId);
-      }
+    // try {
+    //   if (!workspace.accountId) {
+    //     accountId = (await context.accounting.createAccount({
+    //       name: `WORKSPACE:${workspace.name}`,
+    //       type: AccountType.LIABILITY,
+    //       currency: Currency.RUB,
+    //     })).recordId;
+    //     await workspace.setAccountId(accountId);
+    //   }
 
-      await context.accounting.payOnce({
-        accountId: accountId,
-        amount: tariffPlan.monthlyCharge * PENNY_MULTIPLIER,
-        description: `Account replenishment to pay for the tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
-      });
+    //   await context.accounting.payOnce({
+    //     accountId: accountId,
+    //     amount: tariffPlan.monthlyCharge * PENNY_MULTIPLIER,
+    //     description: `Account replenishment to pay for the tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
+    //   });
 
-      await context.accounting.purchase({
-        accountId,
-        amount: tariffPlan.monthlyCharge * PENNY_MULTIPLIER,
-        description: `Charging for tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
-      });
-    } catch (e) {
-      const error = e as Error;
+    //   await context.accounting.purchase({
+    //     accountId,
+    //     amount: tariffPlan.monthlyCharge * PENNY_MULTIPLIER,
+    //     description: `Charging for tariff plan with id ${tariffPlan._id}. CloudPayments transaction ID: ${body.TransactionId}`,
+    //   });
+    // } catch (e) {
+    //   const error = e as Error;
 
-      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while creating operations in accounting ${error.toString()}`, body);
+    //   this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while creating operations in accounting ${error.toString()}`, body);
 
-      return;
-    }
+    //   return;
+    // }
 
     try {
       await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({

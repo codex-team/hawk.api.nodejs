@@ -14,8 +14,10 @@ import DataLoaders from './dataLoaders';
 import HawkCatcher from '@hawk.so/nodejs';
 // import { express as voyagerMiddleware } from 'graphql-voyager/middleware';
 import { initializeStrategies } from './passport.js';
-// @ts-ignore
-import Accounting from 'codex-accounting-sdk';
+/*
+ * @ts-ignore
+ * import Accounting from 'codex-accounting-sdk';
+ */
 import Billing from './billing';
 import bodyParser from 'body-parser';
 import { ApolloServerPluginLandingPageGraphQLPlayground, ApolloServerPluginLandingPageDisabled } from 'apollo-server-core';
@@ -24,7 +26,7 @@ import { NonCriticalError } from './errors';
 import PlansFactory from './models/plansFactory';
 import BusinessOperationsFactory from './models/businessOperationsFactory';
 import schema from './schema';
-import {graphqlUploadExpress} from 'graphql-upload'
+import { graphqlUploadExpress } from 'graphql-upload';
 
 /**
  * Option to enable playground
@@ -206,10 +208,12 @@ class HawkAPI {
       };
     }
 
-    const accounting = new Accounting({
-      baseURL: `${process.env.CODEX_ACCOUNTING_URL}`,
-      tlsVerify,
-    });
+    /*
+     * const accounting = new Accounting({
+     *   baseURL: `${process.env.CODEX_ACCOUNTING_URL}`,
+     *   tlsVerify,
+     * });
+     */
 
     return {
       factories: HawkAPI.setupFactories(dataLoader),
@@ -217,7 +221,7 @@ class HawkAPI {
         id: userId,
         accessTokenExpired: isAccessTokenExpired,
       },
-      accounting,
+      // accounting,
     };
   }
 
