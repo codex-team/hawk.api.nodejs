@@ -62,8 +62,6 @@
 
     /* Advanced Options */
     "forceConsistentCasingInFileNames": true  /* Disallow inconsistently-cased references to the same file. */,
-    "typeRoots": [
-      "./types/global.d.ts"
-    ],
+
   }
 }
