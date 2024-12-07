@@ -107,6 +107,7 @@ describe('Fail webhook', () => {
       payload: {
         workspaceId: workspace._id,
         amount: 200,
+        currency: 'USD',
         userId: user._id,
         cardPan: '5367',
       },

@@ -157,6 +157,7 @@ describe('Pay webhook', () => {
       payload: {
         workspaceId: new ObjectId(),
         amount: 10,
+        currency: 'USD',
         userId: user._id,
         cardPan: '2456',
       },
