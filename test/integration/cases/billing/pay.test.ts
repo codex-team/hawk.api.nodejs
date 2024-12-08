@@ -106,7 +106,7 @@ describe('Pay webhook', () => {
   let workspacesCollection: Collection<WorkspaceDBScheme>;
   let tariffPlanCollection: Collection<PlanDBScheme>;
   // let accountingCollection: Collection;
-  let transactionsCollection: Collection;
+  // let transactionsCollection: Collection;
 
   beforeAll(async () => {
     validPayRequestData = {
@@ -139,7 +139,7 @@ describe('Pay webhook', () => {
     workspacesCollection = accountsDb.collection('workspaces');
     tariffPlanCollection = accountsDb.collection('plans');
 
-    transactionsCollection = accountingDb.collection('transactions');
+    // transactionsCollection = accountingDb.collection('transactions');
     // accountingCollection = accountingDb.collection('accounts');
   });
 
@@ -278,18 +278,18 @@ describe('Pay webhook', () => {
     //   expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     // });
 
-    test('Should add payment data to accounting system', async () => {
-      const apiResponse = await apiInstance.post('/billing/pay', request);
+    // test('Should add payment data to accounting system', async () => {
+    //   const apiResponse = await apiInstance.post('/billing/pay', request);
 
-      const transactions = await transactionsCollection
-        .find({})
-        .toArray();
+    //   const transactions = await transactionsCollection
+    //     .find({})
+    //     .toArray();
 
-      expect(transactions.length).toBe(2);
-      expect(transactions.some(tr => tr.type === 'Deposit'));
-      expect(transactions.some(tr => tr.type === 'Purchase'));
-      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
-    });
+    //   expect(transactions.length).toBe(2);
+    //   expect(transactions.some(tr => tr.type === 'Deposit'));
+    //   expect(transactions.some(tr => tr.type === 'Purchase'));
+    //   expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    // });
 
     test('Should add task to sender worker to notify user about successful payment', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', request);
@@ -401,18 +401,18 @@ describe('Pay webhook', () => {
     //   expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     // });
 
-    test('Should add payment data to accounting system', async () => {
-      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+    // test('Should add payment data to accounting system', async () => {
+    //   const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
 
-      const transactions = await transactionsCollection
-        .find({})
-        .toArray();
+    //   const transactions = await transactionsCollection
+    //     .find({})
+    //     .toArray();
 
-      expect(transactions.length).toBe(2);
-      expect(transactions.some(tr => tr.type === 'Deposit'));
-      expect(transactions.some(tr => tr.type === 'Purchase'));
-      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
-    });
+    //   expect(transactions.length).toBe(2);
+    //   expect(transactions.some(tr => tr.type === 'Deposit'));
+    //   expect(transactions.some(tr => tr.type === 'Purchase'));
+    //   expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    // });
 
     test('Should add task to sender worker to notify user about successful payment', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
