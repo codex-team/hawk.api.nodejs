@@ -5,5 +5,6 @@ export enum CardType {
   VISA = 'Visa',
   MASTERCARD = 'Mastercard',
   MAESTRO = 'Maestro',
-  MIR = 'МИР'
+  MIR = 'МИР',
+  UNION_PAY = 'UnionPay'
 }

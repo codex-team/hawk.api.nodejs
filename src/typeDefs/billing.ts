@@ -121,7 +121,7 @@ type PayloadOfWorkspacePlanPurchase {
   workspace: Workspace!
 
   """
-  Amount of payment * 100
+  1/100 of the final amount. (US cents for USD, kopecks for RUB)
   """
   amount: Long!
 

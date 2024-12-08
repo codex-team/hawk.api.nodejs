@@ -434,9 +434,9 @@ export default class CloudPaymentsWebhooks {
        * Cancel payment if it is deferred
        */
       if (data.cloudPayments?.recurrent?.startDate) {
-        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1$ charged`, TelegramBotURLs.Money));
+        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1 RUB charged`, TelegramBotURLs.Money));
         await cloudPaymentsApi.cancelPayment(body.TransactionId);
-        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1$ returned`, TelegramBotURLs.Money));
+        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1 RUB returned`, TelegramBotURLs.Money));
       } else {
         /**
          * Russia code from ISO 3166-1

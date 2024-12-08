@@ -128,53 +128,6 @@ module.exports = {
       return release;
     },
   },
-  Subscription: {
-    eventOccurred: {
-      /**
-       * Subscribes user to events from his projects
-       * @param {ResolverObj} _obj
-       * @param {Object} _args - request variables (not used)
-       * @param {UserInContext} user - current authorized user {@see ../index.js}
-       * @param {ContextFactories} factories - factories for working with models
-       * @return {AsyncIterator<EventSchema>}
-       */
-      subscribe: async (_obj, _args, { user, factories }) => {
-        const userId = user.id;
-        const userModel = await factories.usersFactory.findById(userId);
-        // eslint-disable-next-line no-async-promise-executor
-        const eventsCollections = new Promise(async resolve => {
-          // @todo optimize query for getting all user's projects
-
-          // Find all user's workspaces
-          const allWorkspacesIds = await userModel.getWorkspacesIds();
-          const allProjects = [];
-
-          // Find all user's projects
-          await asyncForEach(allWorkspacesIds, async workspaceId => {
-            const allProjectsInWorkspace = await new ProjectToWorkspace(workspaceId).getProjects();
-
-            allProjects.push(...allProjectsInWorkspace);
-          });
-
-          resolve(allProjects.map(project =>
-            mongo.databases.events
-              .collection('events:' + project.id)
-          ));
-        });
-
-        return watchController.getAsyncIteratorForCollectionChangesEvents(eventsCollections);
-      },
-
-      /**
-       * Sends data to user about new events
-       * @param {Object} payload - subscription event payload (from mongoDB watch)
-       * @return {EventSchema}
-       */
-      resolve: (payload) => {
-        return payload.fullDocument;
-      },
-    },
-  },
   Mutation: {
     /**
      * Mark event as visited for current user
