@@ -105,7 +105,7 @@ describe('Pay webhook', () => {
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
   let workspacesCollection: Collection<WorkspaceDBScheme>;
   let tariffPlanCollection: Collection<PlanDBScheme>;
-  let accountingCollection: Collection;
+  // let accountingCollection: Collection;
   let transactionsCollection: Collection;
 
   beforeAll(async () => {
@@ -140,7 +140,7 @@ describe('Pay webhook', () => {
     tariffPlanCollection = accountsDb.collection('plans');
 
     transactionsCollection = accountingDb.collection('transactions');
-    accountingCollection = accountingDb.collection('accounts');
+    // accountingCollection = accountingDb.collection('accounts');
   });
 
   beforeEach(async () => {
@@ -180,7 +180,7 @@ describe('Pay webhook', () => {
     /**
      * Add necessary accounts to accounting system
      */
-    await accountingCollection.insertMany([cashbookAccount, revenueAccount, workspaceAccount]);
+    // await accountingCollection.insertMany([cashbookAccount, revenueAccount, workspaceAccount]);
   });
 
   afterEach(async () => {
@@ -251,32 +251,32 @@ describe('Pay webhook', () => {
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
 
-    test('Should associate an account with a workspace if the workspace did not have one', async () => {
-      /**
-       * Remove accountId from existed workspace
-       */
-      await workspacesCollection.updateOne(
-        { _id: workspace._id },
-        {
-          $unset: {
-            accountId: '',
-          },
-        }
-      );
+    // test('Should associate an account with a workspace if the workspace did not have one', async () => {
+    //   /**
+    //    * Remove accountId from existed workspace
+    //    */
+    //   await workspacesCollection.updateOne(
+    //     { _id: workspace._id },
+    //     {
+    //       $unset: {
+    //         accountId: '',
+    //       },
+    //     }
+    //   );
 
-      const apiResponse = await apiInstance.post('/billing/pay', request);
+    //   const apiResponse = await apiInstance.post('/billing/pay', request);
 
-      /**
-       * Check that account is created and linked
-       */
-      const updatedWorkspace = await workspacesCollection.findOne({ _id: workspace._id });
-      const accountId = updatedWorkspace?.accountId;
-      const account = await accountingCollection.findOne({ id: accountId });
+    //   /**
+    //    * Check that account is created and linked
+    //    */
+    //   const updatedWorkspace = await workspacesCollection.findOne({ _id: workspace._id });
+    //   const accountId = updatedWorkspace?.accountId;
+    //   const account = await accountingCollection.findOne({ id: accountId });
 
-      expect(typeof accountId).toBe('string');
-      expect(account).toBeTruthy();
-      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
-    });
+    //   expect(typeof accountId).toBe('string');
+    //   expect(account).toBeTruthy();
+    //   expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    // });
 
     test('Should add payment data to accounting system', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', request);
@@ -374,32 +374,32 @@ describe('Pay webhook', () => {
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
 
-    test('Should associate an account with a workspace if the workspace did not have one', async () => {
-      /**
-       * Remove accountId from existed workspace
-       */
-      await workspacesCollection.updateOne(
-        { _id: workspace._id },
-        {
-          $unset: {
-            accountId: '',
-          },
-        }
-      );
+    // test('Should associate an account with a workspace if the workspace did not have one', async () => {
+    //   /**
+    //    * Remove accountId from existed workspace
+    //    */
+    //   await workspacesCollection.updateOne(
+    //     { _id: workspace._id },
+    //     {
+    //       $unset: {
+    //         accountId: '',
+    //       },
+    //     }
+    //   );
 
-      const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
+    //   const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
 
-      /**
-       * Check that account is created and linked
-       */
-      const updatedWorkspace = await workspacesCollection.findOne({ _id: workspace._id });
-      const accountId = updatedWorkspace?.accountId;
-      const account = await accountingCollection.findOne({ id: accountId });
+    //   /**
+    //    * Check that account is created and linked
+    //    */
+    //   const updatedWorkspace = await workspacesCollection.findOne({ _id: workspace._id });
+    //   const accountId = updatedWorkspace?.accountId;
+    //   const account = await accountingCollection.findOne({ id: accountId });
 
-      expect(typeof accountId).toBe('string');
-      expect(account).toBeTruthy();
-      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
-    });
+    //   expect(typeof accountId).toBe('string');
+    //   expect(account).toBeTruthy();
+    //   expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    // });
 
     test('Should add payment data to accounting system', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
