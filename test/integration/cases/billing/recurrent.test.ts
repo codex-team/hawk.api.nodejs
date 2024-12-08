@@ -3,6 +3,9 @@ import { PlanDBScheme, WorkspaceDBScheme } from '@hawk.so/types';
 import { RecurrentCodes, RecurrentRequest } from '../../../../src/billing/types';
 import { Currency, Interval, SubscriptionStatus } from '../../../../src/billing/types/enums';
 import { apiInstance } from '../../utils';
+import type { Global } from '@jest/types';
+
+declare var global: Global.Global;
 
 const currentPlan: PlanDBScheme = {
   _id: new ObjectId(),

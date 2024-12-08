@@ -1,7 +1,7 @@
 import { accountingEnv, apiInstance } from '../../utils';
 import { PayCodes, PayRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationStatus, OperationType } from '../../../../src/billing/types/enums';
-import { Collection, Db, ObjectId } from 'mongodb';
+import { Collection, Db, MongoClient, ObjectId } from 'mongodb';
 import {
   BusinessOperationDBScheme,
   BusinessOperationStatus,
@@ -19,6 +19,9 @@ import { WorkerPaths } from '../../../../src/rabbitmq';
 import checksumService from '../../../../src/utils/checksumService';
 import { getRequestWithSubscription, user } from '../../billingMocks';
 import { CardDetails } from '../../../../src/billing/types/cardDetails';
+import type { Global } from '@jest/types';
+
+declare var global: Global.Global;
 
 const transactionId = 123456;
 

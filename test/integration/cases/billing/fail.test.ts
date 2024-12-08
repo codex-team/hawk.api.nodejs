@@ -6,7 +6,9 @@ import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, Busin
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import { PaymentFailedNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
 import checksumService from '../../../../src/utils/checksumService';
-import { getRequestWithSubscription } from '../../billingMocks';
+import type { Global } from '@jest/types';
+
+declare var global: Global.Global;
 
 const transactionId = 909090;
 

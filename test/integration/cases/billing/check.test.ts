@@ -11,6 +11,9 @@ import {
 } from '@hawk.so/types';
 import checksumService from '../../../../src/utils/checksumService';
 import { getRequestWithSubscription, mainRequest, transactionId } from '../../billingMocks';
+import type { Global } from '@jest/types';
+
+declare var global: Global.Global;
 
 describe('Check webhook', () => {
   let accountsDb: Db;
