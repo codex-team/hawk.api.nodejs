@@ -17,7 +17,7 @@ class CustomEnvironment extends NodeEnvironment {
     await mongoClient.connect();
     this.global.mongoClient = mongoClient;
     await mongoClient.db('hawk').dropDatabase();
-    await mongoClient.db('codex_accounting').dropDatabase();
+    // await mongoClient.db('codex_accounting').dropDatabase();
 
     this.rabbitMqConnection = await amqp.connect('amqp://guest:guest@rabbitmq:5672/');
     this.global.rabbitChannel = await this.rabbitMqConnection.createChannel();
@@ -29,9 +29,22 @@ class CustomEnvironment extends NodeEnvironment {
    * @return {Promise<void>}
    */
   async teardown() {
-    await this.global.mongoClient.close();
-    await this.global.rabbitChannel.close();
-    await this.rabbitMqConnection.close();
+    try {
+      if (this.global.mongoClient) {
+        await this.global.mongoClient.close();
+      }
+
+      if (this.global.rabbitChannel) {
+        await this.global.rabbitChannel.close();
+      }
+
+      if (this.rabbitMqConnection) {
+        await this.rabbitMqConnection.close();
+      }
+    } catch (error) {
+      console.error('Error during teardown:', error);
+    }
+
     await super.teardown();
   }
 }
