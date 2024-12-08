@@ -13,7 +13,6 @@ import WorkspacesFactory from './models/workspacesFactory';
 import DataLoaders from './dataLoaders';
 import HawkCatcher from '@hawk.so/nodejs';
 // import { express as voyagerMiddleware } from 'graphql-voyager/middleware';
-import { initializeStrategies } from './passport.js';
 /*
  * @ts-ignore
  * import Accounting from 'codex-accounting-sdk';
@@ -94,7 +93,6 @@ class HawkAPI {
 
     billing.appendRoutes(this.app);
 
-    initializeStrategies();
 
     this.server = new ApolloServer({
       schema,
