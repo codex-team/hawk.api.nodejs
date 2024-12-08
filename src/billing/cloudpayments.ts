@@ -381,11 +381,14 @@ export default class CloudPaymentsWebhooks {
      */
 
     try {
+      console.log('before');
       await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
         type: 'check-single-workspace',
         workspaceId: data.workspaceId,
       }));
+      console.log('after');
     } catch (e) {
+      console.log('error', e);
       const error = e as Error;
 
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending task to limiter worker ${error.toString()}`, body);
