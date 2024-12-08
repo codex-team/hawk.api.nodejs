@@ -14,7 +14,7 @@ services:
     depends_on:
       - mongodb
       - rabbitmq
-      - accounting
+      # - accounting
     stdin_open: true
     tty: true
 
@@ -28,6 +28,7 @@ services:
       dockerfile: "./docker/Dockerfile.dev"
       context: .
     depends_on:
+      - rabbitmq
       - api
     command: dockerize -wait http://api:4000/.well-known/apollo/server-health -timeout 30s yarn jest --config=./test/integration/jest.config.js --runInBand test/integration
     volumes:
@@ -44,12 +45,12 @@ services:
     environment:
       - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbitmq_management load_definitions "/tmp/rabbit.definitions.json"
 
-  accounting:
-    image: codexteamuser/codex-accounting:prod
-    env_file:
-      - ./test/integration/accounting.env
-    volumes:
-    - ./test/integration/accounting.env:/usr/src/app/.env
+  # accounting:
+  #   image: codexteamuser/codex-accounting:prod
+  #   env_file:
+  #     - ./test/integration/accounting.env
+  #   volumes:
+  #   - ./test/integration/accounting.env:/usr/src/app/.env
 
 volumes:
   mongodata-test:

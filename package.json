@@ -15,7 +15,8 @@
     "migrations:up": "docker-compose exec api yarn migrate-mongo up",
     "migrations:down": "docker-compose exec api yarn migrate-mongo down",
     "test": "jest --coverage",
-    "test:integration": "docker compose -f docker-compose.test.yml up --exit-code-from tests tests"
+    "test:integration": "docker compose -f docker-compose.test.yml up --exit-code-from tests tests",
+    "test:integration:down": "docker compose -f docker-compose.test.yml down"
   },
   "devDependencies": {
     "@shelf/jest-mongodb": "^1.2.2",
