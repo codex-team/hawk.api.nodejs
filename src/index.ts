@@ -93,7 +93,6 @@ class HawkAPI {
 
     billing.appendRoutes(this.app);
 
-
     this.server = new ApolloServer({
       schema,
       debug: process.env.NODE_ENV === 'development',
