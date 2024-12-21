@@ -5,7 +5,7 @@ const {
   PositiveIntResolver,
   DateTimeResolver,
   JSONResolver,
-  JSONObjectResolver
+  JSONObjectResolver,
 } = require('graphql-scalars');
 const user = require('./user').default;
 const workspace = require('./workspace');

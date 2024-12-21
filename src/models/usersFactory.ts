@@ -82,7 +82,9 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
     user.generatedPassword = generatedPassword;
 
     await Analytics.logEvent({
+      /* eslint-disable-next-line camelcase */
       event_type: AnalyticsEventTypes.NEW_USER_REGISTERED,
+      /* eslint-disable-next-line camelcase */
       user_id: userId.toString(),
       time: Date.now(),
     });

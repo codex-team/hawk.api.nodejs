@@ -71,7 +71,9 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
     await workspaceModel.changePlan((await this.getDefaultPlan())._id.toString());
 
     await Analytics.logEvent({
+      /* eslint-disable-next-line camelcase */
       event_type: AnalyticsEventTypes.WORKSPACE_CREATED,
+      /* eslint-disable-next-line camelcase */
       user_id: ownerModel._id.toString(),
       time: Date.now(),
     });

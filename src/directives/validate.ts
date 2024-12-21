@@ -1,7 +1,7 @@
-import {defaultFieldResolver, GraphQLSchema} from "graphql";
-import {mapSchema, MapperKind, getDirective, getDirectives} from '@graphql-tools/utils'
-import {UserInputError} from "apollo-server-express";
-import {BooleanValueNode} from "graphql/language/ast";
+import { defaultFieldResolver, GraphQLSchema } from 'graphql';
+import { mapSchema, MapperKind, getDirective, getDirectives } from '@graphql-tools/utils';
+import { UserInputError } from 'apollo-server-express';
+import { BooleanValueNode } from 'graphql/language/ast';
 
 /**
  * Validates string using regex
@@ -12,8 +12,8 @@ function checkEmail(email: string): void {
   const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/g;
 
   if (email.match(emailRegex) === null) {
-  throw new UserInputError('Wrong email format');
-}
+    throw new UserInputError('Wrong email format');
+  }
 }
 
 /**
@@ -22,13 +22,21 @@ function checkEmail(email: string): void {
  */
 function checkNotEmpty(str: string): void {
   if (str.replace(/\s/g, '').length == 0) {
-  throw new UserInputError('The value must not be empty');
-}
+    throw new UserInputError('The value must not be empty');
+  }
 }
 
-export default function validateDirective(directiveName = 'validate') {
+/**
+ *
+ * @param directiveName
+ * @returns
+ */
+export default function validateDirective(directiveName = 'validate'): {
+  validateDirectiveTypeDefs: string;
+  validateDirectiveTransformer: (schema: GraphQLSchema) => GraphQLSchema;
+} {
   return {
-    validateDirectiveTypeDefs:`
+    validateDirectiveTypeDefs: `
     """
     Directive for checking a field for empty space
     """
@@ -38,16 +46,20 @@ export default function validateDirective(directiveName = 'validate') {
       mapSchema(schema, {
         [MapperKind.MUTATION_ROOT_FIELD]: (fieldConfig, fieldName) => {
           const args = fieldConfig.astNode?.arguments;
+
           if (args) {
             args.forEach(arg => {
               const directives = arg.directives;
+
               directives?.forEach(directive => {
                 if (directive.name.value === directiveName) {
                   const directiveArguments = directive.arguments;
                   const isEmail = (directiveArguments?.find(arg => arg.name.value === 'isEmail')?.value as BooleanValueNode)?.value;
                   const notEmpty = (directiveArguments?.find(arg => arg.name.value === 'notEmpty')?.value as BooleanValueNode)?.value;
+
                   if (isEmail || notEmpty) {
                     const { resolve = defaultFieldResolver } = fieldConfig;
+
                     fieldConfig.resolve = async (object, args, context, info) => {
                       if (isEmail) {
                         checkEmail(args[arg.name.value] || '');
@@ -55,15 +67,17 @@ export default function validateDirective(directiveName = 'validate') {
                       if (notEmpty) {
                         checkNotEmpty(args[arg.name.value] || '');
                       }
+
                       return resolve(object, args, context, info);
                     };
                   }
                 }
-              })
-            })
+              });
+            });
           }
-          return fieldConfig
-        }
-      })
-  }
+
+          return fieldConfig;
+        },
+      }),
+  };
 }

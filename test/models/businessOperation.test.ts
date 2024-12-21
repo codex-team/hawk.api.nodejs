@@ -19,6 +19,7 @@ describe('Business operation model', () => {
     const payloadDepositByUser = {
       workspaceId: new ObjectId('5edd36fbb596d4759beb89f6'),
       amount: 100,
+      currency: 'USD',
       userId: new ObjectId('5eb9034a1ccc4421e2623dc2'),
       cardPan: '4455',
     };
@@ -42,6 +43,7 @@ describe('Business operation model', () => {
       amount: 100,
       userId: new ObjectId(),
       tariffPlanId: new ObjectId(),
+      currency: 'RUB',
     };
 
     const data: BusinessOperationDBScheme<PayloadOfWorkspacePlanPurchase> = {
