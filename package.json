@@ -59,7 +59,6 @@
     "bson": "^4.6.5",
     "cloudpayments": "^5.0.4",
     "codex-accounting-sdk": "https://github.com/codex-team/codex-accounting-sdk.git",
-    "copyfiles": "^2.1.1",
     "dataloader": "^2.0.0",
     "dotenv": "^16.0.1",
     "escape-html": "^1.0.3",
@@ -73,9 +72,6 @@
     "migrate-mongo": "^7.0.1",
     "mime-types": "^2.1.25",
     "mongodb": "^3.7.3",
-    "passport": "^0.4.1",
-    "passport-github": "^1.1.0",
-    "passport-jwt": "^4.0.0",
     "ts-node-dev": "^2.0.0",
     "uuid": "^8.3.2"
   }

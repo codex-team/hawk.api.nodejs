@@ -20,12 +20,12 @@ import {
   BankCard,
   BusinessOperationStatus,
   BusinessOperationType,
-  ConfirmedMemberDBScheme, Json,
+  ConfirmedMemberDBScheme,
   PayloadOfWorkspacePlanPurchase,
   PlanDBScheme,
   PlanProlongationPayload
 } from '@hawk.so/types';
-import { AccountType, Currency, PENNY_MULTIPLIER } from 'codex-accounting-sdk';
+import { PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
@@ -190,7 +190,9 @@ export default class CloudPaymentsWebhooks {
     try {
       data = await this.getDataFromRequest(req);
     } catch (e) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Invalid request`, body);
+      const error = e as Error;
+
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Invalid request: ${error.toString()}`, body);
 
       return;
     }
@@ -251,7 +253,13 @@ export default class CloudPaymentsWebhooks {
         dtCreated: new Date(),
       });
     } catch (err) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Business operation wasn't created`, body);
+      const error = err as Error;
+
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Business operation wasn't created: ${error.toString()}`, body);
+
+      res.json({
+        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
+      } as CheckResponse);
 
       return;
     }
@@ -274,14 +282,14 @@ export default class CloudPaymentsWebhooks {
    */
   private async pay(req: express.Request, res: express.Response): Promise<void> {
     const body: PayRequest = req.body;
-    const context = req.context;
-
     let data;
 
     try {
       data = await this.getDataFromRequest(req);
     } catch (e) {
-      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Pay] Invalid request`, body);
+      const error = e as Error;
+
+      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Pay] Invalid request: ${error.toString()}`, body);
 
       return;
     }
@@ -381,14 +389,11 @@ export default class CloudPaymentsWebhooks {
      */
 
     try {
-      console.log('before');
       await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
         type: 'check-single-workspace',
         workspaceId: data.workspaceId,
       }));
-      console.log('after');
     } catch (e) {
-      console.log('error', e);
       const error = e as Error;
 
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending task to limiter worker ${error.toString()}`, body);
@@ -794,7 +799,7 @@ export default class CloudPaymentsWebhooks {
       amount: tariff.monthlyCharge,
       label: `${tariff.name} tariff plan`,
       price: tariff.monthlyCharge,
-      vat: VALUE_ADDED_TAX,
+      // vat: VALUE_ADDED_TAX,
       quantity: 1,
     };
 
