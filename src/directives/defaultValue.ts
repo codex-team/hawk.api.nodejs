@@ -1,10 +1,10 @@
-import {defaultFieldResolver, GraphQLSchema} from "graphql";
-import {mapSchema, MapperKind, getDirective} from '@graphql-tools/utils'
-import {UnknownGraphQLResolverResult} from "../types/graphql";
+import { defaultFieldResolver, GraphQLSchema } from 'graphql';
+import { mapSchema, MapperKind, getDirective } from '@graphql-tools/utils';
+import { UnknownGraphQLResolverResult } from '../types/graphql';
 
 export default function defaultValueDirective(directiveName = 'default') {
   return {
-    defaultValueDirectiveTypeDefs:`
+    defaultValueDirectiveTypeDefs: `
     """
     Directive for setting field default value
     """
@@ -20,6 +20,7 @@ export default function defaultValueDirective(directiveName = 'default') {
 
           if (defaultValueDirective) {
             let { value } = defaultValueDirective as {value: string};
+
             try {
               value = JSON.parse(value);
             } catch (_) {
@@ -38,8 +39,9 @@ export default function defaultValueDirective(directiveName = 'default') {
               return result;
             };
           }
+
           return fieldConfig;
-        }
-      })
-  }
+        },
+      }),
+  };
 }

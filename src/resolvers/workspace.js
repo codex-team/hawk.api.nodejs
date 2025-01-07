@@ -8,6 +8,7 @@ import { SenderWorkerTaskType } from '../types/userNotifications';
 import ProjectToWorkspace from '../models/projectToWorkspace';
 import Validator from '../utils/validator';
 import { dateFromObjectId } from '../utils/dates';
+import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -41,11 +42,23 @@ module.exports = {
      * @param {string} image - workspace image
      * @param {UserInContext} user - current authorized user {@see ../index.js}
      * @param {ContextFactories} factories - factories for working with models
+     * @param {Accounting} accounting - SDK for creating account for new workspace
      *
      * @return {WorkspaceModel} created workspace
      */
-    async createWorkspace(_obj, { name, description, image }, { user, factories }) {
+    async createWorkspace(_obj, { name, description, image }, { user, factories, accounting }) {
       try {
+        /*
+         * Create workspace account and set account id to workspace
+         * const accountResponse = await accounting.createAccount({
+         *   name: 'WORKSPACE:' + name,
+         *   type: AccountType.LIABILITY,
+         *   currency: Currency.RUB,
+         * });
+         */
+
+        // const accountId = accountResponse.recordId;
+        const accountId = null;
 
         /**
          * @type {WorkspaceDBScheme}
@@ -54,7 +67,7 @@ module.exports = {
           name,
           description,
           image,
-          accountId: '0',
+          accountId,
         };
 
         const ownerModel = await factories.usersFactory.findById(user.id);
@@ -536,6 +549,8 @@ module.exports = {
       }
 
       await cloudPaymentsApi.cancelSubscription(workspaceModel.subscriptionId);
+
+      await workspaceModel.setSubscriptionId(null);
 
       return {
         recordId: workspaceModel._id,

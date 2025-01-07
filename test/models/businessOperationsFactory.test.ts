@@ -10,6 +10,7 @@ beforeAll(async () => {
 });
 
 describe('Business operation factory', () => {
+
   it('should create factory instance', () => {
     const factory = new BusinessOperationsFactory(mongo.databases.hawk as Db, new DataLoaders(mongo.databases.hawk as Db));
 
@@ -24,6 +25,7 @@ describe('Business operation factory', () => {
       amount: 100,
       userId: new ObjectId('5eb9034a1ccc4421e2623dc2'),
       cardPan: '4455',
+      currency: 'RUB',
     };
 
     const data = {
@@ -38,6 +40,7 @@ describe('Business operation factory', () => {
 
     expect(businessOperation).toMatchObject(data);
   });
+
 });
 
 afterAll(async done => {
@@ -46,3 +49,4 @@ afterAll(async done => {
 
   done();
 });
+

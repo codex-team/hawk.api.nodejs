@@ -1,0 +1,452 @@
+{
+  "//": {
+    "rabbit_version": "3.7.8"
+  },
+  "users": [
+    {
+      "name": "guest",
+      "password_hash": "A+lasMnIk+fu2IA6GRuRBAxyps9F2eoWmMnrpBuuMn2QqcS/",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": "administrator"
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "guest",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "topic_permissions": [],
+  "parameters": [],
+  "//": {
+    "global_parameters": [
+      {
+        "name": "cluster_name",
+        "value": "rabbit@6542d9b6d360"
+      }
+    ]
+  },
+  "policies": [
+    {
+      "vhost": "/",
+      "name": "stash",
+      "pattern": "^errors/",
+      "apply-to": "queues",
+      "definition": {
+        "dead-letter-exchange": "stash"
+      },
+      "priority": 0
+    },
+    {
+      "vhost": "/",
+      "name": "stash-notify",
+      "pattern": "^notify/",
+      "apply-to": "queues",
+      "definition": {
+        "dead-letter-exchange": "stash"
+      },
+      "priority": 0
+    }
+  ],
+  "queues": [
+    {
+      "name": "errors/golang",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "errors/nodejs",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "errors/javascript",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "errors/client",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "errors/php",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "errors/python",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "errors/test",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "stash/golang",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "stash/nodejs",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "stash/javascript",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "stash/client",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "stash/php",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "stash/python",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "stash/test",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "stash/notify",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "grouper",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "log",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "release/javascript",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "notifier",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "sender/email",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "sender/slack",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "sender/telegram",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "cron-tasks/archiver",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "cron-tasks/limiter",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "cron-tasks/paymaster",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "errors",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "stash",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "notifier",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "cron-tasks",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "errors",
+      "vhost": "/",
+      "destination": "errors/client",
+      "destination_type": "queue",
+      "routing_key": "errors/client",
+      "arguments": {}
+    },
+    {
+      "source": "errors",
+      "vhost": "/",
+      "destination": "errors/golang",
+      "destination_type": "queue",
+      "routing_key": "errors/golang",
+      "arguments": {}
+    },
+    {
+      "source": "errors",
+      "vhost": "/",
+      "destination": "errors/nodejs",
+      "destination_type": "queue",
+      "routing_key": "errors/nodejs",
+      "arguments": {}
+    },
+    {
+      "source": "errors",
+      "vhost": "/",
+      "destination": "errors/javascript",
+      "destination_type": "queue",
+      "routing_key": "errors/javascript",
+      "arguments": {}
+    },
+    {
+      "source": "errors",
+      "vhost": "/",
+      "destination": "errors/php",
+      "destination_type": "queue",
+      "routing_key": "errors/php",
+      "arguments": {}
+    },
+    {
+      "source": "errors",
+      "vhost": "/",
+      "destination": "errors/python",
+      "destination_type": "queue",
+      "routing_key": "errors/python",
+      "arguments": {}
+    },
+    {
+      "source": "errors",
+      "vhost": "/",
+      "destination": "errors/test",
+      "destination_type": "queue",
+      "routing_key": "errors/test",
+      "arguments": {}
+    },
+    {
+      "source": "errors",
+      "vhost": "/",
+      "destination": "release/javascript",
+      "destination_type": "queue",
+      "routing_key": "release/javascript",
+      "arguments": {}
+    },
+    {
+      "source": "stash",
+      "vhost": "/",
+      "destination": "stash/client",
+      "destination_type": "queue",
+      "routing_key": "errors/client",
+      "arguments": {}
+    },
+    {
+      "source": "stash",
+      "vhost": "/",
+      "destination": "stash/golang",
+      "destination_type": "queue",
+      "routing_key": "errors/golang",
+      "arguments": {}
+    },
+    {
+      "source": "stash",
+      "vhost": "/",
+      "destination": "stash/nodejs",
+      "destination_type": "queue",
+      "routing_key": "errors/nodejs",
+      "arguments": {}
+    },
+    {
+      "source": "stash",
+      "vhost": "/",
+      "destination": "stash/php",
+      "destination_type": "queue",
+      "routing_key": "errors/php",
+      "arguments": {}
+    },
+    {
+      "source": "stash",
+      "vhost": "/",
+      "destination": "stash/python",
+      "destination_type": "queue",
+      "routing_key": "errors/python",
+      "arguments": {}
+    },
+    {
+      "source": "stash",
+      "vhost": "/",
+      "destination": "stash/test",
+      "destination_type": "queue",
+      "routing_key": "errors/test",
+      "arguments": {}
+    },
+    {
+      "source": "notifier",
+      "vhost": "/",
+      "destination": "notifier",
+      "destination_type": "queue",
+      "routing_key": "notifier",
+      "arguments": {}
+    },
+    {
+      "source": "notifier",
+      "vhost": "/",
+      "destination": "notifier",
+      "destination_type": "queue",
+      "routing_key": "notifier",
+      "arguments": {}
+    },
+    {
+      "source": "notifier",
+      "vhost": "/",
+      "destination": "sender/email",
+      "destination_type": "queue",
+      "routing_key": "sender/email",
+      "arguments": {}
+    },
+    {
+      "source": "notifier",
+      "vhost": "/",
+      "destination": "sender/slack",
+      "destination_type": "queue",
+      "routing_key": "sender/slack",
+      "arguments": {}
+    },
+    {
+      "source": "notifier",
+      "vhost": "/",
+      "destination": "sender/telegram",
+      "destination_type": "queue",
+      "routing_key": "sender/slack",
+      "arguments": {}
+    },
+    {
+      "source": "cron-tasks",
+      "vhost": "/",
+      "destination": "cron-tasks/archiver",
+      "destination_type": "queue",
+      "routing_key": "cron-tasks/archiver",
+      "arguments": {}
+    },
+    {
+      "source": "cron-tasks",
+      "vhost": "/",
+      "destination": "cron-tasks/limiter",
+      "destination_type": "queue",
+      "routing_key": "cron-tasks/limiter",
+      "arguments": {}
+    },
+    {
+      "source": "cron-tasks",
+      "vhost": "/",
+      "destination": "cron-tasks/paymaster",
+      "destination_type": "queue",
+      "routing_key": "cron-tasks/paymaster",
+      "arguments": {}
+    }
+  ]
+}

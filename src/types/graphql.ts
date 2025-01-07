@@ -2,6 +2,7 @@ import UsersFactory from '../models/usersFactory';
 import WorkspacesFactory from '../models/workspacesFactory';
 import { GraphQLField } from 'graphql';
 import ProjectsFactory from '../models/projectsFactory';
+// import Accounting from 'codex-accounting-sdk';
 import PlansFactory from '../models/plansFactory';
 import BusinessOperationsFactory from '../models/businessOperationsFactory';
 
@@ -18,6 +19,11 @@ export interface ResolverContextBase {
    * Factories for working with models
    */
   factories: ContextFactories;
+
+  // /**
+  //  * SDK for working with CodeX Accounting API
+  //  */
+  // accounting: Accounting;
 }
 
 /**

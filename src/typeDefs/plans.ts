@@ -21,6 +21,11 @@ export default gql`
     monthlyCharge: Int!
 
     """
+    Currency of monthlyCharge
+    """
+    monthlyChargeCurrency: String!
+
+    """
     Events limit for plan
     """
     eventsLimit: Int!

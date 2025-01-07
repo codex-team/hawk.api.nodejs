@@ -121,9 +121,14 @@ type PayloadOfWorkspacePlanPurchase {
   workspace: Workspace!
 
   """
-  Amount of payment in US cents
+  1/100 of the final amount. (US cents for USD, kopecks for RUB)
   """
   amount: Long!
+
+  """
+  Currency of payment
+  """
+  currency: String!
 }
 
 """

@@ -10,7 +10,7 @@ import isE2E from '../utils/isE2E';
 import { dateFromObjectId } from '../utils/dates';
 import { UserDBScheme } from '@hawk.so/types';
 import * as telegram from '../utils/telegram';
-import {MongoError} from "mongodb";
+import { MongoError } from 'mongodb';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}

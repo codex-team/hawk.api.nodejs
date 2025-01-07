@@ -72,8 +72,8 @@ interface ProjectNotificationsRulePointer {
  */
 function isChannelsEmpty(channels: NotificationsChannelsDBScheme): boolean {
   const notEmptyChannels = Object.entries(channels)
-    .filter(([name, channel]: [string, NotificationsChannelSettingsDBScheme]) => {
-      return channel.endpoint.replace(/\s+/, '').trim().length !== 0;
+    .filter(([_, channel]) => {
+      return (channel as NotificationsChannelSettingsDBScheme).endpoint.replace(/\s+/, '').trim().length !== 0;
     });
 
   return notEmptyChannels.length === 0;

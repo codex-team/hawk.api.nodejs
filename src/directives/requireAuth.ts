@@ -1,8 +1,8 @@
-import {defaultFieldResolver, GraphQLSchema} from "graphql";
-import {mapSchema, MapperKind, getDirective} from '@graphql-tools/utils'
-import {ResolverContextBase, UnknownGraphQLResolverResult} from "../types/graphql";
-import {AccessTokenExpiredError} from "../errors";
-import {AuthenticationError} from "apollo-server-express";
+import { defaultFieldResolver, GraphQLSchema } from 'graphql';
+import { mapSchema, MapperKind, getDirective } from '@graphql-tools/utils';
+import { ResolverContextBase, UnknownGraphQLResolverResult } from '../types/graphql';
+import { AccessTokenExpiredError } from '../errors';
+import { AuthenticationError } from 'apollo-server-express';
 
 /**
  * Authorizes the user or throws an error if the data is incorrect
@@ -19,7 +19,6 @@ function checkUser(context: ResolverContextBase): void {
     );
   }
 }
-
 
 export default function requireAuthDirective(directiveName = 'requireAuth') {
   return {
@@ -51,8 +50,9 @@ export default function requireAuthDirective(directiveName = 'requireAuth') {
               return resolve.apply(this, resolverArgs);
             };
           }
+
           return fieldConfig;
-        }
-      })
-  }
+        },
+      }),
+  };
 }

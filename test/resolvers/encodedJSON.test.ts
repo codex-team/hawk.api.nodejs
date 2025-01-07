@@ -43,30 +43,30 @@ describe('GraphQLEncodedJSON', () => {
 
   describe('serialize', () => {
     it('should support serialization from object', async () => {
-      const { data, errors } = await graphql(
+      const { data, errors } = await graphql({
         schema,
-        `
+        source: `
            query {
             rootValue
           }
         `,
-        FIXTURE
-      );
+        rootValue: FIXTURE
+      });
 
       expect(data?.rootValue).toEqual(FIXTURE);
       expect(errors).toBeUndefined();
     });
 
     it('should support serialization from string', async () => {
-      const { data, errors } = await graphql(
+      const { data, errors } = await graphql({
         schema,
-        `
+        source: `
           query {
             rootValue
           }
         `,
-        JSON.stringify(FIXTURE)
-      );
+        rootValue: JSON.stringify(FIXTURE)
+      });
 
       expect(data?.rootValue).toEqual(FIXTURE);
       expect(errors).toBeUndefined();

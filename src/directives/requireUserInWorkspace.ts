@@ -1,7 +1,7 @@
-import {defaultFieldResolver, GraphQLSchema} from "graphql";
-import {mapSchema, MapperKind, getDirective} from '@graphql-tools/utils'
-import {ResolverContextBase, UnknownGraphQLResolverResult} from "../types/graphql";
-import {ForbiddenError} from "apollo-server-express";
+import { defaultFieldResolver, GraphQLSchema } from 'graphql';
+import { mapSchema, MapperKind, getDirective } from '@graphql-tools/utils';
+import { ResolverContextBase, UnknownGraphQLResolverResult } from '../types/graphql';
+import { ForbiddenError } from 'apollo-server-express';
 
 /**
  * Throw error from sync function
@@ -59,10 +59,9 @@ async function checkUserInWorkspaceByProjectId(context: ResolverContextBase, pro
   }
 }
 
-
 export default function requireUserInWorkspaceDirective(directiveName = 'requireUserInWorkspace') {
   return {
-    requireUserInWorkspaceDirectiveTypeDefs:`
+    requireUserInWorkspaceDirectiveTypeDefs: `
     """
     Directive for checking user in workspace
     """
@@ -97,8 +96,9 @@ export default function requireUserInWorkspaceDirective(directiveName = 'require
               return resolve.apply(this, resolverArgs);
             };
           }
+
           return fieldConfig;
-        }
-      })
-  }
+        },
+      }),
+  };
 }
