@@ -16,5 +16,6 @@ const app = new HawkAPI();
 app.start()
   .catch(err => {
     HawkCatcher.send(err);
-    console.log('Server runtime error' + err);
+    console.log('Server runtime error');
+    console.error(err);
   });
