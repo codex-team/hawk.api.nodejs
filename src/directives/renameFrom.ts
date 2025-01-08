@@ -1,9 +1,9 @@
-import {defaultFieldResolver, GraphQLSchema} from "graphql";
-import {mapSchema, MapperKind, getDirective} from '@graphql-tools/utils'
+import { defaultFieldResolver, GraphQLSchema } from 'graphql';
+import { mapSchema, MapperKind, getDirective } from '@graphql-tools/utils';
 
 export default function renameFromDirective(directiveName = 'renameFrom') {
   return {
-    renameFromDirectiveTypeDefs:`
+    renameFromDirectiveTypeDefs: `
     """
     Directive for field renaming
     """
@@ -21,14 +21,16 @@ export default function renameFromDirective(directiveName = 'renameFrom') {
             const { name } = renameFromDirective as {name: string};
 
             const { resolve = defaultFieldResolver } = fieldConfig;
+
             fieldConfig.resolve = (parent, args, context, info) => {
               parent[fieldName] = parent[name];
 
               return resolve(parent, args, context, info);
-            }
+            };
           }
+
           return fieldConfig;
-        }
-      })
-  }
+        },
+      }),
+  };
 }

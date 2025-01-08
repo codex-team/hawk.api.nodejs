@@ -1,8 +1,8 @@
-import {defaultFieldResolver, GraphQLSchema} from "graphql";
-import {mapSchema, MapperKind, getDirective} from '@graphql-tools/utils'
-import {ResolverContextWithUser, UnknownGraphQLResolverResult} from "../types/graphql";
-import {ForbiddenError, UserInputError} from "apollo-server-express";
-import WorkspaceModel from "../models/workspace";
+import { defaultFieldResolver, GraphQLSchema } from 'graphql';
+import { mapSchema, MapperKind, getDirective } from '@graphql-tools/utils';
+import { ResolverContextWithUser, UnknownGraphQLResolverResult } from '../types/graphql';
+import { ForbiddenError, UserInputError } from 'apollo-server-express';
+import WorkspaceModel from '../models/workspace';
 
 /**
  * Check is user admin via workspace id
@@ -87,8 +87,9 @@ export default function requireAdminDirective(directiveName = 'requireAdmin') {
               return resolve(...resolverArgs);
             };
           }
+
           return fieldConfig;
-        }
-      })
-  }
+        },
+      }),
+  };
 }

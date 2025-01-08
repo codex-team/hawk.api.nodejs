@@ -11,7 +11,7 @@ const GraphQLEncodedJSON = new GraphQLScalarType({
     if (typeof value === 'string') {
       return JSON.parse(value);
     } else if (typeof value === 'object') {
-      return value || {}
+      return value || {};
     }
 
     throw new Error('EncodedJSON cannot represent non-string or non-object values');

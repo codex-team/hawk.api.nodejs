@@ -17,9 +17,14 @@ export default class PlanModel extends AbstractModel<PlanDBScheme> implements Pl
   public name!: string;
 
   /**
-   * Monthly charge for plan in dollars
+   * Monthly charge for plan in currencry specified in `monthlyChargeCurrency`
    */
   public monthlyCharge!: number;
+
+  /**
+   * Currency of `monthlyCharge`
+   */
+  public monthlyChargeCurrency!: string;
 
   /**
    * Maximum amount of events available for plan

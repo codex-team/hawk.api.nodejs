@@ -1,11 +1,6 @@
-const MongoWatchController = require('../utils/mongoWatchController');
-const ProjectToWorkspace = require('../models/projectToWorkspace');
-const asyncForEach = require('../utils/asyncForEach');
-const mongo = require('../mongo');
 const EventsFactory = require('../models/eventsFactory');
 const { ObjectID } = require('mongodb');
 const sendPersonalNotification = require('../utils/personalNotifications').default;
-const watchController = new MongoWatchController();
 
 /**
  * See all types and fields here {@see ../typeDefs/event.graphql}
