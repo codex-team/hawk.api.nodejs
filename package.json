@@ -57,7 +57,7 @@
     "axios": "^0.27.2",
     "body-parser": "^1.19.0",
     "bson": "^4.6.5",
-    "cloudpayments": "^5.0.4",
+    "cloudpayments": "^6.0.1",
     "codex-accounting-sdk": "https://github.com/codex-team/codex-accounting-sdk.git",
     "dataloader": "^2.0.0",
     "dotenv": "^16.0.1",
