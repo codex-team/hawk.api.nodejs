@@ -181,7 +181,7 @@ class CloudPaymentsApi {
     });
 
     if (!result.data.Success) {
-      throw new Error(`Error during cancelling transaction: ${result.data.Message}`);
+      throw new Error(`Error during cancelling transaction with id ${transactionId}: ${result.data.Message}`);
     }
   }
 }
