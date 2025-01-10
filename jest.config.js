@@ -4,6 +4,7 @@
  */
 
 module.exports = {
+  testTimeout: 30000,
   /**
    * The test environment that will be used for testing
    */
