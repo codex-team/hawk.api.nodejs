@@ -584,6 +584,10 @@ export default class CloudPaymentsWebhooks {
         }
 
         if (!workspace) {
+          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Workspace with subscription id ${body.Id} not found`, {
+            body
+          });
+
           return;
         }
 
