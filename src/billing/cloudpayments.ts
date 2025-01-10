@@ -799,7 +799,7 @@ export default class CloudPaymentsWebhooks {
       amount: tariff.monthlyCharge,
       label: `${tariff.name} tariff plan`,
       price: tariff.monthlyCharge,
-      // vat: VALUE_ADDED_TAX,
+      vat: VALUE_ADDED_TAX,
       quantity: 1,
     };
 
