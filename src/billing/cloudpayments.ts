@@ -793,13 +793,13 @@ export default class CloudPaymentsWebhooks {
      * involving the production and distribution of goods and the provision of services
      * Also known as "НДС" in Russia
      */
-    const VALUE_ADDED_TAX = 20;
+    const VALUE_ADDED_TAX = 0;
 
     const item: CustomerReceiptItem = {
       amount: tariff.monthlyCharge,
       label: `${tariff.name} tariff plan`,
       price: tariff.monthlyCharge,
-      // vat: VALUE_ADDED_TAX,
+      vat: VALUE_ADDED_TAX,
       quantity: 1,
     };
 
