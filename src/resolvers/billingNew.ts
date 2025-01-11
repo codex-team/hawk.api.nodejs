@@ -163,9 +163,11 @@ export default {
       const dueDate = workspace.getTariffPlanDueDate();
 
       if (args.input.isRecurrent) {
+        const interval = workspace.isDebug ? 'Day' : 'Month';
+
         jsonData.cloudPayments = {
           recurrent: {
-            interval: 'Month',
+            interval,
             period: 1,
           },
         };
