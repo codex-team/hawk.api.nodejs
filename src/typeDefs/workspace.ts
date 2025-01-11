@@ -116,6 +116,9 @@ export default gql`
     """
     subscriptionId: String
 
+    """ True if workspace is used for debugging """
+    isDebug: Boolean
+
     """
     Workspace projects array
     """

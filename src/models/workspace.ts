@@ -72,6 +72,11 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   public subscriptionId!: string | undefined;
 
   /**
+   * True if workspace is used for debugging
+   */
+  public isDebug?: boolean;
+
+  /**
    * Model's collection
    */
   protected collection: Collection<WorkspaceDBScheme>;
@@ -410,6 +415,10 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    */
   public getTariffPlanDueDate(): Date {
     const lastChargeDate = new Date(this.lastChargeDate);
+
+    if (this.isDebug) {
+      return new Date(lastChargeDate.setDate(lastChargeDate.getDate() + 1));
+    }
 
     return new Date(lastChargeDate.setMonth(lastChargeDate.getMonth() + 1));
   }
