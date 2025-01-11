@@ -74,7 +74,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * True if workspace is used for debugging
    */
-  public isDebug!: boolean;
+  public isDebug?: boolean;
 
   /**
    * Model's collection
