@@ -119,6 +119,9 @@ export default gql`
     """ True if workspace is used for debugging """
     isDebug: Boolean
 
+    """ True if workspace is blocked """
+    isBlocked: Boolean
+
     """
     Workspace projects array
     """
