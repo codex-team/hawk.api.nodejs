@@ -20,12 +20,12 @@ module.exports = {
     /**
      * Returns project's Model
      * @param {ResolverObj} _obj
-     * @param {String} id - project id
+     * @param {String} projectId - project id
      * @param {ContextFactories} factories - factories for working with models
      * @return {Promise<ProjectDBScheme>}
      */
-    async project(_obj, { id }, { factories }) {
-      return factories.projectsFactory.findById(id);
+    async project(_obj, { projectId }, { factories }) {
+      return factories.projectsFactory.findById(projectId);
     },
   },
   Mutation: {

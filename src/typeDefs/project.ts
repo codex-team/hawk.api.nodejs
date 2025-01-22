@@ -95,7 +95,7 @@ type Project {
   """
   Project's Event
   """
-  event(id: ID!): Event @requireAuth
+  event(id: ID!): Event
 
   """
   Project events
@@ -106,7 +106,7 @@ type Project {
 
     "Certain number of documents to skip"
     skip: Int = 0
-  ): [Event!] @requireAuth
+  ): [Event!]
 
   """
   Returns recent events grouped by day
@@ -123,7 +123,7 @@ type Project {
 
     "Event marks by which events should be sorted"
     filters: EventsFiltersInput
-  ): RecentEvents @requireAuth
+  ): RecentEvents
   """
   Return events that occurred after a certain timestamp
   """
@@ -137,23 +137,23 @@ type Project {
     User's local timezone offset in minutes
     """
     timezoneOffset: Int! = 0
-  ): [ChartDataItem] @requireAuth
+  ): [ChartDataItem]
   """
   Returns number of unread events
   """
-  unreadCount: Int! @requireAuth
+  unreadCount: Int!
 
   """
   Project notification settings
   """
-  notifications: [ProjectNotificationsRule] @requireAuth
+  notifications: [ProjectNotificationsRule]
 }
 
 extend type Query {
   """
   Returns project info
   """
-  project("Project id" id: ID!): Project @requireAuth
+  project("Project id" projectId: ID!): Project @requireUserInWorkspace
 }
 
 extend type Mutation {
@@ -199,7 +199,7 @@ extend type Mutation {
     Project image
     """
     image: Upload @uploadImage
-  ): Project! @requireAuth
+  ): Project! @requireAdmin
 
   """
   Generates new project integration token by id
@@ -227,6 +227,6 @@ extend type Mutation {
     project ID
     """
     projectId: ID!
-  ): DateTime! @requireAuth
+  ): DateTime! @requireUserInWorkspace
 }
 `;
