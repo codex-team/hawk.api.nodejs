@@ -43,11 +43,13 @@ import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import PlanModel from '../models/plan';
 import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
+import { ComposePaymentPayload } from './types/composePaymentPayload';
 
-/**
- * Custom data of the plan prolongation request
- */
-type PlanProlongationData = PlanProlongationPayload & PaymentData;
+
+interface ComposePaymentRequest extends express.Request {
+  query: ComposePaymentPayload & { [key: string]: any };
+  context: import('../types/graphql').ResolverContextBase
+};
 
 /**
  * Class for describing the logic of payment routes
@@ -99,8 +101,8 @@ export default class CloudPaymentsWebhooks {
    * @param req — Express request object
    * @param res - Express response object
    */
-  private async composePayment(req: express.Request, res: express.Response): Promise<void> {
-    const { workspaceId, tariffPlanId, shouldSaveCard } = req.query as Record<string, string>;
+  private async composePayment(req: ComposePaymentRequest, res: express.Response): Promise<void> {
+    const { workspaceId, tariffPlanId, shouldSaveCard, isCardLinkOperation } = req.query;
     const userId = req.context.user.id;
 
     if (!workspaceId || !tariffPlanId || !userId) {
@@ -142,6 +144,7 @@ export default class CloudPaymentsWebhooks {
         userId: userId,
         tariffPlanId: tariffPlan._id.toString(),
         shouldSaveCard: shouldSaveCard === 'true',
+        isCardLinkOperation: isCardLinkOperation === 'true',
       });
     } catch (e) {
       const error = e as Error;
@@ -201,7 +204,7 @@ export default class CloudPaymentsWebhooks {
     let member: ConfirmedMemberDBScheme;
     let plan: PlanDBScheme;
 
-    if (!data.workspaceId || !data.tariffPlanId || !data.userId) {
+    if (!data.workspaceId || !data.tariffPlanId || !data.userId || data.isCardLinkOperation === undefined) {
       this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the request', body);
 
       return;
@@ -231,6 +234,18 @@ export default class CloudPaymentsWebhooks {
 
     if (!isRightAmount) {
       this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
+
+      return;
+    }
+
+    if (data.isCardLinkOperation) {
+      telegram
+        .sendMessage(`✅ [Billing / Check] Card linked for subscription workspace «${workspace.name}»`, TelegramBotURLs.Money)
+        .catch(e => console.error('Error while sending message to Telegram: ' + e));
+
+      res.json({
+        code: CheckCodes.SUCCESS,
+      } as CheckResponse);
 
       return;
     }
@@ -266,6 +281,7 @@ export default class CloudPaymentsWebhooks {
 
     telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully «${workspace.name}»`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
+
     HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body as any);
 
     res.json({
@@ -720,9 +736,9 @@ export default class CloudPaymentsWebhooks {
    *
    * @param req - request with necessary data
    */
-  private async getDataFromRequest(req: express.Request): Promise<PlanProlongationData> {
+  private async getDataFromRequest(req: express.Request): Promise<PaymentData> {
     const context = req.context;
-    const body: CheckRequest = req.body;
+    const body: CheckRequest | PayRequest | FailRequest = req.body;
 
     /**
      * If Data is not presented in body means there is a recurring payment
@@ -752,6 +768,7 @@ export default class CloudPaymentsWebhooks {
         tariffPlanId: workspace.tariffPlanId.toString(),
         userId,
         shouldSaveCard: false,
+        isCardLinkOperation: false
       };
     }
 
