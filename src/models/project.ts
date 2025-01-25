@@ -262,6 +262,11 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
       excluding: payload.excluding,
     };
 
+    if (rule.whatToReceive === ReceiveTypes.SEEN_MORE) {
+      rule.threshold = payload.threshold;
+      rule.thresholdPeriod = payload.thresholdPeriod;
+    }
+
     await this.collection.updateOne({
       _id: this._id,
     },
@@ -290,6 +295,11 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
       including: payload.including,
       excluding: payload.excluding,
     };
+
+    if (rule.whatToReceive === ReceiveTypes.SEEN_MORE) {
+      rule.threshold = payload.threshold;
+      rule.thresholdPeriod = payload.thresholdPeriod;
+    }
 
     const result = await this.collection.findOneAndUpdate(
       {
