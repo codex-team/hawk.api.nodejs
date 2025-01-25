@@ -138,6 +138,11 @@ export default {
      */
     async payWithCard(_obj: undefined, args: PayWithCardArgs, { factories, user }: ResolverContextWithUser): Promise<any> {
       const paymentData = checksumService.parseAndVerifyChecksum(args.input.checksum);
+      
+      if (!('tariffPlanId' in paymentData)) {
+        throw new UserInputError('Invalid checksum');
+      }
+      
       const fullUserInfo = await factories.usersFactory.findById(user.id);
 
       const workspace = await factories.workspacesFactory.findById(paymentData.workspaceId);

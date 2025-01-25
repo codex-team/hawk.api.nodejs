@@ -15,8 +15,4 @@ export interface ComposePaymentPayload {
    * If true, we will save user card
    */
   shouldSaveCard: 'true' | 'false';
-  /**
-   * True if this is card linking operation – charging minimal amount of money to validate card info
-   */
-  isCardLinkOperation: 'true' | 'false';
 }

@@ -102,7 +102,7 @@ export default class CloudPaymentsWebhooks {
    * @param res - Express response object
    */
   private async composePayment(req: ComposePaymentRequest, res: express.Response): Promise<void> {
-    const { workspaceId, tariffPlanId, shouldSaveCard, isCardLinkOperation } = req.query;
+    const { workspaceId, tariffPlanId, shouldSaveCard } = req.query;
     const userId = req.context.user.id;
 
     if (!workspaceId || !tariffPlanId || !userId) {
@@ -129,23 +129,30 @@ export default class CloudPaymentsWebhooks {
       await this.getMember(userId, workspace);
     } catch (e) {
       const error = e as Error;
-
+      
       this.sendError(res, 1, `[Billing / Compose payment] Can't compose payment due to error: ${error.toString()}`, req.query);
-
+      
       return;
     }
     const invoiceId = this.generateInvoiceId(tariffPlan, workspace);
+    
+    const isCardLinkOperation = workspace.tariffPlanId.toString() === tariffPlanId && !this.isPlanExpired(workspace);
 
     let checksum;
 
     try {
-      checksum = await checksumService.generateChecksum({
+      const checksumData = isCardLinkOperation ? {
+        isCardLinkOperation: true,
+        workspaceId: workspace._id.toString(),
+        userId: userId,
+      } : {
         workspaceId: workspace._id.toString(),
         userId: userId,
         tariffPlanId: tariffPlan._id.toString(),
         shouldSaveCard: shouldSaveCard === 'true',
-        isCardLinkOperation: isCardLinkOperation === 'true',
-      });
+      }
+
+      checksum = await checksumService.generateChecksum(checksumData);
     } catch (e) {
       const error = e as Error;
 
@@ -161,9 +168,22 @@ export default class CloudPaymentsWebhooks {
         name: tariffPlan.name,
         monthlyCharge: tariffPlan.monthlyCharge,
       },
+      isCardLinkOperation,
       currency: 'RUB',
       checksum,
     });
+  }
+
+  /**
+   * Returns true if workspace's plan is expired
+   * @param workspace - workspace to check
+   */
+  private isPlanExpired(workspace: WorkspaceModel): boolean {
+    const lastChargeDate = new Date(workspace.lastChargeDate);
+    const planExpiracyDate  = lastChargeDate.setMonth(lastChargeDate.getMonth() + 1);
+    const isPlanExpired = planExpiracyDate < Date.now();
+
+    return isPlanExpired;
   }
 
   /**
@@ -204,7 +224,13 @@ export default class CloudPaymentsWebhooks {
     let member: ConfirmedMemberDBScheme;
     let plan: PlanDBScheme;
 
-    if (!data.workspaceId || !data.tariffPlanId || !data.userId || data.isCardLinkOperation === undefined) {
+    if (data.isCardLinkOperation && (!data.userId || !data.workspaceId)) {
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] Card linking – invalid data', body);
+
+      return;
+    }
+
+    if (!data.isCardLinkOperation && (!data.userId || !data.workspaceId || !data.tariffPlanId)) {
       this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the request', body);
 
       return;

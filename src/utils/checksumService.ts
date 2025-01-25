@@ -1,7 +1,9 @@
 import { PlanProlongationPayload } from '@hawk.so/types';
 import jwt, { Secret } from 'jsonwebtoken';
 
-interface ChecksumData {
+export type ChecksumData = PlanPurchaseChecksumData | CardLinkChecksumData;
+
+interface PlanPurchaseChecksumData {
   /**
    * Workspace Identifier
    */
@@ -18,6 +20,17 @@ interface ChecksumData {
    * If true, we will save user card
    */
   shouldSaveCard: boolean;
+}
+
+interface CardLinkChecksumData {
+  /**
+ * Workspace Identifier
+ */
+  workspaceId: string;
+  /**
+   * Id of the user making the payment
+   */
+  userId: string;
   /**
    * True if this is card linking operation – charging minimal amount of money to validate card info
    */
@@ -49,18 +62,20 @@ class ChecksumService {
   public parseAndVerifyChecksum(checksum: string): ChecksumData {
     const payload = jwt.verify(checksum, process.env.JWT_SECRET_BILLING_CHECKSUM as Secret) as ChecksumData;
 
-    /**
-     * Filter unnecessary fields from JWT payload (e.g. "iat")
-     */
-    const { tariffPlanId, workspaceId, userId, shouldSaveCard, isCardLinkOperation } = payload;
-
-    return {
-      tariffPlanId,
-      workspaceId,
-      userId,
-      shouldSaveCard,
-      isCardLinkOperation
-    };
+    if ('isCardLinkOperation' in payload) {
+      return {
+        workspaceId: payload.workspaceId,
+        userId: payload.userId,
+        isCardLinkOperation: payload.isCardLinkOperation
+      }
+    } else {
+      return {
+        workspaceId: payload.workspaceId,
+        userId: payload.userId,
+        tariffPlanId: payload.tariffPlanId,
+        shouldSaveCard: payload.shouldSaveCard
+      }
+    }
   }
 }
 
