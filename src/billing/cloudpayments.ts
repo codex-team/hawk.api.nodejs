@@ -180,7 +180,16 @@ export default class CloudPaymentsWebhooks {
    */
   private isPlanExpired(workspace: WorkspaceModel): boolean {
     const lastChargeDate = new Date(workspace.lastChargeDate);
-    const planExpiracyDate  = lastChargeDate.setMonth(lastChargeDate.getMonth() + 1);
+
+    let planExpiracyDate;
+
+    if (workspace.isDebug) {
+      planExpiracyDate = lastChargeDate.setDate(lastChargeDate.getDate() + 1);
+    } else {
+      planExpiracyDate = lastChargeDate.setMonth(lastChargeDate.getMonth() + 1);
+
+    }
+    
     const isPlanExpired = planExpiracyDate < Date.now();
 
     return isPlanExpired;
