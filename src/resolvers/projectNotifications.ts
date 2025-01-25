@@ -39,6 +39,16 @@ interface CreateProjectNotificationsRuleMutationPayload {
    * Available channels to receive
    */
   channels: NotificationsChannelsDBScheme;
+
+  /**
+   * Threshold to receive notification
+   */
+  threshold: number;
+
+  /**
+   * Period to receive notification
+   */
+  thresholdPeriod: number;
 }
 
 /**
