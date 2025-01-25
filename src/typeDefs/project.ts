@@ -8,6 +8,7 @@ Possible events order
 enum EventsSortOrder {
   BY_DATE
   BY_COUNT
+  BY_AFFECTED_USERS
 }
 
 """

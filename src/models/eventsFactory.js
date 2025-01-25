@@ -100,7 +100,7 @@ class EventsFactory extends Factory {
 
     const cursor = this.getCollection(this.TYPES.EVENTS)
       .find(query)
-      .sort([ ['_id', -1] ])
+      .sort([['_id', -1]])
       .limit(limit)
       .skip(skip);
 
@@ -159,7 +159,18 @@ class EventsFactory extends Factory {
     filters = {}
   ) {
     limit = this.validateLimit(limit);
-    sort = sort === 'BY_COUNT' ? 'count' : 'lastRepetitionTime';
+
+    switch (sort) {
+      case 'BY_COUNT':
+        sort = 'count';
+        break;
+      case 'BY_DATE':
+        sort = 'lastRepetitionTime';
+        break;
+      case 'BY_AFFECTED_USERS':
+        sort = 'affectedUsers';
+        break;
+    }
 
     const pipeline = [
       {
@@ -197,7 +208,7 @@ class EventsFactory extends Factory {
             ...Object.fromEntries(
               Object
                 .entries(filters)
-                .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
+                .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists }])
             ),
           },
         },
