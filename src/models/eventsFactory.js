@@ -159,7 +159,21 @@ class EventsFactory extends Factory {
     filters = {}
   ) {
     limit = this.validateLimit(limit);
-    sort = sort === 'BY_COUNT' ? 'count' : 'lastRepetitionTime';
+
+    switch (sort) {
+      case 'BY_COUNT':
+        sort = 'count';
+        break;
+      case 'BY_DATE':
+        sort = 'lastRepetitionTime';
+        break;
+      case 'BY_AFFECTED_USERS':
+        sort = 'affectedUsers';
+        break;
+      default:
+        sort = 'lastRepetitionTime';
+        break;
+    }
 
     const pipeline = [
       {
