@@ -170,6 +170,9 @@ class EventsFactory extends Factory {
       case 'BY_AFFECTED_USERS':
         sort = 'affectedUsers';
         break;
+      default:
+        sort = 'lastRepetitionTime';
+        break;
     }
 
     const pipeline = [
