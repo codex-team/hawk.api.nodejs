@@ -392,6 +392,11 @@ type DailyEventInfo {
   Last event occurrence timestamp
   """
   lastRepetitionTime: Float!
+
+  """
+  How many users catch this error per day
+  """
+  affectedUsers: Int
 }
 
 type Subscription {
