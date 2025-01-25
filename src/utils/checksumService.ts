@@ -24,8 +24,8 @@ interface PlanPurchaseChecksumData {
 
 interface CardLinkChecksumData {
   /**
- * Workspace Identifier
- */
+   * Workspace Identifier
+   */
   workspaceId: string;
   /**
    * Id of the user making the payment
@@ -66,15 +66,15 @@ class ChecksumService {
       return {
         workspaceId: payload.workspaceId,
         userId: payload.userId,
-        isCardLinkOperation: payload.isCardLinkOperation
-      }
+        isCardLinkOperation: payload.isCardLinkOperation,
+      };
     } else {
       return {
         workspaceId: payload.workspaceId,
         userId: payload.userId,
         tariffPlanId: payload.tariffPlanId,
-        shouldSaveCard: payload.shouldSaveCard
-      }
+        shouldSaveCard: payload.shouldSaveCard,
+      };
     }
   }
 }

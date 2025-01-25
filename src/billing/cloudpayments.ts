@@ -45,10 +45,9 @@ import PlanModel from '../models/plan';
 import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
 import { ComposePaymentPayload } from './types/composePaymentPayload';
 
-
 interface ComposePaymentRequest extends express.Request {
   query: ComposePaymentPayload & { [key: string]: any };
-  context: import('../types/graphql').ResolverContextBase
+  context: import('../types/graphql').ResolverContextBase;
 };
 
 /**
@@ -129,13 +128,13 @@ export default class CloudPaymentsWebhooks {
       await this.getMember(userId, workspace);
     } catch (e) {
       const error = e as Error;
-      
+
       this.sendError(res, 1, `[Billing / Compose payment] Can't compose payment due to error: ${error.toString()}`, req.query);
-      
+
       return;
     }
     const invoiceId = this.generateInvoiceId(tariffPlan, workspace);
-    
+
     const isCardLinkOperation = workspace.tariffPlanId.toString() === tariffPlanId && !this.isPlanExpired(workspace);
 
     let checksum;
@@ -150,7 +149,7 @@ export default class CloudPaymentsWebhooks {
         userId: userId,
         tariffPlanId: tariffPlan._id.toString(),
         shouldSaveCard: shouldSaveCard === 'true',
-      }
+      };
 
       checksum = await checksumService.generateChecksum(checksumData);
     } catch (e) {
@@ -187,9 +186,8 @@ export default class CloudPaymentsWebhooks {
       planExpiracyDate = lastChargeDate.setDate(lastChargeDate.getDate() + 1);
     } else {
       planExpiracyDate = lastChargeDate.setMonth(lastChargeDate.getMonth() + 1);
-
     }
-    
+
     const isPlanExpired = planExpiracyDate < Date.now();
 
     return isPlanExpired;
@@ -803,7 +801,7 @@ export default class CloudPaymentsWebhooks {
         tariffPlanId: workspace.tariffPlanId.toString(),
         userId,
         shouldSaveCard: false,
-        isCardLinkOperation: false
+        isCardLinkOperation: false,
       };
     }
 
