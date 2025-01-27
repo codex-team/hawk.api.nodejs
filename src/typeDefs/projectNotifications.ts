@@ -17,6 +17,31 @@ export default gql`
   }
 
   """
+  Allowed threshold periods in milliseconds
+  """
+  enum ThresholdPeriod {
+    """
+    One minute in milliseconds
+    """
+    MINUTE = 60000
+
+    """
+    One hour in milliseconds
+    """
+    HOUR = 3600000
+
+    """
+    One day in milliseconds
+    """
+    DAY = 86400000
+
+    """
+    One week in milliseconds
+    """
+    WEEK = 604800000
+  }
+
+  """
   Project notify settings
   """
   type ProjectNotificationsRule {
@@ -58,6 +83,6 @@ export default gql`
     """
     Period to receive notification
     """
-    thresholdPeriod: Int
+    thresholdPeriod: ThresholdPeriod
   }
 `;

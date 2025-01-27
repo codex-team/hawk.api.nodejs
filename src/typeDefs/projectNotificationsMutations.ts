@@ -43,7 +43,7 @@ export default gql`
     """
     Period to receive notification
     """
-    thresholdPeriod: Int
+    thresholdPeriod: ThresholdPeriod
   }
 
   """
@@ -93,7 +93,7 @@ export default gql`
     """
     Period to receive notification
     """
-    thresholdPeriod: Int
+    thresholdPeriod: ThresholdPeriod
   }
 
   """
