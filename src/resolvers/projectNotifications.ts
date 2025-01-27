@@ -144,6 +144,14 @@ export default {
         throw new UserInputError('At least one channel is required');
       }
 
+      if ((input.threshold !== undefined) !== (input.thresholdPeriod !== undefined)) {
+        throw new UserInputError('Both threshold and thresholdPeriod should be set or unset');
+      }
+
+      if (input.threshold < 1) {
+        throw new UserInputError('Threshold should be greater than 0');
+      }
+
       return project.updateNotificationsRule(input);
     },
 
