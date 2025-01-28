@@ -363,7 +363,7 @@ export default class CloudPaymentsWebhooks {
     }
 
     if (data.isCardLinkOperation && (!data.userId || !data.workspaceId)) {
-      this.sendError(res, PayCodes.SUCCESS, '[Billing / Pay] No workspace of user id in card linking request body', req.body);
+      this.sendError(res, PayCodes.SUCCESS, '[Billing / Pay] No workspace or user id in request body', req.body);
       
       return;
     }
