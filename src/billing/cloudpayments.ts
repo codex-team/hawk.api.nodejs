@@ -206,6 +206,36 @@ export default class CloudPaymentsWebhooks {
   }
 
   /**
+   * Confirms the correctness of a user's payment for card linking
+   * @param req - express request
+   * @param res - express response
+   * @param data - payment data receinved from checksum and request payload
+   */
+  private async checkCardLinkOperation(req: express.Request, res: express.Response, data: PaymentData): Promise<void> {
+    if (data.isCardLinkOperation && (!data.userId || !data.workspaceId)) {
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] Card linking – invalid data', req.body);
+
+      return;
+    }
+
+    try {
+      const workspace = await this.getWorkspace(req, data.workspaceId);
+
+      telegram
+        .sendMessage(`✅ [Billing / Check] Card linked for subscription workspace «${workspace.name}»`, TelegramBotURLs.Money)
+        .catch(e => console.error('Error while sending message to Telegram: ' + e));
+
+      res.json({
+        code: CheckCodes.SUCCESS,
+      } as CheckResponse);
+    } catch (e) {
+      const error = e as Error;
+
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] ${error.toString()}`, req.body);
+    }
+  }
+
+  /**
    * Route to confirm the correctness of a user's payment
    * https://developers.cloudpayments.ru/#check
    *
@@ -227,15 +257,16 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
+    if (data.isCardLinkOperation) {
+      this.checkCardLinkOperation(req, res, data);
+
+      return;
+    }
+
     let workspace: WorkspaceModel;
     let member: ConfirmedMemberDBScheme;
     let plan: PlanDBScheme;
 
-    if (data.isCardLinkOperation && (!data.userId || !data.workspaceId)) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] Card linking – invalid data', body);
-
-      return;
-    }
 
     if (!data.isCardLinkOperation && (!data.userId || !data.workspaceId || !data.tariffPlanId)) {
       this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the request', body);
@@ -267,18 +298,6 @@ export default class CloudPaymentsWebhooks {
 
     if (!isRightAmount) {
       this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
-
-      return;
-    }
-
-    if (data.isCardLinkOperation) {
-      telegram
-        .sendMessage(`✅ [Billing / Check] Card linked for subscription workspace «${workspace.name}»`, TelegramBotURLs.Money)
-        .catch(e => console.error('Error while sending message to Telegram: ' + e));
-
-      res.json({
-        code: CheckCodes.SUCCESS,
-      } as CheckResponse);
 
       return;
     }
