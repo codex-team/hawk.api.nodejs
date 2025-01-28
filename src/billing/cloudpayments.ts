@@ -267,8 +267,7 @@ export default class CloudPaymentsWebhooks {
     let member: ConfirmedMemberDBScheme;
     let plan: PlanDBScheme;
 
-
-    if (!data.isCardLinkOperation && (!data.userId || !data.workspaceId || !data.tariffPlanId)) {
+    if (!data.userId || !data.workspaceId || !data.tariffPlanId) {
       this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the request', body);
 
       return;
@@ -362,7 +361,13 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    if (!data.workspaceId || !data.tariffPlanId || !data.userId) {
+    if (data.isCardLinkOperation && (!data.userId || !data.workspaceId)) {
+      this.sendError(res, PayCodes.SUCCESS, '[Billing / Pay] No workspace or user id in request body', req.body);
+
+      return;
+    }
+
+    if (!data.isCardLinkOperation && (!data.workspaceId || !data.tariffPlanId || !data.userId)) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace, tariff plan or user id in request body`, body);
 
       return;
@@ -372,12 +377,15 @@ export default class CloudPaymentsWebhooks {
     let workspace;
     let tariffPlan;
     let user;
+    let planId;
 
     try {
       businessOperation = await this.getBusinessOperation(req, body.TransactionId.toString());
       workspace = await this.getWorkspace(req, data.workspaceId);
-      tariffPlan = await this.getPlan(req, data.tariffPlanId);
       user = await this.getUser(req, data.userId);
+      planId = data.isCardLinkOperation ? workspace.tariffPlanId.toString() : data.tariffPlanId;
+
+      tariffPlan = await this.getPlan(req, planId);
     } catch (e) {
       const error = e as Error;
 
@@ -475,7 +483,7 @@ export default class CloudPaymentsWebhooks {
         type: SenderWorkerTaskType.PaymentSuccess,
         payload: {
           workspaceId: data.workspaceId,
-          tariffPlanId: data.tariffPlanId,
+          tariffPlanId: planId,
           userId: data.userId,
         },
       };
