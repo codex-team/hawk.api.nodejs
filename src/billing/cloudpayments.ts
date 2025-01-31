@@ -206,36 +206,6 @@ export default class CloudPaymentsWebhooks {
   }
 
   /**
-   * Confirms the correctness of a user's payment for card linking
-   * @param req - express request
-   * @param res - express response
-   * @param data - payment data receinved from checksum and request payload
-   */
-  private async checkCardLinkOperation(req: express.Request, res: express.Response, data: PaymentData): Promise<void> {
-    if (data.isCardLinkOperation && (!data.userId || !data.workspaceId)) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] Card linking – invalid data', req.body);
-
-      return;
-    }
-
-    try {
-      const workspace = await this.getWorkspace(req, data.workspaceId);
-
-      telegram
-        .sendMessage(`✅ [Billing / Check] Card linked for subscription workspace «${workspace.name}»`, TelegramBotURLs.Money)
-        .catch(e => console.error('Error while sending message to Telegram: ' + e));
-
-      res.json({
-        code: CheckCodes.SUCCESS,
-      } as CheckResponse);
-    } catch (e) {
-      const error = e as Error;
-
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] ${error.toString()}`, req.body);
-    }
-  }
-
-  /**
    * Route to confirm the correctness of a user's payment
    * https://developers.cloudpayments.ru/#check
    *
@@ -257,28 +227,33 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
+    /** Data validation */
     if (data.isCardLinkOperation) {
-      this.checkCardLinkOperation(req, res, data);
+      if (!data.userId || !data.workspaceId) {
+        this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the card linking request', req.body);
 
-      return;
+        return;
+      }
+    } else {
+      if (!data.userId || !data.workspaceId || !data.tariffPlanId) {
+        this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the request', body);
+
+        return;
+      }
     }
 
     let workspace: WorkspaceModel;
     let member: ConfirmedMemberDBScheme;
     let plan: PlanDBScheme;
-
-    if (!data.userId || !data.workspaceId || !data.tariffPlanId) {
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the request', body);
-
-      return;
-    }
+    let planId: string;
 
     const { workspaceId, userId, tariffPlanId } = data;
 
     try {
       workspace = await this.getWorkspace(req, workspaceId);
       member = await this.getMember(userId, workspace);
-      plan = await this.getPlan(req, tariffPlanId);
+      planId = data.isCardLinkOperation ? workspace.tariffPlanId.toString() : tariffPlanId;
+      plan = await this.getPlan(req, planId);
     } catch (e) {
       const error = e as Error;
 
@@ -361,16 +336,19 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    if (data.isCardLinkOperation && (!data.userId || !data.workspaceId)) {
-      this.sendError(res, PayCodes.SUCCESS, '[Billing / Pay] No workspace or user id in request body', req.body);
+    /** Data validation */
+    if (data.isCardLinkOperation) {
+      if (!data.userId || !data.workspaceId) {
+        this.sendError(res, PayCodes.SUCCESS, '[Billing / Pay] No workspace or user id in request body', req.body);
 
-      return;
-    }
+        return;
+      }
+    } else {
+      if (!data.workspaceId || !data.tariffPlanId || !data.userId) {
+        this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace, tariff plan or user id in request body`, body);
 
-    if (!data.isCardLinkOperation && (!data.workspaceId || !data.tariffPlanId || !data.userId)) {
-      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace, tariff plan or user id in request body`, body);
-
-      return;
+        return;
+      }
     }
 
     let businessOperation;
@@ -384,7 +362,6 @@ export default class CloudPaymentsWebhooks {
       workspace = await this.getWorkspace(req, data.workspaceId);
       user = await this.getUser(req, data.userId);
       planId = data.isCardLinkOperation ? workspace.tariffPlanId.toString() : data.tariffPlanId;
-
       tariffPlan = await this.getPlan(req, planId);
     } catch (e) {
       const error = e as Error;
