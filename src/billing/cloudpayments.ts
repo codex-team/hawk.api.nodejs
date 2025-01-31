@@ -282,7 +282,7 @@ export default class CloudPaymentsWebhooks {
     try {
       await context.factories.businessOperationsFactory.create<PayloadOfWorkspacePlanPurchase>({
         transactionId: body.TransactionId.toString(),
-        type: BusinessOperationType.WorkspacePlanPurchase,
+        type: data.isCardLinkOperation ? BusinessOperationType.CardLinkCharge : BusinessOperationType.WorkspacePlanPurchase,
         status: BusinessOperationStatus.Pending,
         payload: {
           workspaceId: workspace._id,
