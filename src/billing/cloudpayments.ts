@@ -43,11 +43,12 @@ import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import PlanModel from '../models/plan';
 import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
+import { ComposePaymentPayload } from './types/composePaymentPayload';
 
-/**
- * Custom data of the plan prolongation request
- */
-type PlanProlongationData = PlanProlongationPayload & PaymentData;
+interface ComposePaymentRequest extends express.Request {
+  query: ComposePaymentPayload & { [key: string]: any };
+  context: import('../types/graphql').ResolverContextBase;
+};
 
 /**
  * Class for describing the logic of payment routes
@@ -99,8 +100,8 @@ export default class CloudPaymentsWebhooks {
    * @param req — Express request object
    * @param res - Express response object
    */
-  private async composePayment(req: express.Request, res: express.Response): Promise<void> {
-    const { workspaceId, tariffPlanId, shouldSaveCard } = req.query as Record<string, string>;
+  private async composePayment(req: ComposePaymentRequest, res: express.Response): Promise<void> {
+    const { workspaceId, tariffPlanId, shouldSaveCard } = req.query;
     const userId = req.context.user.id;
 
     if (!workspaceId || !tariffPlanId || !userId) {
@@ -134,15 +135,23 @@ export default class CloudPaymentsWebhooks {
     }
     const invoiceId = this.generateInvoiceId(tariffPlan, workspace);
 
+    const isCardLinkOperation = workspace.tariffPlanId.toString() === tariffPlanId && !this.isPlanExpired(workspace);
+
     let checksum;
 
     try {
-      checksum = await checksumService.generateChecksum({
+      const checksumData = isCardLinkOperation ? {
+        isCardLinkOperation: true,
+        workspaceId: workspace._id.toString(),
+        userId: userId,
+      } : {
         workspaceId: workspace._id.toString(),
         userId: userId,
         tariffPlanId: tariffPlan._id.toString(),
         shouldSaveCard: shouldSaveCard === 'true',
-      });
+      };
+
+      checksum = await checksumService.generateChecksum(checksumData);
     } catch (e) {
       const error = e as Error;
 
@@ -158,9 +167,30 @@ export default class CloudPaymentsWebhooks {
         name: tariffPlan.name,
         monthlyCharge: tariffPlan.monthlyCharge,
       },
+      isCardLinkOperation,
       currency: 'RUB',
       checksum,
     });
+  }
+
+  /**
+   * Returns true if workspace's plan is expired
+   * @param workspace - workspace to check
+   */
+  private isPlanExpired(workspace: WorkspaceModel): boolean {
+    const lastChargeDate = new Date(workspace.lastChargeDate);
+
+    let planExpiracyDate;
+
+    if (workspace.isDebug) {
+      planExpiracyDate = lastChargeDate.setDate(lastChargeDate.getDate() + 1);
+    } else {
+      planExpiracyDate = lastChargeDate.setMonth(lastChargeDate.getMonth() + 1);
+    }
+
+    const isPlanExpired = planExpiracyDate < Date.now();
+
+    return isPlanExpired;
   }
 
   /**
@@ -173,6 +203,36 @@ export default class CloudPaymentsWebhooks {
     const now = new Date();
 
     return `${workspace.name} ${now.getDate()}/${now.getMonth() + 1} ${tariffPlan.name}`;
+  }
+
+  /**
+   * Confirms the correctness of a user's payment for card linking
+   * @param req - express request
+   * @param res - express response
+   * @param data - payment data receinved from checksum and request payload
+   */
+  private async checkCardLinkOperation(req: express.Request, res: express.Response, data: PaymentData): Promise<void> {
+    if (data.isCardLinkOperation && (!data.userId || !data.workspaceId)) {
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] Card linking – invalid data', req.body);
+
+      return;
+    }
+
+    try {
+      const workspace = await this.getWorkspace(req, data.workspaceId);
+
+      telegram
+        .sendMessage(`✅ [Billing / Check] Card linked for subscription workspace «${workspace.name}»`, TelegramBotURLs.Money)
+        .catch(e => console.error('Error while sending message to Telegram: ' + e));
+
+      res.json({
+        code: CheckCodes.SUCCESS,
+      } as CheckResponse);
+    } catch (e) {
+      const error = e as Error;
+
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] ${error.toString()}`, req.body);
+    }
   }
 
   /**
@@ -197,11 +257,17 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
+    if (data.isCardLinkOperation) {
+      this.checkCardLinkOperation(req, res, data);
+
+      return;
+    }
+
     let workspace: WorkspaceModel;
     let member: ConfirmedMemberDBScheme;
     let plan: PlanDBScheme;
 
-    if (!data.workspaceId || !data.tariffPlanId || !data.userId) {
+    if (!data.userId || !data.workspaceId || !data.tariffPlanId) {
       this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the request', body);
 
       return;
@@ -266,6 +332,7 @@ export default class CloudPaymentsWebhooks {
 
     telegram.sendMessage(`✅ [Billing / Check] All checks passed successfully «${workspace.name}»`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
+
     HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body as any);
 
     res.json({
@@ -294,7 +361,13 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    if (!data.workspaceId || !data.tariffPlanId || !data.userId) {
+    if (data.isCardLinkOperation && (!data.userId || !data.workspaceId)) {
+      this.sendError(res, PayCodes.SUCCESS, '[Billing / Pay] No workspace or user id in request body', req.body);
+
+      return;
+    }
+
+    if (!data.isCardLinkOperation && (!data.workspaceId || !data.tariffPlanId || !data.userId)) {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace, tariff plan or user id in request body`, body);
 
       return;
@@ -304,12 +377,15 @@ export default class CloudPaymentsWebhooks {
     let workspace;
     let tariffPlan;
     let user;
+    let planId;
 
     try {
       businessOperation = await this.getBusinessOperation(req, body.TransactionId.toString());
       workspace = await this.getWorkspace(req, data.workspaceId);
-      tariffPlan = await this.getPlan(req, data.tariffPlanId);
       user = await this.getUser(req, data.userId);
+      planId = data.isCardLinkOperation ? workspace.tariffPlanId.toString() : data.tariffPlanId;
+
+      tariffPlan = await this.getPlan(req, planId);
     } catch (e) {
       const error = e as Error;
 
@@ -407,7 +483,7 @@ export default class CloudPaymentsWebhooks {
         type: SenderWorkerTaskType.PaymentSuccess,
         payload: {
           workspaceId: data.workspaceId,
-          tariffPlanId: data.tariffPlanId,
+          tariffPlanId: planId,
           userId: data.userId,
         },
       };
@@ -720,9 +796,9 @@ export default class CloudPaymentsWebhooks {
    *
    * @param req - request with necessary data
    */
-  private async getDataFromRequest(req: express.Request): Promise<PlanProlongationData> {
+  private async getDataFromRequest(req: express.Request): Promise<PaymentData> {
     const context = req.context;
-    const body: CheckRequest = req.body;
+    const body: CheckRequest | PayRequest | FailRequest = req.body;
 
     /**
      * If Data is not presented in body means there is a recurring payment
@@ -752,6 +828,7 @@ export default class CloudPaymentsWebhooks {
         tariffPlanId: workspace.tariffPlanId.toString(),
         userId,
         shouldSaveCard: false,
+        isCardLinkOperation: false,
       };
     }
 
