@@ -90,6 +90,54 @@ function isChannelsEmpty(channels: NotificationsChannelsDBScheme): boolean {
 }
 
 /**
+ * Returns true is threshold and threshold period are valid
+ * @param threshold - threshold of the notification rule to be checked
+ * @param thresholdPeriod - threshold period of the notification rule to be checked 
+ */
+function validateNotificationsRuleTresholdAndPeriod(
+  threshold: ProjectNotificationsRuleDBScheme['threshold'], 
+  thresholdPeriod: ProjectNotificationsRuleDBScheme['thresholdPeriod']
+): string | null {
+  const validThresholdPeriods = [60_000, 3_600_000, 86_400_000, 604_800_000]
+
+  if (thresholdPeriod === undefined || !validThresholdPeriods.includes(thresholdPeriod)) {
+    return'Threshold period should be one of the following: 60000, 3600000, 86400000, 604800000';
+  }
+
+  if (threshold === undefined || threshold < 1) {
+    return 'Threshold should be greater than 0';
+  }
+
+  return null;
+}
+
+
+/**
+ * Return true if all passed channels are filled with correct endpoints
+ */
+function validateNotificationsRuleChannels(channels: NotificationsChannelsDBScheme): string | null {
+  if (channels.email!.isEnabled) {
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(channels.email!.endpoint)) {
+      return 'Invalid email endpoint passed';
+    }
+  }
+
+  if (channels.slack!.isEnabled) {
+    if (!/^https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9]+\/[A-Za-z0-9]+\/[A-Za-z0-9]+$/.test(channels.slack!.endpoint)) {
+      return 'Invalid slack endpoint passed';
+    }
+  }
+
+  if (channels.telegram!.isEnabled) {
+    if (!/^https:\/\/notify\.bot\.codex\.so\/u\/[A-Za-z0-9]+$/.test(channels.telegram!.endpoint)) {
+      return 'Invalid telegram endpoint passed';
+    }
+  }
+
+  return null;
+}
+
+/**
  * See all types and fields here {@see ../typeDefs/notify.graphql}
  */
 export default {
@@ -107,18 +155,23 @@ export default {
       { user, factories }: ResolverContextWithUser
     ): Promise<ProjectNotificationsRuleDBScheme> {
       const project = await factories.projectsFactory.findById(input.projectId);
-      const validThresholdPeriods = [60_000, 3_600_000, 86_400_000, 604_800_000]
 
       if (!project) {
         throw new ApolloError('No project with such id');
       }
 
-      if (isChannelsEmpty(input.channels)) {
-        throw new UserInputError('At least one channel is required');
+      const channelsValidationResult = validateNotificationsRuleChannels(input.channels);
+
+      if (channelsValidationResult !== null) {
+        throw new UserInputError(channelsValidationResult);
       }
 
-      if (!validThresholdPeriods.includes(input.thresholdPeriod)) {
-        throw new UserInputError('Threshold period should be one of the following: 60000, 3600000, 86400000, 604800000');
+      if (input.whatToReceive === ReceiveTypes.SEEN_MORE) {
+        const thresholdValidationResult = validateNotificationsRuleTresholdAndPeriod(input.threshold, input.thresholdPeriod);
+
+        if (thresholdValidationResult !== null) {
+          throw new UserInputError(thresholdValidationResult);
+        }
       }
       
       return project.createNotificationsRule({
@@ -144,17 +197,19 @@ export default {
       if (!project) {
         throw new ApolloError('No project with such id');
       }
+      
+      const channelsValidationResult = validateNotificationsRuleChannels(input.channels);
 
-      if (isChannelsEmpty(input.channels)) {
-        throw new UserInputError('At least one channel is required');
+      if (channelsValidationResult !== null) {
+        throw new UserInputError(channelsValidationResult);
       }
 
-      if ((input.threshold !== undefined) !== (input.thresholdPeriod !== undefined)) {
-        throw new UserInputError('Both threshold and thresholdPeriod should be set or unset');
-      }
+      if (input.whatToReceive === ReceiveTypes.SEEN_MORE) {
+        const thresholdValidationResult = validateNotificationsRuleTresholdAndPeriod(input.threshold, input.thresholdPeriod);
 
-      if (input.threshold < 1) {
-        throw new UserInputError('Threshold should be greater than 0');
+        if (thresholdValidationResult !== null) {
+          throw new UserInputError(thresholdValidationResult);
+        }
       }
 
       return project.updateNotificationsRule(input);
