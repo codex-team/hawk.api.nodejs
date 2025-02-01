@@ -79,16 +79,16 @@ interface ProjectNotificationsRulePointer {
 /**
  * Returns true is threshold and threshold period are valid
  * @param threshold - threshold of the notification rule to be checked
- * @param thresholdPeriod - threshold period of the notification rule to be checked 
+ * @param thresholdPeriod - threshold period of the notification rule to be checked
  */
 function validateNotificationsRuleTresholdAndPeriod(
-  threshold: ProjectNotificationsRuleDBScheme['threshold'], 
+  threshold: ProjectNotificationsRuleDBScheme['threshold'],
   thresholdPeriod: ProjectNotificationsRuleDBScheme['thresholdPeriod']
 ): string | null {
-  const validThresholdPeriods = [60_000, 3_600_000, 86_400_000, 604_800_000]
+  const validThresholdPeriods = [60_000, 3_600_000, 86_400_000, 604_800_000];
 
   if (thresholdPeriod === undefined || !validThresholdPeriods.includes(thresholdPeriod)) {
-    return'Threshold period should be one of the following: 60000, 3600000, 86400000, 604800000';
+    return 'Threshold period should be one of the following: 60000, 3600000, 86400000, 604800000';
   }
 
   if (threshold === undefined || threshold < 1) {
@@ -97,7 +97,6 @@ function validateNotificationsRuleTresholdAndPeriod(
 
   return null;
 }
-
 
 /**
  * Return true if all passed channels are filled with correct endpoints
@@ -160,7 +159,7 @@ export default {
           throw new UserInputError(thresholdValidationResult);
         }
       }
-      
+
       return project.createNotificationsRule({
         ...input,
         uidAdded: user.id,
@@ -184,7 +183,7 @@ export default {
       if (!project) {
         throw new ApolloError('No project with such id');
       }
-      
+
       const channelsValidationResult = validateNotificationsRuleChannels(input.channels);
 
       if (channelsValidationResult !== null) {
