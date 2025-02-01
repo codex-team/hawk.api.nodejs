@@ -107,6 +107,7 @@ export default {
       { user, factories }: ResolverContextWithUser
     ): Promise<ProjectNotificationsRuleDBScheme> {
       const project = await factories.projectsFactory.findById(input.projectId);
+      const validThresholdPeriods = [60_000, 3_600_000, 86_400_000, 604_800_000]
 
       if (!project) {
         throw new ApolloError('No project with such id');
@@ -116,6 +117,10 @@ export default {
         throw new UserInputError('At least one channel is required');
       }
 
+      if (!validThresholdPeriods.includes(input.thresholdPeriod)) {
+        throw new UserInputError('Threshold period should be one of the following: 60000, 3600000, 86400000, 604800000');
+      }
+      
       return project.createNotificationsRule({
         ...input,
         uidAdded: user.id,
