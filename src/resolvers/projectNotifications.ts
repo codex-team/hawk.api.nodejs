@@ -77,19 +77,6 @@ interface ProjectNotificationsRulePointer {
 }
 
 /**
- * Return true if all passed channels are empty
- * @param channels - project notifications channels
- */
-function isChannelsEmpty(channels: NotificationsChannelsDBScheme): boolean {
-  const notEmptyChannels = Object.entries(channels)
-    .filter(([_, channel]) => {
-      return (channel as NotificationsChannelSettingsDBScheme).endpoint.replace(/\s+/, '').trim().length !== 0;
-    });
-
-  return notEmptyChannels.length === 0;
-}
-
-/**
  * Returns true is threshold and threshold period are valid
  * @param threshold - threshold of the notification rule to be checked
  * @param thresholdPeriod - threshold period of the notification rule to be checked 
