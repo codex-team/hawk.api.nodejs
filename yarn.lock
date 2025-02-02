@@ -451,17 +451,17 @@
     axios "^0.21.1"
     stack-trace "^0.0.10"
 
+"@hawk.so/types@0.1.23":
+  version "0.1.23"
+  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.1.23.tgz#45dae057fd29d4735a51baa5f00d8e0d245075f4"
+  integrity sha512-b9W8TZJj6kBh3rVS4tKCmVbM44XJ/Ya8kwXY12QNf5/U4O2iuegIIEcFwr6N10SJI1VbuPLYFrckxt/8ymQScw==
+  dependencies:
+    "@types/mongodb" "^3.5.34"
+
 "@hawk.so/types@^0.1.15":
   version "0.1.18"
   resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.1.18.tgz#746537634756825f066182737429d11ea124d5c5"
   integrity sha512-SvECLGmLb5t90OSpk3n8DCjJsUoyjrq/Z6Ioil80tVkbMXRdGjaHZpn/0w1gBqtgNWBfW2cSbsQPqmyDj1NsqQ==
-  dependencies:
-    "@types/mongodb" "^3.5.34"
-
-"@hawk.so/types@^0.1.21":
-  version "0.1.21"
-  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.1.21.tgz#8979b1aff670317e5d092aaefcd879729df88adc"
-  integrity sha512-Jjy1qznAB7SprVtdgWJS9tdGAaK7rTNWEVWG05m6u3Qd3tTXkgty4D0oAmhTFBnJ/MElPVuundYnDB1r4dHZQQ==
   dependencies:
     "@types/mongodb" "^3.5.34"
 
