@@ -24,7 +24,7 @@ export interface ProjectNotificationsRuleDBScheme {
   uidAdded: ObjectId;
 
   /**
-   * Receive type: 'ALL'  or 'ONLY_NEW'
+   * Receive type: 'SEEN_MORE'  or 'ONLY_NEW'
    */
   whatToReceive: ReceiveTypes;
 
@@ -42,6 +42,16 @@ export interface ProjectNotificationsRuleDBScheme {
    * Available channels to receive
    */
   channels: NotificationsChannelsDBScheme;
+
+  /**
+   * If this number of events is reached in the eventThresholdPeriod, the rule will be triggered
+   */
+  threshold?: number;
+
+  /**
+   * Size of period (in milliseconds) to count events to compare to rule threshold
+   */
+  thresholdPeriod?: number;
 }
 
 /**
@@ -51,7 +61,7 @@ export enum ReceiveTypes {
   /**
    * All notifications
    */
-  ALL = 'ALL',
+  SEEN_MORE = 'SEEN_MORE',
 
   /**
    * Only first occurrence
@@ -69,7 +79,7 @@ export interface CreateProjectNotificationsRulePayload {
   isEnabled: true;
 
   /**
-   * Receive type: 'ALL'  or 'ONLY_NEW'
+   * Receive type: 'SEEN_MORE'  or 'ONLY_NEW'
    */
   whatToReceive: ReceiveTypes;
 
@@ -92,6 +102,16 @@ export interface CreateProjectNotificationsRulePayload {
    * Available channels to receive
    */
   channels: NotificationsChannelsDBScheme;
+
+  /**
+   * If this number of events is reached in the eventThresholdPeriod, the rule will be triggered
+   */
+  threshold?: number;
+
+  /**
+   * Size of period (in milliseconds) to count events to compare to rule threshold
+   */
+  thresholdPeriod?: number;
 }
 
 /**
@@ -127,6 +147,16 @@ interface UpdateProjectNotificationsRulePayload {
    * Available channels to receive
    */
   channels: NotificationsChannelsDBScheme;
+
+  /**
+   * If this number of events is reached in the eventThresholdPeriod, the rule will be triggered
+   */
+  threshold?: number;
+
+  /**
+   * Size of period (in milliseconds) to count events to compare to rule threshold
+   */
+  thresholdPeriod?: number;
 }
 
 /**
@@ -232,6 +262,11 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
       excluding: payload.excluding,
     };
 
+    if (rule.whatToReceive === ReceiveTypes.SEEN_MORE) {
+      rule.threshold = payload.threshold;
+      rule.thresholdPeriod = payload.thresholdPeriod;
+    }
+
     await this.collection.updateOne({
       _id: this._id,
     },
@@ -260,6 +295,11 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
       including: payload.including,
       excluding: payload.excluding,
     };
+
+    if (rule.whatToReceive === ReceiveTypes.SEEN_MORE) {
+      rule.threshold = payload.threshold;
+      rule.thresholdPeriod = payload.thresholdPeriod;
+    }
 
     const result = await this.collection.findOneAndUpdate(
       {

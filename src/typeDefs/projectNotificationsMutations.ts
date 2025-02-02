@@ -34,6 +34,16 @@ export default gql`
     Notification channels to recieve events
     """
     channels: NotificationsChannelsInput!
+
+    """
+    Threshold to receive notification
+    """
+    threshold: Int
+
+    """
+    Period to receive notification
+    """
+    thresholdPeriod: Int
   }
 
   """
@@ -74,6 +84,16 @@ export default gql`
     Notification channels to recieve events
     """
     channels: NotificationsChannelsInput!
+
+    """
+    Threshold to receive notification
+    """
+    threshold: Int
+
+    """
+    Period to receive notification
+    """
+    thresholdPeriod: Int
   }
 
   """
