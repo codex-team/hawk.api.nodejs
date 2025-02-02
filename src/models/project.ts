@@ -54,6 +54,11 @@ export enum ReceiveTypes {
   ALL = 'ALL',
 
   /**
+    * If event seen more than threshold in thresholdPeriod
+   */
+  SEEN_MORE = 'SEEN_MORE',
+
+  /**
    * Only first occurrence
    */
   ONLY_NEW = 'ONLY_NEW',
