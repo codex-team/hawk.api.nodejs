@@ -11,9 +11,9 @@ export default gql`
     ONLY_NEW
 
     """
-    Receive all events
+    Receive all events that reached threshold in period
     """
-    ALL
+    SEEN_MORE
   }
 
   """
@@ -49,5 +49,15 @@ export default gql`
     Notification channels to recieve events
     """
     channels: NotificationsChannels
+
+    """
+    Threshold to receive notification
+    """
+    threshold: Int
+
+    """
+    Period to receive notification
+    """
+    thresholdPeriod: Int
   }
 `;

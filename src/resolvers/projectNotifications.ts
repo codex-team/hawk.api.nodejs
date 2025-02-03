@@ -39,6 +39,16 @@ interface CreateProjectNotificationsRuleMutationPayload {
    * Available channels to receive
    */
   channels: NotificationsChannelsDBScheme;
+
+  /**
+   * Threshold to receive notification
+   */
+  threshold: number;
+
+  /**
+   * Period to receive notification
+   */
+  thresholdPeriod: number;
 }
 
 /**
@@ -67,16 +77,50 @@ interface ProjectNotificationsRulePointer {
 }
 
 /**
- * Return true if all passed channels are empty
- * @param channels - project notifications channels
+ * Returns true is threshold and threshold period are valid
+ * @param threshold - threshold of the notification rule to be checked
+ * @param thresholdPeriod - threshold period of the notification rule to be checked
  */
-function isChannelsEmpty(channels: NotificationsChannelsDBScheme): boolean {
-  const notEmptyChannels = Object.entries(channels)
-    .filter(([_, channel]) => {
-      return (channel as NotificationsChannelSettingsDBScheme).endpoint.replace(/\s+/, '').trim().length !== 0;
-    });
+function validateNotificationsRuleTresholdAndPeriod(
+  threshold: ProjectNotificationsRuleDBScheme['threshold'],
+  thresholdPeriod: ProjectNotificationsRuleDBScheme['thresholdPeriod']
+): string | null {
+  const validThresholdPeriods = [60_000, 3_600_000, 86_400_000, 604_800_000];
 
-  return notEmptyChannels.length === 0;
+  if (thresholdPeriod === undefined || !validThresholdPeriods.includes(thresholdPeriod)) {
+    return 'Threshold period should be one of the following: 60000, 3600000, 86400000, 604800000';
+  }
+
+  if (threshold === undefined || threshold < 1) {
+    return 'Threshold should be greater than 0';
+  }
+
+  return null;
+}
+
+/**
+ * Return true if all passed channels are filled with correct endpoints
+ */
+function validateNotificationsRuleChannels(channels: NotificationsChannelsDBScheme): string | null {
+  if (channels.email!.isEnabled) {
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(channels.email!.endpoint)) {
+      return 'Invalid email endpoint passed';
+    }
+  }
+
+  if (channels.slack!.isEnabled) {
+    if (!/^https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9]+\/[A-Za-z0-9]+\/[A-Za-z0-9]+$/.test(channels.slack!.endpoint)) {
+      return 'Invalid slack endpoint passed';
+    }
+  }
+
+  if (channels.telegram!.isEnabled) {
+    if (!/^https:\/\/notify\.bot\.codex\.so\/u\/[A-Za-z0-9]+$/.test(channels.telegram!.endpoint)) {
+      return 'Invalid telegram endpoint passed';
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -102,8 +146,18 @@ export default {
         throw new ApolloError('No project with such id');
       }
 
-      if (isChannelsEmpty(input.channels)) {
-        throw new UserInputError('At least one channel is required');
+      const channelsValidationResult = validateNotificationsRuleChannels(input.channels);
+
+      if (channelsValidationResult !== null) {
+        throw new UserInputError(channelsValidationResult);
+      }
+
+      if (input.whatToReceive === ReceiveTypes.SEEN_MORE) {
+        const thresholdValidationResult = validateNotificationsRuleTresholdAndPeriod(input.threshold, input.thresholdPeriod);
+
+        if (thresholdValidationResult !== null) {
+          throw new UserInputError(thresholdValidationResult);
+        }
       }
 
       return project.createNotificationsRule({
@@ -130,8 +184,18 @@ export default {
         throw new ApolloError('No project with such id');
       }
 
-      if (isChannelsEmpty(input.channels)) {
-        throw new UserInputError('At least one channel is required');
+      const channelsValidationResult = validateNotificationsRuleChannels(input.channels);
+
+      if (channelsValidationResult !== null) {
+        throw new UserInputError(channelsValidationResult);
+      }
+
+      if (input.whatToReceive === ReceiveTypes.SEEN_MORE) {
+        const thresholdValidationResult = validateNotificationsRuleTresholdAndPeriod(input.threshold, input.thresholdPeriod);
+
+        if (thresholdValidationResult !== null) {
+          throw new UserInputError(thresholdValidationResult);
+        }
       }
 
       return project.updateNotificationsRule(input);

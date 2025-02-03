@@ -458,10 +458,10 @@
   dependencies:
     "@types/mongodb" "^3.5.34"
 
-"@hawk.so/types@^0.1.21":
-  version "0.1.21"
-  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.1.21.tgz#8979b1aff670317e5d092aaefcd879729df88adc"
-  integrity sha512-Jjy1qznAB7SprVtdgWJS9tdGAaK7rTNWEVWG05m6u3Qd3tTXkgty4D0oAmhTFBnJ/MElPVuundYnDB1r4dHZQQ==
+"@hawk.so/types@^0.1.26":
+  version "0.1.26"
+  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.1.26.tgz#780d68c317024cd918011f1edfee4ef4001c4ad6"
+  integrity sha512-7WYhvfGgb3Q9pj3cWjpIFdcoxKNVsK+iqt1LgFdFqfCyLVLZXo9qxujaoTHB6OlC2IJ7WNjeTDUvb6yD4k+oIw==
   dependencies:
     "@types/mongodb" "^3.5.34"
 
