@@ -494,7 +494,7 @@ export default class CloudPaymentsWebhooks {
       /**
        * Cancel payment if it is deferred
        */
-      if (data.cloudPayments?.recurrent?.startDate) {
+      if (data.isCardLinkOperation) {
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1 RUB charged`, TelegramBotURLs.Money));
 
         await cloudPaymentsApi.cancelPayment(body.TransactionId);
@@ -538,7 +538,7 @@ export default class CloudPaymentsWebhooks {
     } catch (e) {
       const error = e as Error;
 
-      this.sendError(res, PayCodes.SUCCESS, error.toString(), body);
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error trying to refund for card linking occured: ${error.toString()}`, body);
 
       return;
     }
