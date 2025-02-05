@@ -492,7 +492,7 @@ export default class CloudPaymentsWebhooks {
 
     try {
       /**
-       * Cancel payment if it is deferred
+       * Refund the money that were charged to link a card
        */
       if (data.isCardLinkOperation) {
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1 RUB charged`, TelegramBotURLs.Money));
