@@ -496,7 +496,29 @@ export default class CloudPaymentsWebhooks {
        */
       if (data.cloudPayments?.recurrent?.startDate) {
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1 RUB charged`, TelegramBotURLs.Money));
+
         await cloudPaymentsApi.cancelPayment(body.TransactionId);
+
+        const member = await this.getMember(data.userId, workspace);
+        const plan = await this.getPlan(req, planId);
+
+        /**
+         * Create business operation about refund
+         */
+        await req.context.factories.businessOperationsFactory.create<PayloadOfWorkspacePlanPurchase>({
+          transactionId: body.TransactionId.toString(),
+          type: BusinessOperationType.CardLinkRefund,
+          status: BusinessOperationStatus.Confirmed,
+          payload: {
+            workspaceId: workspace._id,
+            amount: +body.Amount * PENNY_MULTIPLIER * -1,
+            currency: body.Currency,
+            userId: member._id,
+            tariffPlanId: plan._id,
+          },
+          dtCreated: new Date(),
+        });
+
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1 RUB returned`, TelegramBotURLs.Money));
       } else {
         /**
