@@ -63,6 +63,16 @@ enum BusinessOperationType {
   Workspace deposit balance by user
   """
   DEPOSIT_BY_USER
+
+  """
+  Charge minimal amount of money to link a card for further recurrent payments
+  """
+  CARD_LINK_CHARGE
+
+  """
+  Refund the money that were charged to link a card
+  """
+  CARD_LINK_REFUND
 }
 
 
