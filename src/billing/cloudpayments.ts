@@ -135,7 +135,7 @@ export default class CloudPaymentsWebhooks {
     }
     const invoiceId = this.generateInvoiceId(tariffPlan, workspace);
 
-    const isCardLinkOperation = workspace.tariffPlanId.toString() === tariffPlanId && !this.isPlanExpired(workspace);
+    const isCardLinkOperation = workspace.tariffPlanId.toString() === tariffPlanId && !workspace.isTariffPlanExpired();
 
     let checksum;
 
@@ -174,26 +174,6 @@ export default class CloudPaymentsWebhooks {
   }
 
   /**
-   * Returns true if workspace's plan is expired
-   * @param workspace - workspace to check
-   */
-  private isPlanExpired(workspace: WorkspaceModel): boolean {
-    const lastChargeDate = new Date(workspace.lastChargeDate);
-
-    let planExpiracyDate;
-
-    if (workspace.isDebug) {
-      planExpiracyDate = lastChargeDate.setDate(lastChargeDate.getDate() + 1);
-    } else {
-      planExpiracyDate = lastChargeDate.setMonth(lastChargeDate.getMonth() + 1);
-    }
-
-    const isPlanExpired = planExpiracyDate < Date.now();
-
-    return isPlanExpired;
-  }
-
-  /**
    * Generates invoice id for payment
    *
    * @param tariffPlan - tariff plan to generate invoice id
@@ -216,6 +196,8 @@ export default class CloudPaymentsWebhooks {
     const context = req.context;
     const body: CheckRequest = req.body;
     let data;
+    
+    console.log('💎 CloudPayments /check request', body);
 
     try {
       data = await this.getDataFromRequest(req);
@@ -325,6 +307,8 @@ export default class CloudPaymentsWebhooks {
   private async pay(req: express.Request, res: express.Response): Promise<void> {
     const body: PayRequest = req.body;
     let data;
+
+    console.log('💎 CloudPayments /pay request', body);
 
     try {
       data = await this.getDataFromRequest(req);
@@ -559,6 +543,8 @@ export default class CloudPaymentsWebhooks {
     const body: FailRequest = req.body;
     let data: PlanProlongationPayload;
 
+    console.log('💎 CloudPayments /fail request', body);
+
     try {
       data = await this.getDataFromRequest(req);
     } catch (e) {
@@ -570,6 +556,10 @@ export default class CloudPaymentsWebhooks {
     let businessOperation;
     let workspace;
     let user;
+
+    /**
+     * @todo handle card linking and update business operation status
+     */
 
     if (!data.workspaceId || !data.userId || !data.tariffPlanId) {
       this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No workspace or user id or plan id in request body`, body);
@@ -636,6 +626,8 @@ export default class CloudPaymentsWebhooks {
   private async recurrent(req: express.Request, res: express.Response): Promise<void> {
     const body: RecurrentRequest = req.body;
     const context = req.context;
+
+    console.log('💎 CloudPayments /recurrent request', body);
 
     this.handleSendingToTelegramError(telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money));
     HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
@@ -784,6 +776,9 @@ export default class CloudPaymentsWebhooks {
     res.json({
       code: errorCode,
     });
+
+    console.log(errorText, backtrace);
+    console.log('We responded with an error code to CloudPayments: ' + errorCode);
 
     this.handleSendingToTelegramError(telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money));
 
