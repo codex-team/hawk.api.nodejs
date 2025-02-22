@@ -548,7 +548,11 @@ module.exports = {
         throw new UserInputError('There is no subscription for provided workspace');
       }
 
-      await cloudPaymentsApi.cancelSubscription(workspaceModel.subscriptionId);
+      try {
+        await cloudPaymentsApi.cancelSubscription(workspaceModel.subscriptionId);
+      } catch (e) {
+        throw new ApolloError('Unable to cancel subscription');
+      }
 
       await workspaceModel.setSubscriptionId(null);
 
