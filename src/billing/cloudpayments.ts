@@ -196,7 +196,7 @@ export default class CloudPaymentsWebhooks {
     const context = req.context;
     const body: CheckRequest = req.body;
     let data;
-    
+
     console.log('💎 CloudPayments /check request', body);
 
     try {
