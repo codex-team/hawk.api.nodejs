@@ -550,7 +550,9 @@ module.exports = {
 
       try {
         await cloudPaymentsApi.cancelSubscription(workspaceModel.subscriptionId);
-      } catch (e) {
+      } catch (err) {
+        console.log('\nლ(´ڡ`ლ) Error [resolvers:workspace:cancelSubscription]: \n\n', err, '\n\n');
+
         throw new ApolloError('Unable to cancel subscription');
       }
 
