@@ -17,6 +17,7 @@ const userNotifications = require('./userNotifications').default;
 const billing = require('./billingNew').default;
 const EncodedJSON = require('./encodedJSON').default;
 const seed = require('./seed').default;
+const release = require('./release').default;
 
 /**
  * @typedef ResolverObj
@@ -74,6 +75,7 @@ const resolvers = [
   userNotifications,
   plans,
   billing,
+  release,
 ];
 
 if (isE2E) {
