@@ -26,6 +26,7 @@ import PlansFactory from './models/plansFactory';
 import BusinessOperationsFactory from './models/businessOperationsFactory';
 import schema from './schema';
 import { graphqlUploadExpress } from 'graphql-upload';
+import ReleasesFactory from './models/releaseFactory';
 
 /**
  * Option to enable playground
@@ -145,12 +146,16 @@ class HawkAPI {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const businessOperationsFactory = new BusinessOperationsFactory(mongo.databases.hawk!, dataLoaders);
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const releasesFactory = new ReleasesFactory(mongo.databases.hawk!, dataLoaders);
+
     return {
       usersFactory,
       workspacesFactory,
       projectsFactory,
       plansFactory,
       businessOperationsFactory,
+      releasesFactory,
     };
   }
 

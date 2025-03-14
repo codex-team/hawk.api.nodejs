@@ -1,6 +1,6 @@
 import DataLoader from 'dataloader';
 import { Db, ObjectId } from 'mongodb';
-import { PlanDBScheme, UserDBScheme, WorkspaceDBScheme, ProjectDBScheme } from '@hawk.so/types';
+import { PlanDBScheme, UserDBScheme, WorkspaceDBScheme, ProjectDBScheme, ReleaseDBScheme } from '@hawk.so/types';
 
 /**
  * Class for setting up data loaders
@@ -44,6 +44,11 @@ export default class DataLoaders {
   public userByEmail = new DataLoader<string, UserDBScheme | null>(
     (userEmails) =>
       this.batchByField<UserDBScheme, string>('users', userEmails, 'email'),
+    { cache: false }
+  );
+
+  public releaseById = new DataLoader<string, ReleaseDBScheme | null>(
+    (releaseIds) => this.batchByIds<ReleaseDBScheme>('releases', releaseIds),
     { cache: false }
   );
 
