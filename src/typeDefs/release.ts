@@ -66,9 +66,6 @@ export default gql`
     files: [SourceMapData!]!
   }
 
-  """
-  Queries related to releases
-  """
   extend type Query {
     """
     Fetch list of releases.
