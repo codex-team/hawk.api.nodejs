@@ -4,19 +4,19 @@ import DataLoaders from '../dataLoaders';
 
 export default class ReleasesFactory {
   /**
-   * Коллекция релизов
+   * Releases collection
    */
   private collection: Collection<ReleaseDBScheme>;
 
   /**
-   * DataLoader для релизов
+   * DataLoader for releases
    */
   private dataLoaders: DataLoaders;
 
   /**
-   * Создаёт экземпляр фабрики релизов
-   * @param dbConnection - подключение к базе данных
-   * @param dataLoaders - экземпляр DataLoaders для батчинга запросов
+   * Creates an instance of the releases factory
+   * @param dbConnection - database connection
+   * @param dataLoaders - DataLoaders instance for request batching
    */
   constructor(dbConnection: Db, dataLoaders: DataLoaders) {
     this.collection = dbConnection.collection('releases');
@@ -25,8 +25,8 @@ export default class ReleasesFactory {
   }
 
   /**
-   * Получить релиз по его идентификатору с использованием DataLoader
-   * @param id - идентификатор релиза
+   * Get a release by its identifier using DataLoader
+   * @param id - release identifier
    */
   public async getReleaseById(id: string): Promise<ReleaseDBScheme | null> {
     console.log(`[ReleasesFactory] getReleaseById called with id: ${id}`);
@@ -41,7 +41,7 @@ export default class ReleasesFactory {
   }
 
   /**
-   * Получить все релизы
+   * Get all releases
    */
   public async getAllReleases(): Promise<ReleaseDBScheme[]> {
     console.log(`[ReleasesFactory] getAllReleases called`);
@@ -56,9 +56,9 @@ export default class ReleasesFactory {
   }
 
   /**
-   * Получить релизы с пагинацией
-   * @param page - номер страницы (начиная с 1)
-   * @param limit - количество элементов на страницу
+   * Get releases with pagination
+   * @param page - page number (starting from 1)
+   * @param limit - number of items per page
    */
   public async getReleasesPaginated(page: number, limit: number): Promise<ReleaseDBScheme[]> {
     const skip = (page - 1) * limit;
@@ -74,8 +74,8 @@ export default class ReleasesFactory {
   }
 
   /**
-   * Получить релизы по идентификатору проекта
-   * @param projectId - идентификатор проекта
+   * Get releases by project identifier
+   * @param projectId - project identifier
    */
   public async getReleasesByProjectId(projectId: string): Promise<ReleaseDBScheme[]> {
     console.log(`[ReleasesFactory] getReleasesByProjectId called with projectId: ${projectId}`);

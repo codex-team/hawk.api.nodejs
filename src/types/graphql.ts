@@ -19,6 +19,11 @@ export interface ResolverContextBase {
    * Factories for working with models
    */
   factories: ContextFactories;
+
+  // /**
+  //  * SDK for working with CodeX Accounting API
+  //  */
+  // accounting: Accounting;
 }
 
 /**
