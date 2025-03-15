@@ -46,6 +46,6 @@ export default gql`
     Fetch list of releases.
     If projectId is provided, fetch releases for the given project.
     """
-    getReleases(projectId: ID): [Release]!
+    getReleases(projectId: ID!): [Release]!
   }
 `;
