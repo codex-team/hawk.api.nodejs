@@ -5,7 +5,7 @@ export default {
     /**
      * Fetch releases by projectId
      * @param {ResolverObj} _ - Parent object, not used
-     * @param {ResolverArgs} args - Query arguments containing required projectId 
+     * @param {ResolverArgs} args - Query arguments containing required projectId
      * @param {ContextFactories} context - Global GraphQL context with factories
      * @returns {Promise<Release[]>}
      */

@@ -147,7 +147,7 @@ export default {
 
       try {
         const newPassword = await UserModel.generatePassword();
-
+        console.log(newPassword);
         await user.changePassword(newPassword);
 
         await emailNotification({
@@ -225,7 +225,7 @@ export default {
       { user, factories }: ResolverContextWithUser
     ): Promise<boolean> {
       const foundUser = await factories.usersFactory.findById(user.id);
-
+      console.log(newPassword);
       if (!foundUser) {
         throw new ApolloError('There is no user with such id');
       }

@@ -4,7 +4,7 @@ import { GraphQLField } from 'graphql';
 import ProjectsFactory from '../models/projectsFactory';
 import PlansFactory from '../models/plansFactory';
 import BusinessOperationsFactory from '../models/businessOperationsFactory';
-import ReleasesFactory from "../models/releaseFactory";
+import ReleasesFactory from '../models/releaseFactory';
 
 /**
  * Resolver's Context argument
