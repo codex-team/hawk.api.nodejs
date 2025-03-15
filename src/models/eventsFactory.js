@@ -192,7 +192,7 @@ class EventsFactory extends Factory {
       },
     ];
 
-    const searchFilter = search
+    const searchFilter = search.trim().length > 0
       ? {
         $or: [
           {
