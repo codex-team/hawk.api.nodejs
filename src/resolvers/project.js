@@ -304,13 +304,20 @@ module.exports = {
      * @param {Number} skip - certain number of documents to skip
      * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
      * @param {EventsFilters} filters - marks by which events should be filtered
+     * @param {String} search - search query
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async recentEvents(project, { limit, skip, sort, filters }) {
+    async recentEvents(project, { limit, skip, sort, filters, search }) {
+      if (search) {
+        if (search.length > 100) {
+          throw new UserInputError('Search query is too long. Maximum length is 100 characters');
+        }
+      }
+
       const factory = new EventsFactory(project._id);
 
-      return factory.findRecent(limit, skip, sort, filters);
+      return factory.findRecent(limit, skip, sort, filters, search);
     },
 
     /**

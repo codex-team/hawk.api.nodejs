@@ -149,6 +149,7 @@ class EventsFactory extends Factory {
    * @param {Number} skip - certain number of documents to skip
    * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
    * @param {EventsFilters} filters - marks by which events should be filtered
+   * @param {String} search - Search query
    *
    * @return {RecentEventSchema[]}
    */
@@ -156,8 +157,15 @@ class EventsFactory extends Factory {
     limit = 10,
     skip = 0,
     sort = 'BY_DATE',
-    filters = {}
+    filters = {},
+    search = ''
   ) {
+    if (typeof search !== 'string') {
+      throw new Error('Search parameter must be a string');
+    }
+
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     limit = this.validateLimit(limit);
 
     switch (sort) {
@@ -184,71 +192,64 @@ class EventsFactory extends Factory {
       },
     ];
 
-    /**
-     * If some events should be omitted, use alternative pipeline
-     */
-    if (Object.values(filters).length > 0) {
-      pipeline.push(
-        /**
-         * Lookup events object for each daily event
-         */
-        {
-          $lookup: {
-            from: 'events:' + this.projectId,
-            localField: 'groupHash',
-            foreignField: 'groupHash',
-            as: 'event',
+    const searchFilter = search.trim().length > 0
+      ? {
+        $or: [
+          {
+            'event.payload.title': {
+              $regex: escapedSearch,
+              $options: 'i',
+            },
           },
-        },
-        {
-          $unwind: '$event',
-        },
-        /**
-         * Match filters
-         */
-        {
-          $match: {
-            ...Object.fromEntries(
-              Object
-                .entries(filters)
-                .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
-            ),
+          {
+            'event.payload.backtrace.file': {
+              $regex: escapedSearch,
+              $options: 'i',
+            },
           },
+        ],
+      }
+      : {};
+
+    const matchFilter = filters
+      ? Object.fromEntries(
+        Object
+          .entries(filters)
+          .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
+      )
+      : {};
+
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'events:' + this.projectId,
+          localField: 'groupHash',
+          foreignField: 'groupHash',
+          as: 'event',
         },
-        { $skip: skip },
-        { $limit: limit },
-        {
-          $group: {
-            _id: null,
-            dailyInfo: { $push: '$$ROOT' },
-            events: { $push: '$event' },
-          },
+      },
+      {
+        $unwind: '$event',
+      },
+      {
+        $match: {
+          ...matchFilter,
+          ...searchFilter,
         },
-        {
-          $unset: 'dailyInfo.event',
-        }
-      );
-    } else {
-      pipeline.push(
-        { $skip: skip },
-        { $limit: limit },
-        {
-          $group: {
-            _id: null,
-            groupHash: { $addToSet: '$groupHash' },
-            dailyInfo: { $push: '$$ROOT' },
-          },
+      },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $group: {
+          _id: null,
+          dailyInfo: { $push: '$$ROOT' },
+          events: { $push: '$event' },
         },
-        {
-          $lookup: {
-            from: 'events:' + this.projectId,
-            localField: 'groupHash',
-            foreignField: 'groupHash',
-            as: 'events',
-          },
-        }
-      );
-    }
+      },
+      {
+        $unset: 'dailyInfo.event',
+      }
+    );
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
 
@@ -316,7 +317,7 @@ class EventsFactory extends Factory {
     });
 
     /**
-     * Group events using 'groupByTimestamp:NNNNNNNN' key
+     * Group events using 'groupingTimestamp:NNNNNNNN' key
      * @type {ProjectChartItem[]}
      */
     const groupedData = groupBy('groupingTimestamp')(dailyEvents);
