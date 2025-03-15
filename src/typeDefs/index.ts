@@ -15,6 +15,7 @@ import workspaceMutations from './workspaceMutations';
 import chart from './chart';
 import plans from './plans';
 import seed from './seed';
+import release from './release';
 import isE2E from '../utils/isE2E';
 
 const rootSchema = gql`
@@ -98,6 +99,7 @@ const typeDefinitions = [
   workspaceMutations,
   chart,
   plans,
+  release,
 ];
 
 if (isE2E) {
