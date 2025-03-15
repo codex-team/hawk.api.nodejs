@@ -149,6 +149,7 @@ class EventsFactory extends Factory {
    * @param {Number} skip - certain number of documents to skip
    * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
    * @param {EventsFilters} filters - marks by which events should be filtered
+   * @param {String} search - Search query
    *
    * @return {RecentEventSchema[]}
    */
