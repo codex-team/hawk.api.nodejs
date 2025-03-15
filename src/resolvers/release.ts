@@ -3,21 +3,22 @@ import ReleasesFactory from '../models/releaseFactory';
 export default {
   Query: {
     /**
-     * Fetch all releases or releases filtered by projectId
+     * Fetch releases by projectId
      * @param {ResolverObj} _ - Parent object, not used
-     * @param {ResolverArgs} args - Query arguments
+     * @param {ResolverArgs} args - Query arguments containing required projectId 
      * @param {ContextFactories} context - Global GraphQL context with factories
      * @returns {Promise<Release[]>}
      */
-    getReleases: async (_: any, args: { projectId?: string }, { factories }: any) => {
+    getReleases: async (_: any, args: { projectId: string }, { factories }: any) => {
+      if (!args.projectId) {
+        throw new Error('projectId is required to fetch releases');
+      }
+
       try {
-        if (args.projectId) {
-          return await factories.releasesFactory.getReleasesByProjectId(args.projectId);
-        }
-        return await factories.releasesFactory.getAllReleases();
+        return await factories.releasesFactory.findManyByProjectId(args.projectId);
       } catch (error) {
         console.error('Error fetching releases:', error);
-        throw new Error('Не удалось получить релизы');
+        throw new Error('Failed to get the releases');
       }
     },
   },

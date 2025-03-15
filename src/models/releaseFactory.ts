@@ -21,54 +21,17 @@ export default class ReleasesFactory {
   constructor(dbConnection: Db, dataLoaders: DataLoaders) {
     this.collection = dbConnection.collection('releases');
     this.dataLoaders = dataLoaders;
-    console.log("[ReleasesFactory] Initialized with collection 'releases'");
   }
 
   /**
    * Get a release by its identifier using DataLoader
-   * @param id - release identifier
+   * @param releaseId - release identifier
    */
-  public async getReleaseById(id: string): Promise<ReleaseDBScheme | null> {
-    console.log(`[ReleasesFactory] getReleaseById called with id: ${id}`);
+  public async findById(releaseId: string): Promise<ReleaseDBScheme | null> {
     try {
-      const release = await this.dataLoaders.releaseById.load(id);
-      console.log(`[ReleasesFactory] getReleaseById result:`, release);
-      return release;
+      return await this.dataLoaders.releaseById.load(releaseId);
     } catch (error) {
-      console.error(`[ReleasesFactory] Error in getReleaseById:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all releases
-   */
-  public async getAllReleases(): Promise<ReleaseDBScheme[]> {
-    console.log(`[ReleasesFactory] getAllReleases called`);
-    try {
-      const releases = await this.collection.find({}).toArray();
-      console.log(`[ReleasesFactory] getAllReleases returned ${releases.length} releases`);
-      return releases;
-    } catch (error) {
-      console.error(`[ReleasesFactory] Error in getAllReleases:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get releases with pagination
-   * @param page - page number (starting from 1)
-   * @param limit - number of items per page
-   */
-  public async getReleasesPaginated(page: number, limit: number): Promise<ReleaseDBScheme[]> {
-    const skip = (page - 1) * limit;
-    console.log(`[ReleasesFactory] getReleasesPaginated called with page: ${page}, limit: ${limit}, skip: ${skip}`);
-    try {
-      const releases = await this.collection.find({}).skip(skip).limit(limit).toArray();
-      console.log(`[ReleasesFactory] getReleasesPaginated returned ${releases.length} releases`);
-      return releases;
-    } catch (error) {
-      console.error(`[ReleasesFactory] Error in getReleasesPaginated:`, error);
+      console.error(`[ReleasesFactory] Error in findById:`, error);
       throw error;
     }
   }
@@ -77,14 +40,11 @@ export default class ReleasesFactory {
    * Get releases by project identifier
    * @param projectId - project identifier
    */
-  public async getReleasesByProjectId(projectId: string): Promise<ReleaseDBScheme[]> {
-    console.log(`[ReleasesFactory] getReleasesByProjectId called with projectId: ${projectId}`);
+  public async findManyByProjectId(projectId: string): Promise<ReleaseDBScheme[]> {
     try {
-      const releases = await this.collection.find({ projectId: projectId }).toArray();
-      console.log(`[ReleasesFactory] getReleasesByProjectId returned ${releases.length} releases`);
-      return releases;
+      return await this.collection.find({ projectId: projectId }).toArray();
     } catch (error) {
-      console.error(`[ReleasesFactory] Error in getReleasesByProjectId:`, error);
+      console.error(`[ReleasesFactory] Error in findManyByProjectId:`, error);
       throw error;
     }
   }

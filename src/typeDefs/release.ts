@@ -2,31 +2,6 @@ import { gql } from 'apollo-server-express';
 
 export default gql`
   """
-  Release commit
-  """
-  type Commit {
-    """
-    Hash of the commit
-    """
-    hash: String!
-
-    """
-    Commit author
-    """
-    author: String!
-
-    """
-    Commit title
-    """
-    title: String!
-
-    """
-    Commit creation date
-    """
-    date: DateTime!
-  }
-
-  """
   Source map file details
   """
   type SourceMapData {
@@ -48,7 +23,7 @@ export default gql`
     """
     Release name
     """
-    releaseName: String! @renameFrom(name: "release")
+    release: String!
 
     """
     Project ID associated with the release
@@ -58,7 +33,7 @@ export default gql`
     """
     Release commits
     """
-    commits: [Commit!]!
+    commits: [Commit!]
 
     """
     Source maps associated with the release
