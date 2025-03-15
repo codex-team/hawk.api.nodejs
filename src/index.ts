@@ -147,7 +147,7 @@ class HawkAPI {
     const businessOperationsFactory = new BusinessOperationsFactory(mongo.databases.hawk!, dataLoaders);
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const releasesFactory = new ReleasesFactory(mongo.databases.hawk!, dataLoaders);
+    const releasesFactory = new ReleasesFactory(mongo.databases.events!, dataLoaders);
 
     return {
       usersFactory,
