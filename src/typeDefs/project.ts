@@ -237,7 +237,7 @@ extend type Mutation {
 input EventsFilter {
   """
   Search query string. Only alphanumeric characters, spaces, and some special characters are allowed.
-  Max length: 100 characters
+  Max length: 50 characters
   """
   search: String
 }
