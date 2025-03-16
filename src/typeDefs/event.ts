@@ -17,6 +17,21 @@ type SourceCodeLine {
 }
 
 """
+Source map file details
+"""
+type SourceMapData {
+  """
+  Source map filename
+  """
+  mapFileName: String!
+
+  """
+  Original source filename
+  """
+  originFileName: String!
+}
+
+"""
 Release commit
 """
 type Commit {
@@ -42,18 +57,33 @@ type Commit {
 }
 
 """
-Release data of the corresponding event
+Release data
 """
 type Release {
+  """
+  Release ID
+  """
+  id: ID! @renameFrom(name: "_id")
+
   """
   Release name
   """
   releaseName: String! @renameFrom(name: "release")
 
   """
+  Project ID associated with the release
+  """
+  projectId: ID!
+
+  """
   Release commits
   """
   commits: [Commit!]!
+
+  """
+  Source maps associated with the release
+  """
+  files: [SourceMapData!]!
 }
 
 """
