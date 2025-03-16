@@ -247,7 +247,7 @@ type RepetitionPayload {
 }
 
 """
-Event's repetitions. Make Event unique by repetition's payload
+Repetition of the event
 """
 type Repetition {
   """
@@ -263,7 +263,12 @@ type Repetition {
   """
   Event's payload patch
   """
-  payload: RepetitionPayload!
+  payload: RepetitionPayload
+
+  """
+  Delta of the event's payload, stringified JSON
+  """
+  delta: String
 }
 
 """
