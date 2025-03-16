@@ -124,6 +124,9 @@ type Project {
 
     "Event marks by which events should be sorted"
     filters: EventsFiltersInput
+
+    "Search query"
+    search: String
   ): RecentEvents
   """
   Return events that occurred after a certain timestamp
