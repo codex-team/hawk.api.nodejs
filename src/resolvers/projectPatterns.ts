@@ -54,7 +54,7 @@ interface RemoveProjectPatternMutationPayload {
 
 /**
  * Validates a new event grouping pattern against existing patterns
- * 
+ *
  * @param newEventGroupingPattern - The new pattern to validate
  * @param existingEventGroupingPatternList - List of existing patterns to check against
  * @throws Error if pattern is invalid or collides with existing patterns
@@ -66,12 +66,12 @@ function validateNewEventGroupingPattern(
    * Check if pattern is valid RegExp
    */
   try {
+    /* eslint-disable-next-line no-new */
     new RegExp(newEventGroupingPattern);
   } catch (error) {
     throw new ApolloError('Invalid regular expression pattern');
   }
 }
-
 
 export default {
   Mutation: {
