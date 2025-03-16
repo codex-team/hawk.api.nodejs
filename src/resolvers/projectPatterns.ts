@@ -76,7 +76,6 @@ function validateNewEventGroupingPattern(
     if (!safe(newEventGroupingPattern)) {
       throw new ApolloError('Invalid regular expression pattern');
     }
-
   } catch (error) {
     throw new ApolloError('Invalid regular expression pattern');
   }
