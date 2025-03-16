@@ -1,6 +1,7 @@
 import { ResolverContextWithUser } from '../types/graphql';
 import { ApolloError } from 'apollo-server-express';
 import { ProjectEventGroupingPatternsDBScheme } from '@hawk.so/types';
+import { isSafeRegex } from 'safe-regex';
 
 /**
  * Type that represents payload for create project pattern mutation
@@ -68,6 +69,14 @@ function validateNewEventGroupingPattern(
   try {
     /* eslint-disable-next-line no-new */
     new RegExp(newEventGroupingPattern);
+
+    /**
+     * Check if pattern is safe RegExp
+     */
+    if (!isSafeRegex(newEventGroupingPattern)) {
+      throw new ApolloError('Invalid regular expression pattern');
+    }
+
   } catch (error) {
     throw new ApolloError('Invalid regular expression pattern');
   }
