@@ -74,7 +74,7 @@ export default {
         }
       });
 
-      return await project.createProjectEventGroupingPattern({ pattern: input.pattern });
+      return project.createProjectEventGroupingPattern({ pattern: input.pattern });
     },
 
     /**
@@ -105,7 +105,7 @@ export default {
         }
       });
 
-      return await project.updateProjectEventGroupingPattern(input);
+      return project.updateProjectEventGroupingPattern(input);
     },
 
     /**
@@ -116,7 +116,7 @@ export default {
      * @param input - input data for creating
      */
     async removeProjectEventGroupingPattern(
-      obj: undefined,
+      _obj: undefined,
       { input }: { input: RemoveProjectPatternMutationPayload },
       { user, factories }: ResolverContextWithUser
     ): Promise<ProjectEventGroupingPatternsDBScheme> {
@@ -126,7 +126,7 @@ export default {
         throw new ApolloError('No project with such id');
       }
 
-      return await project.removeProjectEventGroupingPattern({ id: input.id });
+      return project.removeProjectEventGroupingPattern({ id: input.id });
     },
   },
 };
