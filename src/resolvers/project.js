@@ -11,6 +11,7 @@ const ProjectModel = require('../models/project').default;
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
 const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
+const MAX_SEARCH_QUERY_LENGTH = 50;
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -304,13 +305,20 @@ module.exports = {
      * @param {Number} skip - certain number of documents to skip
      * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
      * @param {EventsFilters} filters - marks by which events should be filtered
+     * @param {String} search - search query
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async recentEvents(project, { limit, skip, sort, filters }) {
+    async recentEvents(project, { limit, skip, sort, filters, search }) {
+      if (search) {
+        if (search.length > MAX_SEARCH_QUERY_LENGTH) {
+          search = search.slice(0, MAX_SEARCH_QUERY_LENGTH);
+        }
+      }
+
       const factory = new EventsFactory(project._id);
 
-      return factory.findRecent(limit, skip, sort, filters);
+      return factory.findRecent(limit, skip, sort, filters, search);
     },
 
     /**
