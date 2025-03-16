@@ -148,6 +148,11 @@ type Project {
   Project notification settings
   """
   notifications: [ProjectNotificationsRule]
+
+  """
+  Event grouping patterns
+  """
+  eventGroupingPatterns: [ProjectEventGroupingPattern]
 }
 
 extend type Query {
