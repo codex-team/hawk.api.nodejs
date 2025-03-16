@@ -278,8 +278,6 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
       pattern: payload.pattern,
     }
 
-    console.log('inserted new pattern to the db');
-
     await this.collection.updateOne({
       _id: this._id,
     },
@@ -291,8 +289,6 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
         }
       }
     });
-
-    console.log('pattern: ', pattern);
 
     return pattern;
   }
