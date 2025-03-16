@@ -316,22 +316,6 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
   }
 
   /**
-   * Method that gets all patterns for project
-   * @returns - list of patterns related to the current project
-   */
-  public async getProjectPatterns(): Promise<ProjectEventGroupingPatternsDBScheme[]> {
-    const project = await this.collection.findOne({
-      _id: this._id,
-    });
-
-    if (!project) {
-      throw new Error('Project with such id does not exist');
-    }
-
-    return project.eventGroupingPatterns ?? [];
-  }
-
-  /**
    * Method that removes pattern by its id
    * @param payload - object that contains id of the pattern to be removed
    */

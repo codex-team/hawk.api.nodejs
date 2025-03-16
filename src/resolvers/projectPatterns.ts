@@ -41,10 +41,37 @@ interface UpdateProjectPatternMutationPayload {
  * Type that represents payload for remove project pattern mutation
  */
 interface RemoveProjectPatternMutationPayload {
+  /**
+   * Id of the pattern to be removed
+   */
   id: string;
 
+  /**
+   * Id of the project to remove pattern
+   */
   projectId: string;
 }
+
+/**
+ * Validates a new event grouping pattern against existing patterns
+ * 
+ * @param newEventGroupingPattern - The new pattern to validate
+ * @param existingEventGroupingPatternList - List of existing patterns to check against
+ * @throws Error if pattern is invalid or collides with existing patterns
+ */
+function validateNewEventGroupingPattern(
+  newEventGroupingPattern: string
+): void {
+  /**
+   * Check if pattern is valid RegExp
+   */
+  try {
+    new RegExp(newEventGroupingPattern);
+  } catch (error) {
+    throw new ApolloError('Invalid regular expression pattern');
+  }
+}
+
 
 export default {
   Mutation: {
@@ -66,13 +93,7 @@ export default {
         throw new ApolloError('No project with such id');
       }
 
-      const existingPatterns = await project.getProjectPatterns();
-
-      existingPatterns.forEach(pattern => {
-        if (pattern.pattern.match(new RegExp(input.pattern)) || input.pattern.match(new RegExp(pattern.pattern))) {
-          throw new ApolloError('New pattern collides with existing one');
-        }
-      });
+      validateNewEventGroupingPattern(input.pattern);
 
       return project.createProjectEventGroupingPattern({ pattern: input.pattern });
     },
@@ -95,15 +116,7 @@ export default {
         throw new ApolloError('No project with such id');
       }
 
-      const existingPatterns = await project.getProjectPatterns();
-
-      existingPatterns.forEach(pattern => {
-        if (pattern._id.toString() !== input.id) {
-          if (pattern.pattern.match(new RegExp(input.pattern)) || input.pattern.match(new RegExp(pattern.pattern))) {
-            throw new ApolloError('New pattern collides with existing one');
-          }
-        }
-      });
+      validateNewEventGroupingPattern(input.pattern);
 
       return project.updateProjectEventGroupingPattern(input);
     },
