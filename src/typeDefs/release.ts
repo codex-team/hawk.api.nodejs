@@ -21,6 +21,11 @@ export default gql`
   """
   type Release {
     """
+    Release ID
+    """
+    _id: ID!
+
+    """
     Release name
     """
     release: String!
