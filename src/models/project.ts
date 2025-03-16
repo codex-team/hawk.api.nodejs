@@ -113,7 +113,7 @@ interface UpdateProjectNotificationsRulePayload {
  * Payload for creating new project pattern
  */
 type CreateProjectPatternPayload = {
-  pattern: string,
+  pattern: string;
 };
 
 /**
@@ -124,19 +124,19 @@ type UpdateProjectPatternPayload = {
   /**
    * Id of the pattern to be updated
    */
-  id: string,
+  id: string;
 
   /**
    * New pattern string
    */
-  pattern: string,
+  pattern: string;
 };
 
 type RemoveProjectPatternPayload = {
   /**
    * Id of the pattern to be removed
    */
-  id: string,
+  id: string;
 }
 
 /**
@@ -276,18 +276,18 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
     const pattern: ProjectEventGroupingPatternsDBScheme = {
       _id: new ObjectId(),
       pattern: payload.pattern,
-    }
+    };
 
     await this.collection.updateOne({
       _id: this._id,
     },
     {
-      $push:  {
+      $push: {
         eventGroupingPatterns: {
           $each: [ pattern ],
           $position: 0,
-        }
-      }
+        },
+      },
     });
 
     return pattern;
@@ -301,16 +301,17 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
   public async updateProjectEventGroupingPattern(payload: UpdateProjectPatternPayload): Promise<ProjectEventGroupingPatternsDBScheme> {
     const udpatedPattern = {
       _id: new ObjectId(payload.id),
-      pattern: payload.pattern
-    }
-    
+      pattern: payload.pattern,
+    };
+
     await this.collection.updateOne({
-      _id: this._id, "eventGroupingPatterns._id": new ObjectId(udpatedPattern._id)
+      _id: this._id,
+      'eventGroupingPatterns._id': new ObjectId(udpatedPattern._id),
     },
-    { 
-      $set: { "eventGroupingPatterns.$.pattern": udpatedPattern.pattern } 
+    {
+      $set: { 'eventGroupingPatterns.$.pattern': udpatedPattern.pattern },
     });
-    
+
     return udpatedPattern;
   }
 
@@ -340,26 +341,29 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
     });
 
     if (!project) {
-      throw new Error ('Project with such id does not exist');
+      throw new Error('Project with such id does not exist');
     }
 
     const patternList = await this.collection.findOne(
-      { _id: this._id, "eventGroupingPatterns._id": new ObjectId(payload.id) },
-      { projection: { "eventGroupingPatterns.$": 1 } }
+      {
+        _id: this._id,
+        'eventGroupingPatterns._id': new ObjectId(payload.id),
+      },
+      { projection: { 'eventGroupingPatterns.$': 1 } }
     );
-    
+
     const deletedPattern = patternList?.eventGroupingPatterns[0];
 
     if (deletedPattern === undefined) {
-      throw new Error ('Pattern with such id does not exist')
+      throw new Error('Pattern with such id does not exist');
     }
 
     await this.collection.updateOne(
       {
-        _id: new ObjectId(this._id)
+        _id: new ObjectId(this._id),
       },
-      { 
-        $pull: { eventGroupingPatterns: { _id: new ObjectId(payload.id) } } 
+      {
+        $pull: { eventGroupingPatterns: { _id: new ObjectId(payload.id) } },
       }
     );
 

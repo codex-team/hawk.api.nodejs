@@ -1,6 +1,6 @@
-import { ResolverContextWithUser } from "../types/graphql";
+import { ResolverContextWithUser } from '../types/graphql';
 import { ApolloError } from 'apollo-server-express';
-import { ProjectEventGroupingPatternsDBScheme } from "@hawk.so/types";
+import { ProjectEventGroupingPatternsDBScheme } from '@hawk.so/types';
 
 /**
  * Type that represents payload for create project pattern mutation
@@ -24,26 +24,26 @@ interface UpdateProjectPatternMutationPayload {
   /**
    * Id of the pattern to be updated
    */
-  id: string,
+  id: string;
 
   /**
    * ProjectId of the pattern to be updated
    */
-  projectId: string,
+  projectId: string;
 
   /**
    * New pattern
    */
-  pattern: string,
+  pattern: string;
 };
 
 /**
  * Type that represents payload for remove project pattern mutation
  */
 interface RemoveProjectPatternMutationPayload {
-  id: string,
+  id: string;
 
-  projectId: string,
+  projectId: string;
 }
 
 export default {
@@ -70,9 +70,9 @@ export default {
 
       existingPatterns.forEach(pattern => {
         if (pattern.pattern.match(new RegExp(input.pattern)) || input.pattern.match(new RegExp(pattern.pattern))) {
-          throw new ApolloError('New pattern collides with existing one')
-        } 
-      })
+          throw new ApolloError('New pattern collides with existing one');
+        }
+      });
 
       return await project.createProjectEventGroupingPattern({ pattern: input.pattern });
     },
@@ -87,7 +87,7 @@ export default {
     async updateProjectEventGroupingPattern(
       _obj: undefined,
       { input }: { input: UpdateProjectPatternMutationPayload },
-      { user, factories }: ResolverContextWithUser  
+      { user, factories }: ResolverContextWithUser
     ): Promise<ProjectEventGroupingPatternsDBScheme> {
       const project = await factories.projectsFactory.findById(input.projectId);
 
@@ -100,8 +100,8 @@ export default {
       existingPatterns.forEach(pattern => {
         if (pattern._id.toString() !== input.id) {
           if (pattern.pattern.match(new RegExp(input.pattern)) || input.pattern.match(new RegExp(pattern.pattern))) {
-            throw new ApolloError('New pattern collides with existing one')
-          } 
+            throw new ApolloError('New pattern collides with existing one');
+          }
         }
       });
 
@@ -114,11 +114,11 @@ export default {
      * @param user - current authorized user {@see ../index.js}
      * @param factories - factories for working with models
      * @param input - input data for creating
-     */ 
+     */
     async removeProjectEventGroupingPattern(
       obj: undefined,
       { input }: { input: RemoveProjectPatternMutationPayload },
-      { user, factories }: ResolverContextWithUser  
+      { user, factories }: ResolverContextWithUser
     ): Promise<ProjectEventGroupingPatternsDBScheme> {
       const project = await factories.projectsFactory.findById(input.projectId);
 
@@ -127,6 +127,6 @@ export default {
       }
 
       return await project.removeProjectEventGroupingPattern({ id: input.id });
-    }
-  }
-}
+    },
+  },
+};
