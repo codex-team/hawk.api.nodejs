@@ -133,6 +133,9 @@ type UpdateProjectPatternPayload = {
 };
 
 type RemoveProjectPatternPayload = {
+  /**
+   * Id of the pattern to be removed
+   */
   id: string,
 }
 
