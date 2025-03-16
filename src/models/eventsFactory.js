@@ -100,7 +100,7 @@ class EventsFactory extends Factory {
 
     const cursor = this.getCollection(this.TYPES.EVENTS)
       .find(query)
-      .sort([ ['_id', -1] ])
+      .sort([['_id', -1]])
       .limit(limit)
       .skip(skip);
 
@@ -211,7 +211,7 @@ class EventsFactory extends Factory {
             ...Object.fromEntries(
               Object
                 .entries(filters)
-                .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
+                .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists }])
             ),
           },
         },
@@ -414,7 +414,7 @@ class EventsFactory extends Factory {
       const firstRepetition = {
         _id: eventOriginal._id,
         payload: eventOriginal.payload,
-        groupHash: eventOriginal.groupHash,
+        groupHash: eventOriginal.groupHash
       };
 
       repetitions.push(firstRepetition);
