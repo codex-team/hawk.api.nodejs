@@ -267,7 +267,7 @@ module.exports = {
 
     /**
      * Returns project releases
-     * 
+     *
      * @param {ProjectDBScheme} project - result of parent resolver
      * @param {ContextFactories} context - Global GraphQL context with factories
      * @returns {Promise<Release[]>}
