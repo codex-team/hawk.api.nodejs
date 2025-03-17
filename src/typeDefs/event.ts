@@ -29,6 +29,11 @@ type SourceMapData {
   Original source filename
   """
   originFileName: String!
+
+  """
+  File size in bytes
+  """
+  size: Int!
 }
 
 """

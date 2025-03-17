@@ -1,6 +1,10 @@
-import { Collection, Db } from 'mongodb';
-import { ReleaseDBScheme } from '@hawk.so/types';
+import { Collection, Db, ObjectId } from 'mongodb';
+import { ReleaseDBScheme, SourceMapFileChunk } from '@hawk.so/types';
 import DataLoaders from '../dataLoaders';
+
+interface ReleaseWithFileDetails extends ReleaseDBScheme {
+  fileDetails?: SourceMapFileChunk[];
+}
 
 export default class ReleasesFactory {
   /**
@@ -37,12 +41,54 @@ export default class ReleasesFactory {
   }
 
   /**
-   * Get releases by project identifier
+   * Get releases by project identifier with file sizes
    * @param projectId - project identifier
    */
   public async findManyByProjectId(projectId: string): Promise<ReleaseDBScheme[]> {
     try {
-      return await this.collection.find({ projectId: projectId }).toArray();
+      const releases = await this.collection.aggregate<ReleaseWithFileDetails>([
+        { 
+          $match: { 
+            projectId: projectId 
+          } 
+        },
+        {
+          $lookup: {
+            from: 'releases.files',
+            let: { fileIds: '$files._id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $in: ['$_id', '$$fileIds']
+                  }
+                }
+              },
+              {
+                $project: {
+                  _id: 1,
+                  length: 1,
+                  chunkSize: 1
+                }
+              }
+            ],
+            as: 'fileDetails'
+          }
+        }
+      ]).toArray();
+
+      return releases.map(release => ({
+        ...release,
+        files: release.files?.map(file => {
+          const fileDetail = release.fileDetails?.find(
+            (detail: SourceMapFileChunk) => detail._id.toString() === file._id?.toString()
+          );
+          return {
+            ...file,
+            size: fileDetail ? fileDetail.length : 0
+          };
+        })
+      }));
     } catch (error) {
       console.error(`[ReleasesFactory] Error in findManyByProjectId:`, error);
       throw error;
