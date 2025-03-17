@@ -47,10 +47,10 @@ export default class ReleasesFactory {
   public async findManyByProjectId(projectId: string): Promise<ReleaseDBScheme[]> {
     try {
       const releases = await this.collection.aggregate<ReleaseWithFileDetails>([
-        { 
-          $match: { 
-            projectId: projectId 
-          } 
+        {
+          $match: {
+            projectId: projectId,
+          },
         },
         {
           $lookup: {
@@ -60,21 +60,21 @@ export default class ReleasesFactory {
               {
                 $match: {
                   $expr: {
-                    $in: ['$_id', '$$fileIds']
-                  }
-                }
+                    $in: ['$_id', '$$fileIds'],
+                  },
+                },
               },
               {
                 $project: {
                   _id: 1,
                   length: 1,
-                  chunkSize: 1
-                }
-              }
+                  chunkSize: 1,
+                },
+              },
             ],
-            as: 'fileDetails'
-          }
-        }
+            as: 'fileDetails',
+          },
+        },
       ]).toArray();
 
       return releases.map(release => ({
@@ -83,11 +83,12 @@ export default class ReleasesFactory {
           const fileDetail = release.fileDetails?.find(
             (detail: SourceMapFileChunk) => detail._id.toString() === file._id?.toString()
           );
+
           return {
             ...file,
-            size: fileDetail ? fileDetail.length : 0
+            size: fileDetail ? fileDetail.length : 0,
           };
-        })
+        }),
       }));
     } catch (error) {
       console.error(`[ReleasesFactory] Error in findManyByProjectId:`, error);
