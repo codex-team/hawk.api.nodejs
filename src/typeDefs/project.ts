@@ -238,4 +238,12 @@ extend type Mutation {
     projectId: ID!
   ): DateTime! @requireUserInWorkspace
 }
+
+input EventsFilter {
+  """
+  Search query string. Only alphanumeric characters, spaces, and some special characters are allowed.
+  Max length: 100 characters
+  """
+  search: String
+}
 `;
