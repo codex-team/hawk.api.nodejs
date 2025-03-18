@@ -11,6 +11,7 @@ const ProjectModel = require('../models/project').default;
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
 const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
+const MAX_SEARCH_QUERY_LENGTH = 50;
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -310,8 +311,8 @@ module.exports = {
      */
     async recentEvents(project, { limit, skip, sort, filters, search }) {
       if (search) {
-        if (search.length > 100) {
-          throw new UserInputError('Search query is too long. Maximum length is 100 characters');
+        if (search.length > MAX_SEARCH_QUERY_LENGTH) {
+          search = search.slice(0, MAX_SEARCH_QUERY_LENGTH);
         }
       }
 

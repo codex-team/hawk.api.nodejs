@@ -11,5 +11,13 @@ module.exports = {
     'require-jsdoc': 'warn',
     'no-shadow': 'warn',
     'no-unused-expressions': 'warn'
-  }
+  },
+  overrides: [
+    {
+      files: ['*.js'],
+      rules: {
+        '@typescript-eslint/explicit-function-return-type': 'off'
+      }
+    }
+  ]
 };
