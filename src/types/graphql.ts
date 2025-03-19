@@ -2,9 +2,9 @@ import UsersFactory from '../models/usersFactory';
 import WorkspacesFactory from '../models/workspacesFactory';
 import { GraphQLField } from 'graphql';
 import ProjectsFactory from '../models/projectsFactory';
-// import Accounting from 'codex-accounting-sdk';
 import PlansFactory from '../models/plansFactory';
 import BusinessOperationsFactory from '../models/businessOperationsFactory';
+import ReleasesFactory from '../models/releaseFactory';
 
 /**
  * Resolver's Context argument
@@ -79,6 +79,11 @@ export interface ContextFactories {
    * Allows to work with the Business Operations models
    */
   businessOperationsFactory: BusinessOperationsFactory;
+
+  /**
+   * Allows to work with releases
+   */
+  releasesFactory: ReleasesFactory;
 }
 
 /**
