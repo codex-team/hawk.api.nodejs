@@ -28,19 +28,6 @@ export default class ReleasesFactory {
   }
 
   /**
-   * Get a release by its identifier using DataLoader
-   * @param releaseId - release identifier
-   */
-  public async findById(releaseId: string): Promise<ReleaseDBScheme | null> {
-    try {
-      return await this.dataLoaders.releaseById.load(releaseId);
-    } catch (error) {
-      console.error(`[ReleasesFactory] Error in findById:`, error);
-      throw error;
-    }
-  }
-
-  /**
    * Get releases by project identifier with file sizes
    * @param projectId - project identifier
    */
