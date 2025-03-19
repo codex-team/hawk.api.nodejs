@@ -47,11 +47,6 @@ export default class DataLoaders {
     { cache: false }
   );
 
-  public releaseById = new DataLoader<string, ReleaseDBScheme | null>(
-    (releaseIds) => this.batchByIds<ReleaseDBScheme>('releases', releaseIds),
-    { cache: false }
-  );
-
   /**
    * MongoDB connection to make queries
    */
