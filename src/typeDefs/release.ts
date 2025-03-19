@@ -75,4 +75,4 @@ type Release {
   """
   files: [SourceMapData!]!
 }
-`; 
+`;
