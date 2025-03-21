@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.1.16",
+  "version": "1.1.17",
   "main": "index.ts",
   "license": "UNLICENSED",
   "scripts": {
@@ -37,7 +37,7 @@
     "@graphql-tools/schema": "^8.5.1",
     "@graphql-tools/utils": "^8.9.0",
     "@hawk.so/nodejs": "^3.1.1",
-    "@hawk.so/types": "^0.1.26",
+    "@hawk.so/types": "^0.1.28",
     "@types/amqp-connection-manager": "^2.0.4",
     "@types/bson": "^4.0.5",
     "@types/debug": "^4.1.5",
@@ -48,6 +48,7 @@
     "@types/mongodb": "^3.6.20",
     "@types/node": "^16.11.46",
     "@types/node-fetch": "^2.5.4",
+    "@types/safe-regex": "^1.1.6",
     "@types/uuid": "^8.3.4",
     "amqp-connection-manager": "^3.1.0",
     "amqplib": "^0.5.5",
@@ -72,6 +73,7 @@
     "migrate-mongo": "^7.0.1",
     "mime-types": "^2.1.25",
     "mongodb": "^3.7.3",
+    "safe-regex": "^2.1.0",
     "ts-node-dev": "^2.0.0",
     "uuid": "^8.3.2"
   }

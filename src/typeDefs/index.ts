@@ -6,6 +6,8 @@ import notifications from './notifications';
 import notificationsInput from './notificationsInput';
 import projectNotifications from './projectNotifications';
 import projectNotificationsMutations from './projectNotificationsMutations';
+import projectEventGroupingPattern from './projectEventGroupingPattern';
+import projectEventGroupingPatternMutations from './projectEventGroupingPatternMutations';
 import project from './project';
 import user from './user';
 import userNotifications from './userNotifications';
@@ -98,6 +100,8 @@ const typeDefinitions = [
   workspaceMutations,
   chart,
   plans,
+  projectEventGroupingPattern,
+  projectEventGroupingPatternMutations,
 ];
 
 if (isE2E) {

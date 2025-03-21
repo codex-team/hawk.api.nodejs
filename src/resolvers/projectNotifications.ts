@@ -1,10 +1,10 @@
 import {
-  ProjectNotificationsRuleDBScheme,
   ReceiveTypes
 } from '../models/project';
+import { ProjectNotificationsRuleDBScheme } from '@hawk.so/types';
 import { ResolverContextWithUser } from '../types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
-import { NotificationsChannelsDBScheme, NotificationsChannelSettingsDBScheme } from '../types/notification-channels';
+import { NotificationsChannelsDBScheme } from '../types/notification-channels';
 
 /**
  * Mutation payload for creating notifications rule from GraphQL Schema
@@ -223,7 +223,7 @@ export default {
     },
 
     /**
-     * Toggles isEnabled field in in project notifications rule
+     * Toggles isEnabled field in project notifications rule
      * @param _obj - parent object
      * @param user - current authorized user {@see ../index.js}
      * @param factories - factories for working with models
