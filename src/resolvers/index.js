@@ -13,6 +13,7 @@ const project = require('./project');
 const event = require('./event');
 const plans = require('./plans').default;
 const projectNotifications = require('./projectNotifications').default;
+const projectPatterns = require('./projectPatterns').default;
 const userNotifications = require('./userNotifications').default;
 const billing = require('./billingNew').default;
 const EncodedJSON = require('./encodedJSON').default;
@@ -71,6 +72,7 @@ const resolvers = [
   project,
   event,
   projectNotifications,
+  projectPatterns,
   userNotifications,
   plans,
   billing,
