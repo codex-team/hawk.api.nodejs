@@ -64,22 +64,29 @@ export default class ReleasesFactory {
         },
       ]).toArray();
 
-      return releases.map(release => ({
-        ...release,
-        files: release.files?.map(file => {
-          const fileDetail = release.fileDetails?.find(
-            (detail: SourceMapFileChunk) => detail._id.toString() === file._id?.toString()
-          );
-
-          return {
-            ...file,
-            size: fileDetail ? fileDetail.length : 0,
-          };
-        }),
-      }));
+      return releases.map(release => this.enrichReleaseWithFileSizes(release));
     } catch (error) {
       console.error(`[ReleasesFactory] Error in findManyByProjectId:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Enriches release with file sizes from file details
+   * @param release - release with file details
+   * @returns enriched release
+   */
+  private enrichReleaseWithFileSizes(release: ReleaseWithFileDetails): ReleaseDBScheme {
+    const fileDetailsMap = new Map(
+      release.fileDetails?.map(detail => [detail._id.toString(), detail.length]) || []
+    );
+
+    return {
+      ...release,
+      files: release.files?.map(file => ({
+        ...file,
+        size: fileDetailsMap.get(file._id?.toString() || '') || 0,
+      })),
+    };
   }
 }
