@@ -1,4 +1,4 @@
-import { Collection, Db} from 'mongodb';
+import { Collection, Db } from 'mongodb';
 import { ReleaseDBScheme, SourceMapFileChunk } from '@hawk.so/types';
 import DataLoaders from '../dataLoaders';
 
