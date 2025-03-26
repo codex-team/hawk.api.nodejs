@@ -266,26 +266,6 @@ module.exports = {
     },
 
     /**
-     * Returns project releases
-     *
-     * @param {ProjectDBScheme} project - result of parent resolver
-     * @param {ContextFactories} context - Global GraphQL context with factories
-     * @returns {Promise<Release[]>}
-     */
-    async releases(project, _, { factories }) {
-      if (!project._id) {
-        throw new Error('projectId is required to fetch releases');
-      }
-
-      try {
-        return await factories.releasesFactory.findManyByProjectId(project._id.toString());
-      } catch (error) {
-        console.error('Error fetching releases:', error);
-        throw new Error('Failed to get the releases');
-      }
-    },
-
-    /**
      * Find project events
      *
      * @param {ProjectDBScheme} project - result of parent resolver
