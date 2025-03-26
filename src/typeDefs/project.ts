@@ -110,11 +110,6 @@ type Project {
   ): [Event!]
 
   """
-  Project releases
-  """
-  releases: [Release!]!
-
-  """
   Returns recent events grouped by day
   """
   recentEvents(
