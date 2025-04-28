@@ -124,6 +124,9 @@ type Project {
 
     "Event marks by which events should be sorted"
     filters: EventsFiltersInput
+
+    "Search query"
+    search: String
   ): RecentEvents
   """
   Return events that occurred after a certain timestamp
@@ -148,6 +151,11 @@ type Project {
   Project notification settings
   """
   notifications: [ProjectNotificationsRule]
+
+  """
+  Event grouping patterns
+  """
+  eventGroupingPatterns: [ProjectEventGroupingPattern]
 }
 
 extend type Query {
@@ -229,5 +237,13 @@ extend type Mutation {
     """
     projectId: ID!
   ): DateTime! @requireUserInWorkspace
+}
+
+input EventsFilter {
+  """
+  Search query string. Only alphanumeric characters, spaces, and some special characters are allowed.
+  Max length: 100 characters
+  """
+  search: String
 }
 `;

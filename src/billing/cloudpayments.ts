@@ -886,7 +886,7 @@ export default class CloudPaymentsWebhooks {
       {
         Items: [ item ],
         email: userMail,
-        taxationSystem: TaxationSystem.GENERAL,
+        taxationSystem: TaxationSystem.SIMPLIFIED_INCOME,
       }
     );
   }
