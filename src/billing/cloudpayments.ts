@@ -142,6 +142,19 @@ userId: ${userId}`
 
     const isCardLinkOperation = workspace.tariffPlanId.toString() === tariffPlanId && !workspace.isTariffPlanExpired();
 
+    // Calculate next payment date
+    const lastChargeDate = new Date(workspace.lastChargeDate);
+    const now = new Date();
+    let nextPaymentDate: Date;
+
+    if (isCardLinkOperation) {
+      nextPaymentDate = new Date(lastChargeDate);
+      nextPaymentDate.setMonth(lastChargeDate.getMonth() + 1);
+    } else {
+      nextPaymentDate = new Date(now);
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+    }
+
     let checksum;
 
     try {
@@ -149,11 +162,13 @@ userId: ${userId}`
         isCardLinkOperation: true,
         workspaceId: workspace._id.toString(),
         userId: userId,
+        nextPaymentDate: nextPaymentDate.toISOString(),
       } : {
         workspaceId: workspace._id.toString(),
         userId: userId,
         tariffPlanId: tariffPlan._id.toString(),
         shouldSaveCard: shouldSaveCard === 'true',
+        nextPaymentDate: nextPaymentDate.toISOString(),
       };
 
       checksum = await checksumService.generateChecksum(checksumData);
@@ -175,6 +190,7 @@ userId: ${userId}`
       isCardLinkOperation,
       currency: 'RUB',
       checksum,
+      nextPaymentDate: nextPaymentDate.toISOString(),
     });
   }
 
