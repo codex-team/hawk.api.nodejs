@@ -105,7 +105,12 @@ export default class CloudPaymentsWebhooks {
     const userId = req.context.user.id;
 
     if (!workspaceId || !tariffPlanId || !userId) {
-      this.sendError(res, 1, `[Billing / Compose payment] No workspace, tariff plan or user id in request body`, req.query);
+      this.sendError(res, 1, `[Billing / Compose payment] No workspace, tariff plan or user id in request body
+Details:
+workspaceId: ${workspaceId}
+tariffPlanId: ${tariffPlanId}
+userId: ${userId}`
+    , req.query);
 
       return;
     }
@@ -137,6 +142,19 @@ export default class CloudPaymentsWebhooks {
 
     const isCardLinkOperation = workspace.tariffPlanId.toString() === tariffPlanId && !workspace.isTariffPlanExpired();
 
+    // Calculate next payment date
+    const lastChargeDate = new Date(workspace.lastChargeDate);
+    const now = new Date();
+    let nextPaymentDate: Date;
+
+    if (isCardLinkOperation) {
+      nextPaymentDate = new Date(lastChargeDate);
+      nextPaymentDate.setMonth(lastChargeDate.getMonth() + 1);
+    } else {
+      nextPaymentDate = new Date(now);
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+    }
+
     let checksum;
 
     try {
@@ -144,11 +162,13 @@ export default class CloudPaymentsWebhooks {
         isCardLinkOperation: true,
         workspaceId: workspace._id.toString(),
         userId: userId,
+        nextPaymentDate: nextPaymentDate.toISOString(),
       } : {
         workspaceId: workspace._id.toString(),
         userId: userId,
         tariffPlanId: tariffPlan._id.toString(),
         shouldSaveCard: shouldSaveCard === 'true',
+        nextPaymentDate: nextPaymentDate.toISOString(),
       };
 
       checksum = await checksumService.generateChecksum(checksumData);
@@ -170,6 +190,7 @@ export default class CloudPaymentsWebhooks {
       isCardLinkOperation,
       currency: 'RUB',
       checksum,
+      nextPaymentDate: nextPaymentDate.toISOString(),
     });
   }
 
@@ -479,7 +500,6 @@ export default class CloudPaymentsWebhooks {
        * Refund the money that were charged to link a card
        */
       if (data.isCardLinkOperation) {
-        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1 RUB charged`, TelegramBotURLs.Money));
 
         await cloudPaymentsApi.cancelPayment(body.TransactionId);
 
@@ -503,7 +523,11 @@ export default class CloudPaymentsWebhooks {
           dtCreated: new Date(),
         });
 
-        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1 RUB returned`, TelegramBotURLs.Money));
+        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Card linked
+Transaction details:
+workspaceId: ${workspace._id}
+date: ${body.DateTime}`
+      , TelegramBotURLs.Money));
       } else {
         /**
          * Russia code from ISO 3166-1
@@ -517,7 +541,15 @@ export default class CloudPaymentsWebhooks {
 
         await this.sendReceipt(workspace, tariffPlan, userEmail);
 
-        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money));
+        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] New payment
+Transaction details:
+amount: ${+body.Amount * PENNY_MULTIPLIER}
+currency: ${body.Currency}
+workspaceId: ${workspace._id}
+date: ${body.DateTime}
+subscriptionId: ${body.SubscriptionId}`
+      , TelegramBotURLs.Money));
+
       }
     } catch (e) {
       const error = e as Error;
