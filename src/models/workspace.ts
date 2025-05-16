@@ -302,7 +302,6 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
         $set: {
           tariffPlanId: this.tariffPlanId,
           billingPeriodEventsCount: 0,
-          isBlocked: false,
           lastChargeDate: new Date(),
         },
       }
