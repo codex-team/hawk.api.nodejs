@@ -5,7 +5,7 @@ on: [pull_request]
 jobs:
   # If pull request was merged then we should check for a package version update
   check-version-update:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       # Checkout to target branch
       - uses: actions/checkout@v2
@@ -33,7 +33,7 @@ jobs:
 
   bump-version:
     needs: check-version-update
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       # Checkout to target branch
       - uses: actions/checkout@v2
