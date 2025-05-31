@@ -25,7 +25,6 @@ import {
   PlanDBScheme,
   PlanProlongationPayload
 } from '@hawk.so/types';
-import { PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
@@ -44,6 +43,8 @@ import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import PlanModel from '../models/plan';
 import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
 import { ComposePaymentPayload } from './types/composePaymentPayload';
+
+const PENNY_MULTIPLIER = 100;
 
 interface ComposePaymentRequest extends express.Request {
   query: ComposePaymentPayload & { [key: string]: any };
@@ -525,8 +526,10 @@ userId: ${userId}`
 
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Card linked
 Transaction details:
-workspaceId: ${workspace._id}
-date: ${body.DateTime}`
+workspace id: ${workspace._id}
+date of operation: ${body.DateTime}
+first payment date: ${data.cloudPayments?.recurrent.startDate}
+sum: ${data.cloudPayments?.recurrent.amount}${body.Currency}`
       , TelegramBotURLs.Money));
       } else {
         /**
@@ -545,9 +548,10 @@ date: ${body.DateTime}`
 Transaction details:
 amount: ${+body.Amount * PENNY_MULTIPLIER}
 currency: ${body.Currency}
-workspaceId: ${workspace._id}
-date: ${body.DateTime}
-subscriptionId: ${body.SubscriptionId}`
+next payment date: ${data.cloudPayments?.recurrent.startDate}
+workspace id: ${workspace._id}
+date of operation: ${body.DateTime}
+subscription id: ${body.SubscriptionId}`
       , TelegramBotURLs.Money));
 
       }
@@ -639,7 +643,7 @@ subscriptionId: ${body.SubscriptionId}`
       return;
     }
 
-    this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money));
+    this.handleSendingToTelegramError(telegram.sendMessage(`❌ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money));
 
     HawkCatcher.send(new Error('[Billing / Fail] Transaction failed'), body as any);
 
@@ -661,7 +665,14 @@ subscriptionId: ${body.SubscriptionId}`
 
     console.log('💎 CloudPayments /recurrent request', body);
 
-    this.handleSendingToTelegramError(telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money));
+    this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Recurrent] New recurrent transaction
+      Transaction details:
+      amount: ${+body.Amount * PENNY_MULTIPLIER}
+      currency: ${body.Currency}
+      next payment date: ${body.NextTransactionDate}
+      workspace id: ${body.AccountId}
+      subscription id: ${body.Id}`
+            , TelegramBotURLs.Money));
     HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     switch (body.Status) {
