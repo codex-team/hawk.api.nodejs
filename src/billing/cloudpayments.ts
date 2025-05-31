@@ -111,7 +111,7 @@ Details:
 workspaceId: ${workspaceId}
 tariffPlanId: ${tariffPlanId}
 userId: ${userId}`
-    , req.query);
+      , req.query);
 
       return;
     }
@@ -501,7 +501,6 @@ userId: ${userId}`
        * Refund the money that were charged to link a card
        */
       if (data.isCardLinkOperation) {
-
         await cloudPaymentsApi.cancelPayment(body.TransactionId);
 
         const member = await this.getMember(data.userId, workspace);
@@ -530,7 +529,7 @@ workspace id: ${workspace._id}
 date of operation: ${body.DateTime}
 first payment date: ${data.cloudPayments?.recurrent.startDate}
 sum: ${data.cloudPayments?.recurrent.amount}${body.Currency}`
-      , TelegramBotURLs.Money));
+        , TelegramBotURLs.Money));
       } else {
         /**
          * Russia code from ISO 3166-1
@@ -552,8 +551,7 @@ next payment date: ${data.cloudPayments?.recurrent.startDate}
 workspace id: ${workspace._id}
 date of operation: ${body.DateTime}
 subscription id: ${body.SubscriptionId}`
-      , TelegramBotURLs.Money));
-
+        , TelegramBotURLs.Money));
       }
     } catch (e) {
       const error = e as Error;
@@ -672,7 +670,7 @@ subscription id: ${body.SubscriptionId}`
       next payment date: ${body.NextTransactionDate}
       workspace id: ${body.AccountId}
       subscription id: ${body.Id}`
-            , TelegramBotURLs.Money));
+    , TelegramBotURLs.Money));
     HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     switch (body.Status) {
