@@ -127,6 +127,7 @@ describe('Pay webhook', () => {
         checksum: await checksumService.generateChecksum({
           ...paymentSuccessPayload,
           shouldSaveCard: false,
+          nextPaymentDate: new Date().toString(),
         }),
       }),
     };
@@ -457,6 +458,7 @@ describe('Pay webhook', () => {
           checksum: await checksumService.generateChecksum({
             ...paymentSuccessPayload,
             shouldSaveCard: true,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
         ...cardDetails,
@@ -502,6 +504,7 @@ describe('Pay webhook', () => {
             workspaceId: '',
             tariffPlanId: planToChange._id.toString(),
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       });
@@ -523,6 +526,7 @@ describe('Pay webhook', () => {
             workspaceId: workspace._id.toString(),
             tariffPlanId: planToChange._id.toString(),
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       });
@@ -544,6 +548,7 @@ describe('Pay webhook', () => {
             workspaceId: workspace._id.toString(),
             tariffPlanId: '',
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       });
@@ -565,6 +570,7 @@ describe('Pay webhook', () => {
             workspaceId: new ObjectId().toString(),
             tariffPlanId: planToChange._id.toString(),
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       });
@@ -586,6 +592,7 @@ describe('Pay webhook', () => {
             workspaceId: workspace._id.toString(),
             tariffPlanId: new ObjectId().toString(),
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       });
@@ -607,6 +614,7 @@ describe('Pay webhook', () => {
             workspaceId: workspace._id.toString(),
             tariffPlanId: planToChange._id.toString(),
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       });

@@ -50,11 +50,12 @@ const tariffPlan: PlanDBScheme = {
   name: 'Test plan',
 };
 
-const planProlongationPayload: PlanProlongationPayload = {
+const planProlongationPayload = {
   userId: user._id.toString(),
   workspaceId: workspace._id.toString(),
   tariffPlanId: tariffPlan._id.toString(),
   shouldSaveCard: false,
+  nextPaymentDate: new Date().toString(),
 };
 
 const validRequest: FailRequest = {
@@ -239,6 +240,7 @@ describe('Fail webhook', () => {
             workspaceId: workspace._id.toString(),
             tariffPlanId: tariffPlan._id.toString(),
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       });
