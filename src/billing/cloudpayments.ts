@@ -545,8 +545,7 @@ sum: ${data.cloudPayments?.recurrent.amount}${body.Currency}`
 
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] New payment
 Transaction details:
-amount: ${+body.Amount}
-currency: ${body.Currency}
+amount: ${+body.Amount} ${body.Currency}
 next payment date: ${data.cloudPayments?.recurrent.startDate}
 workspace id: ${workspace._id}
 date of operation: ${body.DateTime}
@@ -665,8 +664,7 @@ subscription id: ${body.SubscriptionId}`
 
     this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Recurrent] New recurrent transaction
       Transaction details:
-      amount: ${+body.Amount}
-      currency: ${body.Currency}
+      amount: ${+body.Amount} ${body.Currency}
       next payment date: ${body.NextTransactionDate}
       workspace id: ${body.AccountId}
       subscription id: ${body.Id}`
