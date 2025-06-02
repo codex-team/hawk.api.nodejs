@@ -290,7 +290,7 @@ userId: ${userId}`
         status: BusinessOperationStatus.Pending,
         payload: {
           workspaceId: workspace._id,
-          amount: +body.Amount * PENNY_MULTIPLIER,
+          amount: +body.Amount,
           currency: body.Currency,
           userId: member._id,
           tariffPlanId: plan._id,
@@ -545,7 +545,7 @@ sum: ${data.cloudPayments?.recurrent.amount}${body.Currency}`
 
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] New payment
 Transaction details:
-amount: ${+body.Amount * PENNY_MULTIPLIER}
+amount: ${+body.Amount}
 currency: ${body.Currency}
 next payment date: ${data.cloudPayments?.recurrent.startDate}
 workspace id: ${workspace._id}
@@ -665,7 +665,7 @@ subscription id: ${body.SubscriptionId}`
 
     this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Recurrent] New recurrent transaction
       Transaction details:
-      amount: ${+body.Amount * PENNY_MULTIPLIER}
+      amount: ${+body.Amount}
       currency: ${body.Currency}
       next payment date: ${body.NextTransactionDate}
       workspace id: ${body.AccountId}
