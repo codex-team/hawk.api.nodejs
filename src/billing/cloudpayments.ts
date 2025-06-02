@@ -153,7 +153,7 @@ userId: ${userId}`
     } else {
       nextPaymentDate = new Date(now);
     }
-    
+
     if (workspace.isDebug) {
       nextPaymentDate.setDate(nextPaymentDate.getDate() + 1);
     } else {
@@ -672,7 +672,7 @@ amount: ${+body.Amount} ${body.Currency}
 next payment date: ${body.NextTransactionDate}
 workspace id: ${body.AccountId}
 subscription id: ${body.Id}`
-, TelegramBotURLs.Money));
+    , TelegramBotURLs.Money));
     HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     switch (body.Status) {
