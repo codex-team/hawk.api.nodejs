@@ -150,9 +150,13 @@ userId: ${userId}`
 
     if (isCardLinkOperation) {
       nextPaymentDate = new Date(lastChargeDate);
-      nextPaymentDate.setMonth(lastChargeDate.getMonth() + 1);
     } else {
       nextPaymentDate = new Date(now);
+    }
+    
+    if (workspace.isDebug) {
+      nextPaymentDate.setDate(nextPaymentDate.getDate() + 1);
+    } else {
       nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
     }
 
