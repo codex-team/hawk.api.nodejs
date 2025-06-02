@@ -528,7 +528,7 @@ userId: ${userId}`
         });
 
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Card linked
-Transaction details:
+
 workspace id: ${workspace._id}
 date of operation: ${body.DateTime}
 first payment date: ${data.cloudPayments?.recurrent.startDate}
@@ -548,7 +548,7 @@ sum: ${data.cloudPayments?.recurrent.amount}${body.Currency}`
         await this.sendReceipt(workspace, tariffPlan, userEmail);
 
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] New payment
-Transaction details:
+
 amount: ${+body.Amount} ${body.Currency}
 next payment date: ${data.cloudPayments?.recurrent.startDate}
 workspace id: ${workspace._id}
@@ -667,12 +667,12 @@ subscription id: ${body.SubscriptionId}`
     console.log('💎 CloudPayments /recurrent request', body);
 
     this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Recurrent] New recurrent transaction
-      Transaction details:
-      amount: ${+body.Amount} ${body.Currency}
-      next payment date: ${body.NextTransactionDate}
-      workspace id: ${body.AccountId}
-      subscription id: ${body.Id}`
-    , TelegramBotURLs.Money));
+
+amount: ${+body.Amount} ${body.Currency}
+next payment date: ${body.NextTransactionDate}
+workspace id: ${body.AccountId}
+subscription id: ${body.Id}`
+, TelegramBotURLs.Money));
     HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     switch (body.Status) {
