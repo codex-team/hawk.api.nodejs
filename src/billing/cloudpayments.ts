@@ -25,7 +25,6 @@ import {
   PlanDBScheme,
   PlanProlongationPayload
 } from '@hawk.so/types';
-import { PENNY_MULTIPLIER } from 'codex-accounting-sdk';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
 import { publish } from '../rabbitmq';
@@ -44,6 +43,8 @@ import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import PlanModel from '../models/plan';
 import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
 import { ComposePaymentPayload } from './types/composePaymentPayload';
+
+const PENNY_MULTIPLIER = 100;
 
 interface ComposePaymentRequest extends express.Request {
   query: ComposePaymentPayload & { [key: string]: any };
@@ -105,7 +106,12 @@ export default class CloudPaymentsWebhooks {
     const userId = req.context.user.id;
 
     if (!workspaceId || !tariffPlanId || !userId) {
-      this.sendError(res, 1, `[Billing / Compose payment] No workspace, tariff plan or user id in request body`, req.query);
+      this.sendError(res, 1, `[Billing / Compose payment] No workspace, tariff plan or user id in request body
+Details:
+workspaceId: ${workspaceId}
+tariffPlanId: ${tariffPlanId}
+userId: ${userId}`
+      , req.query);
 
       return;
     }
@@ -137,6 +143,23 @@ export default class CloudPaymentsWebhooks {
 
     const isCardLinkOperation = workspace.tariffPlanId.toString() === tariffPlanId && !workspace.isTariffPlanExpired();
 
+    // Calculate next payment date
+    const lastChargeDate = new Date(workspace.lastChargeDate);
+    const now = new Date();
+    let nextPaymentDate: Date;
+
+    if (isCardLinkOperation) {
+      nextPaymentDate = new Date(lastChargeDate);
+    } else {
+      nextPaymentDate = new Date(now);
+    }
+
+    if (workspace.isDebug) {
+      nextPaymentDate.setDate(nextPaymentDate.getDate() + 1);
+    } else {
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+    }
+
     let checksum;
 
     try {
@@ -144,11 +167,13 @@ export default class CloudPaymentsWebhooks {
         isCardLinkOperation: true,
         workspaceId: workspace._id.toString(),
         userId: userId,
+        nextPaymentDate: nextPaymentDate.toISOString(),
       } : {
         workspaceId: workspace._id.toString(),
         userId: userId,
         tariffPlanId: tariffPlan._id.toString(),
         shouldSaveCard: shouldSaveCard === 'true',
+        nextPaymentDate: nextPaymentDate.toISOString(),
       };
 
       checksum = await checksumService.generateChecksum(checksumData);
@@ -170,6 +195,7 @@ export default class CloudPaymentsWebhooks {
       isCardLinkOperation,
       currency: 'RUB',
       checksum,
+      nextPaymentDate: nextPaymentDate.toISOString(),
     });
   }
 
@@ -268,7 +294,7 @@ export default class CloudPaymentsWebhooks {
         status: BusinessOperationStatus.Pending,
         payload: {
           workspaceId: workspace._id,
-          amount: +body.Amount * PENNY_MULTIPLIER,
+          amount: +body.Amount,
           currency: body.Currency,
           userId: member._id,
           tariffPlanId: plan._id,
@@ -479,8 +505,6 @@ export default class CloudPaymentsWebhooks {
        * Refund the money that were charged to link a card
        */
       if (data.isCardLinkOperation) {
-        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1 RUB charged`, TelegramBotURLs.Money));
-
         await cloudPaymentsApi.cancelPayment(body.TransactionId);
 
         const member = await this.getMember(data.userId, workspace);
@@ -503,7 +527,13 @@ export default class CloudPaymentsWebhooks {
           dtCreated: new Date(),
         });
 
-        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Recurrent payments activated for «${workspace.name}». 1 RUB returned`, TelegramBotURLs.Money));
+        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Card linked
+
+workspace id: ${workspace._id}
+date of operation: ${body.DateTime}
+first payment date: ${data.cloudPayments?.recurrent.startDate}
+sum: ${data.cloudPayments?.recurrent.amount}${body.Currency}`
+        , TelegramBotURLs.Money));
       } else {
         /**
          * Russia code from ISO 3166-1
@@ -517,7 +547,14 @@ export default class CloudPaymentsWebhooks {
 
         await this.sendReceipt(workspace, tariffPlan, userEmail);
 
-        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Payment passed successfully for «${workspace.name}»`, TelegramBotURLs.Money));
+        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] New payment
+
+amount: ${+body.Amount} ${body.Currency}
+next payment date: ${data.cloudPayments?.recurrent.startDate}
+workspace id: ${workspace._id}
+date of operation: ${body.DateTime}
+subscription id: ${body.SubscriptionId}`
+        , TelegramBotURLs.Money));
       }
     } catch (e) {
       const error = e as Error;
@@ -607,7 +644,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money));
+    this.handleSendingToTelegramError(telegram.sendMessage(`❌ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money));
 
     HawkCatcher.send(new Error('[Billing / Fail] Transaction failed'), body as any);
 
@@ -629,7 +666,13 @@ export default class CloudPaymentsWebhooks {
 
     console.log('💎 CloudPayments /recurrent request', body);
 
-    this.handleSendingToTelegramError(telegram.sendMessage(`[Billing / Recurrent] New recurrent event with ${body.Status} status`, TelegramBotURLs.Money));
+    this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Recurrent] New recurrent transaction
+
+amount: ${+body.Amount} ${body.Currency}
+next payment date: ${body.NextTransactionDate}
+workspace id: ${body.AccountId}
+subscription id: ${body.Id}`
+    , TelegramBotURLs.Money));
     HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     switch (body.Status) {

@@ -20,6 +20,10 @@ interface PlanPurchaseChecksumData {
    * If true, we will save user card
    */
   shouldSaveCard: boolean;
+  /**
+   * Next payment date
+   */
+  nextPaymentDate: string;
 }
 
 interface CardLinkChecksumData {
@@ -35,6 +39,10 @@ interface CardLinkChecksumData {
    * True if this is card linking operation – charging minimal amount of money to validate card info
    */
   isCardLinkOperation: boolean;
+  /**
+   * Next payment date
+   */
+  nextPaymentDate: string;
 }
 
 /**
@@ -67,6 +75,7 @@ class ChecksumService {
         workspaceId: payload.workspaceId,
         userId: payload.userId,
         isCardLinkOperation: payload.isCardLinkOperation,
+        nextPaymentDate: payload.nextPaymentDate,
       };
     } else {
       return {
@@ -74,6 +83,7 @@ class ChecksumService {
         userId: payload.userId,
         tariffPlanId: payload.tariffPlanId,
         shouldSaveCard: payload.shouldSaveCard,
+        nextPaymentDate: payload.nextPaymentDate,
       };
     }
   }

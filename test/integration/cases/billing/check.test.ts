@@ -151,6 +151,7 @@ describe('Check webhook', () => {
             userId: admin._id.toString(),
             tariffPlanId: planToChange._id.toString(),
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       };
@@ -172,6 +173,7 @@ describe('Check webhook', () => {
             userId: externalUser._id.toString(),
             tariffPlanId: planToChange._id.toString(),
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       };
@@ -193,6 +195,7 @@ describe('Check webhook', () => {
             userId: member._id.toString(),
             tariffPlanId: planToChange._id.toString(),
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       };
@@ -214,6 +217,7 @@ describe('Check webhook', () => {
             userId: admin._id.toString(),
             tariffPlanId: '5fe383b0126d28007780641b',
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       };
@@ -236,6 +240,7 @@ describe('Check webhook', () => {
             userId: admin._id.toString(),
             tariffPlanId: planToChange._id.toString(),
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       };
@@ -257,6 +262,7 @@ describe('Check webhook', () => {
             userId: admin._id.toString(),
             tariffPlanId: planToChange._id.toString(),
             shouldSaveCard: false,
+            nextPaymentDate: new Date().toString(),
           }),
         }),
       };
@@ -283,6 +289,7 @@ describe('Check webhook', () => {
           userId: admin._id.toString(),
           tariffPlanId: planToChange._id.toString(),
           shouldSaveCard: false,
+          nextPaymentDate: new Date().toString(),
         }),
         cloudPayments: {
           recurrent: {
