@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.1.20",
+  "version": "1.1.21",
   "main": "index.ts",
   "license": "UNLICENSED",
   "scripts": {
