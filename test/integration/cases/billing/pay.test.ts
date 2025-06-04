@@ -243,7 +243,7 @@ describe('Pay webhook', () => {
         noAck: true,
       });
       const expectedLimiterTask = {
-        type: 'check-single-workspace',
+        type: 'unblock-workspace',
         workspaceId: workspace._id.toString(),
       };
 
@@ -366,7 +366,7 @@ describe('Pay webhook', () => {
         noAck: true,
       });
       const expectedLimiterTask = {
-        type: 'check-single-workspace',
+        type: 'unblock-workspace',
         workspaceId: workspace._id.toString(),
       };
 
