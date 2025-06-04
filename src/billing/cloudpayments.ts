@@ -383,7 +383,6 @@ userId: ${userId}`
 
     try {
       await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
-      await workspace.resetBillingPeriod();
       await workspace.changePlan(tariffPlan._id);
 
       const subscriptionId = body.SubscriptionId;
@@ -453,7 +452,7 @@ userId: ${userId}`
 
     try {
       await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
-        type: 'check-single-workspace',
+        type: 'unblock-workspace',
         workspaceId: data.workspaceId,
       }));
     } catch (e) {
