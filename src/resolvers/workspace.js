@@ -388,7 +388,7 @@ module.exports = {
        */
       await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
         type: 'unblock-workspace',
-        workspaceId: data.workspaceId,
+        workspaceId: workspaceModel._id.toString(),
       }));
 
       const updatedWorkspaceModel = await factories.workspacesFactory.findById(workspaceId);
