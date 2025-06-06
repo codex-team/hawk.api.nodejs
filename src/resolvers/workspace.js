@@ -9,6 +9,7 @@ import ProjectToWorkspace from '../models/projectToWorkspace';
 import Validator from '../utils/validator';
 import { dateFromObjectId } from '../utils/dates';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
+import { publish } from '../rabbitmq';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -381,6 +382,14 @@ module.exports = {
 ⭕️ <i>${oldPlanModel.name} $${oldPlanModel.monthlyCharge}</i> → ✅ <b>${defaultPlan.name} $${defaultPlan.monthlyCharge}</b> `;
 
       telegram.sendMessage(message);
+
+      /**
+       * Unblock workspace in limiter
+       */
+      await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
+        type: 'unblock-workspace',
+        workspaceId: data.workspaceId,
+      }));
 
       const updatedWorkspaceModel = await factories.workspacesFactory.findById(workspaceId);
 
