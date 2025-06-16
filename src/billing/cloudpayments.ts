@@ -185,6 +185,16 @@ userId: ${userId}`
       return;
     }
 
+    this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Compose payment]
+
+      card link operation: ${isCardLinkOperation}
+      amount: ${+tariffPlan.monthlyCharge} RUB
+      last charge date: ${workspace.lastChargeDate?.toISOString()}
+      next payment date: ${nextPaymentDate.toISOString()}
+      workspace id: ${workspace._id.toString()}
+      debug: ${workspace.isDebug}`
+      , TelegramBotURLs.Money));
+
     res.send({
       invoiceId,
       plan: {
