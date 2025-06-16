@@ -192,7 +192,7 @@ userId: ${userId}`
       last charge date: ${workspace.lastChargeDate?.toISOString()}
       next payment date: ${nextPaymentDate.toISOString()}
       workspace id: ${workspace._id.toString()}
-      debug: ${workspace.isDebug}`
+      debug: ${Boolean(workspace.isDebug)}`
     , TelegramBotURLs.Money));
 
     res.send({
@@ -680,7 +680,8 @@ subscription id: ${body.SubscriptionId}`
 amount: ${+body.Amount} ${body.Currency}
 next payment date: ${body.NextTransactionDate}
 workspace id: ${body.AccountId}
-subscription id: ${body.Id}`
+subscription id: ${body.Id}
+status: ${body.Status}`
     , TelegramBotURLs.Money));
     HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
