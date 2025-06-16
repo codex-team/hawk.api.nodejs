@@ -541,7 +541,8 @@ userId: ${userId}`
 workspace id: ${workspace._id}
 date of operation: ${body.DateTime}
 first payment date: ${data.cloudPayments?.recurrent.startDate}
-sum: ${data.cloudPayments?.recurrent.amount}${body.Currency}`
+card link charge: ${+body.Amount} ${body.Currency}
+plan monthly charge: ${data.cloudPayments?.recurrent.amount} ${body.Currency}`
         , TelegramBotURLs.Money));
       } else {
         /**
