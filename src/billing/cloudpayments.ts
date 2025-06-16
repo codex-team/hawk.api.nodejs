@@ -304,7 +304,7 @@ debug: ${Boolean(workspace.isDebug)}`
         status: BusinessOperationStatus.Pending,
         payload: {
           workspaceId: workspace._id,
-          amount: +body.Amount,
+          amount: +body.Amount * PENNY_MULTIPLIER,
           currency: body.Currency,
           userId: member._id,
           tariffPlanId: plan._id,
