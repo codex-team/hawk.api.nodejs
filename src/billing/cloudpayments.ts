@@ -185,6 +185,16 @@ userId: ${userId}`
       return;
     }
 
+    this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Compose payment]
+
+card link operation: ${isCardLinkOperation}
+amount: ${+tariffPlan.monthlyCharge} RUB
+last charge date: ${workspace.lastChargeDate?.toISOString()}
+next payment date: ${nextPaymentDate.toISOString()}
+workspace id: ${workspace._id.toString()}
+debug: ${Boolean(workspace.isDebug)}`
+    , TelegramBotURLs.Money));
+
     res.send({
       invoiceId,
       plan: {
@@ -294,7 +304,7 @@ userId: ${userId}`
         status: BusinessOperationStatus.Pending,
         payload: {
           workspaceId: workspace._id,
-          amount: +body.Amount,
+          amount: +body.Amount * PENNY_MULTIPLIER,
           currency: body.Currency,
           userId: member._id,
           tariffPlanId: plan._id,
@@ -531,7 +541,8 @@ userId: ${userId}`
 workspace id: ${workspace._id}
 date of operation: ${body.DateTime}
 first payment date: ${data.cloudPayments?.recurrent.startDate}
-sum: ${data.cloudPayments?.recurrent.amount}${body.Currency}`
+card link charge: ${+body.Amount} ${body.Currency}
+plan monthly charge: ${data.cloudPayments?.recurrent.amount} ${body.Currency}`
         , TelegramBotURLs.Money));
       } else {
         /**
@@ -670,7 +681,8 @@ subscription id: ${body.SubscriptionId}`
 amount: ${+body.Amount} ${body.Currency}
 next payment date: ${body.NextTransactionDate}
 workspace id: ${body.AccountId}
-subscription id: ${body.Id}`
+subscription id: ${body.Id}
+status: ${body.Status}`
     , TelegramBotURLs.Money));
     HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
@@ -680,6 +692,10 @@ subscription id: ${body.Id}`
         let workspace;
 
         try {
+          /**
+           * If there is a workspace with subscription id then subscription was cancelled via CloudPayments admin panel (or other no garage way)
+           * We need to remove subscription id from workspace
+           */
           workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
         } catch (e) {
           const error = e as Error;
@@ -693,9 +709,10 @@ subscription id: ${body.Id}`
         }
 
         if (!workspace) {
-          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Workspace with subscription id ${body.Id} not found`, {
-            body,
-          });
+          /**
+           * If no workspace found by subscription id then subscription is cancelled via garage and subscription id was set to null in mutation before this hook executed
+           * No need to send error
+           */
 
           return;
         }
