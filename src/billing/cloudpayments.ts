@@ -692,6 +692,10 @@ status: ${body.Status}`
         let workspace;
 
         try {
+          /**
+           * If there is a workspace with subscription id then subscription was cancelled via CloudPayments admin panel (or other no garage way)
+           * We need to remove subscription id from workspace
+           */
           workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
         } catch (e) {
           const error = e as Error;
@@ -705,9 +709,10 @@ status: ${body.Status}`
         }
 
         if (!workspace) {
-          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Workspace with subscription id ${body.Id} not found`, {
-            body,
-          });
+          /**
+           * If no workspace found by subscription id then subscription is cancelled via garage and subscription id was set to null in mutation before this hook executed
+           * No need to send error
+           */
 
           return;
         }
