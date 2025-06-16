@@ -714,6 +714,10 @@ status: ${body.Status}`
            * No need to send error
            */
 
+          res.json({
+            code: RecurrentCodes.SUCCESS,
+          } as RecurrentResponse);
+
           return;
         }
 
