@@ -193,7 +193,7 @@ userId: ${userId}`
       next payment date: ${nextPaymentDate.toISOString()}
       workspace id: ${workspace._id.toString()}
       debug: ${workspace.isDebug}`
-      , TelegramBotURLs.Money));
+    , TelegramBotURLs.Money));
 
     res.send({
       invoiceId,
