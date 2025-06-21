@@ -1,3 +1,4 @@
+import { ReceiveTypes } from '@hawk.so/types';
 import * as telegram from '../utils/telegram';
 const mongo = require('../mongo');
 const { ApolloError, UserInputError } = require('apollo-server-express');
@@ -56,6 +57,33 @@ module.exports = {
       };
 
       const project = await factories.projectsFactory.create(options);
+      const userData = await factories.usersFactory.findById(user.id);
+
+      await project.createNotificationsRule({
+        isEnabled: true,
+        whatToReceive: ReceiveTypes.SEEN_MORE,
+        including: [],
+        excluding: [],
+        threshold: 20,
+        thresholdPeriod: 3600000,
+        channels: {
+          email: {
+            isEnabled: true,
+            endpoint: userData.email,
+            minPeriod: 60,
+          },
+          telegram: {
+            isEnabled: false,
+            endpoint: '',
+            minPeriod: 60,
+          },
+          slack: {
+            isEnabled: false,
+            endpoint: '',
+            minPeriod: 60,
+          },
+        },
+      });
 
       /**
        * Create collections for storing events and setup indexes
