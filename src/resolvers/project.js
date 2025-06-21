@@ -56,7 +56,7 @@ module.exports = {
         image,
       };
 
-      const project = await factories.projectsFactory.create(options);
+      let project = await factories.projectsFactory.create(options);
       const userData = await factories.usersFactory.findById(user.id);
 
       await project.createNotificationsRule({
@@ -84,6 +84,8 @@ module.exports = {
           },
         },
       });
+
+      project = await factories.projectsFactory.findById(project._id);
 
       /**
        * Create collections for storing events and setup indexes
