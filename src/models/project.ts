@@ -9,7 +9,7 @@ import { v4 as uuid } from 'uuid';
  */
 export enum ReceiveTypes {
   /**
-   * All notifications
+   * Notify if more than n error occurrences in the given period
    */
   SEEN_MORE = 'SEEN_MORE',
 
