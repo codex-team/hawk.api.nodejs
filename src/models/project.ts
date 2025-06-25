@@ -235,8 +235,9 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
   /**
    * Creates new notification rule and add it to start of the array of notifications rules
    * @param payload - rule data to save
+   * @param isAutoAdded - true when rule is created automatically (on project creation or conversion of old projects)
    */
-  public async createNotificationsRule(payload: CreateProjectNotificationsRulePayload): Promise<ProjectNotificationsRuleDBScheme> {
+  public async createNotificationsRule(payload: CreateProjectNotificationsRulePayload, isAutoAdded: boolean = false): Promise<ProjectNotificationsRuleDBScheme> {
     const rule: ProjectNotificationsRuleDBScheme = {
       _id: new ObjectId(),
       uidAdded: new ObjectId(payload.uidAdded),
@@ -246,6 +247,10 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
       including: payload.including,
       excluding: payload.excluding,
     };
+    
+    if(isAutoAdded) {
+      rule.autoAdded = '$$NOW';
+    }
 
     if (rule.whatToReceive === ReceiveTypes.SEEN_MORE) {
       rule.threshold = payload.threshold;
