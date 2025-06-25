@@ -237,7 +237,7 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * @param payload - rule data to save
    * @param isAutoAdded - true when rule is created automatically (on project creation or conversion of old projects)
    */
-  public async createNotificationsRule(payload: CreateProjectNotificationsRulePayload, isAutoAdded: boolean = false): Promise<ProjectNotificationsRuleDBScheme> {
+  public async createNotificationsRule(payload: CreateProjectNotificationsRulePayload, isAutoAdded = false): Promise<ProjectNotificationsRuleDBScheme> {
     const rule: ProjectNotificationsRuleDBScheme = {
       _id: new ObjectId(),
       uidAdded: new ObjectId(payload.uidAdded),
@@ -247,8 +247,8 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
       including: payload.including,
       excluding: payload.excluding,
     };
-    
-    if(isAutoAdded) {
+
+    if (isAutoAdded) {
       rule.autoAdded = '$$NOW';
     }
 
