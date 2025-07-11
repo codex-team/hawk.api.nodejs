@@ -243,6 +243,12 @@ export default {
       return project.toggleNotificationsRuleEnabledState(input.ruleId);
     },
 
+    /**
+     * Unsubscribes from notifications by disabling the rule
+     * @param _obj - parent object
+     * @param factories - factories for working with models
+     * @param input - input data for unsubscribing
+     */
     async unsubscribeFromNotifications(
       _obj: undefined,
       { input }: { input: ProjectNotificationsRulePointer },
