@@ -150,6 +150,6 @@ export default gql`
     unsubscribeFromNotifications(
       "Data for unsubscribing"
       input: ProjectNotificationRulePointer!
-    ): ProjectNotificationsRule @requireAdmin
+    ): ProjectNotificationsRule
   }
 `;
