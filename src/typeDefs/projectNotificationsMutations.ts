@@ -143,5 +143,13 @@ export default gql`
       "Data for toggling"
       input: ProjectNotificationRulePointer
     ): ProjectNotificationsRule @requireAdmin
+
+    """
+    Unsubscribes from notifications by disabling the rule
+    """
+    unsubscribeFromNotifications(
+      "Data for unsubscribing"
+      input: ProjectNotificationRulePointer!
+    ): ProjectNotificationsRule @requireAdmin
   }
 `;

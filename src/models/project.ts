@@ -426,15 +426,20 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
   /**
    * Toggles enabled state of the notifications rule
    * @param ruleId - rule id to update
+   * @param status - new isEnabled status of the rule
    */
-  public async toggleNotificationsRuleEnabledState(ruleId: string): Promise<ProjectNotificationsRuleDBScheme | null> {
+  public async toggleNotificationsRuleEnabledState(ruleId: string, status?: boolean): Promise<ProjectNotificationsRuleDBScheme | null> {
     const rule = this.notifications.find(_rule => _rule._id.toString() === ruleId);
 
     if (!rule) {
       return null;
     }
 
-    rule.isEnabled = !rule.isEnabled;
+    if (status !== undefined) {
+      rule.isEnabled = status;
+    } else {
+      rule.isEnabled = !rule.isEnabled;
+    }
 
     const result = await this.collection.findOneAndUpdate(
       {
