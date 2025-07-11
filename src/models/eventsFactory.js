@@ -1,5 +1,6 @@
 import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 import { groupBy } from '../utils/grouper';
+import safe from 'safe-regex';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
@@ -164,6 +165,13 @@ class EventsFactory extends Factory {
       throw new Error('Search parameter must be a string');
     }
 
+    /**
+     * Check if pattern is safe RegExp
+     */
+    if (!safe(search)) {
+      throw new Error('Invalid regular expression pattern');
+    }
+
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     limit = this.validateLimit(limit);
@@ -203,6 +211,12 @@ class EventsFactory extends Factory {
           },
           {
             'event.payload.backtrace.file': {
+              $regex: escapedSearch,
+              $options: 'i',
+            },
+          },
+          {
+            'event.payload.context': {
               $regex: escapedSearch,
               $options: 'i',
             },
