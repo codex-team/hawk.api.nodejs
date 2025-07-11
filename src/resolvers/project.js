@@ -61,6 +61,7 @@ module.exports = {
 
       try {
         await project.createNotificationsRule({
+          uidAdded: user.id,
           isEnabled: true,
           whatToReceive: ReceiveTypes.SEEN_MORE,
           including: [],
@@ -84,7 +85,7 @@ module.exports = {
               minPeriod: 60,
             },
           },
-        });
+        }, true);
 
         project = await factories.projectsFactory.findById(project._id);
       } catch (err) {
