@@ -19,6 +19,7 @@ const { ObjectID } = require('mongodb');
  * @property {String} _id — repetition's identifier
  * @property {String} groupHash - event's hash. Generates according to the rule described in EventSchema
  * @property {EventPayload} payload - repetition's payload
+ * @property {Number} timestamp - repetition's Unix timestamp
  */
 
 /**
@@ -430,6 +431,7 @@ class EventsFactory extends Factory {
         _id: eventOriginal._id,
         payload: eventOriginal.payload,
         groupHash: eventOriginal.groupHash,
+        timestamp: eventOriginal.timestamp,
       };
 
       repetitions.push(firstRepetition);
