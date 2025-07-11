@@ -242,5 +242,19 @@ export default {
 
       return project.toggleNotificationsRuleEnabledState(input.ruleId);
     },
+
+    async unsubscribeFromNotifications(
+      _obj: undefined,
+      { input }: { input: ProjectNotificationsRulePointer },
+      { factories }: ResolverContextWithUser
+    ): Promise<ProjectNotificationsRuleDBScheme | null> {
+      const project = await factories.projectsFactory.findById(input.projectId);
+
+      if (!project) {
+        throw new ApolloError('No project with such id');
+      }
+
+      return project.toggleNotificationsRuleEnabledState(input.ruleId, false);
+    },
   },
 };
