@@ -207,6 +207,12 @@ class EventsFactory extends Factory {
               $options: 'i',
             },
           },
+          {
+            'event.payload.context': {
+              $regex: escapedSearch,
+              $options: 'i',
+            },
+          },
         ],
       }
       : {};
