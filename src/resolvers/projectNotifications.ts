@@ -242,5 +242,25 @@ export default {
 
       return project.toggleNotificationsRuleEnabledState(input.ruleId);
     },
+
+    /**
+     * Unsubscribes from notifications by disabling the rule
+     * @param _obj - parent object
+     * @param factories - factories for working with models
+     * @param input - input data for unsubscribing
+     */
+    async unsubscribeFromNotifications(
+      _obj: undefined,
+      { input }: { input: ProjectNotificationsRulePointer },
+      { factories }: ResolverContextWithUser
+    ): Promise<ProjectNotificationsRuleDBScheme | null> {
+      const project = await factories.projectsFactory.findById(input.projectId);
+
+      if (!project) {
+        throw new ApolloError('No project with such id');
+      }
+
+      return project.toggleNotificationsRuleEnabledState(input.ruleId, false);
+    },
   },
 };
