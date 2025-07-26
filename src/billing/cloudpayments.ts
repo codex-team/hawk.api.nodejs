@@ -557,14 +557,28 @@ plan monthly charge: ${data.cloudPayments?.recurrent.amount} ${body.Currency}`
 
         await this.sendReceipt(workspace, tariffPlan, userEmail);
 
-        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] New payment
+        let messageText = ''
+
+        if (data.cloudPayments?.recurrent.startDate) {
+          messageText = `✅ [Billing / Pay] New payment
 
 amount: ${+body.Amount} ${body.Currency}
 next payment date: ${data.cloudPayments?.recurrent.startDate}
 workspace id: ${workspace._id}
 date of operation: ${body.DateTime}
 subscription id: ${body.SubscriptionId}`
-        , TelegramBotURLs.Money));
+        
+        } else {
+          messageText = `✅ [Billing / Pay] New Recurrent payment
+
+amount: ${+body.Amount} ${body.Currency}
+workspace id: ${workspace._id}
+date of operation: ${body.DateTime}
+subscription id: ${body.SubscriptionId}`
+        
+        }
+
+        this.handleSendingToTelegramError(telegram.sendMessage(messageText, TelegramBotURLs.Money));
       }
     } catch (e) {
       const error = e as Error;
@@ -676,7 +690,9 @@ subscription id: ${body.SubscriptionId}`
 
     console.log('💎 CloudPayments /recurrent request', body);
 
-    this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Recurrent] New recurrent transaction
+    const emoji = [SubscriptionStatus.CANCELLED, SubscriptionStatus.REJECTED].includes(body.Status) ? '❌' : '✅';
+
+    this.handleSendingToTelegramError(telegram.sendMessage(`${emoji} [Billing / Recurrent] New recurrent transaction
 
 amount: ${+body.Amount} ${body.Currency}
 next payment date: ${body.NextTransactionDate}
@@ -684,6 +700,7 @@ workspace id: ${body.AccountId}
 subscription id: ${body.Id}
 status: ${body.Status}`
     , TelegramBotURLs.Money));
+
     HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     switch (body.Status) {
