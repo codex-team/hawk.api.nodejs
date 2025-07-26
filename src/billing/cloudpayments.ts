@@ -557,7 +557,7 @@ plan monthly charge: ${data.cloudPayments?.recurrent.amount} ${body.Currency}`
 
         await this.sendReceipt(workspace, tariffPlan, userEmail);
 
-        let messageText = ''
+        let messageText = '';
 
         if (data.cloudPayments?.recurrent.startDate) {
           messageText = `✅ [Billing / Pay] New payment
@@ -566,16 +566,14 @@ amount: ${+body.Amount} ${body.Currency}
 next payment date: ${data.cloudPayments?.recurrent.startDate}
 workspace id: ${workspace._id}
 date of operation: ${body.DateTime}
-subscription id: ${body.SubscriptionId}`
-        
+subscription id: ${body.SubscriptionId}`;
         } else {
           messageText = `✅ [Billing / Pay] New Recurrent payment
 
 amount: ${+body.Amount} ${body.Currency}
 workspace id: ${workspace._id}
 date of operation: ${body.DateTime}
-subscription id: ${body.SubscriptionId}`
-        
+subscription id: ${body.SubscriptionId}`;
         }
 
         this.handleSendingToTelegramError(telegram.sendMessage(messageText, TelegramBotURLs.Money));
