@@ -16,16 +16,32 @@ Events filters input type
 """
 input EventsFiltersInput {
   """
-  If True, includes events with resolved mark to the output
+  Filter events by marks (e.g. starred, resolved, ignored).
+  Set to true to include only events that have the mark, or false to exclude those.
+  Example: { starred: true, ignored: false }
   """
-  resolved: Boolean
+  marks: MarksFilterInput
+
   """
-  If True, includes events with starred mark to the output
+  Include only events that occurred after this date (inclusive).
+  Accepts ISO date string or Unix timestamp (in seconds).
   """
+  dateFrom: Timestamp
+
+  """
+  Include only events that occurred before this date (inclusive).
+  Accepts ISO date string or Unix timestamp (in seconds).
+  """
+  dateTo: Timestamp
+}
+
+"""
+Allows filtering by specific event marks.
+Each field corresponds to event.marks.{name}.
+"""
+input MarksFilterInput {
   starred: Boolean
-  """
-  If True, includes events with ignored mark to the output
-  """
+  resolved: Boolean
   ignored: Boolean
 }
 
@@ -122,12 +138,17 @@ type Project {
     "Events sort order"
     sort: EventsSortOrder = lastRepetitionTime
 
-    "Event marks by which events should be sorted"
+    """
+    Filters for narrowing down the event results:
+    - By marks (e.g., starred, resolved)
+    - By date range (dateFrom / dateTo)
+    """
     filters: EventsFiltersInput
 
     "Search query"
     search: String
   ): RecentEvents
+  
   """
   Return events that occurred after a certain timestamp
   """

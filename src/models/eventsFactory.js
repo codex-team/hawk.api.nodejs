@@ -149,8 +149,11 @@ class EventsFactory extends Factory {
    * @param {Number} limit - events count limitations
    * @param {Number} skip - certain number of documents to skip
    * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
-   * @param {EventsFilters} filters - marks by which events should be filtered
-   * @param {String} search - Search query
+   * @param {Object} filters - filter object
+   * @param {Object.<string, boolean>} [filters.marks] - mark filters: e.g. { starred: true, ignored: false }
+   * @param {string|number} [filters.dateFrom] - filter start date (ISO or timestamp)
+   * @param {string|number} [filters.dateTo] - filter end date (ISO or timestamp)
+   * @param {String} search - search query
    *
    * @return {RecentEventSchema[]}
    */
@@ -165,9 +168,6 @@ class EventsFactory extends Factory {
       throw new Error('Search parameter must be a string');
     }
 
-    /**
-     * Check if pattern is safe RegExp
-     */
     if (!safe(search)) {
       throw new Error('Invalid regular expression pattern');
     }
@@ -231,13 +231,41 @@ class EventsFactory extends Factory {
       }
       : {};
 
-    const matchFilter = filters
-      ? Object.fromEntries(
-        Object
-          .entries(filters)
-          .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
-      )
-      : {};
+    const matchFilter = {
+      ...searchFilter,
+    };
+
+    // Filter by marks (event.marks.{key})
+    if (filters.marks && typeof filters.marks === 'object') {
+      for (const [mark, exists] of Object.entries(filters.marks)) {
+        matchFilter[`event.marks.${mark}`] = { $exists: exists };
+      }
+    }
+
+    // Filter by date (groupingTimestamp)
+    if (filters.dateFrom || filters.dateTo) {
+      matchFilter.groupingTimestamp = {};
+
+      if (filters.dateFrom) {
+        const from = typeof filters.dateFrom === 'string'
+          ? Math.floor(new Date(filters.dateFrom).getTime() / 1000)
+          : filters.dateFrom;
+
+        matchFilter.groupingTimestamp.$gte = from;
+      }
+
+      if (filters.dateTo) {
+        const to = typeof filters.dateTo === 'string'
+          ? Math.floor(new Date(filters.dateTo).getTime() / 1000)
+          : filters.dateTo;
+
+        matchFilter.groupingTimestamp.$lte = to;
+      }
+
+      if (Object.keys(matchFilter.groupingTimestamp).length === 0) {
+        delete matchFilter.groupingTimestamp;
+      }
+    }
 
     pipeline.push(
       {
@@ -252,10 +280,7 @@ class EventsFactory extends Factory {
         $unwind: '$event',
       },
       {
-        $match: {
-          ...matchFilter,
-          ...searchFilter,
-        },
+        $match: matchFilter,
       },
       { $skip: skip },
       { $limit: limit },
@@ -272,17 +297,8 @@ class EventsFactory extends Factory {
     );
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
-
     const result = (await cursor.toArray()).shift();
 
-    /**
-     * aggregation can return empty array so that
-     * result can be undefined
-     *
-     * for that we check result existence
-     *
-     * extra field `projectId` needs to satisfy GraphQL query
-     */
     if (result && result.events) {
       result.events.forEach(event => {
         event.projectId = this.projectId;
