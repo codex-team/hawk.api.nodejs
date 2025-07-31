@@ -23,9 +23,9 @@ const { ObjectID } = require('mongodb');
 
 /**
  * @typedef {Object} EventsFilters
- * @property {boolean} [starred]
- * @property {boolean} [resolved]
- * @property {boolean} [ignored]
+ * @property {boolean} [starred] - if true, events with 'starred' mark should be included to the output
+ * @property {boolean} [resolved] - if true, events with 'resolved' should be included to the output
+ * @property {boolean} [ignored] - if true, events with 'ignored' mark should be included to the output
  * @property {string|number} [dateFrom]
  * @property {string|number} [dateTo]
  */
@@ -167,6 +167,9 @@ class EventsFactory extends Factory {
       throw new Error('Search parameter must be a string');
     }
 
+    /**
+     * Check if pattern is safe RegExp
+     */
     if (!safe(search)) {
       throw new Error('Invalid regular expression pattern');
     }
@@ -234,7 +237,6 @@ class EventsFactory extends Factory {
       ...searchFilter,
     };
 
-    // Filter by marks (event.marks.{key})
     ['starred', 'resolved', 'ignored'].forEach((mark) => {
       if (typeof filters[mark] === 'boolean') {
         matchFilter[`event.marks.${mark}`] = { $exists: filters[mark] };
@@ -298,6 +300,14 @@ class EventsFactory extends Factory {
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
     const result = (await cursor.toArray()).shift();
 
+    /**
+      * aggregation can return empty array so that
+      * result can be undefined
+      *
+      * for that we check result existence
+      *
+      * extra field `projectId` needs to satisfy GraphQL query
+      */
     if (result && result.events) {
       result.events.forEach(event => {
         event.projectId = this.projectId;
