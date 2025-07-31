@@ -23,9 +23,11 @@ const { ObjectID } = require('mongodb');
 
 /**
  * @typedef {Object} EventsFilters
- * @property {boolean} [starred] - if true, events with 'starred' mark should be included to the output
- * @property {boolean} [resolved] - if true, events with 'resolved' should be included to the output
- * @property {boolean} [ignored] - if true, events with 'ignored' mark should be included to the output
+ * @property {boolean} [starred]
+ * @property {boolean} [resolved]
+ * @property {boolean} [ignored]
+ * @property {string|number} [dateFrom]
+ * @property {string|number} [dateTo]
  */
 
 /**
@@ -149,10 +151,7 @@ class EventsFactory extends Factory {
    * @param {Number} limit - events count limitations
    * @param {Number} skip - certain number of documents to skip
    * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
-   * @param {Object} filters - filter object
-   * @param {Object.<string, boolean>} [filters.marks] - mark filters: e.g. { starred: true, ignored: false }
-   * @param {string|number} [filters.dateFrom] - filter start date (ISO or timestamp)
-   * @param {string|number} [filters.dateTo] - filter end date (ISO or timestamp)
+   * @param {EventsFilters} filters - filter object
    * @param {String} search - search query
    *
    * @return {RecentEventSchema[]}
@@ -236,11 +235,11 @@ class EventsFactory extends Factory {
     };
 
     // Filter by marks (event.marks.{key})
-    if (filters.marks && typeof filters.marks === 'object') {
-      for (const [mark, exists] of Object.entries(filters.marks)) {
-        matchFilter[`event.marks.${mark}`] = { $exists: exists };
+    ['starred', 'resolved', 'ignored'].forEach((mark) => {
+      if (typeof filters[mark] === 'boolean') {
+        matchFilter[`event.marks.${mark}`] = { $exists: filters[mark] };
       }
-    }
+    });
 
     // Filter by date (groupingTimestamp)
     if (filters.dateFrom || filters.dateTo) {

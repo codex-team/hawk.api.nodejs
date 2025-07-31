@@ -16,33 +16,29 @@ Events filters input type
 """
 input EventsFiltersInput {
   """
-  Filter events by marks (e.g. starred, resolved, ignored).
-  Set to true to include only events that have the mark, or false to exclude those.
-  Example: { starred: true, ignored: false }
+  If true, includes events with resolved mark
   """
-  marks: MarksFilterInput
+  resolved: Boolean
 
   """
-  Include only events that occurred after this date (inclusive).
-  Accepts ISO date string or Unix timestamp (in seconds).
+  If true, includes events with starred mark
+  """
+  starred: Boolean
+
+  """
+  If true, includes events with ignored mark
+  """
+  ignored: Boolean
+
+  """
+  Include events with groupingTimestamp >= dateFrom (ISO or timestamp in seconds)
   """
   dateFrom: Timestamp
 
   """
-  Include only events that occurred before this date (inclusive).
-  Accepts ISO date string or Unix timestamp (in seconds).
+  Include events with groupingTimestamp <= dateTo (ISO or timestamp in seconds)
   """
   dateTo: Timestamp
-}
-
-"""
-Allows filtering by specific event marks.
-Each field corresponds to event.marks.{name}.
-"""
-input MarksFilterInput {
-  starred: Boolean
-  resolved: Boolean
-  ignored: Boolean
 }
 
 """
