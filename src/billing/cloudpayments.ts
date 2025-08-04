@@ -690,7 +690,7 @@ subscription id: ${body.SubscriptionId}`;
 
     const emoji = [SubscriptionStatus.CANCELLED, SubscriptionStatus.REJECTED].includes(body.Status) ? '❌' : '✅';
 
-    this.handleSendingToTelegramError(telegram.sendMessage(`${emoji} [Billing / Recurrent] New recurrent transaction
+    this.handleSendingToTelegramError(telegram.sendMessage(`${emoji} [Billing / Recurrent] New recurrent event
 
 amount: ${+body.Amount} ${body.Currency}
 next payment date: ${body.NextTransactionDate}
