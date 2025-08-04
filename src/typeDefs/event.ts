@@ -131,11 +131,6 @@ type EventPayload {
   type: String
 
   """
-  Event timestamp
-  """
-  timestamp: Float!
-
-  """
   Event severity level
   """
   level: Int
@@ -185,11 +180,6 @@ type EventPayload {
 Type representing Event payload. All fields can be omitted if there are no difference with the original
 """
 type RepetitionPayload {
-  """
-  Event timestamp. Can be empty if repetition has the same timestamp as original event
-  """
-  timestamp: Float
-
   """
   Event title
   """
@@ -269,6 +259,11 @@ type Repetition {
   Delta of the event's payload, stringified JSON
   """
   delta: String
+
+  """
+  Event timestamp
+  """
+  timestamp: Float!
 }
 
 """
@@ -322,6 +317,11 @@ type Event {
   Event payload
   """
   payload: EventPayload!
+
+  """
+  Event timestamp
+  """
+  timestamp: Float!
 
   """
   Release data
