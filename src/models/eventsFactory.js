@@ -423,14 +423,9 @@ class EventsFactory extends Factory {
       .skip(skip)
       .toArray();
 
-    console.log('repetitions', repetitions);
-
-    console.log('eventOriginal', eventOriginal);
-
-
     repetitions.forEach(repetition => {
       repetition.payload = composeFullRepetitionEvent(eventOriginal, repetition).payload;
-      console.log(repetition);
+
       if ('delta' in repetition) {
         delete repetition.delta;
       }
