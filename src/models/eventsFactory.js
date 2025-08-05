@@ -1,4 +1,5 @@
 import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
+import { composeFullRepetitionEvent } from '../utils/merge';
 import { groupBy } from '../utils/grouper';
 import safe from 'safe-regex';
 
@@ -422,6 +423,19 @@ class EventsFactory extends Factory {
       .skip(skip)
       .toArray();
 
+    console.log('repetitions', repetitions);
+
+    console.log('eventOriginal', eventOriginal);
+
+
+    repetitions.forEach(repetition => {
+      repetition.payload = composeFullRepetitionEvent(eventOriginal, repetition).payload;
+      console.log(repetition);
+      if ('delta' in repetition) {
+        delete repetition.delta;
+      }
+    });
+
     const isLastPortion = repetitions.length < limit && skip === 0;
 
     /**
@@ -455,10 +469,30 @@ class EventsFactory extends Factory {
    * @todo move to Repetitions(?) model
    */
   async getEventRepetition(repetitionId) {
-    return this.getCollection(this.TYPES.REPETITIONS)
+    const repetition = await this.getCollection(this.TYPES.REPETITIONS)
       .findOne({
         _id: ObjectID(repetitionId),
       });
+
+    if (!repetition) {
+      return null;
+    }
+
+    const event = await this.findOneByQuery({
+      groupHash: repetition.groupHash,
+    });
+
+    if (!event) {
+      return null;
+    }
+
+    repetition.payload = composeFullRepetitionEvent(event, repetition).payload;
+
+    if ('delta' in repetition) {
+      delete repetition.delta;
+    }
+
+    return repetition;
   }
 
   /**
@@ -468,10 +502,6 @@ class EventsFactory extends Factory {
    */
   async getEventLastRepetition(eventId) {
     const repetitions = await this.getEventRepetitions(eventId, 1);
-
-    if (repetitions.length === 0) {
-      return null;
-    }
 
     return repetitions.shift();
   }
