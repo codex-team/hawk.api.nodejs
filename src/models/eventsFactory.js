@@ -27,6 +27,8 @@ const { ObjectID } = require('mongodb');
  * @property {boolean} [starred] - if true, events with 'starred' mark should be included to the output
  * @property {boolean} [resolved] - if true, events with 'resolved' should be included to the output
  * @property {boolean} [ignored] - if true, events with 'ignored' mark should be included to the output
+ * @property {string|number} [dateFrom]
+ * @property {string|number} [dateTo]
  */
 
 /**
@@ -150,8 +152,8 @@ class EventsFactory extends Factory {
    * @param {Number} limit - events count limitations
    * @param {Number} skip - certain number of documents to skip
    * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
-   * @param {EventsFilters} filters - marks by which events should be filtered
-   * @param {String} search - Search query
+   * @param {EventsFilters} filters - filter object
+   * @param {String} search - search query
    *
    * @return {RecentEventSchema[]}
    */
@@ -232,13 +234,40 @@ class EventsFactory extends Factory {
       }
       : {};
 
-    const matchFilter = filters
-      ? Object.fromEntries(
-        Object
-          .entries(filters)
-          .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
-      )
-      : {};
+    const matchFilter = {
+      ...searchFilter,
+    };
+
+    ['starred', 'resolved', 'ignored'].forEach((mark) => {
+      if (typeof filters[mark] === 'boolean') {
+        matchFilter[`event.marks.${mark}`] = { $exists: filters[mark] };
+      }
+    });
+
+    // Filter by date (groupingTimestamp)
+    if (filters.dateFrom || filters.dateTo) {
+      matchFilter.groupingTimestamp = {};
+
+      if (filters.dateFrom) {
+        const from = typeof filters.dateFrom === 'string'
+          ? Math.floor(new Date(filters.dateFrom).getTime() / 1000)
+          : filters.dateFrom;
+
+        matchFilter.groupingTimestamp.$gte = from;
+      }
+
+      if (filters.dateTo) {
+        const to = typeof filters.dateTo === 'string'
+          ? Math.floor(new Date(filters.dateTo).getTime() / 1000)
+          : filters.dateTo;
+
+        matchFilter.groupingTimestamp.$lte = to;
+      }
+
+      if (Object.keys(matchFilter.groupingTimestamp).length === 0) {
+        delete matchFilter.groupingTimestamp;
+      }
+    }
 
     pipeline.push(
       {
@@ -253,10 +282,7 @@ class EventsFactory extends Factory {
         $unwind: '$event',
       },
       {
-        $match: {
-          ...matchFilter,
-          ...searchFilter,
-        },
+        $match: matchFilter,
       },
       { $skip: skip },
       { $limit: limit },
@@ -273,17 +299,16 @@ class EventsFactory extends Factory {
     );
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
-
     const result = (await cursor.toArray()).shift();
 
     /**
-     * aggregation can return empty array so that
-     * result can be undefined
-     *
-     * for that we check result existence
-     *
-     * extra field `projectId` needs to satisfy GraphQL query
-     */
+      * aggregation can return empty array so that
+      * result can be undefined
+      *
+      * for that we check result existence
+      *
+      * extra field `projectId` needs to satisfy GraphQL query
+      */
     if (result && result.events) {
       result.events.forEach(event => {
         event.projectId = this.projectId;
