@@ -1,19 +1,7 @@
 import mergeWith from 'lodash.mergewith';
 import cloneDeep from 'lodash.clonedeep';
 import { patch } from '@n1ru4l/json-patch-plus';
-
-type HawkEvent = {
-    payload: {
-        [key: string]: any;
-    };
-}
-
-type HawkEventRepetition = {
-    payload: {
-        [key: string]: any;
-    };
-    delta: string;
-}
+import { GroupedEventDBScheme, RepetitionDBScheme } from '@hawk.so/types';
 
 /**
  * One of the features of the events is that their repetition is the difference
@@ -76,7 +64,7 @@ function stringifyPayloadField(payload: any, field: string) {
  * @param repetition {HawkEventRepetition} - The repetition to process
  * @returns {HawkEvent} Updated event with processed repetition payload
  */
-export function composeFullRepetitionEvent(originalEvent: HawkEvent, repetition: HawkEventRepetition | undefined): HawkEvent {
+export function composeFullRepetitionEvent(originalEvent: GroupedEventDBScheme, repetition: RepetitionDBScheme | undefined): GroupedEventDBScheme {
   /**
    * Make a deep copy of the original event, because we need to avoid mutating the original event
    */
