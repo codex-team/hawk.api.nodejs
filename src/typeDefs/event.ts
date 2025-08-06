@@ -256,6 +256,12 @@ type Repetition {
   payload: RepetitionPayload
 
   """
+  Delta of the event's payload, stringified JSON
+  """
+  delta: String
+
+
+  """
   Event timestamp
   """
   timestamp: Float!
