@@ -72,7 +72,7 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
     const generatedPassword = password || (await UserModel.generatePassword());
     const hashedPassword = await UserModel.hashPassword(generatedPassword);
 
-    const userData: any = {
+    const userData: Partial<UserDBScheme> = {
       email,
       password: hashedPassword,
       notifications: UserModel.generateDefaultNotificationsSettings(email),

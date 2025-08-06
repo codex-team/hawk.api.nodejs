@@ -11,6 +11,7 @@ import { dateFromObjectId } from '../utils/dates';
 import { UserDBScheme } from '@hawk.so/types';
 import * as telegram from '../utils/telegram';
 import { MongoError } from 'mongodb';
+import { validateUtmParams, sanitizeUtmParams } from '../utils/analytics';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -45,10 +46,17 @@ export default {
       { email, utm }: { email: string; utm?: UserDBScheme['utm'] },
       { factories }: ResolverContextBase
     ): Promise<boolean | string> {
+      // Validate and sanitize UTM parameters
+      if (!validateUtmParams(utm)) {
+        throw new UserInputError('Invalid UTM parameters provided');
+      }
+
+      const sanitizedUtm = sanitizeUtmParams(utm);
+
       let user;
 
       try {
-        user = await factories.usersFactory.create(email, undefined, utm);
+        user = await factories.usersFactory.create(email, undefined, sanitizedUtm);
 
         const password = user.generatedPassword!;
 
