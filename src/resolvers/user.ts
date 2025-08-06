@@ -37,7 +37,7 @@ export default {
      * Register user with provided email
      * @param _obj - parent object (undefined for this resolver)
      * @param email - user email
-     * @param utm - UTM parameters
+     * @param utm - Data form where user went to sign up. Used for analytics purposes
      * @param factories - factories for working with models
      */
     async signUp(

@@ -62,7 +62,7 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
    * Creates new user in DB and returns it
    * @param email - user email
    * @param password - user password
-   * @param utm - UTM parameters
+   * @param utm - Data form where user went to sign up. Used for analytics purposes
    */
   public async create(email: string, password?: string, utm?: any): Promise<UserModel> {
     const generatedPassword = password || (await UserModel.generatePassword());
