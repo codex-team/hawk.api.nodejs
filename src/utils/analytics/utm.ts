@@ -6,7 +6,9 @@ import { UserDBScheme } from '@hawk.so/types';
  * @returns boolean - true if valid, false if invalid
  */
 export function validateUtmParams(utm: UserDBScheme['utm']): boolean {
-  if (!utm) return true;
+  if (!utm) {
+    return true;
+  }
 
   // Check if utm is an object
   if (typeof utm !== 'object' || Array.isArray(utm)) {
@@ -40,7 +42,7 @@ export function validateUtmParams(utm: UserDBScheme['utm']): boolean {
       }
 
       // Check for valid characters - only allow alphanumeric, spaces, hyphens, underscores, dots
-      if (!/^[a-zA-Z0-9\s\-_\.]+$/.test(value)) {
+      if (!/^[a-zA-Z0-9\s\-_.]+$/.test(value)) {
         return false;
       }
     }
@@ -55,7 +57,9 @@ export function validateUtmParams(utm: UserDBScheme['utm']): boolean {
  * @returns sanitized UTM parameters or undefined if invalid
  */
 export function sanitizeUtmParams(utm: UserDBScheme['utm']): UserDBScheme['utm'] {
-  if (!utm) return undefined;
+  if (!utm) {
+    return undefined;
+  }
 
   const utmKeys = ['source', 'medium', 'campaign', 'content', 'term'];
   const sanitized: UserDBScheme['utm'] = {};
@@ -64,7 +68,7 @@ export function sanitizeUtmParams(utm: UserDBScheme['utm']): UserDBScheme['utm']
     if (utmKeys.includes(key) && value && typeof value === 'string') {
       // Sanitize value: keep only allowed characters and limit length
       const cleanValue = value
-        .replace(/[^a-zA-Z0-9\s\-_\.]/g, '')
+        .replace(/[^a-zA-Z0-9\s\-_.]/g, '')
         .trim()
         .substring(0, 200);
 
