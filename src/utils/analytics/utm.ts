@@ -8,8 +8,18 @@ import { UserDBScheme } from '@hawk.so/types';
 export function validateUtmParams(utm: UserDBScheme['utm']): boolean {
   if (!utm) return true;
 
+  // Check if utm is an object
+  if (typeof utm !== 'object' || Array.isArray(utm)) {
+    return false;
+  }
+
   const utmKeys = ['source', 'medium', 'campaign', 'content', 'term'];
   const providedKeys = Object.keys(utm);
+
+  // Check if utm object is not empty
+  if (providedKeys.length === 0) {
+    return true; // Empty object is valid
+  }
 
   // Check if all provided keys are valid UTM keys
   const hasInvalidKeys = providedKeys.some((key) => !utmKeys.includes(key));
@@ -20,10 +30,16 @@ export function validateUtmParams(utm: UserDBScheme['utm']): boolean {
   // Check if values are strings and not too long
   for (const [key, value] of Object.entries(utm)) {
     if (value !== undefined && value !== null) {
-      if (typeof value !== 'string' || value.length > 200) {
+      if (typeof value !== 'string') {
         return false;
       }
-      // Basic sanitization - only allow alphanumeric, spaces, hyphens, underscores, dots
+
+      // Check length
+      if (value.length === 0 || value.length > 200) {
+        return false;
+      }
+
+      // Check for valid characters - only allow alphanumeric, spaces, hyphens, underscores, dots
       if (!/^[a-zA-Z0-9\s\-_\.]+$/.test(value)) {
         return false;
       }
