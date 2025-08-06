@@ -42,7 +42,7 @@ export default {
      */
     async signUp(
       _obj: undefined,
-      { email, utm }: { email: string; utm?: any },
+      { email, utm }: { email: string; utm?: UserDBScheme['utm'] },
       { factories }: ResolverContextBase
     ): Promise<boolean | string> {
       let user;
