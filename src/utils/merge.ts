@@ -49,7 +49,7 @@ export function repetitionAssembler(originalEvent: GroupedEventDBScheme['payload
  */
 function parsePayloadField(payload: GroupedEventDBScheme['payload'], field: 'addons' | 'context') {
   if (payload && payload[field] && typeof payload[field] === 'string') {
-    payload[field] = JSON.parse(payload[field]);
+    payload[field] = JSON.parse(payload[field] as string);
   }
 
   return payload;
