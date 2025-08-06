@@ -62,16 +62,23 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
    * Creates new user in DB and returns it
    * @param email - user email
    * @param password - user password
+   * @param utm - UTM parameters
    */
-  public async create(email: string, password?: string): Promise<UserModel> {
-    const generatedPassword = password || await UserModel.generatePassword();
+  public async create(email: string, password?: string, utm?: any): Promise<UserModel> {
+    const generatedPassword = password || (await UserModel.generatePassword());
     const hashedPassword = await UserModel.hashPassword(generatedPassword);
 
-    const userData = {
+    const userData: any = {
       email,
       password: hashedPassword,
       notifications: UserModel.generateDefaultNotificationsSettings(email),
     };
+
+    // Add UTM data if provided
+    if (utm && Object.keys(utm).length > 0) {
+      userData.utm = utm;
+    }
+
     const userId = (await this.collection.insertOne(userData)).insertedId;
 
     const user = new UserModel({

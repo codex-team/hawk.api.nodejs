@@ -37,17 +37,18 @@ export default {
      * Register user with provided email
      * @param _obj - parent object (undefined for this resolver)
      * @param email - user email
+     * @param utm - UTM parameters
      * @param factories - factories for working with models
      */
     async signUp(
       _obj: undefined,
-      { email }: {email: string},
+      { email, utm }: { email: string; utm?: any },
       { factories }: ResolverContextBase
     ): Promise<boolean | string> {
       let user;
 
       try {
-        user = await factories.usersFactory.create(email);
+        user = await factories.usersFactory.create(email, undefined, utm);
 
         const password = user.generatedPassword!;
 
