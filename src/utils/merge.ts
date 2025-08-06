@@ -9,11 +9,12 @@ import { GroupedEventDBScheme, RepetitionDBScheme } from '@hawk.so/types';
  * the original repetition payload using the very first event and its difference
  * between its repetition
  *
+ * @deprecated remove after checking that all repetitions has no payloads in db
  * @param originalEvent - the very first event we received
  * @param repetition - the difference with its repetition, for the repetition we want to display
  * @returns fully assembled payload of the current repetition
  */
-export function repetitionAssembler(originalEvent: Record<string, any>, repetition: { [key: string]: any }): any {
+export function repetitionAssembler(originalEvent: GroupedEventDBScheme['payload'], repetition: GroupedEventDBScheme['payload']): GroupedEventDBScheme['payload'] {
   const customizer = (originalParam: any, repetitionParam: any): any => {
     if (repetitionParam === null) {
       return originalParam;
@@ -39,7 +40,14 @@ export function repetitionAssembler(originalEvent: Record<string, any>, repetiti
   return mergeWith(cloneDeep(originalEvent), cloneDeep(repetition), customizer);
 }
 
-function parsePayloadField(payload: any, field: string) {
+/**
+ * Parse addons and context fields from string to object, in db it stores as string
+ *
+ * @param payload - the payload of the event
+ * @param field - the field to parse, can be 'addons' or 'context'
+ * @returns the payload with parsed field
+ */
+function parsePayloadField(payload: GroupedEventDBScheme['payload'], field: 'addons' | 'context') {
   if (payload && payload[field] && typeof payload[field] === 'string') {
     payload[field] = JSON.parse(payload[field]);
   }
@@ -47,7 +55,14 @@ function parsePayloadField(payload: any, field: string) {
   return payload;
 }
 
-function stringifyPayloadField(payload: any, field: string) {
+/**
+ * Stringify addons and context fields from object to string, in db it stores as string
+ *
+ * @param payload - the payload of the event
+ * @param field - the field to stringify, can be 'addons' or 'context'
+ * @returns the payload with stringified field
+ */
+function stringifyPayloadField(payload: GroupedEventDBScheme['payload'], field: 'addons' | 'context') {
   if (payload && payload[field]) {
     payload[field] = JSON.stringify(payload[field]);
   }
@@ -107,7 +122,7 @@ export function composeFullRepetitionEvent(originalEvent: GroupedEventDBScheme, 
 
   /**
    * Old delta format (repetition.payload is not null)
-   * @todo remove after July 5 2025
+   * @todo remove after checking that all repetitions has no payloads in db
    */
   event.payload = repetitionAssembler(event.payload, repetition.payload);
 
