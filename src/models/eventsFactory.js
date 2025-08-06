@@ -457,7 +457,7 @@ class EventsFactory extends Factory {
   async getEventRepetition(repetitionId) {
     return this.getCollection(this.TYPES.REPETITIONS)
       .findOne({
-        _id: new ObjectID(repetitionId),
+        _id: ObjectID(repetitionId),
       });
   }
 

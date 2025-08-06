@@ -260,7 +260,6 @@ type Repetition {
   """
   delta: String
 
-
   """
   Event timestamp
   """
