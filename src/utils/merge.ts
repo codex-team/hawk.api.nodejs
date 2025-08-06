@@ -9,7 +9,7 @@ import { GroupedEventDBScheme, RepetitionDBScheme } from '@hawk.so/types';
  * the original repetition payload using the very first event and its difference
  * between its repetition
  *
- * @deprecated remove after checking that all repetitions has no payloads in db
+ * @deprecated remove after 6 september 2025
  * @param originalEvent - the very first event we received
  * @param repetition - the difference with its repetition, for the repetition we want to display
  * @returns fully assembled payload of the current repetition
@@ -122,7 +122,7 @@ export function composeFullRepetitionEvent(originalEvent: GroupedEventDBScheme, 
 
   /**
    * Old delta format (repetition.payload is not null)
-   * @todo remove after checking that all repetitions has no payloads in db
+   * @todo remove after 6 september 2025
    */
   event.payload = repetitionAssembler(event.payload, repetition.payload);
 
