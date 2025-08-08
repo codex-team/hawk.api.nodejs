@@ -344,7 +344,7 @@ module.exports = {
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async recentEvents(project, { limit, skip, sort, filters, search }) {
+    async dailyEventsPortion(project, { limit, skip, sort, filters, search }) {
       if (search) {
         if (search.length > MAX_SEARCH_QUERY_LENGTH) {
           search = search.slice(0, MAX_SEARCH_QUERY_LENGTH);
@@ -353,7 +353,22 @@ module.exports = {
 
       const factory = new EventsFactory(project._id);
 
-      return factory.findRecent(limit, skip, sort, filters, search);
+      // @todo - rename
+      const res = factory.findRecentDailyEventsWithEventAndRepetition(limit, skip, sort, filters, search);
+
+      res.forEach((dailyEvent) => {
+        const dailyEventLatestRepetition = dailyEvent.repetition;
+        const dailyEventOriginalEvent = dailyEvent.event;
+
+        // wait for util implementation
+        // const mergedRepetition = merge(dailyEventOriginalEvent, dailyEventLatestRepetition);
+        delete dailyEvent.repetition;
+        delete dailyEvent.event;
+
+        // dailyEvent.event = mergedRepetition;
+
+        return dailyEvent;
+      })
     },
 
     /**
