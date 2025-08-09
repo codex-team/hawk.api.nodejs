@@ -18,23 +18,6 @@ module.exports = {
     },
   },
   Event: {
-    /**
-     * Returns Event with concrete repetition
-     *
-     * @param {string} eventId - id of Event of which repetition requested
-     * @param {string} projectId - projectId of Event of which repetition requested
-     * @param {string|null} [repetitionId] - if not specified, last repetition will returned
-     * @return {Promise<EventRepetitionSchema>}
-     */
-    async repetition({ id: eventId, projectId }, { id: repetitionId }) {
-      const factory = new EventsFactory(projectId);
-
-      if (!repetitionId) {
-        return factory.getEventLastRepetition(eventId);
-      }
-
-      return factory.getEventRepetition(repetitionId);
-    },
 
     /**
      * Returns repetitions list of the event
@@ -47,10 +30,10 @@ module.exports = {
      *
      * @return {EventRepetitionSchema[]}
      */
-    async repetitions({ _id: eventId, projectId }, { limit, skip }) {
+    async repetitions({ groupHash, projectId }, { limit, skip }) {
       const factory = new EventsFactory(projectId);
 
-      return factory.getEventRepetitions(eventId, limit, skip);
+      return factory.getEventRepetitions(groupHash, limit, skip);
     },
 
     /**
@@ -115,9 +98,9 @@ module.exports = {
      * @param {String} eventId - event id
      * @returns {Promise<Release>}
      */
-    async release({ projectId, id: eventId }) {
+    async release({ projectId, groupHash }) {
       const factory = new EventsFactory(new ObjectID(projectId));
-      const release = await factory.getEventRelease(eventId);
+      const release = await factory.getEventRelease(groupHash);
 
       return release;
     },
@@ -132,10 +115,10 @@ module.exports = {
      * @param {UserInContext} user - user context
      * @return {Promise<boolean>}
      */
-    async visitEvent(_obj, { project, id }, { user }) {
+    async visitEvent(_obj, { project, groupHash }, { user }) {
       const factory = new EventsFactory(project);
 
-      const { result } = await factory.visitEvent(id, user.id);
+      const { result } = await factory.visitEvent(groupHash, user.id);
 
       return !!result.ok;
     },
@@ -145,14 +128,14 @@ module.exports = {
      *
      * @param {ResolverObj} _obj - resolver context
      * @param {string} project - project id
-     * @param {string} id - event id
+     * @param {string} groupHash - event id
      * @param {string} mark - mark to set
      * @return {Promise<boolean>}
      */
-    async toggleEventMark(_obj, { project, eventId, mark }) {
+    async toggleEventMark(_obj, { project, groupHash, mark }) {
       const factory = new EventsFactory(project);
 
-      const { result } = await factory.toggleEventMark(eventId, mark);
+      const { result } = await factory.toggleEventMark(groupHash, mark);
 
       return !!result.ok;
     },
@@ -174,7 +157,7 @@ module.exports = {
      * @return {Promise<boolean>}
      */
     async updateAssignee(_obj, { input }, { factories, user }) {
-      const { projectId, eventId, assignee } = input;
+      const { projectId, groupHash, assignee } = input;
       const factory = new EventsFactory(projectId);
 
       const userExists = await factories.usersFactory.findById(assignee);
@@ -196,7 +179,7 @@ module.exports = {
         };
       }
 
-      const { result } = await factory.updateAssignee(eventId, assignee);
+      const { result } = await factory.updateAssignee(groupHash, assignee);
 
       const assigneeData = await factories.usersFactory.dataLoaders.userById.load(assignee);
 
@@ -206,7 +189,7 @@ module.exports = {
           assigneeId: assignee,
           projectId,
           whoAssignedId: user.id,
-          eventId,
+          groupHash,
         },
       });
 
@@ -225,10 +208,10 @@ module.exports = {
      * @return {Promise<boolean>}
      */
     async removeAssignee(_obj, { input }) {
-      const { projectId, eventId } = input;
+      const { projectId, groupHash } = input;
       const factory = new EventsFactory(projectId);
 
-      const { result } = await factory.updateAssignee(eventId, '');
+      const { result } = await factory.updateAssignee(groupHash, '');
 
       return {
         success: !!result.ok,

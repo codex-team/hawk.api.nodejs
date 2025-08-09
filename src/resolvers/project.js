@@ -287,17 +287,17 @@ module.exports = {
      *
      * @returns {Event}
      */
-    async event(project, { id: eventId }) {
+    async event(project, { id: repetitionId }) {
       const factory = new EventsFactory(project._id);
-      const event = await factory.findById(eventId);
+      const repetition = await factory.getEventRepetition(repetitionId);
 
-      if (!event) {
+      if (!repetition) {
         return null;
       }
 
-      event.projectId = project._id;
+      repetition.projectId = project._id;
 
-      return event;
+      return repetition;
     },
 
     /**
