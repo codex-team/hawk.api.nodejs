@@ -11,7 +11,7 @@ import { dateFromObjectId } from '../utils/dates';
 import { UserDBScheme } from '@hawk.so/types';
 import * as telegram from '../utils/telegram';
 import { MongoError } from 'mongodb';
-import { validateUtmParams, sanitizeUtmParams } from '../utils/analytics';
+import { validateUtmParams, sanitizeUtmParams } from '../utils/utm/utm';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}

@@ -4,6 +4,7 @@ import { Collection, Db } from 'mongodb';
 import DataLoaders from '../dataLoaders';
 import { UserDBScheme } from '@hawk.so/types';
 import { Analytics, AnalyticsEventTypes } from '../utils/analytics';
+import { sanitizeUtmParams, validateUtmParams } from '../utils/utm/utm';
 
 /**
  * Users factory to work with User Model
@@ -78,9 +79,9 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
       notifications: UserModel.generateDefaultNotificationsSettings(email),
     };
 
-    // Add UTM data if provided
-    if (utm && Object.keys(utm).length > 0) {
-      userData.utm = utm;
+    if (validateUtmParams(utm)) {
+      const sanitizedUtm = sanitizeUtmParams(utm);
+      userData.utm = sanitizedUtm;
     }
 
     const userId = (await this.collection.insertOne(userData)).insertedId;
