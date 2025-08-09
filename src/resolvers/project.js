@@ -280,24 +280,26 @@ module.exports = {
     },
 
     /**
-     * Find project's event
+     * Find project's repetition
      *
      * @param {ProjectDBScheme} project - result of parent resolver
-     * @param {String} eventId - event's identifier
+     * @param {String} repetitionId - repetition's identifier
      *
-     * @returns {Event}
+     * @returns {Repetition}
      */
-    async event(project, { id: eventId }) {
+    async repetition(project, { id: repetitionId }) {
       const factory = new EventsFactory(project._id);
-      const event = await factory.findById(eventId);
 
-      if (!event) {
-        return null;
+      const repetition = await factory.getEventRepetition(repetitionId);
+
+      /**
+       * If repetition is not found, it can mean that client is trying to get original event
+       */
+      if (!repetition) {
+        return factory.getEventLastRepetition(repetitionId);
       }
 
-      event.projectId = project._id;
-
-      return event;
+      return repetition;
     },
 
     /**

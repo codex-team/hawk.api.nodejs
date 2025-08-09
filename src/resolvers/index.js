@@ -10,7 +10,7 @@ const {
 const user = require('./user').default;
 const workspace = require('./workspace');
 const project = require('./project');
-const event = require('./event');
+const repetition = require('./repetition');
 const plans = require('./plans').default;
 const projectNotifications = require('./projectNotifications').default;
 const projectPatterns = require('./projectPatterns').default;
@@ -70,7 +70,7 @@ const resolvers = [
   user,
   workspace,
   project,
-  event,
+  repetition,
   projectNotifications,
   projectPatterns,
   userNotifications,

@@ -94,9 +94,9 @@ type Project {
   uidAdded: User!
 
   """
-  Project's Event
+  Project repetitions
   """
-  event(id: ID!): Event
+  repetition: Repetition!
 
   """
   Project events
@@ -107,7 +107,7 @@ type Project {
 
     "Certain number of documents to skip"
     skip: Int = 0
-  ): [Event!]
+  ): [Repetition!]
 
   """
   Returns recent events grouped by day

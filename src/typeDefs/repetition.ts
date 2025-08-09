@@ -59,7 +59,7 @@ type Release {
 """
 Event backtrace representation
 """
-type EventBacktraceFrame {
+type RepetitionBacktraceFrame {
   """
   Source filepath
   """
@@ -92,9 +92,9 @@ type EventBacktraceFrame {
 }
 
 """
-Event user representation
+Repetition user representation
 """
-type EventUser {
+type RepetitionUser {
   """
   Internal user's identifier inside an app
   """
@@ -117,9 +117,9 @@ type EventUser {
 }
 
 """
-Type representing Event payload
+Type representing Repetition payload
 """
-type EventPayload {
+type RepetitionPayload {
   """
   Event title
   """
@@ -138,7 +138,7 @@ type EventPayload {
   """
   Event stack array from the latest call to the earliest
   """
-  backtrace: [EventBacktraceFrame]
+  backtrace: [RepetitionBacktraceFrame]
 
   """
   Additional data about GET request
@@ -163,7 +163,7 @@ type EventPayload {
   """
   Current authenticated user
   """
-  user: EventUser
+  user: RepetitionUser
 
   """
   Any additional data of Event
@@ -177,119 +177,29 @@ type EventPayload {
 }
 
 """
-Type representing Event payload. All fields can be omitted if there are no difference with the original
+Possible repetition marks
 """
-type RepetitionPayload {
-  """
-  Event title
-  """
-  title: String
-
-  """
-  Event type: TypeError, ReferenceError etc.
-  """
-  type: String
-
-  """
-  Event severity level
-  """
-  level: Int
-
-  """
-  Event stack array from the latest call to the earliest
-  """
-  backtrace: [EventBacktraceFrame!]
-
-  """
-  Additional data about GET request
-  """
-  get: JSONObject
-
-  """
-  Additional data about POST request
-  """
-  post: JSONObject
-
-  """
-  HTTP headers
-  """
-  headers: JSONObject
-
-  """
-  Source code version identifier
-  """
-  release: String
-
-  """
-  Current authenticated user
-  """
-  user: EventUser
-
-  """
-  Any additional data of Event
-  """
-  context: EncodedJSON
-
-  """
-  Custom data provided by project users
-  """
-  addons: EncodedJSON
-}
-
-"""
-Repetition of the event
-"""
-type Repetition {
-  """
-  Standalone repetition ID
-  """
-  id: ID! @renameFrom(name: "_id")
-
-  """
-  Event's hash
-  """
-  groupHash: String!
-
-  """
-  Event's payload patch
-  """
-  payload: RepetitionPayload
-
-  """
-  Delta of the event's payload, stringified JSON
-  """
-  delta: String
-
-  """
-  Event timestamp
-  """
-  timestamp: Float!
-}
-
-"""
-Possible event marks
-"""
-enum EventMark {
+enum RepetitionMark {
   resolved
   starred
   ignored
 }
 
 """
-Object returned in marks property of event object
+Object returned in marks property of repetition object
 """
-type EventMarks {
+type RepetitionMarks {
   resolved: Boolean!
   starred: Boolean!
   ignored: Boolean!
 }
 
 """
-Type representing Hawk single Event
+Type representing Hawk single Repetition
 """
-type Event {
+type Repetition {
   """
-  Event id
+  Repetition id
   """
   id: ID! @renameFrom(name: "_id")
 
@@ -316,7 +226,7 @@ type Event {
   """
   Event payload
   """
-  payload: EventPayload!
+  payload: RepetitionPayload!
 
   """
   Event timestamp
@@ -324,29 +234,29 @@ type Event {
   timestamp: Float!
 
   """
+  Event first appearance timestamp
+  """
+  firstAppearanceTimestamp: Float!
+
+  """
   Release data
   """
   release: Release
 
   """
-  Event concrete repetition
-  """
-  repetition(id: ID): Repetition
-
-  """
-  Event repetitions
-  """
-  repetitions(skip: Int = 0, limit: Int = 10): [Repetition!]
-
-  """
-  Array of users who visited event
+  Array of users who visited repetition
   """
   visitedBy: [User!]
 
   """
-  Event label for current user
+  Repetition label for current user
   """
-  marks: EventMarks! @default(value: "{}")
+  marks: RepetitionMarks! @default(value: "{}")
+
+  """
+  Repetition's repetitions
+  """
+  repetitions: [Repetition!]
 
   """
   How many users catch this error
@@ -408,7 +318,7 @@ type Subscription {
   """
   Sends new events from all user projects
   """
-  eventOccurred: Event! @requireAuth
+  repetitionOccurred: Repetition! @requireAuth
 }
   
 """
@@ -418,7 +328,7 @@ type RecentEvents {
   """
   Occured events list
   """
-  events: [Event!]
+  events: [Repetition!]
 
   """
   Information about occurred events per day
@@ -428,14 +338,14 @@ type RecentEvents {
 
 input UpdateAssigneeInput {
   """
-  ID of project event is related to
+  ID of project repetition is related to
   """
   projectId: ID!
 
   """
-  ID of the selected event
+  ID of the selected repetition
   """
-  eventId: ID!
+  repetitionId: ID!
 
   """
   Assignee id to set
@@ -462,9 +372,9 @@ input RemoveAssigneeInput {
   projectId: ID!
 
   """
-  ID of the selected event
+  ID of the selected repetition
   """
-  eventId: ID!
+  repetitionId: ID!
 }
 
 type RemoveAssigneeResponse {
@@ -474,7 +384,7 @@ type RemoveAssigneeResponse {
   success: Boolean!
 }
 
-type EventsMutations {
+type RepetitionMutations {
   """
   Set an assignee for the selected event
   """
@@ -492,36 +402,36 @@ type EventsMutations {
 
 extend type Mutation {
   """
-  Mutation marks event as visited for current user
+  Mutation marks repetition as visited for current user
   """
-  visitEvent(
+  visitRepetition(
     project: ID!
     id: ID!
   ): Boolean! @requireAuth
 
   """
-  Mutation sets or unsets passed mark to event
+  Mutation sets or unsets passed mark to repetition
   """
-  toggleEventMark(
+  toggleRepetitionMark(
     """
     ID of project event is related to
     """
     project: ID!
 
     """
-    EvenID of the event to set the mark
+    Repetition ID to set the mark
     """
-    eventId: ID!
+    repetitionId: ID!
 
     """
     Mark to set
     """
-    mark: EventMark!
+    mark: RepetitionMark!
   ): Boolean! @requireAuth
 
   """
-  Namespace that contains only mutations related to the events
+  Namespace that contains only mutations related to the repetitions
   """
-  events: EventsMutations!
+  repetitions: RepetitionMutations!
 }
 `;

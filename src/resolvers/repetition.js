@@ -3,10 +3,10 @@ const { ObjectID } = require('mongodb');
 const sendPersonalNotification = require('../utils/personalNotifications').default;
 
 /**
- * See all types and fields here {@see ../typeDefs/event.graphql}
+ * See all types and fields here {@see ../typeDefs/repetition.graphql}
  */
 module.exports = {
-  EventMarks: {
+  RepetitionMarks: {
     starred(marks) {
       return 'starred' in marks;
     },
@@ -17,40 +17,22 @@ module.exports = {
       return 'resolved' in marks;
     },
   },
-  Event: {
+  Repetition: {
     /**
-     * Returns Event with concrete repetition
-     *
-     * @param {string} eventId - id of Event of which repetition requested
-     * @param {string} projectId - projectId of Event of which repetition requested
-     * @param {string|null} [repetitionId] - if not specified, last repetition will returned
-     * @return {Promise<EventRepetitionSchema>}
-     */
-    async repetition({ id: eventId, projectId }, { id: repetitionId }) {
-      const factory = new EventsFactory(projectId);
-
-      if (!repetitionId) {
-        return factory.getEventLastRepetition(eventId);
-      }
-
-      return factory.getEventRepetition(repetitionId);
-    },
-
-    /**
-     * Returns repetitions list of the event
+     * Returns repetitions list of the repetition
      *
      * @param {ResolverObj} _obj
-     * @param {String} eventId
+     * @param {String} repetitionId
      * @param {String} projectId
      * @param {Number} limit
      * @param {Number} skip
      *
      * @return {EventRepetitionSchema[]}
      */
-    async repetitions({ _id: eventId, projectId }, { limit, skip }) {
+    async repetitions({ _id: repetitionId, projectId }, { limit, cursor }) {
       const factory = new EventsFactory(projectId);
 
-      return factory.getEventRepetitions(eventId, limit, skip);
+      return factory.getEventRepetitions(repetitionId, limit, cursor);
     },
 
     /**
@@ -124,7 +106,7 @@ module.exports = {
   },
   Mutation: {
     /**
-     * Mark event as visited for current user
+     * Mark repetition as visited for current user
      *
      * @param {ResolverObj} _obj - resolver context
      * @param {string} project - project id
@@ -132,7 +114,7 @@ module.exports = {
      * @param {UserInContext} user - user context
      * @return {Promise<boolean>}
      */
-    async visitEvent(_obj, { project, id }, { user }) {
+    async visitRepetition(_obj, { project, id }, { user }) {
       const factory = new EventsFactory(project);
 
       const { result } = await factory.visitEvent(id, user.id);
@@ -149,10 +131,10 @@ module.exports = {
      * @param {string} mark - mark to set
      * @return {Promise<boolean>}
      */
-    async toggleEventMark(_obj, { project, eventId, mark }) {
+    async toggleRepetitionMark(_obj, { project, repetitionId, mark }) {
       const factory = new EventsFactory(project);
 
-      const { result } = await factory.toggleEventMark(eventId, mark);
+      const { result } = await factory.toggleEventMark(repetitionId, mark);
 
       return !!result.ok;
     },
@@ -162,9 +144,9 @@ module.exports = {
      *
      * @return {Function()}
      */
-    events: () => ({}),
+    repetitions: () => ({}),
   },
-  EventsMutations: {
+  RepetitionMutations: {
     /**
      * Update assignee to selected event
      *

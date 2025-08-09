@@ -1,7 +1,7 @@
 import { gql } from 'apollo-server-express';
 
 import billing from './billing';
-import event from './event';
+import repetition from './repetition';
 import notifications from './notifications';
 import notificationsInput from './notificationsInput';
 import projectNotifications from './projectNotifications';
@@ -87,7 +87,7 @@ const rootSchema = gql`
 const typeDefinitions = [
   rootSchema,
   billing,
-  event,
+  repetition,
   notifications,
   notificationsInput,
   projectNotifications,

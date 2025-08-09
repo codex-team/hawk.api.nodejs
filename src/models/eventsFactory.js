@@ -6,6 +6,7 @@ const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
+const { composeFullRepetitionEvent } = require('../utils/merge');
 
 /**
  * @typedef {Object} RecentEventSchema
@@ -393,21 +394,43 @@ class EventsFactory extends Factory {
    *
    * @param {string|ObjectID} eventId - Event's id
    * @param {Number} limit - count limitations
-   * @param {Number} skip - selection offset
+   * @param {Number} cursor - cursor for pagination
    *
    * @return {EventRepetitionSchema[]}
    *
    * @todo move to Repetitions(?) model
    */
-  async getEventRepetitions(eventId, limit = 10, skip = 0) {
+  async getEventRepetitions(repetitionId, limit = 10, cursor = undefined) {
     limit = this.validateLimit(limit);
-    skip = this.validateSkip(skip);
+    cursor = cursor ? new ObjectID(cursor) : undefined;
+
+    const result = {
+      repetitions: [],
+      cursor: undefined,
+    };
 
     /**
      * Get original event
      * @type {EventSchema}
      */
-    const eventOriginal = await this.findById(eventId);
+    let eventOriginal = await this.findById(repetitionId);
+
+    /**
+     * If original event is not found, it can mean that client is trying to get repetitions of original event
+     */
+    if (!eventOriginal) {
+      const repetition = await this.getEventRepetition(repetitionId);
+
+      if (!repetition) {
+        return result;
+      }
+
+      eventOriginal = await this.findById(repetition.eventId);
+    }
+
+    if (!eventOriginal) {
+      return result;
+    }
 
     /**
      * Collect repetitions
@@ -416,13 +439,27 @@ class EventsFactory extends Factory {
     const repetitions = await this.getCollection(this.TYPES.REPETITIONS)
       .find({
         groupHash: eventOriginal.groupHash,
+        _id: cursor ? { $lte: cursor } : {},
       })
       .sort({ _id: -1 })
-      .limit(limit)
-      .skip(skip)
+      .limit(limit + 1)
       .toArray();
 
-    const isLastPortion = repetitions.length < limit && skip === 0;
+    if (repetitions.length === limit + 1) {
+      result.cursor = repetitions.pop()._id;
+    }
+
+    for (const repetition of repetitions) {
+      result.repetitions.push({
+        ...eventOriginal,
+        _id: repetition._id,
+        payload: composeFullRepetitionEvent(eventOriginal, repetition).payload,
+        timestamp: repetition.timestamp,
+        firstAppearanceTimestamp: eventOriginal.timestamp,
+      });
+    }
+
+    const isLastPortion = repetitions.length < limit;
 
     /**
      * For last portion:
@@ -434,16 +471,14 @@ class EventsFactory extends Factory {
        * @type {EventRepetitionSchema}
        */
       const firstRepetition = {
-        _id: eventOriginal._id,
-        payload: eventOriginal.payload,
-        groupHash: eventOriginal.groupHash,
-        timestamp: eventOriginal.timestamp,
+        ...eventOriginal,
+        firstAppearanceTimestamp: eventOriginal.timestamp,
       };
 
-      repetitions.push(firstRepetition);
+      result.repetitions.push(firstRepetition);
     }
 
-    return repetitions;
+    return result;
   }
 
   /**
@@ -455,10 +490,40 @@ class EventsFactory extends Factory {
    * @todo move to Repetitions(?) model
    */
   async getEventRepetition(repetitionId) {
-    return this.getCollection(this.TYPES.REPETITIONS)
+    const repetition = await this.getCollection(this.TYPES.REPETITIONS)
       .findOne({
         _id: ObjectID(repetitionId),
       });
+
+    if (!repetition) {
+      /**
+       * If repetition is not found, it can mean that client is trying to get original event
+       */
+      const event = await this.findById(repetitionId);
+
+      if (!event) {
+        return null;
+      }
+
+      return {
+        ...event,
+        firstAppearanceTimestamp: event.timestamp,
+      };
+    }
+
+    const originalEvent = await this.findById(repetition.eventId);
+
+    if (!originalEvent) {
+      return null;
+    }
+
+    return {
+      ...originalEvent,
+      _id: repetition._id,
+      payload: composeFullRepetitionEvent(originalEvent, repetition).payload,
+      timestamp: repetition.timestamp,
+      firstAppearanceTimestamp: originalEvent.timestamp,
+    };
   }
 
   /**
@@ -501,7 +566,15 @@ class EventsFactory extends Factory {
    *
    * @return {Promise<void>}
    */
-  async visitEvent(eventId, userId) {
+  async visitEvent(repetitionId, userId) {
+    const repetition = await this.getCollection(this.TYPES.REPETITIONS)
+      .findOne({ _id: new ObjectID(repetitionId) });
+
+    /**
+     * If repetition is not found, it can mean that client is trying to work with original event
+     */
+    const eventId = repetition ? repetition.eventId : repetitionId;
+
     return this.getCollection(this.TYPES.EVENTS)
       .updateOne(
         { _id: new ObjectID(eventId) },
@@ -517,7 +590,15 @@ class EventsFactory extends Factory {
    *
    * @return {Promise<void>}
    */
-  async toggleEventMark(eventId, mark) {
+  async toggleEventMark(repetitionId, mark) {
+    const repetition = await this.getCollection(this.TYPES.REPETITIONS)
+      .findOne({ _id: new ObjectID(repetitionId) });
+
+    /**
+     * If repetition is not found, it can mean that client is trying to work with original event
+     */
+    const eventId = repetition ? repetition.eventId : repetitionId;
+
     const collection = this.getCollection(this.TYPES.EVENTS);
     const query = { _id: new ObjectID(eventId) };
 
