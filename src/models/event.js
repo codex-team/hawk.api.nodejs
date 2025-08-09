@@ -24,7 +24,6 @@
 /**
  * @typedef {Object} EventPayload
  * @property {string} title - event title
- * @property {DateTime} timestamp - event datetime
  * @property {Number} level - event severity level
  * @property {EventBacktraceFrame[]} [backtrace] - event stack array from the latest call to the earliest
  * @property {Object} [get] - GET params
@@ -44,6 +43,7 @@
  * @property {String} groupHash - event's hash (catcherType + title + salt)
  * @property {User[]} visitedBy - array of users who visited this event
  * @property {EventPayload} payload - event's payload
+ * @property {Number} timestamp - event's Unix timestamp
  */
 
 /**
