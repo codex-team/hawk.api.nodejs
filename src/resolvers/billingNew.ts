@@ -10,6 +10,8 @@ import {
 import checksumService from '../utils/checksumService';
 import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
+import * as telegram from '../utils/telegram';
+import { TelegramBotURLs } from '../utils/telegram';
 
 /**
  * The amount we will debit to confirm the subscription.
@@ -135,6 +137,21 @@ export default {
           };
 
       const checksum = await checksumService.generateChecksum(checksumData);
+
+      /**
+       * Send info to Telegram (non-blocking)
+       */
+      telegram
+        .sendMessage(`✅ [Billing / Compose payment]
+
+card link operation: ${isCardLinkOperation}
+amount: ${+plan.monthlyCharge} RUB
+last charge date: ${workspace.lastChargeDate?.toISOString()}
+next payment date: ${nextPaymentDate.toISOString()}
+workspace id: ${workspace._id.toString()}
+debug: ${Boolean(workspace.isDebug)}`
+        , TelegramBotURLs.Money)
+        .catch(e => console.error('Error while sending message to Telegram: ' + e));
 
       return {
         invoiceId,
