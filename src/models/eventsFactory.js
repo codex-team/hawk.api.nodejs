@@ -6,6 +6,7 @@ const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
+const { composeFullRepetitionEvent } = require('../utils/merge');
 
 /**
  * @typedef {Object} RecentEventSchema
@@ -399,15 +400,29 @@ class EventsFactory extends Factory {
    *
    * @todo move to Repetitions(?) model
    */
-  async getEventRepetitions(eventId, limit = 10, skip = 0) {
+  async getEventRepetitionsByGroupHash(groupHash, limit = 10, cursor = undefined) {
     limit = this.validateLimit(limit);
     skip = this.validateSkip(skip);
+
+    cursor = cursor ? new ObjectID(cursor) : undefined;
+
+    const result = {
+      repetitions: [],
+      cursor: undefined,
+    };
 
     /**
      * Get original event
      * @type {EventSchema}
      */
-    const eventOriginal = await this.findById(eventId);
+    const eventOriginal = await this.getCollection(this.TYPES.EVENTS)
+      .findOne({
+        groupHash: groupHash,
+      });
+
+    if (!eventOriginal) {
+      return result;
+    }
 
     /**
      * Collect repetitions
@@ -416,13 +431,27 @@ class EventsFactory extends Factory {
     const repetitions = await this.getCollection(this.TYPES.REPETITIONS)
       .find({
         groupHash: eventOriginal.groupHash,
+        _id: cursor ? { $lte: cursor } : {},
       })
       .sort({ _id: -1 })
-      .limit(limit)
-      .skip(skip)
+      .limit(limit + 1)
       .toArray();
 
-    const isLastPortion = repetitions.length < limit && skip === 0;
+    if (repetitions.length === limit + 1) {
+      result.cursor = repetitions.pop()._id;
+    }
+
+    for (const repetition of repetitions) {
+      result.repetitions.push({
+        ...eventOriginal,
+        _id: repetition._id,
+        payload: composeFullRepetitionEvent(eventOriginal, repetition).payload,
+        timestamp: repetition.timestamp,
+        firstAppearanceTimestamp: eventOriginal.timestamp,
+      });
+    }
+
+    const isLastPortion = repetitions.length < limit;
 
     /**
      * For last portion:
@@ -434,16 +463,14 @@ class EventsFactory extends Factory {
        * @type {EventRepetitionSchema}
        */
       const firstRepetition = {
-        _id: eventOriginal._id,
-        payload: eventOriginal.payload,
-        groupHash: eventOriginal.groupHash,
-        timestamp: eventOriginal.timestamp,
+        ...eventOriginal,
+        firstAppearanceTimestamp: eventOriginal.timestamp,
       };
 
-      repetitions.push(firstRepetition);
+      result.repetitions.push(firstRepetition);
     }
 
-    return repetitions;
+    return result;
   }
 
   /**
@@ -455,10 +482,40 @@ class EventsFactory extends Factory {
    * @todo move to Repetitions(?) model
    */
   async getEventRepetition(repetitionId) {
-    return this.getCollection(this.TYPES.REPETITIONS)
+    const repetition = await this.getCollection(this.TYPES.REPETITIONS)
       .findOne({
         _id: ObjectID(repetitionId),
       });
+
+    if (!repetition) {
+      /**
+       * If repetition is not found, it can mean that client is trying to get original event
+       */
+      const event = await this.findById(repetitionId);
+
+      if (!event) {
+      return null;
+      }
+
+      return {
+        ...event,
+        firstAppearanceTimestamp: event.timestamp,
+      };
+    }
+
+    const originalEvent = await this.findById(repetition.eventId);
+
+    if (!originalEvent) {
+      return null;
+    }
+
+    return {
+      ...originalEvent,
+      _id: repetition._id,
+      payload: composeFullRepetitionEvent(originalEvent, repetition).payload,
+      timestamp: repetition.timestamp,
+      firstAppearanceTimestamp: originalEvent.timestamp,
+    };
   }
 
   /**
@@ -479,11 +536,14 @@ class EventsFactory extends Factory {
   /**
    * Get a release from corresponding to this event
    *
-   * @param {string} eventId - id of event to get the release
+   * @param {string} groupHash - hash of event to get the release
    * @returns {Release|null}
    */
-  async getEventRelease(eventId) {
-    const eventOriginal = await this.findById(eventId);
+  async getEventRelease(groupHash) {
+    const eventOriginal = await this.getCollection(this.TYPES.EVENTS)
+      .findOne({
+        groupHash: groupHash,
+      });
 
     const release = await mongo.databases.events.collection(this.TYPES.RELEASES).findOne({
       release: eventOriginal.payload.release,
@@ -496,15 +556,15 @@ class EventsFactory extends Factory {
   /**
    * Mark event as visited for passed user
    *
-   * @param {string|ObjectId} eventId
+   * @param {string|ObjectId} groupHash
    * @param {string|ObjectId} userId
    *
    * @return {Promise<void>}
    */
-  async visitEvent(eventId, userId) {
+  async visitEvent(groupHash, userId) {
     return this.getCollection(this.TYPES.EVENTS)
       .updateOne(
-        { _id: new ObjectID(eventId) },
+        { groupHash: groupHash },
         { $addToSet: { visitedBy: new ObjectID(userId) } }
       );
   }
@@ -512,14 +572,14 @@ class EventsFactory extends Factory {
   /**
    * Mark or unmark event as Resolved, Ignored or Starred
    *
-   * @param {string|ObjectId} eventId - event to mark
+   * @param {string|ObjectId} groupHash - event to mark
    * @param {string} mark - mark label
    *
    * @return {Promise<void>}
    */
-  async toggleEventMark(eventId, mark) {
+  async toggleEventMark(groupHash, mark) {
     const collection = this.getCollection(this.TYPES.EVENTS);
-    const query = { _id: new ObjectID(eventId) };
+    const query = { groupHash: groupHash };
 
     const event = await collection.findOne(query);
     const markKey = `marks.${mark}`;
@@ -565,13 +625,13 @@ class EventsFactory extends Factory {
   /**
    * Update assignee to selected event
    *
-   * @param {string} eventId - event id
+   * @param {string} groupHash - event id
    * @param {string} assignee - assignee id for this event
    * @return {Promise<void>}
    */
-  async updateAssignee(eventId, assignee) {
+  async updateAssignee(groupHash, assignee) {
     const collection = this.getCollection(this.TYPES.EVENTS);
-    const query = { _id: new ObjectID(eventId) };
+    const query = { groupHash: groupHash };
     const update = {
       $set: { assignee: assignee },
     };

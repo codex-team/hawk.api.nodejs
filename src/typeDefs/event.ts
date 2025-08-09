@@ -176,95 +176,6 @@ type EventPayload {
   addons: EncodedJSON
 }
 
-"""
-Type representing Event payload. All fields can be omitted if there are no difference with the original
-"""
-type RepetitionPayload {
-  """
-  Event title
-  """
-  title: String
-
-  """
-  Event type: TypeError, ReferenceError etc.
-  """
-  type: String
-
-  """
-  Event severity level
-  """
-  level: Int
-
-  """
-  Event stack array from the latest call to the earliest
-  """
-  backtrace: [EventBacktraceFrame!]
-
-  """
-  Additional data about GET request
-  """
-  get: JSONObject
-
-  """
-  Additional data about POST request
-  """
-  post: JSONObject
-
-  """
-  HTTP headers
-  """
-  headers: JSONObject
-
-  """
-  Source code version identifier
-  """
-  release: String
-
-  """
-  Current authenticated user
-  """
-  user: EventUser
-
-  """
-  Any additional data of Event
-  """
-  context: EncodedJSON
-
-  """
-  Custom data provided by project users
-  """
-  addons: EncodedJSON
-}
-
-"""
-Repetition of the event
-"""
-type Repetition {
-  """
-  Standalone repetition ID
-  """
-  id: ID! @renameFrom(name: "_id")
-
-  """
-  Event's hash
-  """
-  groupHash: String!
-
-  """
-  Event's payload patch
-  """
-  payload: RepetitionPayload
-
-  """
-  Delta of the event's payload, stringified JSON
-  """
-  delta: String
-
-  """
-  Event timestamp
-  """
-  timestamp: Float!
-}
 
 """
 Possible event marks
@@ -329,14 +240,9 @@ type Event {
   release: Release
 
   """
-  Event concrete repetition
-  """
-  repetition(id: ID): Repetition
-
-  """
   Event repetitions
   """
-  repetitions(skip: Int = 0, limit: Int = 10): [Repetition!]
+  repetitions(cursor: ID = undefined, limit: Int = 10): [Event!]
 
   """
   Array of users who visited event
@@ -433,9 +339,9 @@ input UpdateAssigneeInput {
   projectId: ID!
 
   """
-  ID of the selected event
+  Event group hash
   """
-  eventId: ID!
+  groupHash: ID!
 
   """
   Assignee id to set
@@ -464,7 +370,7 @@ input RemoveAssigneeInput {
   """
   ID of the selected event
   """
-  eventId: ID!
+  groupHash: ID!
 }
 
 type RemoveAssigneeResponse {
@@ -509,9 +415,9 @@ extend type Mutation {
     project: ID!
 
     """
-    EvenID of the event to set the mark
+    Event group hash
     """
-    eventId: ID!
+    groupHash: ID!
 
     """
     Mark to set
