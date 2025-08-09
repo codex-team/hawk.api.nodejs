@@ -290,7 +290,7 @@ module.exports = {
     async event(project, { id: repetitionId }) {
       const factory = new EventsFactory(project._id);
       const repetition = await factory.getEventRepetition(repetitionId);
- 
+
       if (!repetition) {
         return null;
       }

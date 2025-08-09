@@ -392,9 +392,9 @@ class EventsFactory extends Factory {
   /**
    * Returns Event repetitions
    *
-   * @param {string|ObjectID} eventId - Event's id
+   * @param {string|ObjectID} groupHash - Event's group hash
    * @param {Number} limit - count limitations
-   * @param {Number} skip - selection offset
+   * @param {Number} cursor - selection offset
    *
    * @return {EventRepetitionSchema[]}
    *
@@ -402,7 +402,6 @@ class EventsFactory extends Factory {
    */
   async getEventRepetitionsByGroupHash(groupHash, limit = 10, cursor = undefined) {
     limit = this.validateLimit(limit);
-    skip = this.validateSkip(skip);
 
     cursor = cursor ? new ObjectID(cursor) : undefined;
 
@@ -494,7 +493,7 @@ class EventsFactory extends Factory {
       const event = await this.findById(repetitionId);
 
       if (!event) {
-      return null;
+        return null;
       }
 
       return {
