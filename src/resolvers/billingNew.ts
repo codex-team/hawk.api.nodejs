@@ -113,7 +113,7 @@ export default {
 
       // Calculate next payment date
       const lastChargeDate = workspace.lastChargeDate ? new Date(workspace.lastChargeDate) : now;
-      let nextPaymentDate = isCardLinkOperation ? new Date(lastChargeDate) : new Date(now);
+      const nextPaymentDate = isCardLinkOperation ? new Date(lastChargeDate) : new Date(now);
 
       if (workspace.isDebug) {
         nextPaymentDate.setDate(nextPaymentDate.getDate() + 1);
@@ -123,18 +123,18 @@ export default {
 
       const checksumData = isCardLinkOperation
         ? {
-            isCardLinkOperation: true as const,
-            workspaceId: workspace._id.toString(),
-            userId: user.id,
-            nextPaymentDate: nextPaymentDate.toISOString(),
-          }
+          isCardLinkOperation: true as const,
+          workspaceId: workspace._id.toString(),
+          userId: user.id,
+          nextPaymentDate: nextPaymentDate.toISOString(),
+        }
         : {
-            workspaceId: workspace._id.toString(),
-            userId: user.id,
-            tariffPlanId: plan._id.toString(),
-            shouldSaveCard: Boolean(shouldSaveCard),
-            nextPaymentDate: nextPaymentDate.toISOString(),
-          };
+          workspaceId: workspace._id.toString(),
+          userId: user.id,
+          tariffPlanId: plan._id.toString(),
+          shouldSaveCard: Boolean(shouldSaveCard),
+          nextPaymentDate: nextPaymentDate.toISOString(),
+        };
 
       const checksum = await checksumService.generateChecksum(checksumData);
 
