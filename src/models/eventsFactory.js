@@ -8,18 +8,18 @@ const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
 
 /**
- * @typedef {Object} RecentEventSchema
- * @property {Event} event - event model
- * @property {Number} count - recent error occurred count
- * @property {String} data - error occurred date (string)
- */
-
-/**
  * @typedef {Object} EventRepetitionSchema
  * @property {String} _id — repetition's identifier
  * @property {String} groupHash - event's hash. Generates according to the rule described in EventSchema
  * @property {EventPayload} payload - repetition's payload
  * @property {Number} timestamp - repetition's Unix timestamp
+ */
+
+/**
+ * @typedef {Object} DaylyEventsSchema
+ * @property {Event} event - original event of the daily one
+ * @property {EventRepetitionSchema} repetition - last repetition of the day
+ * @property {String | null} nextCursor - pointer to the next dailyEvent for pagination
  */
 
 /**
@@ -148,16 +148,16 @@ class EventsFactory extends Factory {
    * Returns events that grouped by day
    *
    * @param {Number} limit - events count limitations
-   * @param {Number} skip - certain number of documents to skip
+   * @param {String} paginatoinCursor - pointer to the first daily event to be selected
    * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
    * @param {EventsFilters} filters - marks by which events should be filtered
    * @param {String} search - Search query
    *
    * @return {RecentEventSchema[]}
    */
-  async findRecent(
+  async findRecentDailyEventsWithEventAndRepetition(
     limit = 10,
-    skip = 0,
+    paginationCursor = '',
     sort = 'BY_DATE',
     filters = {},
     search = ''
@@ -194,6 +194,11 @@ class EventsFactory extends Factory {
 
     const pipeline = [
       {
+        $match: paginationCursor ? {
+          _id: {
+            $gte: new ObjectID(paginationCursor),
+          }
+        } : {},
         $sort: {
           groupingTimestamp: -1,
           [sort]: -1,
@@ -241,6 +246,9 @@ class EventsFactory extends Factory {
       : {};
 
     pipeline.push(
+      /**
+       * Left outer join original event on groupHash field
+       */
       {
         $lookup: {
           from: 'events:' + this.projectId,
@@ -250,7 +258,21 @@ class EventsFactory extends Factory {
         },
       },
       {
+        $lookup: {
+          from: 'repetitions:' + this.projectId,
+          localField: 'lastRepetitionId',
+          foreignField: '_id',
+          as: 'repetition',
+        }
+      },
+      /**
+       * Desctruct event and repetition arrays since there are only one document in both arrays
+       */
+      {
         $unwind: '$event',
+      },
+      {
+        $unwind: '$repetition',
       },
       {
         $match: {
@@ -258,39 +280,26 @@ class EventsFactory extends Factory {
           ...searchFilter,
         },
       },
-      { $skip: skip },
-      { $limit: limit },
+      { $limit: limit + 1 },
       {
-        $group: {
-          _id: null,
-          dailyInfo: { $push: '$$ROOT' },
-          events: { $push: '$event' },
-        },
-      },
-      {
-        $unset: 'dailyInfo.event',
+        $unset: 'groupHash',
       }
     );
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
 
-    const result = (await cursor.toArray()).shift();
+    const result = await cursor.toArray();
 
-    /**
-     * aggregation can return empty array so that
-     * result can be undefined
-     *
-     * for that we check result existence
-     *
-     * extra field `projectId` needs to satisfy GraphQL query
-     */
-    if (result && result.events) {
-      result.events.forEach(event => {
-        event.projectId = this.projectId;
-      });
+    let lastEvent;
+
+    if (result.length === limit + 1) {
+      lastEvent = result.pop();
     }
 
-    return result;
+    return {
+      nextCursor: lastEvent ? lastEvent._id.toString() : null,
+      ...result,
+    };
   }
 
   /**
