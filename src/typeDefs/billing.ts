@@ -35,6 +35,26 @@ type BillingSession {
 }
 
 """
+Minimal plan info used in composePayment response
+"""
+type ComposePaymentPlanInfo {
+  """
+  Plan id in MongoDB
+  """
+  id: ID!
+
+  """
+  Plan name
+  """
+  name: String!
+
+  """
+  Monthly charge for plan
+  """
+  monthlyCharge: Int!
+}
+
+"""
 User bank card
 """
 type BankCard {
@@ -197,11 +217,72 @@ input PayOnceInput {
 }
 
 
+"""
+Input for composePayment query
+"""
+input ComposePaymentInput {
+  """
+  Workspace id for which the payment will be made
+  """
+  workspaceId: ID!
+
+  """
+  Tariff plan id user is going to pay for
+  """
+  tariffPlanId: ID!
+
+  """
+  Whether card should be saved for future recurrent payments
+  """
+  shouldSaveCard: Boolean
+}
+
+"""
+Response of composePayment query
+"""
+type ComposePaymentResponse {
+  """
+  Human-readable invoice identifier
+  """
+  invoiceId: String!
+
+  """
+  Selected plan info
+  """
+  plan: ComposePaymentPlanInfo!
+
+  """
+  True if only card linking validation payment is expected
+  """
+  isCardLinkOperation: Boolean!
+
+  """
+  Currency code
+  """
+  currency: String!
+
+  """
+  Checksum for subsequent payment verification
+  """
+  checksum: String!
+
+  """
+  Next payment date (recurrent start)
+  """
+  nextPaymentDate: DateTime!
+}
+
+
 extend type Query {
   """
   Get workspace billing history
   """
   businessOperations("Workspaces IDs" ids: [ID!] = []): [BusinessOperation!]! @requireAuth @requireAdmin
+
+  """
+  Prepare payment data before charge (GraphQL version of composePayment)
+  """
+  composePayment(input: ComposePaymentInput!): ComposePaymentResponse! @requireAuth
 }
 
 """

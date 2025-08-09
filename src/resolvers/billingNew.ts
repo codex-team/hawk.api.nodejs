@@ -18,6 +18,17 @@ import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsA
 const AMOUNT_FOR_CARD_VALIDATION = 1;
 
 /**
+ * Input data for composePayment query
+ */
+interface ComposePaymentArgs {
+  input: {
+    workspaceId: string;
+    tariffPlanId: string;
+    shouldSaveCard?: boolean;
+  };
+}
+
+/**
  * Data for processing payment with saved card
  */
 interface PayWithCardArgs {
@@ -57,6 +68,86 @@ export default {
       { user, factories }: ResolverContextWithUser
     ): Promise<BusinessOperationModel[]> {
       return factories.businessOperationsFactory.getWorkspacesBusinessOperations(ids);
+    },
+
+    /**
+     * GraphQL version of composePayment: prepares data before charge
+     */
+    async composePayment(
+      _obj: undefined,
+      { input }: ComposePaymentArgs,
+      { user, factories }: ResolverContextWithUser
+    ): Promise<{
+      invoiceId: string;
+      plan: { id: string; name: string; monthlyCharge: number };
+      isCardLinkOperation: boolean;
+      currency: string;
+      checksum: string;
+      nextPaymentDate: Date;
+    }> {
+      const { workspaceId, tariffPlanId, shouldSaveCard } = input;
+
+      if (!workspaceId || !tariffPlanId || !user?.id) {
+        throw new UserInputError('No workspaceId, tariffPlanId or user id provided');
+      }
+
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
+      const plan = await factories.plansFactory.findById(tariffPlanId);
+
+      if (!workspace || !plan) {
+        throw new UserInputError("Can't get workspace or plan by provided ids");
+      }
+
+      const member = await workspace.getMemberInfo(user.id);
+
+      if (!member) {
+        throw new UserInputError('User is not a member of the workspace');
+      }
+
+      const now = new Date();
+      const invoiceId = `${workspace.name} ${now.getDate()}/${now.getMonth() + 1} ${plan.name}`;
+
+      const isCardLinkOperation = workspace.tariffPlanId.toString() === tariffPlanId && !workspace.isTariffPlanExpired();
+
+      // Calculate next payment date
+      const lastChargeDate = workspace.lastChargeDate ? new Date(workspace.lastChargeDate) : now;
+      let nextPaymentDate = isCardLinkOperation ? new Date(lastChargeDate) : new Date(now);
+
+      if (workspace.isDebug) {
+        nextPaymentDate.setDate(nextPaymentDate.getDate() + 1);
+      } else {
+        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+      }
+
+      const checksumData = isCardLinkOperation
+        ? {
+            isCardLinkOperation: true as const,
+            workspaceId: workspace._id.toString(),
+            userId: user.id,
+            nextPaymentDate: nextPaymentDate.toISOString(),
+          }
+        : {
+            workspaceId: workspace._id.toString(),
+            userId: user.id,
+            tariffPlanId: plan._id.toString(),
+            shouldSaveCard: Boolean(shouldSaveCard),
+            nextPaymentDate: nextPaymentDate.toISOString(),
+          };
+
+      const checksum = await checksumService.generateChecksum(checksumData);
+
+      return {
+        invoiceId,
+        plan: {
+          id: plan._id.toString(),
+          name: plan.name,
+          monthlyCharge: plan.monthlyCharge,
+        },
+        isCardLinkOperation,
+        currency: 'RUB',
+        checksum,
+        nextPaymentDate,
+      };
     },
   },
   /**
