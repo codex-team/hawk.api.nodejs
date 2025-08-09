@@ -133,7 +133,12 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   /**
    * Saved bank cards for one-click payments
    */
-  public bankCards?: BankCard[]
+  public bankCards?: BankCard[];
+
+  /**
+   * UTM parameters from signup - Data form where user went to sign up. Used for analytics purposes
+   */
+  public utm?: UserDBScheme['utm'];
 
   /**
    * Model's collection

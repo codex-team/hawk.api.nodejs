@@ -4,6 +4,7 @@ import { Collection, Db } from 'mongodb';
 import DataLoaders from '../dataLoaders';
 import { UserDBScheme } from '@hawk.so/types';
 import { Analytics, AnalyticsEventTypes } from '../utils/analytics';
+import { sanitizeUtmParams, validateUtmParams } from '../utils/utm/utm';
 
 /**
  * Users factory to work with User Model
@@ -62,16 +63,27 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
    * Creates new user in DB and returns it
    * @param email - user email
    * @param password - user password
+   * @param utm - Data form where user went to sign up. Used for analytics purposes
    */
-  public async create(email: string, password?: string): Promise<UserModel> {
-    const generatedPassword = password || await UserModel.generatePassword();
+  public async create(
+    email: string,
+    password?: string,
+    utm?: UserDBScheme['utm']
+  ): Promise<UserModel> {
+    const generatedPassword = password || (await UserModel.generatePassword());
     const hashedPassword = await UserModel.hashPassword(generatedPassword);
 
-    const userData = {
+    const userData: Partial<UserDBScheme> = {
       email,
       password: hashedPassword,
       notifications: UserModel.generateDefaultNotificationsSettings(email),
     };
+
+    if (validateUtmParams(utm)) {
+      const sanitizedUtm = sanitizeUtmParams(utm);
+      userData.utm = sanitizedUtm;
+    }
+
     const userId = (await this.collection.insertOne(userData)).insertedId;
 
     const user = new UserModel({
