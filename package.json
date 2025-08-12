@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.1.30",
+  "version": "1.1.31",
   "main": "index.ts",
   "license": "UNLICENSED",
   "scripts": {
@@ -47,6 +47,8 @@
     "@types/lodash.clonedeep": "^4.5.9",
     "@types/lodash.mergewith": "^4.6.9",
     "@types/jsonwebtoken": "^8.3.5",
+    "@types/lodash.clonedeep": "^4.5.9",
+    "@types/lodash.mergewith": "^4.6.9",
     "@types/mime-types": "^2.1.0",
     "@types/mongodb": "^3.6.20",
     "@types/node": "^16.11.46",
