@@ -18,6 +18,11 @@ const VALID_UTM_CHARACTERS = /^[a-zA-Z0-9\s\-_.]+$/;
 const INVALID_UTM_CHARACTERS = /[^a-zA-Z0-9\s\-_.]/g;
 
 /**
+ * Maximum allowed length for UTM parameter values
+ */
+const MAX_UTM_VALUE_LENGTH = 200;
+
+/**
  * Validates UTM parameters
  * @param utm - Data form where user went to sign up. Used for analytics purposes
  * @returns boolean - true if valid, false if invalid
@@ -53,7 +58,7 @@ export function validateUtmParams(utm: UserDBScheme['utm']): boolean {
       }
 
       // Check length
-      if (value.length === 0 || value.length > 200) {
+      if (value.length === 0 || value.length > MAX_UTM_VALUE_LENGTH) {
         return false;
       }
 
@@ -82,7 +87,10 @@ export function sanitizeUtmParams(utm: UserDBScheme['utm']): UserDBScheme['utm']
   for (const [key, value] of Object.entries(utm)) {
     if (VALID_UTM_KEYS.includes(key) && value && typeof value === 'string') {
       // Sanitize value: keep only allowed characters and limit length
-      const cleanValue = value.replace(INVALID_UTM_CHARACTERS, '').trim().substring(0, 200);
+      const cleanValue = value
+        .replace(INVALID_UTM_CHARACTERS, '')
+        .trim()
+        .substring(0, MAX_UTM_VALUE_LENGTH);
 
       if (cleanValue.length > 0) {
         (sanitized as any)[key] = cleanValue;
