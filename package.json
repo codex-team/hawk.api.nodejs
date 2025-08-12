@@ -21,8 +21,6 @@
   "devDependencies": {
     "@shelf/jest-mongodb": "^1.2.2",
     "@types/jest": "^26.0.8",
-    "@types/lodash.clonedeep": "^4.5.9",
-    "@types/lodash.mergewith": "^4.6.9",
     "eslint": "^6.7.2",
     "eslint-config-codex": "1.2.4",
     "eslint-plugin-import": "^2.19.1",
@@ -44,6 +42,8 @@
     "@types/amqp-connection-manager": "^2.0.4",
     "@types/bson": "^4.0.5",
     "@types/debug": "^4.1.5",
+    "@types/lodash.clonedeep": "^4.5.9",
+    "@types/lodash.mergewith": "^4.6.9",
     "@types/escape-html": "^1.0.0",
     "@types/graphql-upload": "^8.0.11",
     "@types/jsonwebtoken": "^8.3.5",
