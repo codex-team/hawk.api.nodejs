@@ -1,6 +1,23 @@
 import { UserDBScheme } from '@hawk.so/types';
 
 /**
+ * Valid UTM parameter keys
+ */
+const VALID_UTM_KEYS = ['source', 'medium', 'campaign', 'content', 'term'];
+
+/**
+ * Regular expression for valid UTM characters
+ * Allows: alphanumeric, spaces, hyphens, underscores, dots
+ */
+const VALID_UTM_CHARACTERS = /^[a-zA-Z0-9\s\-_.]+$/;
+
+/**
+ * Regular expression for invalid UTM characters (inverse of VALID_UTM_CHARACTERS)
+ * Used for cleaning/sanitizing values
+ */
+const INVALID_UTM_CHARACTERS = /[^a-zA-Z0-9\s\-_.]/g;
+
+/**
  * Validates UTM parameters
  * @param utm - Data form where user went to sign up. Used for analytics purposes
  * @returns boolean - true if valid, false if invalid
@@ -15,7 +32,6 @@ export function validateUtmParams(utm: UserDBScheme['utm']): boolean {
     return false;
   }
 
-  const utmKeys = ['source', 'medium', 'campaign', 'content', 'term'];
   const providedKeys = Object.keys(utm);
 
   // Check if utm object is not empty
@@ -24,7 +40,7 @@ export function validateUtmParams(utm: UserDBScheme['utm']): boolean {
   }
 
   // Check if all provided keys are valid UTM keys
-  const hasInvalidKeys = providedKeys.some((key) => !utmKeys.includes(key));
+  const hasInvalidKeys = providedKeys.some((key) => !VALID_UTM_KEYS.includes(key));
   if (hasInvalidKeys) {
     return false;
   }
@@ -42,7 +58,7 @@ export function validateUtmParams(utm: UserDBScheme['utm']): boolean {
       }
 
       // Check for valid characters - only allow alphanumeric, spaces, hyphens, underscores, dots
-      if (!/^[a-zA-Z0-9\s\-_.]+$/.test(value)) {
+      if (!VALID_UTM_CHARACTERS.test(value)) {
         return false;
       }
     }
@@ -61,16 +77,12 @@ export function sanitizeUtmParams(utm: UserDBScheme['utm']): UserDBScheme['utm']
     return undefined;
   }
 
-  const utmKeys = ['source', 'medium', 'campaign', 'content', 'term'];
   const sanitized: UserDBScheme['utm'] = {};
 
   for (const [key, value] of Object.entries(utm)) {
-    if (utmKeys.includes(key) && value && typeof value === 'string') {
+    if (VALID_UTM_KEYS.includes(key) && value && typeof value === 'string') {
       // Sanitize value: keep only allowed characters and limit length
-      const cleanValue = value
-        .replace(/[^a-zA-Z0-9\s\-_.]/g, '')
-        .trim()
-        .substring(0, 200);
+      const cleanValue = value.replace(INVALID_UTM_CHARACTERS, '').trim().substring(0, 200);
 
       if (cleanValue.length > 0) {
         (sanitized as any)[key] = cleanValue;
