@@ -46,7 +46,6 @@ export default {
       { email, utm }: { email: string; utm?: UserDBScheme['utm'] },
       { factories }: ResolverContextBase
     ): Promise<boolean | string> {
-
       const validatedUtm = validateUtmParams(utm);
 
       let user;
