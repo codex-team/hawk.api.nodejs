@@ -45,7 +45,7 @@ export function validateUtmParams(utm: UserDBScheme['utm']): {
     return {
       isValid: false,
       validKeys: [],
-      invalidKeys: ['_structure'],
+      invalidKeys: [ '_structure' ],
     };
   }
 
