@@ -45,7 +45,6 @@ import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes
 
 const PENNY_MULTIPLIER = 100;
 
-
 /**
  * Class for describing the logic of payment routes
  */
@@ -88,7 +87,6 @@ export default class CloudPaymentsWebhooks {
 
     return router;
   }
-
 
   /**
    * Generates invoice id for payment
