@@ -52,26 +52,23 @@ export default {
       if (utm) {
         const validationResult = validateUtmParams(utm);
 
-        if (validationResult.isValid) {
-          // All UTM parameters are valid
+        // Always try to sanitize valid keys (if any)
+        if (validationResult.validKeys.length > 0) {
           sanitizedUtm = sanitizeUtmParams(utm, validationResult);
-        } else if (validationResult.validKeys.length > 0) {
-          // Some UTM parameters are valid, save only those
-          sanitizedUtm = sanitizeUtmParams(utm, validationResult);
+        }
 
-          // Log the invalid keys for monitoring
-          HawkCatcher.send(new Error('Some UTM parameters are invalid'), {
+        // Log invalid keys for monitoring (if any)
+        if (validationResult.invalidKeys.length > 0) {
+          const errorMessage =
+            validationResult.validKeys.length > 0
+              ? 'Some UTM parameters are invalid'
+              : 'All UTM parameters are invalid';
+
+          HawkCatcher.send(new Error(errorMessage), {
             email,
             utm,
             invalidKeys: JSON.stringify(validationResult.invalidKeys),
             validKeys: JSON.stringify(validationResult.validKeys),
-          });
-        } else {
-          // No valid UTM parameters
-          HawkCatcher.send(new Error('All UTM parameters are invalid'), {
-            email,
-            utm,
-            invalidKeys: JSON.stringify(validationResult.invalidKeys),
           });
         }
       }
