@@ -11,8 +11,7 @@ import { dateFromObjectId } from '../utils/dates';
 import { UserDBScheme } from '@hawk.so/types';
 import * as telegram from '../utils/telegram';
 import { MongoError } from 'mongodb';
-import { validateUtmParams, sanitizeUtmParams } from '../utils/utm/utm';
-import HawkCatcher from '@hawk.so/nodejs';
+import { validateUtmParams } from '../utils/utm/utm';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -47,36 +46,13 @@ export default {
       { email, utm }: { email: string; utm?: UserDBScheme['utm'] },
       { factories }: ResolverContextBase
     ): Promise<boolean | string> {
-      // Validate and sanitize UTM parameters
-      let sanitizedUtm;
-      if (utm) {
-        const validationResult = validateUtmParams(utm);
 
-        // Always try to sanitize valid keys (if any)
-        if (validationResult.validKeys.length > 0) {
-          sanitizedUtm = sanitizeUtmParams(utm, validationResult);
-        }
-
-        // Log invalid keys for monitoring (if any)
-        if (validationResult.invalidKeys.length > 0) {
-          const errorMessage =
-            validationResult.validKeys.length > 0
-              ? 'Some UTM parameters are invalid'
-              : 'All UTM parameters are invalid';
-
-          HawkCatcher.send(new Error(errorMessage), {
-            email,
-            utm,
-            invalidKeys: JSON.stringify(validationResult.invalidKeys),
-            validKeys: JSON.stringify(validationResult.validKeys),
-          });
-        }
-      }
+      const validatedUtm = validateUtmParams(utm);
 
       let user;
 
       try {
-        user = await factories.usersFactory.create(email, undefined, sanitizedUtm);
+        user = await factories.usersFactory.create(email, undefined, validatedUtm);
 
         const password = user.generatedPassword!;
 

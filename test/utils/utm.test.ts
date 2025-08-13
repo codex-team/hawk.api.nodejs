@@ -1,68 +1,37 @@
-import { validateUtmParams, sanitizeUtmParams } from '../../src/utils/utm/utm';
+import { validateUtmParams } from '../../src/utils/utm/utm';
 
 describe('UTM Utils', () => {
   describe('validateUtmParams', () => {
-    it('should return valid result for undefined or null utm', () => {
-      expect(validateUtmParams(undefined)).toEqual({
-        isValid: true,
-        validKeys: [],
-        invalidKeys: [],
-      });
-      expect(validateUtmParams(null as any)).toEqual({
-        isValid: true,
-        validKeys: [],
-        invalidKeys: [],
-      });
+    it('should return empty object for undefined or null utm', () => {
+      expect(validateUtmParams(undefined)).toEqual({});
+      expect(validateUtmParams(null as any)).toEqual({});
     });
 
-    it('should return valid result for empty object', () => {
-      expect(validateUtmParams({})).toEqual({ isValid: true, validKeys: [], invalidKeys: [] });
+    it('should return empty object for empty object', () => {
+      expect(validateUtmParams({})).toEqual({});
     });
 
-    it('should return invalid result for non-object types', () => {
-      expect(validateUtmParams('string' as any)).toEqual({
-        isValid: false,
-        validKeys: [],
-        invalidKeys: ['_structure'],
-      });
-      expect(validateUtmParams(123 as any)).toEqual({
-        isValid: false,
-        validKeys: [],
-        invalidKeys: ['_structure'],
-      });
-      expect(validateUtmParams(true as any)).toEqual({
-        isValid: false,
-        validKeys: [],
-        invalidKeys: ['_structure'],
-      });
-      expect(validateUtmParams([] as any)).toEqual({
-        isValid: false,
-        validKeys: [],
-        invalidKeys: ['_structure'],
-      });
+    it('should return empty object for non-object types', () => {
+      expect(validateUtmParams('string' as any)).toEqual({});
+      expect(validateUtmParams(123 as any)).toEqual({});
+      expect(validateUtmParams(true as any)).toEqual({});
+      expect(validateUtmParams([] as any)).toEqual({});
     });
 
-    it('should identify invalid UTM keys', () => {
+    it('should filter out invalid UTM keys', () => {
       const result1 = validateUtmParams({ invalidKey: 'value' } as any);
-      expect(result1.isValid).toBe(false);
-      expect(result1.invalidKeys).toContain('invalidKey');
-      expect(result1.validKeys).toEqual([]);
+      expect(result1).toEqual({});
 
       const result2 = validateUtmParams({ source: 'google', invalidKey: 'value' } as any);
-      expect(result2.isValid).toBe(false);
-      expect(result2.invalidKeys).toContain('invalidKey');
-      expect(result2.validKeys).toContain('source');
+      expect(result2).toEqual({ source: 'google' });
     });
 
-    it('should return valid result for valid UTM keys', () => {
+    it('should return valid UTM parameters', () => {
       const result1 = validateUtmParams({ source: 'google' });
-      expect(result1.isValid).toBe(true);
-      expect(result1.validKeys).toContain('source');
-      expect(result1.invalidKeys).toEqual([]);
+      expect(result1).toEqual({ source: 'google' });
 
       const result2 = validateUtmParams({ medium: 'cpc' });
-      expect(result2.isValid).toBe(true);
-      expect(result2.validKeys).toContain('medium');
+      expect(result2).toEqual({ medium: 'cpc' });
     });
 
     it('should validate multiple UTM keys correctly', () => {
@@ -74,52 +43,60 @@ describe('UTM Utils', () => {
         term: 'error_tracker',
       };
       const result = validateUtmParams(validUtm);
-      expect(result.isValid).toBe(true);
-      expect(result.validKeys).toEqual(['source', 'medium', 'campaign', 'content', 'term']);
-      expect(result.invalidKeys).toEqual([]);
+      expect(result).toEqual(validUtm);
     });
 
-    it('should identify non-string values as invalid', () => {
+    it('should filter out non-string values', () => {
       const result1 = validateUtmParams({ source: 123 } as any);
-      expect(result1.isValid).toBe(false);
-      expect(result1.invalidKeys).toContain('source');
+      expect(result1).toEqual({});
 
       const result2 = validateUtmParams({ source: 'google', medium: true } as any);
-      expect(result2.isValid).toBe(false);
-      expect(result2.validKeys).toContain('source');
-      expect(result2.invalidKeys).toContain('medium');
+      expect(result2).toEqual({ source: 'google' });
     });
 
-    it('should identify empty string values as invalid', () => {
+    it('should filter out empty string values', () => {
       const result = validateUtmParams({ source: '' });
-      expect(result.isValid).toBe(false);
-      expect(result.invalidKeys).toContain('source');
+      expect(result).toEqual({});
     });
 
-    it('should identify values that are too long as invalid', () => {
-      const longValue = 'a'.repeat(201);
+    it('should filter out values that are too long', () => {
+      const longValue = 'a'.repeat(51);
       const result = validateUtmParams({ source: longValue });
-      expect(result.isValid).toBe(false);
-      expect(result.invalidKeys).toContain('source');
+      expect(result).toEqual({});
     });
 
     it('should accept values at maximum length', () => {
-      const maxLengthValue = 'a'.repeat(200);
+      const maxLengthValue = 'a'.repeat(50);
       const result = validateUtmParams({ source: maxLengthValue });
-      expect(result.isValid).toBe(true);
-      expect(result.validKeys).toContain('source');
+      expect(result).toEqual({ source: maxLengthValue });
     });
 
-    it('should identify values with invalid characters', () => {
-      const result = validateUtmParams({ source: 'google@example' });
-      expect(result.isValid).toBe(false);
-      expect(result.invalidKeys).toContain('source');
+    it('should filter out values with invalid characters', () => {
+      const result1 = validateUtmParams({ source: 'google@example' });
+      expect(result1).toEqual({});
+
+      const result2 = validateUtmParams({ source: 'google######' });
+      expect(result2).toEqual({});
     });
 
     it('should accept values with valid characters', () => {
       const result = validateUtmParams({ source: 'google-ads' });
-      expect(result.isValid).toBe(true);
-      expect(result.validKeys).toContain('source');
+      expect(result).toEqual({ source: 'google-ads' });
+
+      const result2 = validateUtmParams({
+        source: 'google_ads',
+        medium: 'cpc-campaign',
+        campaign: 'spring.2025',
+        content: 'Ad Variant 123',
+        term: 'error tracker',
+      });
+      expect(result2).toEqual({
+        source: 'google_ads',
+        medium: 'cpc-campaign',
+        campaign: 'spring.2025',
+        content: 'Ad Variant 123',
+        term: 'error tracker',
+      });
     });
 
     it('should handle mixed valid and invalid keys', () => {
@@ -130,105 +107,32 @@ describe('UTM Utils', () => {
         invalidKey: 'value',
       } as any;
       const result = validateUtmParams(input);
-      expect(result.isValid).toBe(false);
-      expect(result.validKeys).toEqual(['source', 'campaign']);
-      expect(result.invalidKeys).toEqual(['medium', 'invalidKey']);
+      expect(result).toEqual({ source: 'google', campaign: 'valid_campaign' });
     });
 
-    it('should handle undefined and null values in object', () => {
-      const result = validateUtmParams({ source: 'google', medium: undefined });
-      expect(result.isValid).toBe(true);
-      expect(result.validKeys).toContain('source');
-      expect(result.validKeys).toEqual(['source', 'medium']); // undefined values are treated as valid (skipped)
-      expect(result.invalidKeys).toEqual([]);
-    });
-  });
-
-  describe('sanitizeUtmParams', () => {
-    it('should return undefined for undefined or null utm', () => {
-      expect(sanitizeUtmParams(undefined)).toBeUndefined();
-      expect(sanitizeUtmParams(null as any)).toBeUndefined();
-    });
-
-    it('should return undefined for empty object', () => {
-      expect(sanitizeUtmParams({})).toBeUndefined();
-    });
-
-    it('should filter out invalid keys', () => {
-      const input = { source: 'google', invalidKey: 'value' } as any;
-      const result = sanitizeUtmParams(input);
+    it('should filter out undefined and null values', () => {
+      const result = validateUtmParams({
+        source: 'google',
+        medium: undefined,
+        campaign: null,
+      } as any);
       expect(result).toEqual({ source: 'google' });
     });
 
-    it('should sanitize values by removing invalid characters', () => {
-      const input = { source: 'google@#$%ads' };
-      const result = sanitizeUtmParams(input);
-      expect(result).toEqual({ source: 'googleads' });
-    });
-
-    it('should trim whitespace', () => {
-      const input = { source: '  google ads  ' };
-      const result = sanitizeUtmParams(input);
-      expect(result).toEqual({ source: 'google ads' });
-    });
-
-    it('should limit length to 200 characters', () => {
-      const longValue = 'a'.repeat(250);
-      const input = { source: longValue };
-      const result = sanitizeUtmParams(input);
-      expect(result?.source).toHaveLength(200);
-    });
-
-    it('should preserve valid characters', () => {
+    it('should validate each parameter independently', () => {
       const input = {
-        source: 'google-ads',
-        medium: 'cpc_campaign',
-        campaign: 'spring.2025',
-        content: 'Ad Variant 123',
-        term: 'error_tracker-tool',
+        source: '######', // invalid chars
+        medium: 'cpc', // valid
+        campaign: 'spring_2025_launch', // valid
+        content: 'ad_variant_a', // valid
+        term: 'error_tracker', // valid
       };
-      const result = sanitizeUtmParams(input);
-      expect(result).toEqual(input);
-    });
-
-    it('should remove entries with empty values after sanitization', () => {
-      const input = { source: '@#$%', medium: 'cpc' };
-      const result = sanitizeUtmParams(input);
-      expect(result).toEqual({ medium: 'cpc' });
-    });
-
-    it('should return undefined if all values become empty after sanitization', () => {
-      const input = { source: '@#$%', medium: '!@#$' };
-      const result = sanitizeUtmParams(input);
-      expect(result).toBeUndefined();
-    });
-
-    it('should handle non-string values by filtering them out', () => {
-      const input = { source: 'google', medium: 123, campaign: true } as any;
-      const result = sanitizeUtmParams(input);
-      expect(result).toEqual({ source: 'google' });
-    });
-
-    it('should handle null and undefined values', () => {
-      const input = { source: 'google', medium: null as any, campaign: undefined };
-      const result = sanitizeUtmParams(input);
-      expect(result).toEqual({ source: 'google' });
-    });
-
-    it('should handle complex sanitization case', () => {
-      const input = {
-        source: '  Google@Ads#Campaign  ',
-        medium: 'cpc$paid%search',
-        campaign: 'spring_2025-launch.campaign',
-        content: '!@#$%',
-        term: 'error tracker tool',
-      };
-      const result = sanitizeUtmParams(input);
+      const result = validateUtmParams(input);
       expect(result).toEqual({
-        source: 'GoogleAdsCampaign',
-        medium: 'cpcpaidsearch',
-        campaign: 'spring_2025-launch.campaign',
-        term: 'error tracker tool',
+        medium: 'cpc',
+        campaign: 'spring_2025_launch',
+        content: 'ad_variant_a',
+        term: 'error_tracker',
       });
     });
   });
