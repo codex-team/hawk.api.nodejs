@@ -3,6 +3,36 @@ import isE2E from '../utils/isE2E';
 
 export default gql`
   """
+  UTM parameters input type
+  """
+  input UtmInput {
+    """
+    UTM source
+    """
+    source: String
+
+    """
+    UTM medium
+    """
+    medium: String
+
+    """
+    UTM campaign
+    """
+    campaign: String
+
+    """
+    UTM content
+    """
+    content: String
+
+    """
+    UTM term
+    """
+    term: String
+  }
+
+  """
   Authentication token
   """
   type Tokens {
@@ -72,6 +102,11 @@ export default gql`
       Registration email
       """
       email: String! @validate(isEmail: true)
+
+      """
+      UTM parameters
+      """
+      utm: UtmInput
     ): ${isE2E ? 'String!' : 'Boolean!'}
 
     """
