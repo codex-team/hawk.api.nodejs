@@ -12,6 +12,7 @@ import { UserDBScheme } from '@hawk.so/types';
 import * as telegram from '../utils/telegram';
 import { MongoError } from 'mongodb';
 import { validateUtmParams, sanitizeUtmParams } from '../utils/utm/utm';
+import HawkCatcher from '@hawk.so/nodejs';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -47,11 +48,33 @@ export default {
       { factories }: ResolverContextBase
     ): Promise<boolean | string> {
       // Validate and sanitize UTM parameters
-      if (!validateUtmParams(utm)) {
-        throw new UserInputError('Invalid UTM parameters provided');
-      }
+      let sanitizedUtm;
+      if (utm) {
+        const validationResult = validateUtmParams(utm);
 
-      const sanitizedUtm = sanitizeUtmParams(utm);
+        if (validationResult.isValid) {
+          // All UTM parameters are valid
+          sanitizedUtm = sanitizeUtmParams(utm, validationResult);
+        } else if (validationResult.validKeys.length > 0) {
+          // Some UTM parameters are valid, save only those
+          sanitizedUtm = sanitizeUtmParams(utm, validationResult);
+
+          // Log the invalid keys for monitoring
+          HawkCatcher.send(new Error('Some UTM parameters are invalid'), {
+            email,
+            utm,
+            invalidKeys: JSON.stringify(validationResult.invalidKeys),
+            validKeys: JSON.stringify(validationResult.validKeys),
+          });
+        } else {
+          // No valid UTM parameters
+          HawkCatcher.send(new Error('All UTM parameters are invalid'), {
+            email,
+            utm,
+            invalidKeys: JSON.stringify(validationResult.invalidKeys),
+          });
+        }
+      }
 
       let user;
 

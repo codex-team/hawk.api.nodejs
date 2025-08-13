@@ -23,69 +23,96 @@ const INVALID_UTM_CHARACTERS = /[^a-zA-Z0-9\s\-_.]/g;
 const MAX_UTM_VALUE_LENGTH = 200;
 
 /**
- * Validates UTM parameters
+ * Validates UTM parameters per key
  * @param utm - Data form where user went to sign up. Used for analytics purposes
- * @returns boolean - true if valid, false if invalid
+ * @returns object with validation results per key and overall validity
  */
-export function validateUtmParams(utm: UserDBScheme['utm']): boolean {
+export function validateUtmParams(utm: UserDBScheme['utm']): {
+  isValid: boolean;
+  validKeys: string[];
+  invalidKeys: string[];
+} {
   if (!utm) {
-    return true;
+    return { isValid: true, validKeys: [], invalidKeys: [] };
   }
 
   // Check if utm is an object
   if (typeof utm !== 'object' || Array.isArray(utm)) {
-    return false;
+    return { isValid: false, validKeys: [], invalidKeys: ['_structure'] };
   }
 
   const providedKeys = Object.keys(utm);
 
   // Check if utm object is not empty
   if (providedKeys.length === 0) {
-    return true; // Empty object is valid
+    return { isValid: true, validKeys: [], invalidKeys: [] };
   }
 
-  // Check if all provided keys are valid UTM keys
-  const hasInvalidKeys = providedKeys.some((key) => !VALID_UTM_KEYS.includes(key));
-  if (hasInvalidKeys) {
-    return false;
-  }
+  const validKeys: string[] = [];
+  const invalidKeys: string[] = [];
 
-  // Check if values are strings and not too long
   for (const [key, value] of Object.entries(utm)) {
+    // Check if key is valid UTM key
+    if (!VALID_UTM_KEYS.includes(key)) {
+      invalidKeys.push(key);
+      continue;
+    }
+
+    // Check if value is valid
     if (value !== undefined && value !== null) {
       if (typeof value !== 'string') {
-        return false;
+        invalidKeys.push(key);
+        continue;
       }
 
       // Check length
       if (value.length === 0 || value.length > MAX_UTM_VALUE_LENGTH) {
-        return false;
+        invalidKeys.push(key);
+        continue;
       }
 
-      // Check for valid characters - only allow alphanumeric, spaces, hyphens, underscores, dots
+      // Check for valid characters
       if (!VALID_UTM_CHARACTERS.test(value)) {
-        return false;
+        invalidKeys.push(key);
+        continue;
       }
     }
+
+    validKeys.push(key);
   }
 
-  return true;
+  return {
+    isValid: invalidKeys.length === 0,
+    validKeys,
+    invalidKeys,
+  };
 }
 
 /**
- * Sanitizes UTM parameters by removing invalid characters
+ * Sanitizes UTM parameters by keeping only valid keys and cleaning values
  * @param utm - Data form where user went to sign up. Used for analytics purposes
- * @returns sanitized UTM parameters or undefined if invalid
+ * @param validationResult - Optional validation result to use valid keys from
+ * @returns sanitized UTM parameters or undefined if no valid data
  */
-export function sanitizeUtmParams(utm: UserDBScheme['utm']): UserDBScheme['utm'] {
+export function sanitizeUtmParams(
+  utm: UserDBScheme['utm'],
+  validationResult?: { validKeys: string[]; invalidKeys: string[] }
+): UserDBScheme['utm'] {
   if (!utm) {
     return undefined;
   }
 
   const sanitized: UserDBScheme['utm'] = {};
 
-  for (const [key, value] of Object.entries(utm)) {
-    if (VALID_UTM_KEYS.includes(key) && value && typeof value === 'string') {
+  // Use validation result if provided, otherwise validate inline
+  const keysToProcess = validationResult
+    ? validationResult.validKeys
+    : Object.keys(utm).filter((key) => VALID_UTM_KEYS.includes(key));
+
+  for (const key of keysToProcess) {
+    const value = (utm as any)[key];
+
+    if (value && typeof value === 'string') {
       // Sanitize value: keep only allowed characters and limit length
       const cleanValue = value
         .replace(INVALID_UTM_CHARACTERS, '')

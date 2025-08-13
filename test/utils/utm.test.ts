@@ -2,36 +2,70 @@ import { validateUtmParams, sanitizeUtmParams } from '../../src/utils/utm/utm';
 
 describe('UTM Utils', () => {
   describe('validateUtmParams', () => {
-    it('should return true for undefined or null utm', () => {
-      expect(validateUtmParams(undefined)).toBe(true);
-      expect(validateUtmParams(null as any)).toBe(true);
+    it('should return valid result for undefined or null utm', () => {
+      expect(validateUtmParams(undefined)).toEqual({
+        isValid: true,
+        validKeys: [],
+        invalidKeys: [],
+      });
+      expect(validateUtmParams(null as any)).toEqual({
+        isValid: true,
+        validKeys: [],
+        invalidKeys: [],
+      });
     });
 
-    it('should return true for empty object', () => {
-      expect(validateUtmParams({})).toBe(true);
+    it('should return valid result for empty object', () => {
+      expect(validateUtmParams({})).toEqual({ isValid: true, validKeys: [], invalidKeys: [] });
     });
 
-    it('should return false for non-object types', () => {
-      expect(validateUtmParams('string' as any)).toBe(false);
-      expect(validateUtmParams(123 as any)).toBe(false);
-      expect(validateUtmParams(true as any)).toBe(false);
-      expect(validateUtmParams([] as any)).toBe(false);
+    it('should return invalid result for non-object types', () => {
+      expect(validateUtmParams('string' as any)).toEqual({
+        isValid: false,
+        validKeys: [],
+        invalidKeys: ['_structure'],
+      });
+      expect(validateUtmParams(123 as any)).toEqual({
+        isValid: false,
+        validKeys: [],
+        invalidKeys: ['_structure'],
+      });
+      expect(validateUtmParams(true as any)).toEqual({
+        isValid: false,
+        validKeys: [],
+        invalidKeys: ['_structure'],
+      });
+      expect(validateUtmParams([] as any)).toEqual({
+        isValid: false,
+        validKeys: [],
+        invalidKeys: ['_structure'],
+      });
     });
 
-    it('should return false for invalid UTM keys', () => {
-      expect(validateUtmParams({ invalidKey: 'value' } as any)).toBe(false);
-      expect(validateUtmParams({ source: 'google', invalidKey: 'value' } as any)).toBe(false);
+    it('should identify invalid UTM keys', () => {
+      const result1 = validateUtmParams({ invalidKey: 'value' } as any);
+      expect(result1.isValid).toBe(false);
+      expect(result1.invalidKeys).toContain('invalidKey');
+      expect(result1.validKeys).toEqual([]);
+
+      const result2 = validateUtmParams({ source: 'google', invalidKey: 'value' } as any);
+      expect(result2.isValid).toBe(false);
+      expect(result2.invalidKeys).toContain('invalidKey');
+      expect(result2.validKeys).toContain('source');
     });
 
-    it('should return true for valid UTM keys', () => {
-      expect(validateUtmParams({ source: 'google' })).toBe(true);
-      expect(validateUtmParams({ medium: 'cpc' })).toBe(true);
-      expect(validateUtmParams({ campaign: 'spring_2025' })).toBe(true);
-      expect(validateUtmParams({ content: 'ad_variant_a' })).toBe(true);
-      expect(validateUtmParams({ term: 'error_tracker' })).toBe(true);
+    it('should return valid result for valid UTM keys', () => {
+      const result1 = validateUtmParams({ source: 'google' });
+      expect(result1.isValid).toBe(true);
+      expect(result1.validKeys).toContain('source');
+      expect(result1.invalidKeys).toEqual([]);
+
+      const result2 = validateUtmParams({ medium: 'cpc' });
+      expect(result2.isValid).toBe(true);
+      expect(result2.validKeys).toContain('medium');
     });
 
-    it('should return true for multiple valid UTM keys', () => {
+    it('should validate multiple UTM keys correctly', () => {
       const validUtm = {
         source: 'google',
         medium: 'cpc',
@@ -39,47 +73,73 @@ describe('UTM Utils', () => {
         content: 'ad_variant_a',
         term: 'error_tracker',
       };
-      expect(validateUtmParams(validUtm)).toBe(true);
+      const result = validateUtmParams(validUtm);
+      expect(result.isValid).toBe(true);
+      expect(result.validKeys).toEqual(['source', 'medium', 'campaign', 'content', 'term']);
+      expect(result.invalidKeys).toEqual([]);
     });
 
-    it('should return false for non-string values', () => {
-      expect(validateUtmParams({ source: 123 } as any)).toBe(false);
-      expect(validateUtmParams({ source: true } as any)).toBe(false);
-      expect(validateUtmParams({ source: {} } as any)).toBe(false);
-      expect(validateUtmParams({ source: [] } as any)).toBe(false);
+    it('should identify non-string values as invalid', () => {
+      const result1 = validateUtmParams({ source: 123 } as any);
+      expect(result1.isValid).toBe(false);
+      expect(result1.invalidKeys).toContain('source');
+
+      const result2 = validateUtmParams({ source: 'google', medium: true } as any);
+      expect(result2.isValid).toBe(false);
+      expect(result2.validKeys).toContain('source');
+      expect(result2.invalidKeys).toContain('medium');
     });
 
-    it('should return false for empty string values', () => {
-      expect(validateUtmParams({ source: '' })).toBe(false);
+    it('should identify empty string values as invalid', () => {
+      const result = validateUtmParams({ source: '' });
+      expect(result.isValid).toBe(false);
+      expect(result.invalidKeys).toContain('source');
     });
 
-    it('should return false for values that are too long', () => {
+    it('should identify values that are too long as invalid', () => {
       const longValue = 'a'.repeat(201);
-      expect(validateUtmParams({ source: longValue })).toBe(false);
+      const result = validateUtmParams({ source: longValue });
+      expect(result.isValid).toBe(false);
+      expect(result.invalidKeys).toContain('source');
     });
 
-    it('should return true for values at maximum length', () => {
+    it('should accept values at maximum length', () => {
       const maxLengthValue = 'a'.repeat(200);
-      expect(validateUtmParams({ source: maxLengthValue })).toBe(true);
+      const result = validateUtmParams({ source: maxLengthValue });
+      expect(result.isValid).toBe(true);
+      expect(result.validKeys).toContain('source');
     });
 
-    it('should return false for values with invalid characters', () => {
-      expect(validateUtmParams({ source: 'google@example' })).toBe(false);
-      expect(validateUtmParams({ source: 'google#hash' })).toBe(false);
-      expect(validateUtmParams({ source: 'google$money' })).toBe(false);
-      expect(validateUtmParams({ source: 'google%percent' })).toBe(false);
+    it('should identify values with invalid characters', () => {
+      const result = validateUtmParams({ source: 'google@example' });
+      expect(result.isValid).toBe(false);
+      expect(result.invalidKeys).toContain('source');
     });
 
-    it('should return true for values with valid characters', () => {
-      expect(validateUtmParams({ source: 'google-ads' })).toBe(true);
-      expect(validateUtmParams({ source: 'google_ads' })).toBe(true);
-      expect(validateUtmParams({ source: 'google.com' })).toBe(true);
-      expect(validateUtmParams({ source: 'Google Ads 123' })).toBe(true);
+    it('should accept values with valid characters', () => {
+      const result = validateUtmParams({ source: 'google-ads' });
+      expect(result.isValid).toBe(true);
+      expect(result.validKeys).toContain('source');
+    });
+
+    it('should handle mixed valid and invalid keys', () => {
+      const input = {
+        source: 'google',
+        medium: 'invalid@chars',
+        campaign: 'valid_campaign',
+        invalidKey: 'value',
+      } as any;
+      const result = validateUtmParams(input);
+      expect(result.isValid).toBe(false);
+      expect(result.validKeys).toEqual(['source', 'campaign']);
+      expect(result.invalidKeys).toEqual(['medium', 'invalidKey']);
     });
 
     it('should handle undefined and null values in object', () => {
-      expect(validateUtmParams({ source: 'google', medium: undefined })).toBe(true);
-      expect(validateUtmParams({ source: 'google', medium: null as any })).toBe(true);
+      const result = validateUtmParams({ source: 'google', medium: undefined });
+      expect(result.isValid).toBe(true);
+      expect(result.validKeys).toContain('source');
+      expect(result.validKeys).toContain('medium');
     });
   });
 
