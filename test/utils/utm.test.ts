@@ -2,20 +2,20 @@ import { validateUtmParams } from '../../src/utils/utm/utm';
 
 describe('UTM Utils', () => {
   describe('validateUtmParams', () => {
-    it('should return empty object for undefined or null utm', () => {
-      expect(validateUtmParams(undefined)).toEqual({});
-      expect(validateUtmParams(null as any)).toEqual({});
+    it('should return undefined for undefined or null utm', () => {
+      expect(validateUtmParams(undefined)).toBeUndefined();
+      expect(validateUtmParams(null as any)).toBeUndefined();
     });
 
     it('should return empty object for empty object', () => {
       expect(validateUtmParams({})).toEqual({});
     });
 
-    it('should return empty object for non-object types', () => {
-      expect(validateUtmParams('string' as any)).toEqual({});
-      expect(validateUtmParams(123 as any)).toEqual({});
-      expect(validateUtmParams(true as any)).toEqual({});
-      expect(validateUtmParams([] as any)).toEqual({});
+    it('should return undefined for non-object types', () => {
+      expect(validateUtmParams('string' as any)).toBeUndefined();
+      expect(validateUtmParams(123 as any)).toBeUndefined();
+      expect(validateUtmParams(true as any)).toBeUndefined();
+      expect(validateUtmParams([] as any)).toBeUndefined();
     });
 
     it('should filter out invalid UTM keys', () => {
