@@ -139,7 +139,8 @@ describe('UTM Utils', () => {
       const result = validateUtmParams({ source: 'google', medium: undefined });
       expect(result.isValid).toBe(true);
       expect(result.validKeys).toContain('source');
-      expect(result.validKeys).toContain('medium');
+      expect(result.validKeys).toEqual(['source', 'medium']); // undefined values are treated as valid (skipped)
+      expect(result.invalidKeys).toEqual([]);
     });
   });
 
