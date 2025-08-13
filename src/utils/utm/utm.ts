@@ -33,19 +33,31 @@ export function validateUtmParams(utm: UserDBScheme['utm']): {
   invalidKeys: string[];
 } {
   if (!utm) {
-    return { isValid: true, validKeys: [], invalidKeys: [] };
+    return {
+      isValid: true,
+      validKeys: [],
+      invalidKeys: [],
+    };
   }
 
   // Check if utm is an object
   if (typeof utm !== 'object' || Array.isArray(utm)) {
-    return { isValid: false, validKeys: [], invalidKeys: ['_structure'] };
+    return {
+      isValid: false,
+      validKeys: [],
+      invalidKeys: ['_structure'],
+    };
   }
 
   const providedKeys = Object.keys(utm);
 
   // Check if utm object is not empty
   if (providedKeys.length === 0) {
-    return { isValid: true, validKeys: [], invalidKeys: [] };
+    return {
+      isValid: true,
+      validKeys: [],
+      invalidKeys: [],
+    };
   }
 
   const validKeys: string[] = [];
