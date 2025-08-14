@@ -554,7 +554,7 @@ class EventsFactory extends Factory {
   /**
    * Get a release from corresponding to this event
    *
-   * @param {string} groupHash - hash of event to get the release
+   * @param {string} eventId - id of event to get the release
    * @returns {Release|null}
    */
   async getEventRelease(eventId) {
@@ -641,7 +641,7 @@ class EventsFactory extends Factory {
   /**
    * Mark or unmark event as Resolved, Ignored or Starred
    *
-   * @param {string|ObjectId} groupHash - event to mark
+   * @param {string|ObjectId} eventId - event to mark
    * @param {string} mark - mark label
    *
    * @return {Promise<void>}

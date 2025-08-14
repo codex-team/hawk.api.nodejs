@@ -128,7 +128,7 @@ module.exports = {
      *
      * @param {ResolverObj} _obj - resolver context
      * @param {string} project - project id
-     * @param {string} groupHash - event id
+     * @param {string} id - event id
      * @param {string} mark - mark to set
      * @return {Promise<boolean>}
      */

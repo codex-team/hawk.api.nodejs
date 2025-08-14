@@ -339,7 +339,7 @@ input UpdateAssigneeInput {
   projectId: ID!
 
   """
-  Event id
+  ID of the selected event
   """
   eventId: ID!
 
