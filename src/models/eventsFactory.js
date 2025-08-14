@@ -558,7 +558,7 @@ class EventsFactory extends Factory {
    * @returns {Release|null}
    */
   async getEventRelease(eventId) {
-    const eventOriginal = await this.getCollection(this.TYPES.EVENTS)
+    let eventOriginal = await this.getCollection(this.TYPES.EVENTS)
       .findOne({
         _id: new ObjectID(eventId),
       });
@@ -650,8 +650,7 @@ class EventsFactory extends Factory {
     const collection = this.getCollection(this.TYPES.EVENTS);
     const query = { _id: new ObjectID(eventId) };
 
-    const event = await collection.findOne(query);
-
+    let event = await collection.findOne(query);
 
     /**
      * If event is not found, try to find it as repetition
@@ -723,7 +722,7 @@ class EventsFactory extends Factory {
     const collection = this.getCollection(this.TYPES.EVENTS);
     const query = { _id: new ObjectID(eventId) };
 
-    const event = await collection.findOne(query);
+    let event = await collection.findOne(query);
 
     /**
      * If event is not found, try to find it as repetition
