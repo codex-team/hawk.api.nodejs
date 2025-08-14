@@ -196,6 +196,14 @@ type EventMarks {
 }
 
 """
+Object returned in repetitions property of event object
+"""
+type RepetitionsResponse {
+  repetitions: [Event!]
+  cursor: String
+}
+
+"""
 Type representing Hawk single Event
 """
 type Event {
@@ -235,6 +243,11 @@ type Event {
   timestamp: Float!
 
   """
+  Event first appearance timestamp
+  """
+  firstAppearanceTimestamp: Float!
+
+  """
   Release data
   """
   release: Release
@@ -242,7 +255,7 @@ type Event {
   """
   Event repetitions
   """
-  repetitions(cursor: ID = null, limit: Int = 10): [Event!]
+  repetitions(cursor: String = null, limit: Int = 10): RepetitionsResponse!
 
   """
   Array of users who visited event
@@ -401,8 +414,15 @@ extend type Mutation {
   Mutation marks event as visited for current user
   """
   visitEvent(
-    project: ID!
-    id: ID!
+    """
+    ID of project event is related to
+    """
+    projectId: ID!
+
+    """
+    ID of the event to visit
+    """
+    eventId: ID!
   ): Boolean! @requireAuth
 
   """

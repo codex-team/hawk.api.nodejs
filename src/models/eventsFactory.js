@@ -288,6 +288,7 @@ class EventsFactory extends Factory {
     if (result && result.events) {
       result.events.forEach(event => {
         event.projectId = this.projectId;
+        event.firstAppearanceTimestamp = event.timestamp;
       });
     }
 
@@ -400,14 +401,14 @@ class EventsFactory extends Factory {
    *
    * @todo move to Repetitions(?) model
    */
-  async getEventRepetitions(eventId, limit = 10, cursor = undefined) {
+  async getEventRepetitions(eventId, limit = 10, cursor = null) {
     limit = this.validateLimit(limit);
 
-    cursor = cursor ? new ObjectID(cursor) : undefined;
+    cursor = cursor ? new ObjectID(cursor) : null;
 
     const result = {
       repetitions: [],
-      cursor: undefined,
+      cursor: null,
     };
 
     /**
@@ -449,7 +450,7 @@ class EventsFactory extends Factory {
     const repetitions = await this.getCollection(this.TYPES.REPETITIONS)
       .find({
         groupHash: eventOriginal.groupHash,
-        _id: cursor ? { $lte: cursor } : {},
+        _id: cursor ? { $lte: cursor } : { $exists: true },
       })
       .sort({ _id: -1 })
       .limit(limit + 1)
@@ -466,10 +467,11 @@ class EventsFactory extends Factory {
         payload: composeFullRepetitionEvent(eventOriginal, repetition).payload,
         timestamp: repetition.timestamp,
         firstAppearanceTimestamp: eventOriginal.timestamp,
+        projectId: this.projectId,
       });
     }
 
-    const isLastPortion = repetitions.length < limit;
+    const isLastPortion = result.cursor === null;
 
     /**
      * For last portion:
@@ -483,6 +485,7 @@ class EventsFactory extends Factory {
       const firstRepetition = {
         ...eventOriginal,
         firstAppearanceTimestamp: eventOriginal.timestamp,
+        projectId: this.projectId,
       };
 
       result.repetitions.push(firstRepetition);
@@ -521,7 +524,10 @@ class EventsFactory extends Factory {
       };
     }
 
-    const originalEvent = await this.findById(repetition.eventId);
+    const originalEvent = await this.getCollection(this.TYPES.EVENTS)
+      .findOne({
+        groupHash: repetition.groupHash,
+      });
 
     if (!originalEvent) {
       return null;
@@ -578,7 +584,7 @@ class EventsFactory extends Factory {
 
       eventOriginal = await this.getCollection(this.TYPES.EVENTS)
         .findOne({
-          _id: repetition.eventId,
+          groupHash: repetition.groupHash,
         });
 
       if (!eventOriginal) {
@@ -623,7 +629,7 @@ class EventsFactory extends Factory {
 
       event = await this.getCollection(this.TYPES.EVENTS)
         .findOne({
-          _id: repetition.eventId,
+          groupHash: repetition.groupHash,
         });
 
       if (!event) {
@@ -664,10 +670,10 @@ class EventsFactory extends Factory {
       if (repetition) {
         event = await this.getCollection(this.TYPES.EVENTS)
           .findOne({
-            _id: repetition.eventId,
+            groupHash: repetition.groupHash,
           });
 
-        query._id = new ObjectID(repetition.eventId);
+        query._id = new ObjectID(event._id);
       }
     }
 
@@ -736,10 +742,10 @@ class EventsFactory extends Factory {
       if (repetition) {
         event = await this.getCollection(this.TYPES.EVENTS)
           .findOne({
-            _id: repetition.eventId,
+            groupHash: repetition.groupHash,
           });
 
-        query._id = new ObjectID(repetition.eventId);
+        query._id = new ObjectID(event._id);
       }
     }
 
