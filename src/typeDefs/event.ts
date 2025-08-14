@@ -242,7 +242,7 @@ type Event {
   """
   Event repetitions
   """
-  repetitions(cursor: ID = undefined, limit: Int = 10): [Event!]
+  repetitions(cursor: ID = null, limit: Int = 10): [Event!]
 
   """
   Array of users who visited event
@@ -339,9 +339,9 @@ input UpdateAssigneeInput {
   projectId: ID!
 
   """
-  Event group hash
+  Event id
   """
-  groupHash: ID!
+  eventId: ID!
 
   """
   Assignee id to set
@@ -370,7 +370,7 @@ input RemoveAssigneeInput {
   """
   ID of the selected event
   """
-  groupHash: ID!
+  eventId: ID!
 }
 
 type RemoveAssigneeResponse {
@@ -415,9 +415,9 @@ extend type Mutation {
     project: ID!
 
     """
-    Event group hash
+    EvenID of the event to set the mark
     """
-    groupHash: ID!
+    eventId: ID!
 
     """
     Mark to set

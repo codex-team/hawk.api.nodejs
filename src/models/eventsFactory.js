@@ -392,7 +392,7 @@ class EventsFactory extends Factory {
   /**
    * Returns Event repetitions
    *
-   * @param {string|ObjectID} groupHash - Event's group hash
+   * @param {string|ObjectID} eventId - Event's id (may be repetition id)
    * @param {Number} limit - count limitations
    * @param {Number} cursor - selection offset
    *
@@ -400,7 +400,7 @@ class EventsFactory extends Factory {
    *
    * @todo move to Repetitions(?) model
    */
-  async getEventRepetitionsByGroupHash(groupHash, limit = 10, cursor = undefined) {
+  async getEventRepetitions(eventId, limit = 10, cursor = undefined) {
     limit = this.validateLimit(limit);
 
     cursor = cursor ? new ObjectID(cursor) : undefined;
@@ -414,10 +414,29 @@ class EventsFactory extends Factory {
      * Get original event
      * @type {EventSchema}
      */
-    const eventOriginal = await this.getCollection(this.TYPES.EVENTS)
+    let eventOriginal = await this.getCollection(this.TYPES.EVENTS)
       .findOne({
-        groupHash: groupHash,
+        _id: new ObjectID(eventId),
       });
+
+    /**
+     * If event is not found, try to find it as repetition
+     */
+    if (!eventOriginal) {
+      const repetition = await this.getCollection(this.TYPES.REPETITIONS)
+        .findOne({
+          _id: new ObjectID(eventId),
+        });
+
+      if (!repetition) {
+        return result;
+      }
+
+      eventOriginal = await this.getCollection(this.TYPES.EVENTS)
+        .findOne({
+          _id: repetition.eventId,
+        });
+    }
 
     if (!eventOriginal) {
       return result;
@@ -538,11 +557,34 @@ class EventsFactory extends Factory {
    * @param {string} groupHash - hash of event to get the release
    * @returns {Release|null}
    */
-  async getEventRelease(groupHash) {
+  async getEventRelease(eventId) {
     const eventOriginal = await this.getCollection(this.TYPES.EVENTS)
       .findOne({
-        groupHash: groupHash,
+        _id: new ObjectID(eventId),
       });
+
+    /**
+     * If event is not found, try to find it as repetition
+     */
+    if (!eventOriginal) {
+      const repetition = await this.getCollection(this.TYPES.REPETITIONS)
+        .findOne({
+          _id: new ObjectID(eventId),
+        });
+
+      if (!repetition) {
+        return null;
+      }
+
+      eventOriginal = await this.getCollection(this.TYPES.EVENTS)
+        .findOne({
+          _id: repetition.eventId,
+        });
+
+      if (!eventOriginal) {
+        return null;
+      }
+    }
 
     const release = await mongo.databases.events.collection(this.TYPES.RELEASES).findOne({
       release: eventOriginal.payload.release,
@@ -555,15 +597,43 @@ class EventsFactory extends Factory {
   /**
    * Mark event as visited for passed user
    *
-   * @param {string|ObjectId} groupHash
+   * @param {string|ObjectId} eventId
    * @param {string|ObjectId} userId
    *
    * @return {Promise<void>}
    */
-  async visitEvent(groupHash, userId) {
+  async visitEvent(eventId, userId) {
+    let event = await this.getCollection(this.TYPES.EVENTS)
+      .findOne({
+        _id: new ObjectID(eventId),
+      });
+
+    /**
+     * If event is not found, try to find it as repetition
+     */
+    if (!event) {
+      const repetition = await this.getCollection(this.TYPES.REPETITIONS)
+        .findOne({
+          _id: new ObjectID(eventId),
+        });
+
+      if (!repetition) {
+        return null;
+      }
+
+      event = await this.getCollection(this.TYPES.EVENTS)
+        .findOne({
+          _id: repetition.eventId,
+        });
+
+      if (!event) {
+        return null;
+      }
+    }
+
     return this.getCollection(this.TYPES.EVENTS)
       .updateOne(
-        { groupHash: groupHash },
+        { _id: new ObjectID(eventId) },
         { $addToSet: { visitedBy: new ObjectID(userId) } }
       );
   }
@@ -576,11 +646,32 @@ class EventsFactory extends Factory {
    *
    * @return {Promise<void>}
    */
-  async toggleEventMark(groupHash, mark) {
+  async toggleEventMark(eventId, mark) {
     const collection = this.getCollection(this.TYPES.EVENTS);
-    const query = { groupHash: groupHash };
+    const query = { _id: new ObjectID(eventId) };
 
     const event = await collection.findOne(query);
+
+
+    /**
+     * If event is not found, try to find it as repetition
+     */
+    if (!event) {
+      const repetition = await this.getCollection(this.TYPES.REPETITIONS)
+        .findOne({
+          _id: new ObjectID(eventId),
+        });
+
+      if (repetition) {
+        event = await this.getCollection(this.TYPES.EVENTS)
+          .findOne({
+            _id: repetition.eventId,
+          });
+
+        query._id = new ObjectID(repetition.eventId);
+      }
+    }
+
     const markKey = `marks.${mark}`;
 
     let update;
@@ -624,13 +715,35 @@ class EventsFactory extends Factory {
   /**
    * Update assignee to selected event
    *
-   * @param {string} groupHash - event id
+   * @param {string} eventId - event id
    * @param {string} assignee - assignee id for this event
    * @return {Promise<void>}
    */
-  async updateAssignee(groupHash, assignee) {
+  async updateAssignee(eventId, assignee) {
     const collection = this.getCollection(this.TYPES.EVENTS);
-    const query = { groupHash: groupHash };
+    const query = { _id: new ObjectID(eventId) };
+
+    const event = await collection.findOne(query);
+
+    /**
+     * If event is not found, try to find it as repetition
+     */
+    if (!event) {
+      const repetition = await this.getCollection(this.TYPES.REPETITIONS)
+        .findOne({
+          _id: new ObjectID(eventId),
+        });
+
+      if (repetition) {
+        event = await this.getCollection(this.TYPES.EVENTS)
+          .findOne({
+            _id: repetition.eventId,
+          });
+
+        query._id = new ObjectID(repetition.eventId);
+      }
+    }
+
     const update = {
       $set: { assignee: assignee },
     };

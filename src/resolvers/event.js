@@ -26,14 +26,14 @@ module.exports = {
      * @param {String} eventId
      * @param {String} projectId
      * @param {Number} limit
-     * @param {Number} skip
+     * @param {Number} cursor
      *
      * @return {EventRepetitionSchema[]}
      */
-    async repetitions({ groupHash, projectId }, { limit, skip }) {
+    async repetitions({ _id: eventId, projectId }, { limit, cursor }) {
       const factory = new EventsFactory(projectId);
 
-      return factory.getEventRepetitions(groupHash, limit, skip);
+      return factory.getEventRepetitions(eventId, limit, cursor);
     },
 
     /**
@@ -98,9 +98,9 @@ module.exports = {
      * @param {String} eventId - event id
      * @returns {Promise<Release>}
      */
-    async release({ projectId, groupHash }) {
+    async release({ projectId, id: eventId }) {
       const factory = new EventsFactory(new ObjectID(projectId));
-      const release = await factory.getEventRelease(groupHash);
+      const release = await factory.getEventRelease(eventId);
 
       return release;
     },
@@ -115,10 +115,10 @@ module.exports = {
      * @param {UserInContext} user - user context
      * @return {Promise<boolean>}
      */
-    async visitEvent(_obj, { project, groupHash }, { user }) {
+    async visitEvent(_obj, { project, id }, { user }) {
       const factory = new EventsFactory(project);
 
-      const { result } = await factory.visitEvent(groupHash, user.id);
+      const { result } = await factory.visitEvent(id, user.id);
 
       return !!result.ok;
     },
@@ -132,10 +132,10 @@ module.exports = {
      * @param {string} mark - mark to set
      * @return {Promise<boolean>}
      */
-    async toggleEventMark(_obj, { project, groupHash, mark }) {
+    async toggleEventMark(_obj, { project, eventId, mark }) {
       const factory = new EventsFactory(project);
 
-      const { result } = await factory.toggleEventMark(groupHash, mark);
+      const { result } = await factory.toggleEventMark(eventId, mark);
 
       return !!result.ok;
     },
@@ -157,7 +157,7 @@ module.exports = {
      * @return {Promise<boolean>}
      */
     async updateAssignee(_obj, { input }, { factories, user }) {
-      const { projectId, groupHash, assignee } = input;
+      const { projectId, eventId, assignee } = input;
       const factory = new EventsFactory(projectId);
 
       const userExists = await factories.usersFactory.findById(assignee);
@@ -179,7 +179,7 @@ module.exports = {
         };
       }
 
-      const { result } = await factory.updateAssignee(groupHash, assignee);
+      const { result } = await factory.updateAssignee(eventId, assignee);
 
       const assigneeData = await factories.usersFactory.dataLoaders.userById.load(assignee);
 
@@ -189,7 +189,7 @@ module.exports = {
           assigneeId: assignee,
           projectId,
           whoAssignedId: user.id,
-          groupHash,
+          eventId,
         },
       });
 
@@ -208,10 +208,10 @@ module.exports = {
      * @return {Promise<boolean>}
      */
     async removeAssignee(_obj, { input }) {
-      const { projectId, groupHash } = input;
+      const { projectId, eventId } = input;
       const factory = new EventsFactory(projectId);
 
-      const { result } = await factory.updateAssignee(groupHash, '');
+      const { result } = await factory.updateAssignee(eventId, '');
 
       return {
         success: !!result.ok,
