@@ -1,9 +1,9 @@
-import { composeFullRepetitionEvent } from '../../src/utils/merge';
+import { composeEventPayloadWithRepetition } from '../../src/utils/merge';
 import { GroupedEventDBScheme, RepetitionDBScheme } from '@hawk.so/types';
 
 import { diff } from '@n1ru4l/json-patch-plus';
 
-describe('composeFullRepetitionEvent', () => {
+describe('composeEventPayloadWithRepetition', () => {
     const mockOriginalEvent: GroupedEventDBScheme = {
         groupHash: 'original-event-1',
         totalCount: 1,
@@ -33,14 +33,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result).toEqual(mockOriginalEvent);
-            expect(result).toMatchObject(mockOriginalEvent);
-            expect(result.payload).toMatchObject(mockOriginalEvent.payload);
+            expect(result).toMatchObject(mockOriginalEvent.payload);
         });
     });
 
@@ -67,12 +65,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'Updated message',
                 type: 'warning',
                 addons: JSON.stringify({ userId: 123 }),
@@ -102,12 +100,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'Original message',
                 type: 'error',
                 release: 'v1.0.0',
@@ -133,13 +131,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result).toEqual(mockOriginalEvent);
-            expect(result).not.toBe(mockOriginalEvent); // Должна быть глубокая копия
+            expect(result).toEqual(mockOriginalEvent.payload);
         });
     });
 
@@ -162,12 +159,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'Updated message',
                 type: 'warning',
                 release: 'v1.0.0',
@@ -194,12 +191,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'Updated title', // repetition value replaces original
                 type: 'info',
                 // Addons and context should be, because old format doesn't remove fields
@@ -225,12 +222,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'Original message', // null в repetition должно сохранить оригинальное значение
                 type: 'info',
                 addons: JSON.stringify({ userId: 123 }),
@@ -273,12 +270,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(eventWithEmptyPayload, repetition);
+            const result = composeEventPayloadWithRepetition(eventWithEmptyPayload.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'New message',
             });
         });
@@ -313,12 +310,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(eventWithNullPayload, repetition);
+            const result = composeEventPayloadWithRepetition(eventWithNullPayload.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'New message',
             });
         });
@@ -359,7 +356,7 @@ describe('composeFullRepetitionEvent', () => {
              * Act & Assert
              */
             expect(() => {
-                composeFullRepetitionEvent(eventWithInvalidJSON, repetition);
+                composeEventPayloadWithRepetition(eventWithInvalidJSON.payload, repetition);
             }).toThrow(); // Должно выбросить ошибку при парсинге невалидного JSON
         });
     });

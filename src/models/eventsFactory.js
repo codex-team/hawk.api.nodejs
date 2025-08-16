@@ -6,7 +6,7 @@ const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
-const { composeFullRepetitionEvent } = require('../utils/merge');
+const { composeEventPayloadWithRepetition } = require('../utils/merge');
 
 /**
  * @typedef {Object} RecentEventSchema
@@ -408,36 +408,14 @@ class EventsFactory extends Factory {
 
     const result = {
       repetitions: [],
-      cursor: null,
+      nextCursor: null,
     };
 
     /**
      * Get original event
      * @type {EventSchema}
      */
-    let eventOriginal = await this.getCollection(this.TYPES.EVENTS)
-      .findOne({
-        _id: new ObjectID(eventId),
-      });
-
-    /**
-     * If event is not found, try to find it as repetition
-     */
-    if (!eventOriginal) {
-      const repetition = await this.getCollection(this.TYPES.REPETITIONS)
-        .findOne({
-          _id: new ObjectID(eventId),
-        });
-
-      if (!repetition) {
-        return result;
-      }
-
-      eventOriginal = await this.getCollection(this.TYPES.EVENTS)
-        .findOne({
-          groupHash: repetition.groupHash,
-        });
-    }
+    const eventOriginal = await this._findOriginalEvent(eventId);
 
     if (!eventOriginal) {
       return result;
@@ -457,21 +435,19 @@ class EventsFactory extends Factory {
       .toArray();
 
     if (repetitions.length === limit + 1) {
-      result.cursor = repetitions.pop()._id;
+      result.nextCursor = repetitions.pop()._id;
     }
 
     for (const repetition of repetitions) {
+      const event = this._composeEventWithRepetition(eventOriginal, repetition);
+
       result.repetitions.push({
-        ...eventOriginal,
-        _id: repetition._id,
-        payload: composeFullRepetitionEvent(eventOriginal, repetition).payload,
-        timestamp: repetition.timestamp,
-        firstAppearanceTimestamp: eventOriginal.timestamp,
+        ...event,
         projectId: this.projectId,
       });
     }
 
-    const isLastPortion = result.cursor === null;
+    const isLastPortion = result.nextCursor === null;
 
     /**
      * For last portion:
@@ -514,14 +490,10 @@ class EventsFactory extends Factory {
        */
       const event = await this.findById(repetitionId);
 
-      if (!event) {
-        return null;
-      }
-
-      return {
+      return event ? {
         ...event,
         firstAppearanceTimestamp: event.timestamp,
-      };
+      } : null;
     }
 
     const originalEvent = await this.getCollection(this.TYPES.EVENTS)
@@ -533,13 +505,7 @@ class EventsFactory extends Factory {
       return null;
     }
 
-    return {
-      ...originalEvent,
-      _id: repetition._id,
-      payload: composeFullRepetitionEvent(originalEvent, repetition).payload,
-      timestamp: repetition.timestamp,
-      firstAppearanceTimestamp: originalEvent.timestamp,
-    };
+    return this._composeEventWithRepetition(originalEvent, repetition);
   }
 
   /**
@@ -564,32 +530,10 @@ class EventsFactory extends Factory {
    * @returns {Release|null}
    */
   async getEventRelease(eventId) {
-    let eventOriginal = await this.getCollection(this.TYPES.EVENTS)
-      .findOne({
-        _id: new ObjectID(eventId),
-      });
+    const eventOriginal = await this._findOriginalEvent(eventId);
 
-    /**
-     * If event is not found, try to find it as repetition
-     */
     if (!eventOriginal) {
-      const repetition = await this.getCollection(this.TYPES.REPETITIONS)
-        .findOne({
-          _id: new ObjectID(eventId),
-        });
-
-      if (!repetition) {
-        return null;
-      }
-
-      eventOriginal = await this.getCollection(this.TYPES.EVENTS)
-        .findOne({
-          groupHash: repetition.groupHash,
-        });
-
-      if (!eventOriginal) {
-        return null;
-      }
+      return null;
     }
 
     const release = await mongo.databases.events.collection(this.TYPES.RELEASES).findOne({
@@ -609,37 +553,15 @@ class EventsFactory extends Factory {
    * @return {Promise<void>}
    */
   async visitEvent(eventId, userId) {
-    let event = await this.getCollection(this.TYPES.EVENTS)
-      .findOne({
-        _id: new ObjectID(eventId),
-      });
+    const event = await this._findOriginalEvent(eventId);
 
-    /**
-     * If event is not found, try to find it as repetition
-     */
     if (!event) {
-      const repetition = await this.getCollection(this.TYPES.REPETITIONS)
-        .findOne({
-          _id: new ObjectID(eventId),
-        });
-
-      if (!repetition) {
-        return null;
-      }
-
-      event = await this.getCollection(this.TYPES.EVENTS)
-        .findOne({
-          groupHash: repetition.groupHash,
-        });
-
-      if (!event) {
-        return null;
-      }
+      return null;
     }
 
     return this.getCollection(this.TYPES.EVENTS)
       .updateOne(
-        { _id: new ObjectID(eventId) },
+        { _id: new ObjectID(event._id) },
         { $addToSet: { visitedBy: new ObjectID(userId) } }
       );
   }
@@ -654,28 +576,14 @@ class EventsFactory extends Factory {
    */
   async toggleEventMark(eventId, mark) {
     const collection = this.getCollection(this.TYPES.EVENTS);
-    const query = { _id: new ObjectID(eventId) };
 
-    let event = await collection.findOne(query);
+    const event = await this._findOriginalEvent(eventId);
 
-    /**
-     * If event is not found, try to find it as repetition
-     */
     if (!event) {
-      const repetition = await this.getCollection(this.TYPES.REPETITIONS)
-        .findOne({
-          _id: new ObjectID(eventId),
-        });
-
-      if (repetition) {
-        event = await this.getCollection(this.TYPES.EVENTS)
-          .findOne({
-            groupHash: repetition.groupHash,
-          });
-
-        query._id = new ObjectID(event._id);
-      }
+      return null;
     }
+
+    const query = { _id: new ObjectID(event._id) };
 
     const markKey = `marks.${mark}`;
 
@@ -726,34 +634,72 @@ class EventsFactory extends Factory {
    */
   async updateAssignee(eventId, assignee) {
     const collection = this.getCollection(this.TYPES.EVENTS);
-    const query = { _id: new ObjectID(eventId) };
 
-    let event = await collection.findOne(query);
+    const event = await this._findOriginalEvent(eventId);
 
-    /**
-     * If event is not found, try to find it as repetition
-     */
     if (!event) {
-      const repetition = await this.getCollection(this.TYPES.REPETITIONS)
-        .findOne({
-          _id: new ObjectID(eventId),
-        });
-
-      if (repetition) {
-        event = await this.getCollection(this.TYPES.EVENTS)
-          .findOne({
-            groupHash: repetition.groupHash,
-          });
-
-        query._id = new ObjectID(event._id);
-      }
+      return null;
     }
+
+    const query = { _id: new ObjectID(event._id) };
 
     const update = {
       $set: { assignee: assignee },
     };
 
     return collection.updateOne(query, update);
+  }
+
+  /**
+   * Find original event by eventId. If event is not found directly,
+   * try to find it as repetition and get original event by groupHash
+   *
+   * @param {string|ObjectID} eventId - event's id, may be repetition id
+   * @returns {Promise<Event|null>} original event or null if not found
+   */
+  async _findOriginalEvent(eventId) {
+    let eventOriginal = await this.getCollection(this.TYPES.EVENTS)
+      .findOne({
+        _id: new ObjectID(eventId),
+      });
+
+    /**
+     * If event is not found, try to find it as repetition
+     */
+    if (!eventOriginal) {
+      const repetition = await this.getCollection(this.TYPES.REPETITIONS)
+        .findOne({
+          _id: new ObjectID(eventId),
+        });
+
+      if (!repetition) {
+        return null;
+      }
+
+      eventOriginal = await this.getCollection(this.TYPES.EVENTS)
+        .findOne({
+          groupHash: repetition.groupHash,
+        });
+    }
+
+    return eventOriginal;
+  }
+
+  /**
+   * Compose event with repetition
+   *
+   * @param {Event} event - event
+   * @param {Repetition} repetition - repetition
+   * @returns {Event} event merged with repetition
+   */
+  _composeEventWithRepetition(event, repetition) {
+    return {
+      ...event,
+      _id: repetition._id,
+      firstAppearanceTimestamp: event.timestamp,
+      timestamp: repetition.timestamp,
+      payload: composeEventPayloadWithRepetition(event.payload, repetition),
+    };
   }
 }
 

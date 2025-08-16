@@ -198,9 +198,9 @@ type EventMarks {
 """
 Object returned in repetitions property of event object
 """
-type RepetitionsResponse {
+type RepetitionsPortion {
   repetitions: [Event!]
-  cursor: String
+  nextCursor: String
 }
 
 """
@@ -255,7 +255,7 @@ type Event {
   """
   Event repetitions
   """
-  repetitions(cursor: String = null, limit: Int = 10): RepetitionsResponse!
+  repetitions(cursor: String = null, limit: Int = 10): RepetitionsPortion!
 
   """
   Array of users who visited event

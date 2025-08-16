@@ -71,22 +71,21 @@ function stringifyPayloadField(payload: GroupedEventDBScheme['payload'], field: 
 }
 
 /**
- * Helps to merge original event and repetition due to delta format,
+ * Helps to merge original event payload and repetition due to delta format,
  * in case of old delta format, we need to patch the payload
  * in case of new delta format, we need to assemble the payload
  *
- * @param originalEvent {HawkEvent} - The original event
- * @param repetition {HawkEventRepetition} - The repetition to process
- * @returns {HawkEvent} Updated event with processed repetition payload
+ * @param originalEventPayload {GroupedEventDBScheme['payload']} - The original event payload
+ * @param repetition {RepetitionDBScheme} - The repetition to process
+ * @returns {GroupedEventDBScheme['payload']} Updated event with processed repetition payload
  */
-export function composeFullRepetitionEvent(originalEvent: GroupedEventDBScheme, repetition: RepetitionDBScheme | undefined): GroupedEventDBScheme {
+export function composeEventPayloadWithRepetition(originalEventPayload: GroupedEventDBScheme['payload'], repetition: RepetitionDBScheme | undefined): GroupedEventDBScheme['payload'] {
   /**
    * Make a deep copy of the original event, because we need to avoid mutating the original event
    */
-  const event = cloneDeep(originalEvent);
 
   if (!repetition) {
-    return event;
+    return originalEventPayload;
   }
 
   /**
@@ -96,35 +95,35 @@ export function composeFullRepetitionEvent(originalEvent: GroupedEventDBScheme, 
     /**
      * Parse addons and context fields from string to object before patching
      */
-    event.payload = parsePayloadField(event.payload, 'addons');
-    event.payload = parsePayloadField(event.payload, 'context');
+    originalEventPayload = parsePayloadField(originalEventPayload, 'addons');
+    originalEventPayload = parsePayloadField(originalEventPayload, 'context');
 
-    event.payload = patch({
-      left: event.payload,
+    originalEventPayload = patch({
+      left: originalEventPayload,
       delta: JSON.parse(repetition.delta),
     });
 
     /**
      * Stringify addons and context fields from object to string after patching
      */
-    event.payload = stringifyPayloadField(event.payload, 'addons');
-    event.payload = stringifyPayloadField(event.payload, 'context');
+    originalEventPayload = stringifyPayloadField(originalEventPayload, 'addons');
+    originalEventPayload = stringifyPayloadField(originalEventPayload, 'context');
 
-    return event;
+    return originalEventPayload;
   }
 
   /**
    * New delta format (repetition.payload is null) and repetition.delta is null (there is no delta between original and repetition)
    */
   if (!repetition.payload) {
-    return event;
+    return originalEventPayload;
   }
 
   /**
    * Old delta format (repetition.payload is not null)
    * @todo remove after 6 september 2025
    */
-  event.payload = repetitionAssembler(event.payload, repetition.payload);
+  originalEventPayload = repetitionAssembler(originalEventPayload, repetition.payload);
 
-  return event;
+  return originalEventPayload;
 }
