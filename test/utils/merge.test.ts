@@ -1,9 +1,9 @@
-import { composeFullRepetitionEvent } from '../../src/utils/merge';
+import { composeEventPayloadWithRepetition } from '../../src/utils/merge';
 import { GroupedEventDBScheme, RepetitionDBScheme } from '@hawk.so/types';
 
 import { diff } from '@n1ru4l/json-patch-plus';
 
-describe('composeFullRepetitionEvent', () => {
+describe('composeEventPayloadWithRepetition', () => {
     const mockOriginalEvent: GroupedEventDBScheme = {
         groupHash: 'original-event-1',
         totalCount: 1,
@@ -33,14 +33,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result).toEqual(mockOriginalEvent);
-            expect(result).toMatchObject(mockOriginalEvent);
-            expect(result.payload).toMatchObject(mockOriginalEvent.payload);
+            expect(result).toMatchObject(mockOriginalEvent.payload);
         });
     });
 
@@ -67,12 +65,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'Updated message',
                 type: 'warning',
                 addons: JSON.stringify({ userId: 123 }),
@@ -81,13 +79,20 @@ describe('composeFullRepetitionEvent', () => {
         });
 
         it('should handle delta with new fields', () => {
+
+            const originalEventPayload = {
+                title: 'Original message',
+                type: 'error',
+                addons: JSON.stringify({ userId: 123 }),
+                context: JSON.stringify({ sessionId: 'abc' }),
+            };
             /**
              * Arrange
              */
             const delta = diff({
-                left: mockOriginalEvent.payload,
+                left: originalEventPayload,
                 right: {
-                    ...mockOriginalEvent.payload,
+                    ...originalEventPayload,
                     release: 'v1.0.0',
                     catcherVersion: '2.0.0',
                 },
@@ -102,12 +107,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(originalEventPayload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'Original message',
                 type: 'error',
                 release: 'v1.0.0',
@@ -133,17 +138,24 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result).toEqual(mockOriginalEvent);
-            expect(result).not.toBe(mockOriginalEvent); // Должна быть глубокая копия
+            expect(result).toEqual(mockOriginalEvent.payload);
         });
     });
 
     describe('when repetition.delta is undefined and repetition.payload is provided (old delta format)', () => {
+
+        const originalEventPayload = {
+            title: 'Original message',
+            type: 'error',
+            addons: JSON.stringify({ userId: 123 }),
+            context: JSON.stringify({ sessionId: 'abc' }),
+        };
+
         it('should use repetitionAssembler to merge payloads', () => {
             /**
              * Arrange
@@ -162,12 +174,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(originalEventPayload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'Updated message',
                 type: 'warning',
                 release: 'v1.0.0',
@@ -178,6 +190,13 @@ describe('composeFullRepetitionEvent', () => {
         });
 
         it('should handle null values in repetition payload', () => {
+
+            const originalEventPayload = {
+                title: 'Original message',
+                type: 'error',
+                addons: JSON.stringify({ userId: 123 }),
+                context: JSON.stringify({ sessionId: 'abc' }),
+            };
             /**
              * Arrange
              */
@@ -194,12 +213,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(originalEventPayload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'Updated title', // repetition value replaces original
                 type: 'info',
                 // Addons and context should be, because old format doesn't remove fields
@@ -209,6 +228,14 @@ describe('composeFullRepetitionEvent', () => {
         });
 
         it('should preserve original value when repetition payload has null', () => {
+
+            const originalEventPayload = {
+                title: 'Original message',
+                type: 'error',
+                addons: JSON.stringify({ userId: 123 }),
+                context: JSON.stringify({ sessionId: 'abc' }),
+            };
+
             /**
              * Arrange
              */
@@ -225,12 +252,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(mockOriginalEvent, repetition);
+            const result = composeEventPayloadWithRepetition(originalEventPayload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'Original message', // null в repetition должно сохранить оригинальное значение
                 type: 'info',
                 addons: JSON.stringify({ userId: 123 }),
@@ -273,12 +300,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(eventWithEmptyPayload, repetition);
+            const result = composeEventPayloadWithRepetition(eventWithEmptyPayload.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'New message',
             });
         });
@@ -313,12 +340,12 @@ describe('composeFullRepetitionEvent', () => {
             /**
              * Act
              */
-            const result = composeFullRepetitionEvent(eventWithNullPayload, repetition);
+            const result = composeEventPayloadWithRepetition(eventWithNullPayload.payload, repetition);
 
             /**
              * Assert
              */
-            expect(result.payload).toEqual({
+            expect(result).toEqual({
                 title: 'New message',
             });
         });
@@ -359,7 +386,7 @@ describe('composeFullRepetitionEvent', () => {
              * Act & Assert
              */
             expect(() => {
-                composeFullRepetitionEvent(eventWithInvalidJSON, repetition);
+                composeEventPayloadWithRepetition(eventWithInvalidJSON.payload, repetition);
             }).toThrow(); // Должно выбросить ошибку при парсинге невалидного JSON
         });
     });
