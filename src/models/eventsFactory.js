@@ -435,7 +435,7 @@ class EventsFactory extends Factory {
 
       eventOriginal = await this.getCollection(this.TYPES.EVENTS)
         .findOne({
-          _id: repetition.eventId,
+          groupHash: repetition.groupHash,
         });
     }
 
