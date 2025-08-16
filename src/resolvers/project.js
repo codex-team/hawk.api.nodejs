@@ -8,6 +8,7 @@ const EventsFactory = require('../models/eventsFactory');
 const ProjectToWorkspace = require('../models/projectToWorkspace');
 const { dateFromObjectId } = require('../utils/dates');
 const ProjectModel = require('../models/project').default;
+const { composeFullRepetitionEvent } = require('../utils/merge');
 
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
@@ -289,6 +290,7 @@ module.exports = {
      */
     async event(project, { id: eventId }) {
       const factory = new EventsFactory(project._id);
+
       const event = await factory.findById(eventId);
 
       if (!event) {
@@ -344,7 +346,7 @@ module.exports = {
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async dailyEventsPortion(project, { limit, skip, sort, filters, search }) {
+    async dailyEventsPortion(project, { limit, cursor, sort, filters, search }) {
       if (search) {
         if (search.length > MAX_SEARCH_QUERY_LENGTH) {
           search = search.slice(0, MAX_SEARCH_QUERY_LENGTH);
@@ -353,22 +355,29 @@ module.exports = {
 
       const factory = new EventsFactory(project._id);
 
-      // @todo - rename
-      const res = factory.findRecentDailyEventsWithEventAndRepetition(limit, skip, sort, filters, search);
+      const dailyEventsPortion = await factory.findRecentDailyEventsWithEventAndRepetition(limit, cursor, sort, filters, search);
 
-      res.forEach((dailyEvent) => {
+      dailyEventsPortion.dailyEvents.forEach((dailyEvent) => {
         const dailyEventLatestRepetition = dailyEvent.repetition;
         const dailyEventOriginalEvent = dailyEvent.event;
 
-        // wait for util implementation
-        // const mergedRepetition = merge(dailyEventOriginalEvent, dailyEventLatestRepetition);
+        const mergedRepetition = composeFullRepetitionEvent(dailyEventOriginalEvent, dailyEventLatestRepetition);
+        const stringifiedId = dailyEvent._id.toString();
+
+
         delete dailyEvent.repetition;
         delete dailyEvent.event;
-
-        // dailyEvent.event = mergedRepetition;
+        delete dailyEvent._id;
+        
+        dailyEvent.event = mergedRepetition;
+        dailyEvent.id = stringifiedId;
 
         return dailyEvent;
       })
+
+      console.log('daily events portion composed, ...[event]', dailyEventsPortion);
+
+      return dailyEventsPortion;
     },
 
     /**

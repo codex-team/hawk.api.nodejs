@@ -12,6 +12,47 @@ enum EventsSortOrder {
 }
 
 """
+Pagination cursor of events portion and list of daily events
+"""
+type DailyEventsPortion {
+  """
+  Cursor to the next portion of the events, null if there are no events left
+  """
+  nextCursor: String
+
+  """
+  Daily event information
+  """
+  dailyEvents: [DailyEvent]
+}
+
+"""
+Daily event information with event itself
+"""
+type DailyEvent {
+  """
+  ID of the daily event
+  """
+  id: ID!
+  """
+  Count of events in this day
+  """
+  count: Int!
+  """
+  Count of the users affected by this event in this day
+  """
+  affectedUsers: Int!
+  """
+  Timestamp of the event grouping
+  """
+  groupingTimestamp: Int!
+  """
+  Event itself
+  """
+  event: Event!
+}
+
+"""
 Events filters input type
 """
 input EventsFiltersInput {
@@ -128,6 +169,36 @@ type Project {
     "Search query"
     search: String
   ): RecentEvents
+  """
+  Portion of daily events
+  """
+  dailyEventsPortion(
+    """
+    Maximum number of results
+    """
+    limit: Int! = 50
+
+    """
+    Next Cursor to fetch next portion of events
+    """
+    nextCursor: String
+
+    """
+    Events sort order
+    """
+    sort: EventsSortOrder = lastRepetitionTime
+
+    """
+    Event marks by which events should be sorted
+    """
+    filters: EventsFiltersInput
+
+    """
+    Search query
+    """
+    search: String
+  ): DailyEventsPortion
+
   """
   Return events that occurred after a certain timestamp
   """

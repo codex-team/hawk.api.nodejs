@@ -199,6 +199,8 @@ class EventsFactory extends Factory {
             $gte: new ObjectID(paginationCursor),
           }
         } : {},
+      },
+      {
         $sort: {
           groupingTimestamp: -1,
           [sort]: -1,
@@ -296,9 +298,10 @@ class EventsFactory extends Factory {
       lastEvent = result.pop();
     }
 
+    
     return {
       nextCursor: lastEvent ? lastEvent._id.toString() : null,
-      ...result,
+      dailyEvents: result,
     };
   }
 
