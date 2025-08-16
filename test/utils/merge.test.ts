@@ -79,13 +79,20 @@ describe('composeEventPayloadWithRepetition', () => {
         });
 
         it('should handle delta with new fields', () => {
+
+            const originalEventPayload = {
+                title: 'Original message',
+                type: 'error',
+                addons: JSON.stringify({ userId: 123 }),
+                context: JSON.stringify({ sessionId: 'abc' }),
+            };
             /**
              * Arrange
              */
             const delta = diff({
-                left: mockOriginalEvent.payload,
+                left: originalEventPayload,
                 right: {
-                    ...mockOriginalEvent.payload,
+                    ...originalEventPayload,
                     release: 'v1.0.0',
                     catcherVersion: '2.0.0',
                 },
@@ -100,7 +107,7 @@ describe('composeEventPayloadWithRepetition', () => {
             /**
              * Act
              */
-            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
+            const result = composeEventPayloadWithRepetition(originalEventPayload, repetition);
 
             /**
              * Assert
@@ -141,6 +148,14 @@ describe('composeEventPayloadWithRepetition', () => {
     });
 
     describe('when repetition.delta is undefined and repetition.payload is provided (old delta format)', () => {
+
+        const originalEventPayload = {
+            title: 'Original message',
+            type: 'error',
+            addons: JSON.stringify({ userId: 123 }),
+            context: JSON.stringify({ sessionId: 'abc' }),
+        };
+
         it('should use repetitionAssembler to merge payloads', () => {
             /**
              * Arrange
@@ -159,7 +174,7 @@ describe('composeEventPayloadWithRepetition', () => {
             /**
              * Act
              */
-            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
+            const result = composeEventPayloadWithRepetition(originalEventPayload, repetition);
 
             /**
              * Assert
@@ -175,6 +190,7 @@ describe('composeEventPayloadWithRepetition', () => {
         });
 
         it('should handle null values in repetition payload', () => {
+
             const originalEventPayload = {
                 title: 'Original message',
                 type: 'error',
