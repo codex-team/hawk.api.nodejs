@@ -206,6 +206,14 @@ describe('composeEventPayloadWithRepetition', () => {
         });
 
         it('should preserve original value when repetition payload has null', () => {
+
+            const originalEventPayload = {
+                title: 'Original message',
+                type: 'error',
+                addons: JSON.stringify({ userId: 123 }),
+                context: JSON.stringify({ sessionId: 'abc' }),
+            };
+
             /**
              * Arrange
              */
@@ -222,7 +230,7 @@ describe('composeEventPayloadWithRepetition', () => {
             /**
              * Act
              */
-            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
+            const result = composeEventPayloadWithRepetition(originalEventPayload, repetition);
 
             /**
              * Assert

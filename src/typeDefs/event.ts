@@ -253,9 +253,9 @@ type Event {
   release: Release
 
   """
-  Event repetitions
+  Event repetitions portion
   """
-  repetitions(cursor: String = null, limit: Int = 10): RepetitionsPortion!
+  repetitionsPortion(cursor: String = null, limit: Int = 10): RepetitionsPortion!
 
   """
   Array of users who visited event

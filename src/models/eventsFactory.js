@@ -395,7 +395,7 @@ class EventsFactory extends Factory {
    *
    * @param {string|ObjectID} eventId - Event's id (may be repetition id)
    * @param {Number} limit - count limitations
-   * @param {Number} cursor - selection offset
+   * @param {Number} cursor - pointer to the next repetition
    *
    * @return {EventRepetitionSchema[]}
    *
@@ -658,31 +658,32 @@ class EventsFactory extends Factory {
    * @returns {Promise<Event|null>} original event or null if not found
    */
   async _findOriginalEvent(eventId) {
-    let eventOriginal = await this.getCollection(this.TYPES.EVENTS)
+    let originalEvent;
+
+    /**
+     * Try to find it by repetitionId
+     */
+    const repetition = await this.getCollection(this.TYPES.REPETITIONS)
       .findOne({
         _id: new ObjectID(eventId),
       });
 
     /**
-     * If event is not found, try to find it as repetition
+     * If repetition is not found by eventId, try to find it by eventId
      */
-    if (!eventOriginal) {
-      const repetition = await this.getCollection(this.TYPES.REPETITIONS)
+    if (!repetition) {
+      originalEvent = await this.getCollection(this.TYPES.EVENTS)
         .findOne({
           _id: new ObjectID(eventId),
         });
-
-      if (!repetition) {
-        return null;
-      }
-
-      eventOriginal = await this.getCollection(this.TYPES.EVENTS)
+    } else {
+      originalEvent = await this.getCollection(this.TYPES.EVENTS)
         .findOne({
           groupHash: repetition.groupHash,
         });
     }
 
-    return eventOriginal;
+    return originalEvent;
   }
 
   /**
