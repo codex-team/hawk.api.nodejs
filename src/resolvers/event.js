@@ -20,7 +20,7 @@ module.exports = {
   Event: {
 
     /**
-     * Returns repetitions list of the event
+     * Returns repetitions portion of the event
      *
      * @param {ResolverObj} _obj
      * @param {String} eventId
@@ -28,9 +28,9 @@ module.exports = {
      * @param {Number} limit
      * @param {Number} cursor
      *
-     * @return {EventRepetitionSchema[]}
+     * @return {RepetitionsPortion}
      */
-    async repetitions({ _id: eventId, projectId }, { limit, cursor }) {
+    async repetitionsPortion({ _id: eventId, projectId }, { limit, cursor }) {
       const factory = new EventsFactory(projectId);
 
       return factory.getEventRepetitions(eventId, limit, cursor);
