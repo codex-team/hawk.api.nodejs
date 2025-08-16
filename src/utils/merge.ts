@@ -83,9 +83,10 @@ export function composeEventPayloadWithRepetition(originalEventPayload: GroupedE
   /**
    * Make a deep copy of the original event, because we need to avoid mutating the original event
    */
+  let result = cloneDeep(originalEventPayload);
 
   if (!repetition) {
-    return originalEventPayload;
+    return result;
   }
 
   /**
@@ -95,35 +96,35 @@ export function composeEventPayloadWithRepetition(originalEventPayload: GroupedE
     /**
      * Parse addons and context fields from string to object before patching
      */
-    originalEventPayload = parsePayloadField(originalEventPayload, 'addons');
-    originalEventPayload = parsePayloadField(originalEventPayload, 'context');
+    result = parsePayloadField(result, 'addons');
+    result = parsePayloadField(result, 'context');
 
-    originalEventPayload = patch({
-      left: originalEventPayload,
+    result = patch({
+      left: result,
       delta: JSON.parse(repetition.delta),
     });
 
     /**
      * Stringify addons and context fields from object to string after patching
      */
-    originalEventPayload = stringifyPayloadField(originalEventPayload, 'addons');
-    originalEventPayload = stringifyPayloadField(originalEventPayload, 'context');
+    result = stringifyPayloadField(result, 'addons');
+    result = stringifyPayloadField(result, 'context');
 
-    return originalEventPayload;
+    return result;
   }
 
   /**
    * New delta format (repetition.payload is null) and repetition.delta is null (there is no delta between original and repetition)
    */
   if (!repetition.payload) {
-    return originalEventPayload;
+    return result;
   }
 
   /**
    * Old delta format (repetition.payload is not null)
    * @todo remove after 6 september 2025
    */
-  originalEventPayload = repetitionAssembler(originalEventPayload, repetition.payload);
+  result = repetitionAssembler(result, repetition.payload);
 
-  return originalEventPayload;
+  return result;
 }
