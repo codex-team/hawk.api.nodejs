@@ -290,10 +290,13 @@ class EventsFactory extends Factory {
     );
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
-
     const result = await cursor.toArray();
 
-    const nextCursor = result.pop()._id;
+    let nextCursor;
+
+    if (result.length === limit + 1) {
+      nextCursor = result.pop()._id;
+    }
 
     const composedResult = result.map(dailyEvent => {
       const repetition = dailyEvent.repetition;
@@ -687,8 +690,6 @@ class EventsFactory extends Factory {
         _id: new ObjectID(eventId),
       });
 
-    console.log('repetition found', repetition);
-
     /**
      * If repetition is not found by eventId, try to find it by eventId
      */
@@ -697,15 +698,11 @@ class EventsFactory extends Factory {
         .findOne({
           _id: new ObjectID(eventId),
         });
-
-      console.log('no repetition found, fetched by original event id', originalEvent);
     } else {
       originalEvent = await this.getCollection(this.TYPES.EVENTS)
         .findOne({
           groupHash: repetition.groupHash,
         });
-
-      console.log('repetition found, fetched by groupHash', originalEvent);
     }
 
     return originalEvent;

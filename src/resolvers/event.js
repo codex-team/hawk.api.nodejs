@@ -44,8 +44,6 @@ module.exports = {
      * @return {Promise<UserModel[]> | null}
      */
     async visitedBy({ visitedBy, projectId }, _args, { factories, user }) {
-      console.log('visitedBy, projectId', visitedBy, projectId);
-
       /**
        * Crutch for Demo Workspace
        */
