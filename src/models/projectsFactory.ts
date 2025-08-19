@@ -35,7 +35,7 @@ export default class ProjectsFactory extends AbstractModelFactory<ProjectDBSchem
    * @param id - user id
    */
   public async findById(id: string): Promise<ProjectModel | null> {
-    console.log('id in data loader', id)
+    console.log('id in data loader', id);
 
     const projectData = await this.dataLoaders.projectById.load(id);
 

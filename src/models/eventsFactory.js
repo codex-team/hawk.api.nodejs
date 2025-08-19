@@ -149,7 +149,7 @@ class EventsFactory extends Factory {
    * Returns events that grouped by day
    *
    * @param {Number} limit - events count limitations
-   * @param {String} paginatoinCursor - pointer to the first daily event to be selected
+   * @param {String} paginationCursor - pointer to the first daily event to be selected
    * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
    * @param {EventsFilters} filters - marks by which events should be filtered
    * @param {String} search - Search query
@@ -158,7 +158,7 @@ class EventsFactory extends Factory {
    */
   async findRecentDailyEventsWithEventAndRepetition(
     limit = 10,
-    paginationCursor = '',
+    paginationCursor = null,
     sort = 'BY_DATE',
     filters = {},
     search = ''
@@ -197,8 +197,8 @@ class EventsFactory extends Factory {
       {
         $match: paginationCursor ? {
           _id: {
-            $gte: new ObjectID(paginationCursor),
-          }
+            $lte: new ObjectID(paginationCursor),
+          },
         } : {},
       },
       {
@@ -266,7 +266,7 @@ class EventsFactory extends Factory {
           localField: 'lastRepetitionId',
           foreignField: '_id',
           as: 'repetition',
-        }
+        },
       },
       /**
        * Desctruct event and repetition arrays since there are only one document in both arrays
@@ -293,17 +293,11 @@ class EventsFactory extends Factory {
 
     const result = await cursor.toArray();
 
-    let lastEvent;
-
-    if (result.length === limit + 1) {
-      lastEvent = result.pop();
-    }
+    const nextCursor = result.pop()._id;
 
     const composedResult = result.map(dailyEvent => {
       const repetition = dailyEvent.repetition;
       const event = dailyEvent.event;
-
-      console.log('current projectId is ', this.projectId);
 
       return {
         ...dailyEvent,
@@ -311,14 +305,11 @@ class EventsFactory extends Factory {
         _id: undefined,
         event: this._composeEventWithRepetition(event, repetition),
         repetition: undefined,
-      }
-    })
+      };
+    });
 
-    console.log('result', composedResult)
-
-    
     return {
-      nextCursor: lastEvent ? lastEvent._id.toString() : null,
+      nextCursor: nextCursor,
       dailyEvents: composedResult,
     };
   }
@@ -696,7 +687,7 @@ class EventsFactory extends Factory {
         _id: new ObjectID(eventId),
       });
 
-    console.log('repetition found', repetition)
+    console.log('repetition found', repetition);
 
     /**
      * If repetition is not found by eventId, try to find it by eventId
@@ -707,14 +698,14 @@ class EventsFactory extends Factory {
           _id: new ObjectID(eventId),
         });
 
-        console.log('no repetition found, fetched by original event id', originalEvent);
+      console.log('no repetition found, fetched by original event id', originalEvent);
     } else {
       originalEvent = await this.getCollection(this.TYPES.EVENTS)
         .findOne({
           groupHash: repetition.groupHash,
         });
 
-        console.log('repetition found, fetched by groupHash', originalEvent);
+      console.log('repetition found, fetched by groupHash', originalEvent);
     }
 
     return originalEvent;
