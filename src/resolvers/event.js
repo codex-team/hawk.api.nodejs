@@ -18,39 +18,22 @@ module.exports = {
     },
   },
   Event: {
-    /**
-     * Returns Event with concrete repetition
-     *
-     * @param {string} eventId - id of Event of which repetition requested
-     * @param {string} projectId - projectId of Event of which repetition requested
-     * @param {string|null} [repetitionId] - if not specified, last repetition will returned
-     * @return {Promise<EventRepetitionSchema>}
-     */
-    async repetition({ id: eventId, projectId }, { id: repetitionId }) {
-      const factory = new EventsFactory(projectId);
-
-      if (!repetitionId) {
-        return factory.getEventLastRepetition(eventId);
-      }
-
-      return factory.getEventRepetition(repetitionId);
-    },
 
     /**
-     * Returns repetitions list of the event
+     * Returns repetitions portion of the event
      *
      * @param {ResolverObj} _obj
      * @param {String} eventId
      * @param {String} projectId
      * @param {Number} limit
-     * @param {Number} skip
+     * @param {Number} cursor
      *
-     * @return {EventRepetitionSchema[]}
+     * @return {RepetitionsPortion}
      */
-    async repetitions({ _id: eventId, projectId }, { limit, skip }) {
+    async repetitionsPortion({ _id: eventId, projectId }, { limit, cursor }) {
       const factory = new EventsFactory(projectId);
 
-      return factory.getEventRepetitions(eventId, limit, skip);
+      return factory.getEventRepetitions(eventId, limit, cursor);
     },
 
     /**
