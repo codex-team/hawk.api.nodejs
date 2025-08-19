@@ -243,7 +243,7 @@ type Event {
   timestamp: Float!
 
   """
-  Event first appearance timestamp
+  First appearance timestamp
   """
   firstAppearanceTimestamp: Float!
 
