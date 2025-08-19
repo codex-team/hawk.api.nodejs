@@ -8,7 +8,7 @@ const EventsFactory = require('../models/eventsFactory');
 const ProjectToWorkspace = require('../models/projectToWorkspace');
 const { dateFromObjectId } = require('../utils/dates');
 const ProjectModel = require('../models/project').default;
-const { composeFullRepetitionEvent } = require('../utils/merge');
+const { composeEventPayloadWithRepetition } = require('../utils/merge');
 
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
@@ -356,25 +356,9 @@ module.exports = {
 
       const dailyEventsPortion = await factory.findRecentDailyEventsWithEventAndRepetition(limit, nextCursor, sort, filters, search);
 
-      dailyEventsPortion.dailyEvents.forEach((dailyEvent) => {
-        const dailyEventLatestRepetition = dailyEvent.repetition;
-        const dailyEventOriginalEvent = dailyEvent.event;
+      console.log('daily events portion composed, ...[event]', dailyEventsPortion);
 
-        const mergedRepetition = composeFullRepetitionEvent(dailyEventOriginalEvent, dailyEventLatestRepetition);
-        const stringifiedId = dailyEvent._id.toString();
-        mergedRepetition.firstAppearanceTimestamp = dailyEvent.event.timestamp;
-
-        delete dailyEvent.repetition;
-        delete dailyEvent.event;
-        delete dailyEvent._id;
-        
-        dailyEvent.event = mergedRepetition;
-        dailyEvent.id = stringifiedId;
-
-        return dailyEvent;
-      })
-
-      console.log('daily events portion composed, ...[event]', dailyEventsPortion.dailyEvents[0].event);
+      // this.dailyEventsPortion.dailyEvents.forEach(dailyEvent)
 
       return dailyEventsPortion;
     },

@@ -299,10 +299,27 @@ class EventsFactory extends Factory {
       lastEvent = result.pop();
     }
 
+    const composedResult = result.map(dailyEvent => {
+      const repetition = dailyEvent.repetition;
+      const event = dailyEvent.event;
+
+      console.log('current projectId is ', this.projectId);
+
+      return {
+        ...dailyEvent,
+        id: dailyEvent._id.toString(),
+        _id: undefined,
+        event: this._composeEventWithRepetition(event, repetition),
+        repetition: undefined,
+      }
+    })
+
+    console.log('result', composedResult)
+
     
     return {
       nextCursor: lastEvent ? lastEvent._id.toString() : null,
-      dailyEvents: result,
+      dailyEvents: composedResult,
     };
   }
 
@@ -679,6 +696,8 @@ class EventsFactory extends Factory {
         _id: new ObjectID(eventId),
       });
 
+    console.log('repetition found', repetition)
+
     /**
      * If repetition is not found by eventId, try to find it by eventId
      */
@@ -687,11 +706,15 @@ class EventsFactory extends Factory {
         .findOne({
           _id: new ObjectID(eventId),
         });
+
+        console.log('no repetition found, fetched by original event id', originalEvent);
     } else {
       originalEvent = await this.getCollection(this.TYPES.EVENTS)
         .findOne({
           groupHash: repetition.groupHash,
         });
+
+        console.log('repetition found, fetched by groupHash', originalEvent);
     }
 
     return originalEvent;
@@ -711,6 +734,7 @@ class EventsFactory extends Factory {
       firstAppearanceTimestamp: event.timestamp,
       timestamp: repetition.timestamp,
       payload: composeEventPayloadWithRepetition(event.payload, repetition),
+      projectId: this.projectId,
     };
   }
 }

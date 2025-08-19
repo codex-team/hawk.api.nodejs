@@ -112,15 +112,15 @@ module.exports = {
      * Mark event as visited for current user
      *
      * @param {ResolverObj} _obj - resolver context
-     * @param {string} project - project id
-     * @param {string} id - event id
+     * @param {string} projectId - project id
+     * @param {string} eventId - event id
      * @param {UserInContext} user - user context
      * @return {Promise<boolean>}
      */
-    async visitEvent(_obj, { project, id }, { user }) {
-      const factory = new EventsFactory(project);
+    async visitEvent(_obj, { projectId, eventId }, { user }) {
+      const factory = new EventsFactory(projectId);
 
-      const { result } = await factory.visitEvent(id, user.id);
+      const { result } = await factory.visitEvent(eventId, user.id);
 
       return !!result.ok;
     },
