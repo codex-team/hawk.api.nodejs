@@ -11,6 +11,7 @@ import { dateFromObjectId } from '../utils/dates';
 import { UserDBScheme } from '@hawk.so/types';
 import * as telegram from '../utils/telegram';
 import { MongoError } from 'mongodb';
+import { validateUtmParams } from '../utils/utm/utm';
 
 /**
  * See all types and fields here {@see ../typeDefs/user.graphql}
@@ -37,17 +38,20 @@ export default {
      * Register user with provided email
      * @param _obj - parent object (undefined for this resolver)
      * @param email - user email
+     * @param utm - Data form where user went to sign up. Used for analytics purposes
      * @param factories - factories for working with models
      */
     async signUp(
       _obj: undefined,
-      { email }: {email: string},
+      { email, utm }: { email: string; utm?: UserDBScheme['utm'] },
       { factories }: ResolverContextBase
     ): Promise<boolean | string> {
+      const validatedUtm = validateUtmParams(utm);
+
       let user;
 
       try {
-        user = await factories.usersFactory.create(email);
+        user = await factories.usersFactory.create(email, undefined, validatedUtm);
 
         const password = user.generatedPassword!;
 
