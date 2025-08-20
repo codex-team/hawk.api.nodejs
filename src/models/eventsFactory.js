@@ -34,7 +34,7 @@ const { composeEventPayloadByRepetition } = require('../utils/merge');
  * @property {Number} count - number of events this day
  * @property {String} lastRepetitionId - id of the last repetition this day
  * @property {Number} lastRepetitionTime - UNIX timestamp that represent time of the last repetition this day
- * @property {Event} event - one certain event that represents all of the repetitions this day 
+ * @property {Event} event - one certain event that represents all of the repetitions this day
  */
 
 /**
@@ -465,12 +465,12 @@ class EventsFactory extends Factory {
     /**
      * Get portion based on cursor if cursor is not null
      */
-    const query = cursor ? { 
+    const query = cursor ? {
       groupHash: eventOriginal.groupHash,
       _id: { $lte: cursor },
-    } : { 
+    } : {
       groupHash: eventOriginal.groupHash,
-    }
+    };
 
     /**
      * Collect repetitions
@@ -523,7 +523,7 @@ class EventsFactory extends Factory {
    * Returns certain repetition of the original event
    *
    * @param {String} repetitionId - id of Repetition to find
-   * @param {String} originalEventId - id of the original event  
+   * @param {String} originalEventId - id of the original event
    * @return {Event|null}
    */
   async getEventRepetition(repetitionId, originalEventId) {
@@ -536,11 +536,11 @@ class EventsFactory extends Factory {
           _id: ObjectID(originalEventId),
         });
 
-      return originalEvent ? originalEvent : null;
+      return originalEvent || null;
     }
 
     /**
-     * Otherwise we need to get original event and repetition and merge them 
+     * Otherwise we need to get original event and repetition and merge them
      */
     const repetition = await this.getCollection(this.TYPES.REPETITIONS)
       .findOne({
