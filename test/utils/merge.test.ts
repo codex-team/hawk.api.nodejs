@@ -54,6 +54,8 @@ describe('composeEventPayloadByRepetition', () => {
                     ...mockOriginalEvent.payload,
                     title: 'Updated message',
                     type: 'warning',
+                    addons: JSON.stringify({ userId: 8888 }),
+                    context: JSON.stringify({ sessionId: 'qwery' }),
                 },
             });
 
@@ -74,8 +76,8 @@ describe('composeEventPayloadByRepetition', () => {
             expect(result).toEqual({
                 title: 'Updated message',
                 type: 'warning',
-                addons: JSON.stringify({ userId: 123 }),
-                context: JSON.stringify({ sessionId: 'abc' }),
+                addons: JSON.stringify({ userId: 8888 }),
+                context: JSON.stringify({ sessionId: 'qwery' }),
             });
         });
 
@@ -259,7 +261,7 @@ describe('composeEventPayloadByRepetition', () => {
              * Assert
              */
             expect(result).toEqual({
-                title: 'Original message', // null в repetition должно сохранить оригинальное значение
+                title: 'Original message',
                 type: 'info',
                 addons: JSON.stringify({ userId: 123 }),
                 context: JSON.stringify({ sessionId: 'abc' }),
@@ -388,7 +390,7 @@ describe('composeEventPayloadByRepetition', () => {
              */
             expect(() => {
                 composeEventPayloadByRepetition(eventWithInvalidJSON.payload, repetition);
-            }).toThrow(); // Должно выбросить ошибку при парсинге невалидного JSON
+            }).toThrow();
         });
     });
 }); 
