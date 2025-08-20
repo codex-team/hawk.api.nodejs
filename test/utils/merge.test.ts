@@ -39,6 +39,7 @@ describe('composeEventPayloadByRepetition', () => {
              * Assert
              */
             expect(result).toMatchObject(mockOriginalEvent.payload);
+            expect(result).not.toBe(mockOriginalEvent.payload);
         });
     });
 
@@ -83,8 +84,8 @@ describe('composeEventPayloadByRepetition', () => {
             const originalEventPayload = {
                 title: 'Original message',
                 type: 'error',
-                addons: JSON.stringify({ userId: 123 }),
-                context: JSON.stringify({ sessionId: 'abc' }),
+                addons: JSON.stringify({ userId: 777 }),
+                context: JSON.stringify({ sessionId: 'xyz' }),
             };
             /**
              * Arrange
@@ -117,8 +118,8 @@ describe('composeEventPayloadByRepetition', () => {
                 type: 'error',
                 release: 'v1.0.0',
                 catcherVersion: '2.0.0',
-                addons: JSON.stringify({ userId: 123 }),
-                context: JSON.stringify({ sessionId: 'abc' }),
+                addons: JSON.stringify({ userId: 777 }),
+                context: JSON.stringify({ sessionId: 'xyz' }),
             });
         });
     });
