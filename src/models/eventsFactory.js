@@ -436,12 +436,13 @@ class EventsFactory extends Factory {
    * Returns Event repetitions
    *
    * @param {string|ObjectID} eventId - Event's id, could be repetitionId in case when we want to get repetitions portion by one repetition
+   * @param {string|ObjectID} originalEventId - id of the original event
    * @param {Number} limit - count limitations
    * @param {Number} cursor - pointer to the next repetition
    *
    * @return {EventRepetitionsPortionSchema}
    */
-  async getEventRepetitions(eventId, limit = 10, cursor = null) {
+  async getEventRepetitions(eventId, originalEventId, limit = 10, cursor = null) {
     limit = this.validateLimit(limit);
 
     cursor = cursor ? new ObjectID(cursor) : null;
@@ -455,10 +456,20 @@ class EventsFactory extends Factory {
      * Get original event
      * @type {Event}
      */
-    const eventOriginal = await this.findById(eventId);
+    const eventOriginal = await this.findById(originalEventId);
 
     if (!eventOriginal) {
-      throw new Error(`Original event not found for ${eventId}`);
+      throw new Error(`Original event not found for ${originalEventId}`);
+    }
+
+    /**
+     * Get portion based on cursor if cursor is not null
+     */
+    const query = cursor ? { 
+      groupHash: eventOriginal.groupHash,
+      _id: { $lte: cursor },
+    } : { 
+      groupHash: eventOriginal.groupHash,
     }
 
     /**
@@ -466,10 +477,7 @@ class EventsFactory extends Factory {
      * @type {EventRepetitionSchema[]}
      */
     const repetitions = await this.getCollection(this.TYPES.REPETITIONS)
-      .find({
-        groupHash: eventOriginal.groupHash,
-        _id: cursor ? { $lte: cursor } : {},
-      })
+      .find(query)
       .sort({ _id: -1 })
       .limit(limit + 1)
       .toArray();
