@@ -22,11 +22,10 @@ module.exports = {
     /**
      * Returns repetitions portion of the event
      *
-     * @param {ResolverObj} _obj
-     * @param {String} eventId
-     * @param {String} projectId
-     * @param {Number} limit
-     * @param {Number} cursor
+     * @param {String} eventId - id of the event got from the partent graph node (event)
+     * @param {String} projectId - id of the project got from the parent node (event)
+     * @param {Number} limit - argument of the query, maximal count of the repetitions in one portion
+     * @param {Number|null} cursor - pointer to the next portion of repetition, could be null if we want to get first portion 
      *
      * @return {RepetitionsPortion}
      */

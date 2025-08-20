@@ -53,7 +53,7 @@ type Release {
   """
   Release commits
   """
-  commits: [Commit]
+  commits: [Commit!]!
 }
 
 """
@@ -245,7 +245,12 @@ type Event {
   """
   First appearance timestamp
   """
-  firstAppearanceTimestamp: Float!
+  originalTimestamp: Float!
+
+  """
+  Id of the original event
+  """
+  originalEventId: ID!
 
   """
   Release data

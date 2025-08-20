@@ -284,12 +284,13 @@ module.exports = {
      *
      * @param {ProjectDBScheme} project - result of parent resolver
      * @param {String} eventId - event's identifier
+     * @param {String} originalEventId - id of the original event
      *
-     * @returns {Event}
+     * @returns {EventRepetitionSchema}
      */
-    async event(project, { id: repetitionId }) {
+    async event(project, { eventId: repetitionId, originalEventId }) {
       const factory = new EventsFactory(project._id);
-      const repetition = await factory.getEventRepetition(repetitionId);
+      const repetition = await factory.getEventRepetition(repetitionId, originalEventId);
 
       if (!repetition) {
         return null;
@@ -353,7 +354,7 @@ module.exports = {
 
       const factory = new EventsFactory(project._id);
 
-      const dailyEventsPortion = await factory.findRecentDailyEventsWithEventAndRepetition(limit, nextCursor, sort, filters, search);
+      const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search);
 
       return dailyEventsPortion;
     },

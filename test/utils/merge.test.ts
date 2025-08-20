@@ -1,9 +1,9 @@
-import { composeEventPayloadWithRepetition } from '../../src/utils/merge';
+import { composeEventPayloadByRepetition } from '../../src/utils/merge';
 import { GroupedEventDBScheme, RepetitionDBScheme } from '@hawk.so/types';
 
 import { diff } from '@n1ru4l/json-patch-plus';
 
-describe('composeEventPayloadWithRepetition', () => {
+describe('composeEventPayloadByRepetition', () => {
     const mockOriginalEvent: GroupedEventDBScheme = {
         groupHash: 'original-event-1',
         totalCount: 1,
@@ -33,7 +33,7 @@ describe('composeEventPayloadWithRepetition', () => {
             /**
              * Act
              */
-            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
+            const result = composeEventPayloadByRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
@@ -65,7 +65,7 @@ describe('composeEventPayloadWithRepetition', () => {
             /**
              * Act
              */
-            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
+            const result = composeEventPayloadByRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
@@ -107,7 +107,7 @@ describe('composeEventPayloadWithRepetition', () => {
             /**
              * Act
              */
-            const result = composeEventPayloadWithRepetition(originalEventPayload, repetition);
+            const result = composeEventPayloadByRepetition(originalEventPayload, repetition);
 
             /**
              * Assert
@@ -138,7 +138,7 @@ describe('composeEventPayloadWithRepetition', () => {
             /**
              * Act
              */
-            const result = composeEventPayloadWithRepetition(mockOriginalEvent.payload, repetition);
+            const result = composeEventPayloadByRepetition(mockOriginalEvent.payload, repetition);
 
             /**
              * Assert
@@ -174,7 +174,7 @@ describe('composeEventPayloadWithRepetition', () => {
             /**
              * Act
              */
-            const result = composeEventPayloadWithRepetition(originalEventPayload, repetition);
+            const result = composeEventPayloadByRepetition(originalEventPayload, repetition);
 
             /**
              * Assert
@@ -213,7 +213,7 @@ describe('composeEventPayloadWithRepetition', () => {
             /**
              * Act
              */
-            const result = composeEventPayloadWithRepetition(originalEventPayload, repetition);
+            const result = composeEventPayloadByRepetition(originalEventPayload, repetition);
 
             /**
              * Assert
@@ -252,7 +252,7 @@ describe('composeEventPayloadWithRepetition', () => {
             /**
              * Act
              */
-            const result = composeEventPayloadWithRepetition(originalEventPayload, repetition);
+            const result = composeEventPayloadByRepetition(originalEventPayload, repetition);
 
             /**
              * Assert
@@ -300,7 +300,7 @@ describe('composeEventPayloadWithRepetition', () => {
             /**
              * Act
              */
-            const result = composeEventPayloadWithRepetition(eventWithEmptyPayload.payload, repetition);
+            const result = composeEventPayloadByRepetition(eventWithEmptyPayload.payload, repetition);
 
             /**
              * Assert
@@ -340,7 +340,7 @@ describe('composeEventPayloadWithRepetition', () => {
             /**
              * Act
              */
-            const result = composeEventPayloadWithRepetition(eventWithNullPayload.payload, repetition);
+            const result = composeEventPayloadByRepetition(eventWithNullPayload.payload, repetition);
 
             /**
              * Assert
@@ -386,7 +386,7 @@ describe('composeEventPayloadWithRepetition', () => {
              * Act & Assert
              */
             expect(() => {
-                composeEventPayloadWithRepetition(eventWithInvalidJSON.payload, repetition);
+                composeEventPayloadByRepetition(eventWithInvalidJSON.payload, repetition);
             }).toThrow(); // Должно выбросить ошибку при парсинге невалидного JSON
         });
     });

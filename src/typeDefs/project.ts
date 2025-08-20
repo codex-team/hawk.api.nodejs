@@ -16,12 +16,12 @@ Pagination cursor of events portion and list of daily events
 """
 type DailyEventsPortion {
   """
-  Cursor to the next portion of the events, null if there are no events left
+  Pointer to the next portion of dailyEvents, null if there are no events left
   """
   nextCursor: String
 
   """
-  Daily event information
+  List of daily events
   """
   dailyEvents: [DailyEvent]
 }
@@ -47,7 +47,7 @@ type DailyEvent {
   """
   groupingTimestamp: Int!
   """
-  Event itself
+  Last repetition of the day that represents all of the repetition this day
   """
   event: Event!
 }
@@ -137,7 +137,7 @@ type Project {
   """
   Project's Event
   """
-  event(id: ID!): Event
+  event(eventId: ID!, originalEventId: ID!): Event
 
   """
   Project events
@@ -179,7 +179,7 @@ type Project {
     limit: Int! = 50
 
     """
-    Next Cursor to fetch next portion of events
+    Pointer to the first event of the portion that would be fetched
     """
     nextCursor: String
 
@@ -189,7 +189,7 @@ type Project {
     sort: EventsSortOrder = lastRepetitionTime
 
     """
-    Event marks by which events should be sorted
+    Event marks by which events should be filtered
     """
     filters: EventsFiltersInput
 

@@ -79,7 +79,7 @@ function stringifyPayloadField(payload: GroupedEventDBScheme['payload'], field: 
  * @param repetition {RepetitionDBScheme} - The repetition to process
  * @returns {GroupedEventDBScheme['payload']} Updated event with processed repetition payload
  */
-export function composeEventPayloadWithRepetition(originalEventPayload: GroupedEventDBScheme['payload'], repetition: RepetitionDBScheme | undefined): GroupedEventDBScheme['payload'] {
+export function composeEventPayloadByRepetition(originalEventPayload: GroupedEventDBScheme['payload'], repetition: RepetitionDBScheme | undefined): GroupedEventDBScheme['payload'] {
   /**
    * Make a deep copy of the original event, because we need to avoid mutating the original event
    */
