@@ -54,8 +54,8 @@ describe('composeEventPayloadByRepetition', () => {
                     ...mockOriginalEvent.payload,
                     title: 'Updated message',
                     type: 'warning',
-                    addons: JSON.stringify({ userId: 8888 }),
-                    context: JSON.stringify({ sessionId: 'qwery' }),
+                    addons: { userId: 8888 },
+                    context: { sessionId: 'qwery' },
                 },
             });
 
