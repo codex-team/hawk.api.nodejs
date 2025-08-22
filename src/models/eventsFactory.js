@@ -556,7 +556,7 @@ class EventsFactory extends Factory {
      * If one of the ids are invalid (originalEvent or repetition not found) return null
      */
     if (!originalEvent || !repetition) {
-      return null;
+      throw new Error(`Cant find event repetition for repetitionId: ${repetitionId} and originalEventId: ${originalEventId}`);
     }
 
     return this._composeEventWithRepetition(originalEvent, repetition);
@@ -610,7 +610,7 @@ class EventsFactory extends Factory {
     const event = await this.findById(eventId);
 
     if (!event) {
-      return null;
+      throw new Error(`Event not found for eventId: ${eventId}`);
     }
 
     return this.getCollection(this.TYPES.EVENTS)
@@ -634,7 +634,7 @@ class EventsFactory extends Factory {
     const event = await this.findById(eventId);
 
     if (!event) {
-      return null;
+      throw new Error(`Event not found for eventId: ${eventId}`);
     }
 
     const query = { _id: new ObjectID(event._id) };
@@ -692,7 +692,7 @@ class EventsFactory extends Factory {
     const event = await this.findById(eventId);
 
     if (!event) {
-      return null;
+      throw new Error(`Event not found for eventId: ${eventId}`);
     }
 
     const query = { _id: new ObjectID(event._id) };
