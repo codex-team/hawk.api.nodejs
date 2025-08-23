@@ -151,7 +151,7 @@ class EventsFactory extends Factory {
 
     const event = searchResult ? new Event(searchResult) : null;
 
-    return event
+    return event;
   }
 
   /**

@@ -29,7 +29,7 @@ module.exports = {
      *
      * @return {RepetitionsPortion}
      */
-    async repetitionsPortion({ projectId, originalEventId}, { limit, cursor }) {
+    async repetitionsPortion({ projectId, originalEventId }, { limit, cursor }) {
       const factory = new EventsFactory(projectId);
 
       return factory.getEventRepetitions(originalEventId, limit, cursor);
