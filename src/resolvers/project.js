@@ -289,8 +289,12 @@ module.exports = {
      * @returns {EventRepetitionSchema}
      */
     async event(project, { eventId: repetitionId, originalEventId }) {
+      console.log(`event resolver in project: ${repetitionId}, ${originalEventId}`)
+
       const factory = new EventsFactory(project._id);
       const repetition = await factory.getEventRepetition(repetitionId, originalEventId);
+
+      console.log('repetition', repetition)
 
       if (!repetition) {
         return null;

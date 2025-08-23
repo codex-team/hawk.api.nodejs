@@ -149,7 +149,9 @@ class EventsFactory extends Factory {
         _id: new ObjectID(id),
       });
 
-    return searchResult ? new Event(searchResult) : null;
+    const event = searchResult ? new Event(searchResult) : null;
+
+    return event
   }
 
   /**
@@ -442,7 +444,7 @@ class EventsFactory extends Factory {
    *
    * @return {EventRepetitionsPortionSchema}
    */
-  async getEventRepetitions(eventId, originalEventId, limit = 10, cursor = null) {
+  async getEventRepetitions(originalEventId, limit = 10, cursor = null) {
     limit = this.validateLimit(limit);
 
     cursor = cursor ? new ObjectID(cursor) : null;
@@ -535,6 +537,11 @@ class EventsFactory extends Factory {
         .findOne({
           _id: ObjectID(originalEventId),
         });
+
+      /**
+       * All events have same type with originalEvent id
+       */
+      originalEvent.originalEventId = originalEventId;
 
       return originalEvent || null;
     }

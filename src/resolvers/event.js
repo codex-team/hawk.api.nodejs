@@ -22,17 +22,17 @@ module.exports = {
     /**
      * Returns repetitions portion of the event
      *
-     * @param {String} eventId - id of the event got from the partent graph node (event)
      * @param {String} projectId - id of the project got from the parent node (event)
+     * @param {String} originalEventId - id of the original event of the repetitions to get, got from parent node (event)
      * @param {Number} limit - argument of the query, maximal count of the repetitions in one portion
      * @param {Number|null} cursor - pointer to the next portion of repetition, could be null if we want to get first portion
      *
      * @return {RepetitionsPortion}
      */
-    async repetitionsPortion({ _id: eventId, projectId, originalEventId }, { limit, cursor }) {
+    async repetitionsPortion({ projectId, originalEventId}, { limit, cursor }) {
       const factory = new EventsFactory(projectId);
 
-      return factory.getEventRepetitions(eventId, originalEventId, limit, cursor);
+      return factory.getEventRepetitions(originalEventId, limit, cursor);
     },
 
     /**
