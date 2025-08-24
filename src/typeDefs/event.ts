@@ -428,7 +428,7 @@ extend type Mutation {
     ID of the event to visit
     """
     eventId: ID!
-  ): Boolean! @requireAuth
+  ): Boolean!
 
   """
   Mutation sets or unsets passed mark to event
