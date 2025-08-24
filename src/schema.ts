@@ -36,8 +36,8 @@ schema = renameFromDirectiveTransformer(schema);
 schema = defaultValueDirectiveTransformer(schema);
 schema = validateDirectiveTransformer(schema);
 schema = uploadImageDirectiveTransformer(schema);
-schema = allowAnonDirectiveTransformer(schema);
 schema = requireAdminDirectiveTransformer(schema);
+schema = allowAnonDirectiveTransformer(schema);
 schema = requireUserInWorkspaceDirectiveTransformer(schema);
 
 export default schema;
