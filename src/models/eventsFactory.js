@@ -6,13 +6,7 @@ const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
-
-/**
- * @typedef {Object} RecentEventSchema
- * @property {Event} event - event model
- * @property {Number} count - recent error occurred count
- * @property {String} data - error occurred date (string)
- */
+const { composeEventPayloadByRepetition } = require('../utils/merge');
 
 /**
  * @typedef {Object} EventRepetitionSchema
@@ -20,6 +14,33 @@ const { ObjectID } = require('mongodb');
  * @property {String} groupHash - event's hash. Generates according to the rule described in EventSchema
  * @property {EventPayload} payload - repetition's payload
  * @property {Number} timestamp - repetition's Unix timestamp
+ * @property {Number} originalTimestamp - UNIX timestmap of the original event
+ * @property {String} originalEventId - id of the original event
+ * @property {String} projectId - id of the project, which repetition it is
+ */
+
+/**
+ * @typedef {Object} EventRepetitionsPortionSchema
+ * @property {EventRepetitionSchema[]} repetitions - list of repetitions
+ * @property {String | null} nextCursor - pointer to the first repetition of the next portion, null if there are no repetitions left
+ */
+
+/**
+ * @typedef {Object} DailyEventSchema
+ * @property {String} _id - id of the dailyEvent
+ * @property {String} groupHash - group hash of the dailyEvent
+ * @property {Number} groupingTimestamp - UNIX timestamp that represents the day of dailyEvent
+ * @property {Number} affectedUsers - number of users affected this day
+ * @property {Number} count - number of events this day
+ * @property {String} lastRepetitionId - id of the last repetition this day
+ * @property {Number} lastRepetitionTime - UNIX timestamp that represent time of the last repetition this day
+ * @property {Event} event - one certain event that represents all of the repetitions this day
+ */
+
+/**
+ * @typedef {Object} DaylyEventsPortionSchema
+ * @property {DailyEventSchema[]} dailyEvents - original event of the daily one
+ * @property {String | null} nextCursor - pointer to the first dailyEvent of the next portion, null if there are no dailyEvents left
  */
 
 /**
@@ -128,7 +149,9 @@ class EventsFactory extends Factory {
         _id: new ObjectID(id),
       });
 
-    return searchResult ? new Event(searchResult) : null;
+    const event = searchResult ? new Event(searchResult) : null;
+
+    return event;
   }
 
   /**
@@ -148,16 +171,16 @@ class EventsFactory extends Factory {
    * Returns events that grouped by day
    *
    * @param {Number} limit - events count limitations
-   * @param {Number} skip - certain number of documents to skip
+   * @param {String} paginationCursor - pointer to the first daily event to be selected
    * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
    * @param {EventsFilters} filters - marks by which events should be filtered
    * @param {String} search - Search query
    *
-   * @return {RecentEventSchema[]}
+   * @return {DaylyEventsPortionSchema}
    */
-  async findRecent(
+  async findDailyEventsPortion(
     limit = 10,
-    skip = 0,
+    paginationCursor = null,
     sort = 'BY_DATE',
     filters = {},
     search = ''
@@ -193,6 +216,13 @@ class EventsFactory extends Factory {
     }
 
     const pipeline = [
+      {
+        $match: paginationCursor ? {
+          _id: {
+            $lte: new ObjectID(paginationCursor),
+          },
+        } : {},
+      },
       {
         $sort: {
           groupingTimestamp: -1,
@@ -241,6 +271,9 @@ class EventsFactory extends Factory {
       : {};
 
     pipeline.push(
+      /**
+       * Left outer join original event on groupHash field
+       */
       {
         $lookup: {
           from: 'events:' + this.projectId,
@@ -250,7 +283,21 @@ class EventsFactory extends Factory {
         },
       },
       {
+        $lookup: {
+          from: 'repetitions:' + this.projectId,
+          localField: 'lastRepetitionId',
+          foreignField: '_id',
+          as: 'repetition',
+        },
+      },
+      /**
+       * Desctruct event and repetition arrays since there are only one document in both arrays
+       */
+      {
         $unwind: '$event',
+      },
+      {
+        $unwind: '$repetition',
       },
       {
         $match: {
@@ -258,39 +305,38 @@ class EventsFactory extends Factory {
           ...searchFilter,
         },
       },
-      { $skip: skip },
-      { $limit: limit },
+      { $limit: limit + 1 },
       {
-        $group: {
-          _id: null,
-          dailyInfo: { $push: '$$ROOT' },
-          events: { $push: '$event' },
-        },
-      },
-      {
-        $unset: 'dailyInfo.event',
+        $unset: 'groupHash',
       }
     );
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
+    const result = await cursor.toArray();
 
-    const result = (await cursor.toArray()).shift();
+    let nextCursor;
 
-    /**
-     * aggregation can return empty array so that
-     * result can be undefined
-     *
-     * for that we check result existence
-     *
-     * extra field `projectId` needs to satisfy GraphQL query
-     */
-    if (result && result.events) {
-      result.events.forEach(event => {
-        event.projectId = this.projectId;
-      });
+    if (result.length === limit + 1) {
+      nextCursor = result.pop()._id;
     }
 
-    return result;
+    const composedResult = result.map(dailyEvent => {
+      const repetition = dailyEvent.repetition;
+      const event = dailyEvent.event;
+
+      dailyEvent.event = this._composeEventWithRepetition(event, repetition);
+      dailyEvent.id = dailyEvent._id.toString();
+
+      delete dailyEvent.repetition;
+      delete dailyEvent._id;
+
+      return dailyEvent;
+    });
+
+    return {
+      nextCursor: nextCursor,
+      dailyEvents: composedResult,
+    };
   }
 
   /**
@@ -391,38 +437,67 @@ class EventsFactory extends Factory {
   /**
    * Returns Event repetitions
    *
-   * @param {string|ObjectID} eventId - Event's id
+   * @param {string|ObjectID} eventId - Event's id, could be repetitionId in case when we want to get repetitions portion by one repetition
+   * @param {string|ObjectID} originalEventId - id of the original event
    * @param {Number} limit - count limitations
-   * @param {Number} skip - selection offset
+   * @param {Number} cursor - pointer to the next repetition
    *
-   * @return {EventRepetitionSchema[]}
-   *
-   * @todo move to Repetitions(?) model
+   * @return {EventRepetitionsPortionSchema}
    */
-  async getEventRepetitions(eventId, limit = 10, skip = 0) {
+  async getEventRepetitions(originalEventId, limit = 10, cursor = null) {
     limit = this.validateLimit(limit);
-    skip = this.validateSkip(skip);
+
+    cursor = cursor ? new ObjectID(cursor) : null;
+
+    const result = {
+      repetitions: [],
+      nextCursor: null,
+    };
 
     /**
      * Get original event
-     * @type {EventSchema}
+     * @type {Event}
      */
-    const eventOriginal = await this.findById(eventId);
+    const eventOriginal = await this.findById(originalEventId);
+
+    if (!eventOriginal) {
+      throw new Error(`Original event not found for ${originalEventId}`);
+    }
+
+    /**
+     * Get portion based on cursor if cursor is not null
+     */
+    const query = cursor ? {
+      groupHash: eventOriginal.groupHash,
+      _id: { $lte: cursor },
+    } : {
+      groupHash: eventOriginal.groupHash,
+    };
 
     /**
      * Collect repetitions
      * @type {EventRepetitionSchema[]}
      */
     const repetitions = await this.getCollection(this.TYPES.REPETITIONS)
-      .find({
-        groupHash: eventOriginal.groupHash,
-      })
+      .find(query)
       .sort({ _id: -1 })
-      .limit(limit)
-      .skip(skip)
+      .limit(limit + 1)
       .toArray();
 
-    const isLastPortion = repetitions.length < limit && skip === 0;
+    if (repetitions.length === limit + 1) {
+      result.nextCursor = repetitions.pop()._id;
+    }
+
+    for (const repetition of repetitions) {
+      const event = this._composeEventWithRepetition(eventOriginal, repetition);
+
+      result.repetitions.push({
+        ...event,
+        projectId: this.projectId,
+      });
+    }
+
+    const isLastPortion = result.nextCursor === null;
 
     /**
      * For last portion:
@@ -434,31 +509,64 @@ class EventsFactory extends Factory {
        * @type {EventRepetitionSchema}
        */
       const firstRepetition = {
-        _id: eventOriginal._id,
-        payload: eventOriginal.payload,
-        groupHash: eventOriginal.groupHash,
-        timestamp: eventOriginal.timestamp,
+        ...eventOriginal,
+        originalTimestamp: eventOriginal.timestamp,
+        originalEventId: eventOriginal._id,
+        projectId: this.projectId,
       };
 
-      repetitions.push(firstRepetition);
+      result.repetitions.push(firstRepetition);
     }
 
-    return repetitions;
+    return result;
   }
 
   /**
-   * Returns Event concrete repetition
+   * Returns certain repetition of the original event
    *
    * @param {String} repetitionId - id of Repetition to find
-   * @return {EventRepetitionSchema|null}
-   *
-   * @todo move to Repetitions(?) model
+   * @param {String} originalEventId - id of the original event
+   * @return {Event|null}
    */
-  async getEventRepetition(repetitionId) {
-    return this.getCollection(this.TYPES.REPETITIONS)
+  async getEventRepetition(repetitionId, originalEventId) {
+    /**
+     * If originalEventId equals repetitionId than user wants to get first repetition which is original event
+     */
+    if (repetitionId === originalEventId) {
+      const originalEvent = await this.getCollection(this.TYPES.EVENTS)
+        .findOne({
+          _id: ObjectID(originalEventId),
+        });
+
+      /**
+       * All events have same type with originalEvent id
+       */
+      originalEvent.originalEventId = originalEventId;
+
+      return originalEvent || null;
+    }
+
+    /**
+     * Otherwise we need to get original event and repetition and merge them
+     */
+    const repetition = await this.getCollection(this.TYPES.REPETITIONS)
       .findOne({
         _id: ObjectID(repetitionId),
       });
+
+    const originalEvent = await this.getCollection(this.TYPES.EVENTS)
+      .findOne({
+        _id: ObjectID(originalEventId),
+      });
+
+    /**
+     * If one of the ids are invalid (originalEvent or repetition not found) return null
+     */
+    if (!originalEvent || !repetition) {
+      throw new Error(`Cant find event repetition for repetitionId: ${repetitionId} and originalEventId: ${originalEventId}`);
+    }
+
+    return this._composeEventWithRepetition(originalEvent, repetition);
   }
 
   /**
@@ -485,6 +593,10 @@ class EventsFactory extends Factory {
   async getEventRelease(eventId) {
     const eventOriginal = await this.findById(eventId);
 
+    if (!eventOriginal) {
+      return null;
+    }
+
     const release = await mongo.databases.events.collection(this.TYPES.RELEASES).findOne({
       release: eventOriginal.payload.release,
       projectId: this.projectId.toString(),
@@ -496,15 +608,21 @@ class EventsFactory extends Factory {
   /**
    * Mark event as visited for passed user
    *
-   * @param {string|ObjectId} eventId
-   * @param {string|ObjectId} userId
+   * @param {string|ObjectId} eventId - id of the original event
+   * @param {string|ObjectId} userId - id of the user who is visiting the event
    *
    * @return {Promise<void>}
    */
   async visitEvent(eventId, userId) {
+    const event = await this.findById(eventId);
+
+    if (!event) {
+      throw new Error(`Event not found for eventId: ${eventId}`);
+    }
+
     return this.getCollection(this.TYPES.EVENTS)
       .updateOne(
-        { _id: new ObjectID(eventId) },
+        { _id: new ObjectID(event._id) },
         { $addToSet: { visitedBy: new ObjectID(userId) } }
       );
   }
@@ -512,16 +630,22 @@ class EventsFactory extends Factory {
   /**
    * Mark or unmark event as Resolved, Ignored or Starred
    *
-   * @param {string|ObjectId} eventId - event to mark
+   * @param {string|ObjectId} eventId - id of the original event to mark
    * @param {string} mark - mark label
    *
    * @return {Promise<void>}
    */
   async toggleEventMark(eventId, mark) {
     const collection = this.getCollection(this.TYPES.EVENTS);
-    const query = { _id: new ObjectID(eventId) };
 
-    const event = await collection.findOne(query);
+    const event = await this.findById(eventId);
+
+    if (!event) {
+      throw new Error(`Event not found for eventId: ${eventId}`);
+    }
+
+    const query = { _id: new ObjectID(event._id) };
+
     const markKey = `marks.${mark}`;
 
     let update;
@@ -565,18 +689,45 @@ class EventsFactory extends Factory {
   /**
    * Update assignee to selected event
    *
-   * @param {string} eventId - event id
+   * @param {string} eventId - id of the original event to update
    * @param {string} assignee - assignee id for this event
    * @return {Promise<void>}
    */
   async updateAssignee(eventId, assignee) {
     const collection = this.getCollection(this.TYPES.EVENTS);
-    const query = { _id: new ObjectID(eventId) };
+
+    const event = await this.findById(eventId);
+
+    if (!event) {
+      throw new Error(`Event not found for eventId: ${eventId}`);
+    }
+
+    const query = { _id: new ObjectID(event._id) };
+
     const update = {
       $set: { assignee: assignee },
     };
 
     return collection.updateOne(query, update);
+  }
+
+  /**
+   * Compose event with repetition
+   *
+   * @param {Event} event - event
+   * @param {Repetition} repetition - repetition
+   * @returns {Event} event merged with repetition
+   */
+  _composeEventWithRepetition(event, repetition) {
+    return {
+      ...event,
+      _id: repetition._id,
+      originalTimestamp: event.timestamp,
+      originalEventId: event._id,
+      timestamp: repetition.timestamp,
+      payload: composeEventPayloadByRepetition(event.payload, repetition),
+      projectId: this.projectId,
+    };
   }
 }
 
