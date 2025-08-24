@@ -32,7 +32,7 @@ export default gql`
       Channel data to update
       """
       input: NotificationsChannelsInput!
-    ): changeUserNotificationsChannelResponse! @requireAuth
+    ): changeUserNotificationsChannelResponse!
 
     """
     Toggle user notifications receive type active status
@@ -42,6 +42,6 @@ export default gql`
       Receive type with its new is-enabled value
       """
       input: ChangeUserNotificationsReceiveTypeInput!
-    ): changeUserNotificationsReceiveTypeResponse! @requireAuth
+    ): changeUserNotificationsReceiveTypeResponse!
   }
 `;

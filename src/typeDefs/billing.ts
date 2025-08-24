@@ -277,12 +277,12 @@ extend type Query {
   """
   Get workspace billing history
   """
-  businessOperations("Workspaces IDs" ids: [ID!] = []): [BusinessOperation!]! @requireAuth @requireAdmin
+  businessOperations("Workspaces IDs" ids: [ID!] = []): [BusinessOperation!]! @requireAdmin
 
   """
   Prepare payment data before charge (GraphQL version of composePayment)
   """
-  composePayment(input: ComposePaymentInput!): ComposePaymentResponse! @requireAuth
+  composePayment(input: ComposePaymentInput!): ComposePaymentResponse!
 }
 
 """
@@ -324,18 +324,18 @@ extend type Mutation {
   """
   Remove card
   """
-  removeCard(cardNumber: String!): Boolean! @requireAuth
+  removeCard(cardNumber: String!): Boolean!
 
   """
   Mutation for processing payment with saved card
   """
   payWithCard(
     input: PayWithCardInput!
-  ): PayWithCardResponse! @requireAuth
+  ): PayWithCardResponse!
 
   """
   Returns JSON data with payment link and initiate card attach procedure
   """
-  attachCard(language: String): BillingSession! @requireAuth
+  attachCard(language: String): BillingSession!
 }
 `;

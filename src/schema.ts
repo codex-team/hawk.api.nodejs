@@ -6,7 +6,7 @@ import { mergeTypeDefs } from '@graphql-tools/merge';
 import defaultValueDirective from './directives/defaultValue';
 import validateDirective from './directives/validate';
 import uploadImageDirective from './directives/uploadImageDirective';
-import requireAuthDirective from './directives/requireAuth';
+import allowAnonDirective from './directives/allowAnon';
 import requireAdminDirective from './directives/requireAdmin';
 import requireUserInWorkspaceDirective from './directives/requireUserInWorkspace';
 
@@ -14,7 +14,7 @@ const { renameFromDirectiveTypeDefs, renameFromDirectiveTransformer } = renameFr
 const { defaultValueDirectiveTypeDefs, defaultValueDirectiveTransformer } = defaultValueDirective();
 const { validateDirectiveTypeDefs, validateDirectiveTransformer } = validateDirective();
 const { uploadImageDirectiveTypeDefs, uploadImageDirectiveTransformer } = uploadImageDirective();
-const { requireAuthDirectiveTypeDefs, requireAuthDirectiveTransformer } = requireAuthDirective();
+const { allowAnonDirectiveTypeDefs, allowAnonDirectiveTransformer } = allowAnonDirective();
 const { requireAdminDirectiveTypeDefs, requireAdminDirectiveTransformer } = requireAdminDirective();
 const { requireUserInWorkspaceDirectiveTypeDefs, requireUserInWorkspaceDirectiveTransformer } = requireUserInWorkspaceDirective();
 
@@ -24,7 +24,7 @@ let schema = makeExecutableSchema({
     defaultValueDirectiveTypeDefs,
     validateDirectiveTypeDefs,
     uploadImageDirectiveTypeDefs,
-    requireAuthDirectiveTypeDefs,
+    allowAnonDirectiveTypeDefs,
     requireAdminDirectiveTypeDefs,
     requireUserInWorkspaceDirectiveTypeDefs,
     ...typeDefs,
@@ -36,8 +36,8 @@ schema = renameFromDirectiveTransformer(schema);
 schema = defaultValueDirectiveTransformer(schema);
 schema = validateDirectiveTransformer(schema);
 schema = uploadImageDirectiveTransformer(schema);
-schema = requireAuthDirectiveTransformer(schema);
 schema = requireAdminDirectiveTransformer(schema);
+schema = allowAnonDirectiveTransformer(schema);
 schema = requireUserInWorkspaceDirectiveTransformer(schema);
 
 export default schema;

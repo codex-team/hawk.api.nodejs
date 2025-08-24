@@ -366,7 +366,7 @@ type Event {
     User's local timezone offset in minutes
     """
     timezoneOffset: Int! = 0
-  ): [ChartDataItem!]! @requireAuth
+  ): [ChartDataItem!]!
 }
 
 """
@@ -408,7 +408,7 @@ type Subscription {
   """
   Sends new events from all user projects
   """
-  eventOccurred: Event! @requireAuth
+  eventOccurred: Event! 
 }
   
 """
@@ -480,14 +480,14 @@ type EventsMutations {
   """
   updateAssignee(
     input: UpdateAssigneeInput!
-  ): UpdateAssigneeResponse! @requireAuth @requireUserInWorkspace
+  ): UpdateAssigneeResponse!  @requireUserInWorkspace
 
   """
   Remove an assignee from the selected event
   """
   removeAssignee(
     input: RemoveAssigneeInput!
-  ): RemoveAssigneeResponse! @requireAuth @requireUserInWorkspace
+  ): RemoveAssigneeResponse!  @requireUserInWorkspace
 }
 
 extend type Mutation {
@@ -497,7 +497,7 @@ extend type Mutation {
   visitEvent(
     project: ID!
     id: ID!
-  ): Boolean! @requireAuth
+  ): Boolean! 
 
   """
   Mutation sets or unsets passed mark to event
@@ -517,7 +517,7 @@ extend type Mutation {
     Mark to set
     """
     mark: EventMark!
-  ): Boolean! @requireAuth
+  ): Boolean! 
 
   """
   Namespace that contains only mutations related to the events
