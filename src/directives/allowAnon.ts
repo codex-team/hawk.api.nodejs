@@ -20,36 +20,49 @@ function checkUser(context: ResolverContextBase): void {
   }
 }
 
-export default function requireAuthDirective(directiveName = 'requireAuth') {
+export default function allowAnonDirective(directiveName = 'allowAnon') {
   return {
-    requireAuthDirectiveTypeDefs: `
+    allowAnonDirectiveTypeDefs: `
     """
-    Access to the field only to authorized users
+    Allow access to the field to anonymous users
     """
     directive @${directiveName} on FIELD_DEFINITION
     `,
-    requireAuthDirectiveTransformer: (schema: GraphQLSchema) =>
+    allowAnonDirectiveTransformer: (schema: GraphQLSchema) =>
       mapSchema(schema, {
         [MapperKind.OBJECT_FIELD]: (fieldConfig, fieldName) => {
-          const requireAuthDirective = getDirective(schema, fieldConfig, directiveName)?.[0];
+          const allowAnonDirective = getDirective(schema, fieldConfig, directiveName)?.[0];
 
-          if (requireAuthDirective) {
+          if (allowAnonDirective) {
+            /** Append flag isAnonAllowed to request context */
             const {
               resolve = defaultFieldResolver,
             } = fieldConfig;
 
-            /**
-             * New field resolver
-             * @param resolverArgs - default GraphQL resolver args
-             */
             fieldConfig.resolve = async function (...resolverArgs): UnknownGraphQLResolverResult {
               const [, , context] = resolverArgs;
 
-              checkUser(context);
+              context.isAnonAllowed = true;
 
               return resolve.apply(this, resolverArgs);
             };
+
+            return fieldConfig;
           }
+
+          const {
+            resolve = defaultFieldResolver,
+          } = fieldConfig;
+
+          fieldConfig.resolve = async function (...resolverArgs): UnknownGraphQLResolverResult {
+            const [, , context] = resolverArgs;
+
+            if (!context.isAnonAllowed) {
+              checkUser(context);
+            }
+
+            return resolve.apply(this, resolverArgs);
+          };
 
           return fieldConfig;
         },
