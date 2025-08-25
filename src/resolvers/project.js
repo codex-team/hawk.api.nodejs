@@ -284,20 +284,21 @@ module.exports = {
      *
      * @param {ProjectDBScheme} project - result of parent resolver
      * @param {String} eventId - event's identifier
+     * @param {String} originalEventId - id of the original event
      *
-     * @returns {Event}
+     * @returns {EventRepetitionSchema}
      */
-    async event(project, { id: eventId }) {
+    async event(project, { eventId: repetitionId, originalEventId }) {
       const factory = new EventsFactory(project._id);
-      const event = await factory.findById(eventId);
+      const repetition = await factory.getEventRepetition(repetitionId, originalEventId);
 
-      if (!event) {
+      if (!repetition) {
         return null;
       }
 
-      event.projectId = project._id;
+      repetition.projectId = project._id;
 
-      return event;
+      return repetition;
     },
 
     /**
@@ -337,14 +338,14 @@ module.exports = {
      *
      * @param {ProjectDBScheme} project - result of parent resolver
      * @param {Number} limit - limit for events count
-     * @param {Number} skip - certain number of documents to skip
+     * @param {DailyEventsCursor} cursor - object with boundary values of the first event in the next portion
      * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
      * @param {EventsFilters} filters - marks by which events should be filtered
      * @param {String} search - search query
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async recentEvents(project, { limit, skip, sort, filters, search }) {
+    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search }) {
       if (search) {
         if (search.length > MAX_SEARCH_QUERY_LENGTH) {
           search = search.slice(0, MAX_SEARCH_QUERY_LENGTH);
@@ -353,7 +354,9 @@ module.exports = {
 
       const factory = new EventsFactory(project._id);
 
-      return factory.findRecent(limit, skip, sort, filters, search);
+      const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search);
+
+      return dailyEventsPortion;
     },
 
     /**
