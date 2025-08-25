@@ -337,7 +337,10 @@ class EventsFactory extends Factory {
         $unwind: '$event',
       },
       {
-        $unwind: '$repetition',
+        $unwind: {
+          path: '$repetition',
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $match: {
