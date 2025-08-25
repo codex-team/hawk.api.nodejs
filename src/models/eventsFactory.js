@@ -337,10 +337,7 @@ class EventsFactory extends Factory {
         $unwind: '$event',
       },
       {
-        $unwind: {
-          path: '$repetition',
-          preserveNullAndEmptyArrays: true,
-        },
+        $unwind: '$repetition',
       },
       {
         $match: {
@@ -373,21 +370,7 @@ class EventsFactory extends Factory {
       const repetition = dailyEvent.repetition;
       const event = dailyEvent.event;
 
-      /**
-       * In case of repetition we need to compose event with repetition
-       * Otherwise we need to put original event with originalTimestamp and originalEventId
-       */
-      if (repetition) {
-        dailyEvent.event = this._composeEventWithRepetition(event, repetition);
-      } else {
-        dailyEvent.event = {
-          ...event,
-          originalTimestamp: event.timestamp,
-          originalEventId: event._id,
-          projectId: this.projectId,
-        };
-      }
-
+      dailyEvent.event = this._composeEventWithRepetition(event, repetition);
       dailyEvent.id = dailyEvent._id.toString();
 
       delete dailyEvent.repetition;
