@@ -338,7 +338,7 @@ module.exports = {
      *
      * @param {ProjectDBScheme} project - result of parent resolver
      * @param {Number} limit - limit for events count
-     * @param {String} cursor - pointer to the next portion of dailyEvents
+     * @param {DailyEventsCursor} cursor - object with boundary values of the first event in the next portion
      * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
      * @param {EventsFilters} filters - marks by which events should be filtered
      * @param {String} search - search query

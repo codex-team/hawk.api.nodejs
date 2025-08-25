@@ -18,7 +18,7 @@ type DailyEventsPortion {
   """
   Pointer to the next portion of dailyEvents, null if there are no events left
   """
-  nextCursor: String
+  nextCursor: DailyEventsCursor
 
   """
   List of daily events
@@ -50,6 +50,32 @@ type DailyEvent {
   Last repetition of the day that represents all of the repetition this day
   """
   event: Event!
+}
+
+"""
+Cursor for fetching daily events portion
+"""
+type DailyEventsCursor {
+  """
+  Grouping timestamp of the first event in the next portion
+  """
+  groupingTimestampBound: Int!
+
+  """
+  Sort key value of the first event in the next portion
+  """
+  sortValueBound: Int!
+
+  """
+  ID of the first event of in the next portion
+  """
+  idBound: ID!
+}
+
+input DailyEventsCursorInput {
+  groupingTimestampBound: Int!
+  sortValueBound: Int!
+  idBound: ID!
 }
 
 """
@@ -181,7 +207,7 @@ type Project {
     """
     Pointer to the first event of the portion that would be fetched
     """
-    nextCursor: String
+    nextCursor: DailyEventsCursorInput
 
     """
     Events sort order

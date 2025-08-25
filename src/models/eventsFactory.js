@@ -38,9 +38,16 @@ const { composeEventPayloadByRepetition } = require('../utils/merge');
  */
 
 /**
+ * @typedef {Object} DailyEventsCursor
+ * @property {Number} groupingTimestampBound - boundary value of groupingTimestamp field of the last event in the portion
+ * @property {Number} sortValueBound - boundary value of the field by which events are sorted (count/affectedUsers/lastRepetitionTime) of the last event in the portion
+ * @property {String} idBound - boundary value of _id field of the last event in the portion
+ */
+
+/**
  * @typedef {Object} DaylyEventsPortionSchema
  * @property {DailyEventSchema[]} dailyEvents - original event of the daily one
- * @property {String | null} nextCursor - pointer to the first dailyEvent of the next portion, null if there are no dailyEvents left
+ * @property {DailyEventsCursor | null} nextCursor - object with boundary values of the first event in the next portion
  */
 
 /**
@@ -171,7 +178,7 @@ class EventsFactory extends Factory {
    * Returns events that grouped by day
    *
    * @param {Number} limit - events count limitations
-   * @param {String} paginationCursor - pointer to the first daily event to be selected
+   * @param {DailyEventsCursor} paginationCursor - object that contains boundary values of the last event in the previous portion
    * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
    * @param {EventsFilters} filters - marks by which events should be filtered
    * @param {String} search - Search query
@@ -196,10 +203,6 @@ class EventsFactory extends Factory {
       throw new Error('Invalid regular expression pattern');
     }
 
-    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-    limit = this.validateLimit(limit);
-
     switch (sort) {
       case 'BY_COUNT':
         sort = 'count';
@@ -215,18 +218,55 @@ class EventsFactory extends Factory {
         break;
     }
 
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    limit = this.validateLimit(limit);
+
     const pipeline = [
       {
         $match: paginationCursor ? {
-          _id: {
-            $lte: new ObjectID(paginationCursor),
-          },
+          /**
+           * This condition is used for cursor-based pagination
+           * We sort result by groupingTimestamp desc, [sort] desc, _id desc
+           * So we need to fetch documents that are less than the last document of the previous portion (based on all three conditions)
+           */
+          $or: [
+            {
+              /**
+               * If groupingTimestamp is less than the cursors one
+               * - daily events of the next day
+               */
+              groupingTimestamp: { $lt: paginationCursor.groupingTimestampBound },
+            },
+            {
+              /**
+               * If groupingTimestamp equals to the cursor one, but [sort] is less than the cursors one
+               * - daily events of the same day, but with less count/affectedUsers/lastRepetitionTime
+               */
+              $and: [
+                { groupingTimestamp: paginationCursor.groupingTimestampBound },
+                { [sort]: { $lt: paginationCursor.sortValueBound } },
+              ],
+            },
+            {
+              /**
+               * If groupingTimestamp and [sort] equals to the cursors ones, but _id is less or equal to the cursors one
+               * - daily events of the same day with the same count/affectedUsers/lastRepetitionTime, but that were created earlier
+               */
+              $and: [
+                { groupingTimestamp: paginationCursor.groupingTimestampBound },
+                { [sort]: paginationCursor.sortValueBound },
+                { _id: { $lte: new ObjectID(paginationCursor.idBound) } },
+              ],
+            },
+          ],
         } : {},
       },
       {
         $sort: {
           groupingTimestamp: -1,
           [sort]: -1,
+          _id: -1,
         },
       },
     ];
@@ -297,7 +337,10 @@ class EventsFactory extends Factory {
         $unwind: '$event',
       },
       {
-        $unwind: '$repetition',
+        $unwind: {
+          path: '$repetition',
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $match: {
@@ -317,7 +360,13 @@ class EventsFactory extends Factory {
     let nextCursor;
 
     if (result.length === limit + 1) {
-      nextCursor = result.pop()._id;
+      const nextCursorEvent = result.pop();
+
+      nextCursor = {
+        groupingTimestampBound: nextCursorEvent.groupingTimestamp,
+        sortValueBound: nextCursorEvent[sort],
+        idBound: nextCursorEvent._id.toString(),
+      };
     }
 
     const composedResult = result.map(dailyEvent => {
@@ -715,10 +764,19 @@ class EventsFactory extends Factory {
    * Compose event with repetition
    *
    * @param {Event} event - event
-   * @param {Repetition} repetition - repetition
+   * @param {Repetition|null} repetition - repetition null
    * @returns {Event} event merged with repetition
    */
   _composeEventWithRepetition(event, repetition) {
+    if (!repetition) {
+      return {
+        ...event,
+        originalTimestamp: event.timestamp,
+        originalEventId: event._id,
+        projectId: this.projectId,
+      };
+    }
+
     return {
       ...event,
       _id: repetition._id,
