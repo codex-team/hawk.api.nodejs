@@ -9,6 +9,10 @@ const { ObjectID } = require('mongodb');
 const { composeEventPayloadByRepetition } = require('../utils/merge');
 
 /**
+ * @typedef {import('mongodb').UpdateWriteOpResult} UpdateWriteOpResult
+ */
+
+/**
  * @typedef {Object} EventRepetitionSchema
  * @property {String} _id — repetition's identifier
  * @property {String} groupHash - event's hash. Generates according to the rule described in EventSchema
@@ -575,7 +579,7 @@ class EventsFactory extends Factory {
    *
    * @param {String} repetitionId - id of Repetition to find
    * @param {String} originalEventId - id of the original event
-   * @return {Event|null}
+   * @return {EventRepetitionSchema|null}
    */
   async getEventRepetition(repetitionId, originalEventId) {
     /**
@@ -591,6 +595,8 @@ class EventsFactory extends Factory {
        * All events have same type with originalEvent id
        */
       originalEvent.originalEventId = originalEventId;
+      originalEvent.originalTimestamp = originalEvent.timestamp;
+      originalEvent.projectId = this.projectId;
 
       return originalEvent || null;
     }
@@ -660,20 +666,20 @@ class EventsFactory extends Factory {
    * @param {string|ObjectId} eventId - id of the original event
    * @param {string|ObjectId} userId - id of the user who is visiting the event
    *
-   * @return {Promise<void>}
+   * @return {Promise<UpdateWriteOpResult>}
    */
   async visitEvent(eventId, userId) {
-    const event = await this.findById(eventId);
+    const result = await this.getCollection(this.TYPES.EVENTS)
+      .updateOne(
+        { _id: new ObjectID(eventId) },
+        { $addToSet: { visitedBy: new ObjectID(userId) } }
+      );
 
-    if (!event) {
+    if (result.matchedCount === 0) {
       throw new Error(`Event not found for eventId: ${eventId}`);
     }
 
-    return this.getCollection(this.TYPES.EVENTS)
-      .updateOne(
-        { _id: new ObjectID(event._id) },
-        { $addToSet: { visitedBy: new ObjectID(userId) } }
-      );
+    return result;
   }
 
   /**
@@ -682,7 +688,7 @@ class EventsFactory extends Factory {
    * @param {string|ObjectId} eventId - id of the original event to mark
    * @param {string} mark - mark label
    *
-   * @return {Promise<void>}
+   * @return {Promise<UpdateWriteOpResult>}
    */
   async toggleEventMark(eventId, mark) {
     const collection = this.getCollection(this.TYPES.EVENTS);
@@ -745,19 +751,19 @@ class EventsFactory extends Factory {
   async updateAssignee(eventId, assignee) {
     const collection = this.getCollection(this.TYPES.EVENTS);
 
-    const event = await this.findById(eventId);
-
-    if (!event) {
-      throw new Error(`Event not found for eventId: ${eventId}`);
-    }
-
-    const query = { _id: new ObjectID(event._id) };
+    const query = { _id: new ObjectID(eventId) };
 
     const update = {
       $set: { assignee: assignee },
     };
 
-    return collection.updateOne(query, update);
+    const result = await collection.updateOne(query, update);
+
+    if (result.updatedCount === 0) {
+      throw new Error(`Event not found for eventId: ${eventId}`);
+    }
+
+    return result;
   }
 
   /**
