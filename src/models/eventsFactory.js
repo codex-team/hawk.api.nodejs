@@ -379,7 +379,7 @@ class EventsFactory extends Factory {
    */
   async getUnreadCount(lastVisit) {
     const query = {
-      'timestamp': {
+      timestamp: {
         $gt: lastVisit,
       },
     };
