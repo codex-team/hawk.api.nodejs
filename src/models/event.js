@@ -38,12 +38,13 @@
 /**
  * @typedef {Object} EventSchema
  * @property {String} _id - event ID
- * @property {String} catcherType - type of an event
- * @property {Number} count - event repetitions count
  * @property {String} groupHash - event's hash (catcherType + title + salt)
- * @property {User[]} visitedBy - array of users who visited this event
+ * @property {Number} totalCount - event repetitions count
+ * @property {String} catcherType - type of an event
  * @property {EventPayload} payload - event's payload
  * @property {Number} timestamp - event's Unix timestamp
+ * @property {Number} usersAffected - number of users that were affected by the event
+ * @property {User[]} visitedBy - array of users who visited this event
  */
 
 /**
