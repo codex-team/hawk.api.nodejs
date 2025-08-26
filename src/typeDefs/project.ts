@@ -59,23 +59,23 @@ type DailyEventsCursor {
   """
   Grouping timestamp of the first event in the next portion
   """
-  groupingTimestampBound: Int!
+  groupingTimestampBoundary: Int!
 
   """
   Sort key value of the first event in the next portion
   """
-  sortValueBound: Int!
+  sortValueBoundary: Int!
 
   """
   ID of the first event of in the next portion
   """
-  idBound: ID!
+  idBoundary: ID!
 }
 
 input DailyEventsCursorInput {
-  groupingTimestampBound: Int!
-  sortValueBound: Int!
-  idBound: ID!
+  groupingTimestampBoundary: Int!
+  sortValueBoundary: Int!
+  idBoundary: ID!
 }
 
 """

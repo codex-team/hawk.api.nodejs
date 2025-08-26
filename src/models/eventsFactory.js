@@ -39,9 +39,9 @@ const { composeEventPayloadByRepetition } = require('../utils/merge');
 
 /**
  * @typedef {Object} DailyEventsCursor
- * @property {Number} groupingTimestampBound - boundary value of groupingTimestamp field of the last event in the portion
- * @property {Number} sortValueBound - boundary value of the field by which events are sorted (count/affectedUsers/lastRepetitionTime) of the last event in the portion
- * @property {String} idBound - boundary value of _id field of the last event in the portion
+ * @property {Number} groupingTimestampBoundary - boundary value of groupingTimestamp field of the last event in the portion
+ * @property {Number} sortValueBoundary - boundary value of the field by which events are sorted (count/affectedUsers/lastRepetitionTime) of the last event in the portion
+ * @property {String} idBoundary - boundary value of _id field of the last event in the portion
  */
 
 /**
@@ -236,7 +236,7 @@ class EventsFactory extends Factory {
                * If groupingTimestamp is less than the cursors one
                * - daily events of the next day
                */
-              groupingTimestamp: { $lt: paginationCursor.groupingTimestampBound },
+              groupingTimestamp: { $lt: paginationCursor.groupingTimestampBoundary },
             },
             {
               /**
@@ -244,8 +244,8 @@ class EventsFactory extends Factory {
                * - daily events of the same day, but with less count/affectedUsers/lastRepetitionTime
                */
               $and: [
-                { groupingTimestamp: paginationCursor.groupingTimestampBound },
-                { [sort]: { $lt: paginationCursor.sortValueBound } },
+                { groupingTimestamp: paginationCursor.groupingTimestampBoundary },
+                { [sort]: { $lt: paginationCursor.sortValueBoundary } },
               ],
             },
             {
@@ -254,9 +254,9 @@ class EventsFactory extends Factory {
                * - daily events of the same day with the same count/affectedUsers/lastRepetitionTime, but that were created earlier
                */
               $and: [
-                { groupingTimestamp: paginationCursor.groupingTimestampBound },
-                { [sort]: paginationCursor.sortValueBound },
-                { _id: { $lte: new ObjectID(paginationCursor.idBound) } },
+                { groupingTimestamp: paginationCursor.groupingTimestampBoundary },
+                { [sort]: paginationCursor.sortValueBoundary },
+                { _id: { $lte: new ObjectID(paginationCursor.idBoundary) } },
               ],
             },
           ],
@@ -363,9 +363,9 @@ class EventsFactory extends Factory {
       const nextCursorEvent = result.pop();
 
       nextCursor = {
-        groupingTimestampBound: nextCursorEvent.groupingTimestamp,
-        sortValueBound: nextCursorEvent[sort],
-        idBound: nextCursorEvent._id.toString(),
+        groupingTimestampBoundary: nextCursorEvent.groupingTimestamp,
+        sortValueBoundary: nextCursorEvent[sort],
+        idBoundary: nextCursorEvent._id.toString(),
       };
     }
 
