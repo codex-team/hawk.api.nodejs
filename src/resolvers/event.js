@@ -18,39 +18,21 @@ module.exports = {
     },
   },
   Event: {
-    /**
-     * Returns Event with concrete repetition
-     *
-     * @param {string} eventId - id of Event of which repetition requested
-     * @param {string} projectId - projectId of Event of which repetition requested
-     * @param {string|null} [repetitionId] - if not specified, last repetition will returned
-     * @return {Promise<EventRepetitionSchema>}
-     */
-    async repetition({ id: eventId, projectId }, { id: repetitionId }) {
-      const factory = new EventsFactory(projectId);
-
-      if (!repetitionId) {
-        return factory.getEventLastRepetition(eventId);
-      }
-
-      return factory.getEventRepetition(repetitionId);
-    },
 
     /**
-     * Returns repetitions list of the event
+     * Returns repetitions portion of the event
      *
-     * @param {ResolverObj} _obj
-     * @param {String} eventId
-     * @param {String} projectId
-     * @param {Number} limit
-     * @param {Number} skip
+     * @param {String} projectId - id of the project got from the parent node (event)
+     * @param {String} originalEventId - id of the original event of the repetitions to get, got from parent node (event)
+     * @param {Number} limit - argument of the query, maximal count of the repetitions in one portion
+     * @param {Number|null} cursor - pointer to the next portion of repetition, could be null if we want to get first portion
      *
-     * @return {EventRepetitionSchema[]}
+     * @return {RepetitionsPortion}
      */
-    async repetitions({ _id: eventId, projectId }, { limit, skip }) {
+    async repetitionsPortion({ projectId, originalEventId }, { limit, cursor }) {
       const factory = new EventsFactory(projectId);
 
-      return factory.getEventRepetitions(eventId, limit, skip);
+      return factory.getEventRepetitions(originalEventId, limit, cursor);
     },
 
     /**
@@ -127,15 +109,15 @@ module.exports = {
      * Mark event as visited for current user
      *
      * @param {ResolverObj} _obj - resolver context
-     * @param {string} project - project id
-     * @param {string} id - event id
+     * @param {string} projectId - project id
+     * @param {string} eventId - event id
      * @param {UserInContext} user - user context
      * @return {Promise<boolean>}
      */
-    async visitEvent(_obj, { project, id }, { user }) {
-      const factory = new EventsFactory(project);
+    async visitEvent(_obj, { projectId, eventId }, { user }) {
+      const factory = new EventsFactory(projectId);
 
-      const { result } = await factory.visitEvent(id, user.id);
+      const { result } = await factory.visitEvent(eventId, user.id);
 
       return !!result.ok;
     },
