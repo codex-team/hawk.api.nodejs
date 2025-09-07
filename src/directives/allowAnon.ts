@@ -43,6 +43,7 @@ export default function allowAnonDirective(directiveName = 'allowAnon') {
               const [, , context] = resolverArgs;
 
               context.isAnonAllowed = true;
+
               return resolve.apply(this, resolverArgs);
             };
 
