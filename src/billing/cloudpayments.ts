@@ -42,14 +42,8 @@ import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import PlanModel from '../models/plan';
 import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
-import { ComposePaymentPayload } from './types/composePaymentPayload';
 
 const PENNY_MULTIPLIER = 100;
-
-interface ComposePaymentRequest extends express.Request {
-  query: ComposePaymentPayload & { [key: string]: any };
-  context: import('../types/graphql').ResolverContextBase;
-};
 
 /**
  * Class for describing the logic of payment routes
@@ -86,127 +80,12 @@ export default class CloudPaymentsWebhooks {
   public getRouter(): express.Router {
     const router = express.Router();
 
-    router.get('/compose-payment', this.composePayment.bind(this));
     router.all('/check', this.check.bind(this));
     router.all('/pay', this.pay.bind(this));
     router.all('/fail', this.fail.bind(this));
     router.all('/recurrent', this.recurrent.bind(this));
 
     return router;
-  }
-
-  /**
-   * Prepares payment data before charge
-   *
-   * @param req — Express request object
-   * @param res - Express response object
-   */
-  private async composePayment(req: ComposePaymentRequest, res: express.Response): Promise<void> {
-    const { workspaceId, tariffPlanId, shouldSaveCard } = req.query;
-    const userId = req.context.user.id;
-
-    if (!workspaceId || !tariffPlanId || !userId) {
-      this.sendError(res, 1, `[Billing / Compose payment] No workspace, tariff plan or user id in request body
-Details:
-workspaceId: ${workspaceId}
-tariffPlanId: ${tariffPlanId}
-userId: ${userId}`
-      , req.query);
-
-      return;
-    }
-
-    let workspace;
-    let tariffPlan;
-
-    try {
-      workspace = await this.getWorkspace(req, workspaceId);
-      tariffPlan = await this.getPlan(req, tariffPlanId);
-    } catch (e) {
-      const error = e as Error;
-
-      this.sendError(res, 1, `[Billing / Compose payment] Can't get data from Database ${error.toString()}`, req.query);
-
-      return;
-    }
-
-    try {
-      await this.getMember(userId, workspace);
-    } catch (e) {
-      const error = e as Error;
-
-      this.sendError(res, 1, `[Billing / Compose payment] Can't compose payment due to error: ${error.toString()}`, req.query);
-
-      return;
-    }
-    const invoiceId = this.generateInvoiceId(tariffPlan, workspace);
-
-    const isCardLinkOperation = workspace.tariffPlanId.toString() === tariffPlanId && !workspace.isTariffPlanExpired();
-
-    // Calculate next payment date
-    const lastChargeDate = new Date(workspace.lastChargeDate);
-    const now = new Date();
-    let nextPaymentDate: Date;
-
-    if (isCardLinkOperation) {
-      nextPaymentDate = new Date(lastChargeDate);
-    } else {
-      nextPaymentDate = new Date(now);
-    }
-
-    if (workspace.isDebug) {
-      nextPaymentDate.setDate(nextPaymentDate.getDate() + 1);
-    } else {
-      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
-    }
-
-    let checksum;
-
-    try {
-      const checksumData = isCardLinkOperation ? {
-        isCardLinkOperation: true,
-        workspaceId: workspace._id.toString(),
-        userId: userId,
-        nextPaymentDate: nextPaymentDate.toISOString(),
-      } : {
-        workspaceId: workspace._id.toString(),
-        userId: userId,
-        tariffPlanId: tariffPlan._id.toString(),
-        shouldSaveCard: shouldSaveCard === 'true',
-        nextPaymentDate: nextPaymentDate.toISOString(),
-      };
-
-      checksum = await checksumService.generateChecksum(checksumData);
-    } catch (e) {
-      const error = e as Error;
-
-      this.sendError(res, 1, `[Billing / Compose payment] Can't generate checksum: ${error.toString()}`, req.query);
-
-      return;
-    }
-
-    this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Compose payment]
-
-card link operation: ${isCardLinkOperation}
-amount: ${+tariffPlan.monthlyCharge} RUB
-last charge date: ${workspace.lastChargeDate?.toISOString()}
-next payment date: ${nextPaymentDate.toISOString()}
-workspace id: ${workspace._id.toString()}
-debug: ${Boolean(workspace.isDebug)}`
-    , TelegramBotURLs.Money));
-
-    res.send({
-      invoiceId,
-      plan: {
-        id: tariffPlan._id.toString(),
-        name: tariffPlan.name,
-        monthlyCharge: tariffPlan.monthlyCharge,
-      },
-      isCardLinkOperation,
-      currency: 'RUB',
-      checksum,
-      nextPaymentDate: nextPaymentDate.toISOString(),
-    });
   }
 
   /**
@@ -557,14 +436,26 @@ plan monthly charge: ${data.cloudPayments?.recurrent.amount} ${body.Currency}`
 
         await this.sendReceipt(workspace, tariffPlan, userEmail);
 
-        this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] New payment
+        let messageText = '';
+
+        if (data.cloudPayments?.recurrent.startDate) {
+          messageText = `✅ [Billing / Pay] New payment
 
 amount: ${+body.Amount} ${body.Currency}
 next payment date: ${data.cloudPayments?.recurrent.startDate}
 workspace id: ${workspace._id}
 date of operation: ${body.DateTime}
-subscription id: ${body.SubscriptionId}`
-        , TelegramBotURLs.Money));
+subscription id: ${body.SubscriptionId}`;
+        } else {
+          messageText = `✅ [Billing / Pay] New Recurrent payment
+
+amount: ${+body.Amount} ${body.Currency}
+workspace id: ${workspace._id}
+date of operation: ${body.DateTime}
+subscription id: ${body.SubscriptionId}`;
+        }
+
+        this.handleSendingToTelegramError(telegram.sendMessage(messageText, TelegramBotURLs.Money));
       }
     } catch (e) {
       const error = e as Error;
@@ -676,7 +567,9 @@ subscription id: ${body.SubscriptionId}`
 
     console.log('💎 CloudPayments /recurrent request', body);
 
-    this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Recurrent] New recurrent transaction
+    const emoji = [SubscriptionStatus.CANCELLED, SubscriptionStatus.REJECTED].includes(body.Status) ? '❌' : '✅';
+
+    this.handleSendingToTelegramError(telegram.sendMessage(`${emoji} [Billing / Recurrent] New recurrent event
 
 amount: ${+body.Amount} ${body.Currency}
 next payment date: ${body.NextTransactionDate}
@@ -684,6 +577,7 @@ workspace id: ${body.AccountId}
 subscription id: ${body.Id}
 status: ${body.Status}`
     , TelegramBotURLs.Money));
+
     HawkCatcher.send(new Error(`[Billing / Recurrent] New recurrent event with ${body.Status} status`), req.body);
 
     switch (body.Status) {

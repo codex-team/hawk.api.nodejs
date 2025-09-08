@@ -53,7 +53,7 @@ type Release {
   """
   Release commits
   """
-  commits: [Commit!]!
+  commits: [Commit!]
 }
 
 """
@@ -131,11 +131,6 @@ type EventPayload {
   type: String
 
   """
-  Event timestamp
-  """
-  timestamp: Float!
-
-  """
   Event severity level
   """
   level: Int
@@ -181,95 +176,6 @@ type EventPayload {
   addons: EncodedJSON
 }
 
-"""
-Type representing Event payload. All fields can be omitted if there are no difference with the original
-"""
-type RepetitionPayload {
-  """
-  Event timestamp. Can be empty if repetition has the same timestamp as original event
-  """
-  timestamp: Float
-
-  """
-  Event title
-  """
-  title: String
-
-  """
-  Event type: TypeError, ReferenceError etc.
-  """
-  type: String
-
-  """
-  Event severity level
-  """
-  level: Int
-
-  """
-  Event stack array from the latest call to the earliest
-  """
-  backtrace: [EventBacktraceFrame!]
-
-  """
-  Additional data about GET request
-  """
-  get: JSONObject
-
-  """
-  Additional data about POST request
-  """
-  post: JSONObject
-
-  """
-  HTTP headers
-  """
-  headers: JSONObject
-
-  """
-  Source code version identifier
-  """
-  release: String
-
-  """
-  Current authenticated user
-  """
-  user: EventUser
-
-  """
-  Any additional data of Event
-  """
-  context: EncodedJSON
-
-  """
-  Custom data provided by project users
-  """
-  addons: EncodedJSON
-}
-
-"""
-Repetition of the event
-"""
-type Repetition {
-  """
-  Standalone repetition ID
-  """
-  id: ID! @renameFrom(name: "_id")
-
-  """
-  Event's hash
-  """
-  groupHash: String!
-
-  """
-  Event's payload patch
-  """
-  payload: RepetitionPayload
-
-  """
-  Delta of the event's payload, stringified JSON
-  """
-  delta: String
-}
 
 """
 Possible event marks
@@ -287,6 +193,14 @@ type EventMarks {
   resolved: Boolean!
   starred: Boolean!
   ignored: Boolean!
+}
+
+"""
+Object returned in repetitions property of event object
+"""
+type RepetitionsPortion {
+  repetitions: [Event!]
+  nextCursor: String
 }
 
 """
@@ -324,19 +238,29 @@ type Event {
   payload: EventPayload!
 
   """
+  Event timestamp
+  """
+  timestamp: Float!
+
+  """
+  First occurrence timestamp
+  """
+  originalTimestamp: Float!
+
+  """
+  Id of the original event
+  """
+  originalEventId: ID!
+
+  """
   Release data
   """
   release: Release
 
   """
-  Event concrete repetition
+  Event repetitions portion
   """
-  repetition(id: ID): Repetition
-
-  """
-  Event repetitions
-  """
-  repetitions(skip: Int = 0, limit: Int = 10): [Repetition!]
+  repetitionsPortion(cursor: String = null, limit: Int = 10): RepetitionsPortion!
 
   """
   Array of users who visited event
@@ -495,8 +419,15 @@ extend type Mutation {
   Mutation marks event as visited for current user
   """
   visitEvent(
-    project: ID!
-    id: ID!
+    """
+    ID of project event is related to
+    """
+    projectId: ID!
+
+    """
+    ID of the event to visit
+    """
+    eventId: ID!
   ): Boolean! @requireAuth
 
   """
