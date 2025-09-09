@@ -6,9 +6,11 @@ jobs:
   # If pull request was merged then we should check for a package version update
   check-version-update:
     runs-on: ubuntu-22.04
+    outputs:
+      should-bump: ${{ steps.version-check.outputs.should-bump }}
     steps:
       # Checkout to target branch
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -26,20 +28,29 @@ jobs:
         id: packageOld
         uses: codex-team/action-nodejs-package-info@v1
 
-      # Stop workflow and do not bump version if it was changed already
-      - name: Stop workflow and do not bump version if it was changed already
-        uses: andymckay/cancel-action@0.2
-        if: steps.packageOld.outputs.version != steps.packageNew.outputs.version
+      # Check if version should be bumped
+      - name: Check if version should be bumped
+        id: version-check
+        run: |
+          if [ "${{ steps.packageOld.outputs.version }}" == "${{ steps.packageNew.outputs.version }}" ]; then
+            echo "should-bump=true" >> $GITHUB_OUTPUT
+          else
+            echo "should-bump=false" >> $GITHUB_OUTPUT
+          fi
 
   bump-version:
     needs: check-version-update
+    if: needs.check-version-update.outputs.should-bump == 'true'
     runs-on: ubuntu-22.04
     steps:
       # Checkout to target branch
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v5
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
       # Setup node environment
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
           registry-url: https://registry.npmjs.org/
@@ -54,7 +65,7 @@ jobs:
         uses: codex-team/action-nodejs-package-info@v1
 
       # Commit version upgrade
-      - uses: EndBug/add-and-commit@v7
+      - uses: EndBug/add-and-commit@v9
         with:
           author_name: github-actions
           author_email: 41898282+github-actions[bot]@users.noreply.github.com
