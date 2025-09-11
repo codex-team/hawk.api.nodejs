@@ -12,6 +12,7 @@ const ProjectModel = require('../models/project').default;
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
 const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
+const EVENTS_TIMESTAMP_INDEX_NAME = 'timestamp';
 const MAX_SEARCH_QUERY_LENGTH = 50;
 
 /**
@@ -120,6 +121,13 @@ module.exports = {
         'payload.user.id': 1,
       }, {
         name: REPETITIONS_USER_ID_INDEX_NAME,
+        sparse: true,
+      });
+
+      await projectEventsCollection.createIndex({
+        'timestamp': 1,
+      }, {
+        name: EVENTS_TIMESTAMP_INDEX_NAME,
         sparse: true,
       });
 
