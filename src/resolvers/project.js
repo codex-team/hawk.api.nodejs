@@ -125,7 +125,7 @@ module.exports = {
       });
 
       await projectEventsCollection.createIndex({
-        'timestamp': 1,
+        timestamp: 1,
       }, {
         name: EVENTS_TIMESTAMP_INDEX_NAME,
         sparse: true,
