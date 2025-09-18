@@ -1,8 +1,8 @@
 {
   "name": "hawk.api",
-  "version": "1.1.38",
+  "version": "1.1.39",
   "main": "index.ts",
-  "license": "UNLICENSED",
+  "license": "BUSL-1.1",
   "scripts": {
     "dev": "ts-node-dev --no-notify index.ts",
     "start": "node index.ts",

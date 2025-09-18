@@ -1,5 +1,7 @@
 # Hawk API
 
+![License](https://img.shields.io/badge/license-BSL--1.1-orange)
+
 ## Start API
 For deployment (both in production and in development), you can use Docker.
 See Docker instructions [here](DOCKER.md).
@@ -29,3 +31,8 @@ You can view API Schema visualization in `/voyager` page in your browser. To see
 
 Run `yarn migrations:up` command to apply migration revisions or
 `yarn migrations:down` to rollback the last revision.
+
+## License
+
+Source code is available under **Business Source License 1.1 (BSL 1.1)**.
+See [`LICENSE`](./LICENSE) for terms, including:
