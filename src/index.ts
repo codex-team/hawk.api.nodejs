@@ -26,6 +26,7 @@ import PlansFactory from './models/plansFactory';
 import BusinessOperationsFactory from './models/businessOperationsFactory';
 import schema from './schema';
 import { graphqlUploadExpress } from 'graphql-upload';
+import morgan from 'morgan';
 
 /**
  * Option to enable playground
@@ -77,6 +78,14 @@ class HawkAPI {
       res.setHeader('Access-Control-Allow-Headers', 'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers');
       next();
     });
+
+    /**
+     * Setup request logger.
+     * Uses 'combined' format in production for Apache-style logging,
+     * and 'dev' format in development for colored, concise output.
+     */
+    this.app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
     this.app.use(express.json());
     this.app.use(bodyParser.urlencoded({ extended: false }));
     this.app.use('/static', express.static(`./static`));
