@@ -21,6 +21,7 @@
   "devDependencies": {
     "@shelf/jest-mongodb": "^1.2.2",
     "@types/jest": "^26.0.8",
+    "@types/morgan": "^1.9.10",
     "eslint": "^6.7.2",
     "eslint-config-codex": "1.2.4",
     "eslint-plugin-import": "^2.19.1",
@@ -78,6 +79,7 @@
     "migrate-mongo": "^7.0.1",
     "mime-types": "^2.1.25",
     "mongodb": "^3.7.3",
+    "morgan": "^1.10.1",
     "safe-regex": "^2.1.0",
     "ts-node-dev": "^2.0.0",
     "uuid": "^8.3.2"
