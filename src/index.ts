@@ -27,6 +27,7 @@ import BusinessOperationsFactory from './models/businessOperationsFactory';
 import schema from './schema';
 import { graphqlUploadExpress } from 'graphql-upload';
 import morgan from 'morgan';
+import timeout from 'connect-timeout';
 
 /**
  * Option to enable playground
@@ -85,6 +86,25 @@ class HawkAPI {
      * and 'dev' format in development for colored, concise output.
      */
     this.app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+    /**
+     * Setup request timeout.
+     * Default timeout is 10 seconds (10000ms), configurable via REQUEST_TIMEOUT env var.
+     */
+    const requestTimeout = +(process.env.REQUEST_TIMEOUT || 10000);
+
+    this.app.use(timeout(requestTimeout));
+
+    /**
+     * Handle timeout errors and log them.
+     */
+    this.app.use((req, res, next) => {
+      if (!req.timedout) {
+        next();
+      } else {
+        console.log(`Request timeout: ${req.method} ${req.url}`);
+      }
+    });
 
     this.app.use(express.json());
     this.app.use(bodyParser.urlencoded({ extended: false }));
