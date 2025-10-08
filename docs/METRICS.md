@@ -1,0 +1,120 @@
+# Prometheus Metrics
+
+This application exposes Prometheus-compatible metrics on a separate port from the main API server.
+
+## Configuration
+
+The metrics server runs on a separate port configured via the `METRICS_PORT` environment variable:
+
+```bash
+# Default: 9090
+METRICS_PORT=9090
+```
+
+Add this to your `.env` file. See `.env.sample` for reference.
+
+## Metrics Endpoint
+
+The metrics are served at:
+
+```
+http://localhost:9090/metrics
+```
+
+(Replace `9090` with your configured `METRICS_PORT` if different)
+
+## Available Metrics
+
+### Default Node.js Metrics
+
+The following default Node.js metrics are automatically collected:
+
+- **nodejs_version_info** - Node.js version information
+- **process_cpu_user_seconds_total** - Total user CPU time spent in seconds
+- **process_cpu_system_seconds_total** - Total system CPU time spent in seconds
+- **nodejs_heap_size_total_bytes** - Total heap size in bytes
+- **nodejs_heap_size_used_bytes** - Used heap size in bytes
+- **nodejs_external_memory_bytes** - External memory in bytes
+- **nodejs_heap_space_size_total_bytes** - Total heap space size in bytes
+- **nodejs_heap_space_size_used_bytes** - Used heap space size in bytes
+- **nodejs_eventloop_lag_seconds** - Event loop lag in seconds
+- **nodejs_eventloop_lag_min_seconds** - Minimum event loop lag
+- **nodejs_eventloop_lag_max_seconds** - Maximum event loop lag
+- **nodejs_eventloop_lag_mean_seconds** - Mean event loop lag
+- **nodejs_eventloop_lag_stddev_seconds** - Standard deviation of event loop lag
+- **nodejs_eventloop_lag_p50_seconds** - 50th percentile event loop lag
+- **nodejs_eventloop_lag_p90_seconds** - 90th percentile event loop lag
+- **nodejs_eventloop_lag_p99_seconds** - 99th percentile event loop lag
+
+### Custom HTTP Metrics
+
+#### http_request_duration_seconds (Histogram)
+
+Duration of HTTP requests in seconds, labeled by:
+- `method` - HTTP method (GET, POST, etc.)
+- `route` - Request route/path
+- `status_code` - HTTP status code
+
+Buckets: 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10 seconds
+
+#### http_requests_total (Counter)
+
+Total number of HTTP requests, labeled by:
+- `method` - HTTP method (GET, POST, etc.)
+- `route` - Request route/path
+- `status_code` - HTTP status code
+
+## Testing
+
+### Manual Testing
+
+You can test the metrics endpoint using curl:
+
+```bash
+curl http://localhost:9090/metrics
+```
+
+Or run the provided test script:
+
+```bash
+./test-metrics.sh
+```
+
+### Integration Tests
+
+Integration tests for metrics are located in `test/integration/cases/metrics.test.ts`.
+
+Run them with:
+
+```bash
+npm run test:integration
+```
+
+## Implementation Details
+
+The metrics implementation uses the `prom-client` library and consists of:
+
+1. **Metrics Module** (`src/metrics/index.ts`):
+   - Initializes a Prometheus registry
+   - Configures default Node.js metrics collection
+   - Defines custom HTTP metrics (duration histogram and request counter)
+   - Provides middleware for tracking HTTP requests
+   - Creates a separate Express app for serving metrics
+
+2. **Integration** (`src/index.ts`):
+   - Adds metrics middleware to the main Express app
+   - Starts metrics server on a separate port
+   - Keeps metrics server isolated from main API traffic
+
+## Prometheus Configuration
+
+To scrape these metrics with Prometheus, add the following to your `prometheus.yml`:
+
+```yaml
+scrape_configs:
+  - job_name: 'hawk-api'
+    static_configs:
+      - targets: ['localhost:9090']
+```
+
+Adjust the target host and port according to your deployment.
