@@ -61,7 +61,7 @@ export function setupMongoMetrics(client: MongoClient): void {
        * e.g., { find: "users" } -> collection is "users"
        */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const collection = (event.command as any)[event.commandName] || 'unknown';
+      const collection = event.command ? ((event.command as any)[event.commandName] || 'unknown') : 'unknown';
       const db = event.databaseName || 'unknown';
 
       mongoCommandDuration
@@ -88,7 +88,7 @@ export function setupMongoMetrics(client: MongoClient): void {
        * e.g., { find: "users" } -> collection is "users"
        */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const collection = (event.command as any)[event.commandName] || 'unknown';
+      const collection = event.command ? ((event.command as any)[event.commandName] || 'unknown') : 'unknown';
       const db = event.databaseName || 'unknown';
 
       mongoCommandDuration
