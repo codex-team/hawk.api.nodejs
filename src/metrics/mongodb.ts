@@ -54,7 +54,14 @@ export function setupMongoMetrics(client: MongoClient): void {
 
     if (startTime) {
       const duration = (Date.now() - startTime) / 1000;
-      const collection = event.command?.collection || event.command?.[event.commandName] || 'unknown';
+
+      /**
+       * Extract collection name from the command
+       * For most commands, the collection name is the value of the command name key
+       * e.g., { find: "users" } -> collection is "users"
+       */
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const collection = (event.command as any)[event.commandName] || 'unknown';
       const db = event.databaseName || 'unknown';
 
       mongoCommandDuration
@@ -74,7 +81,14 @@ export function setupMongoMetrics(client: MongoClient): void {
 
     if (startTime) {
       const duration = (Date.now() - startTime) / 1000;
-      const collection = event.command?.collection || event.command?.[event.commandName] || 'unknown';
+
+      /**
+       * Extract collection name from the command
+       * For most commands, the collection name is the value of the command name key
+       * e.g., { find: "users" } -> collection is "users"
+       */
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const collection = (event.command as any)[event.commandName] || 'unknown';
       const db = event.databaseName || 'unknown';
 
       mongoCommandDuration
