@@ -1,5 +1,5 @@
 import client from 'prom-client';
-import { GraphQLRequestContext } from 'apollo-server-plugin-base';
+import { ApolloServerPlugin, GraphQLRequestContext, GraphQLRequestListener } from 'apollo-server-plugin-base';
 import { GraphQLError } from 'graphql';
 
 /**
@@ -37,8 +37,8 @@ export const gqlResolverDuration = new client.Histogram({
 /**
  * Apollo Server plugin to track GraphQL metrics
  */
-export const graphqlMetricsPlugin = {
-  async requestDidStart(requestContext: GraphQLRequestContext) {
+export const graphqlMetricsPlugin: ApolloServerPlugin = {
+  async requestDidStart(requestContext: GraphQLRequestContext): Promise<GraphQLRequestListener> {
     const startTime = Date.now();
     let operationName = 'unknown';
     let operationType = 'unknown';
