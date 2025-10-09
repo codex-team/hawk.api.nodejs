@@ -38,4 +38,21 @@ describe('Prometheus Metrics', () => {
     expect(response.data).toContain('http_request_duration_seconds');
     expect(response.data).toContain('http_requests_total');
   });
+
+  test('Metrics endpoint includes GraphQL metrics', async () => {
+    const response = await metricsInstance.get('/metrics');
+
+    // Check for GraphQL metrics
+    expect(response.data).toContain('hawk_gql_operation_duration_seconds');
+    expect(response.data).toContain('hawk_gql_operation_errors_total');
+    expect(response.data).toContain('hawk_gql_resolver_duration_seconds');
+  });
+
+  test('Metrics endpoint includes MongoDB metrics', async () => {
+    const response = await metricsInstance.get('/metrics');
+
+    // Check for MongoDB metrics
+    expect(response.data).toContain('hawk_mongo_command_duration_seconds');
+    expect(response.data).toContain('hawk_mongo_command_errors_total');
+  });
 });

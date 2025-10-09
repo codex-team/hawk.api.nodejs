@@ -1,5 +1,7 @@
 import client from 'prom-client';
 import express from 'express';
+import { gqlOperationDuration, gqlOperationErrors, gqlResolverDuration } from './graphql';
+import { mongoCommandDuration, mongoCommandErrors } from './mongodb';
 
 /**
  * Create a Registry to register the metrics
@@ -33,6 +35,19 @@ const httpRequestCounter = new client.Counter({
   labelNames: ['method', 'route', 'status_code'],
   registers: [ register ],
 });
+
+/**
+ * Register GraphQL metrics
+ */
+register.registerMetric(gqlOperationDuration);
+register.registerMetric(gqlOperationErrors);
+register.registerMetric(gqlResolverDuration);
+
+/**
+ * Register MongoDB metrics
+ */
+register.registerMetric(mongoCommandDuration);
+register.registerMetric(mongoCommandErrors);
 
 /**
  * Express middleware to track HTTP metrics
@@ -71,3 +86,9 @@ export function createMetricsServer(): express.Application {
 
   return metricsApp;
 }
+
+/**
+ * Export GraphQL metrics plugin and MongoDB metrics setup
+ */
+export { graphqlMetricsPlugin } from './graphql';
+export { setupMongoMetrics, withMongoMetrics } from './mongodb';
