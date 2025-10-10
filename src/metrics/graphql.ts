@@ -10,7 +10,7 @@ export const gqlOperationDuration = new client.Histogram({
   name: 'hawk_gql_operation_duration_seconds',
   help: 'Histogram of total GraphQL operation duration by operation name and type',
   labelNames: ['operation_name', 'operation_type'],
-  buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10],
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 5, 10],
 });
 
 /**
@@ -31,31 +31,31 @@ export const gqlResolverDuration = new client.Histogram({
   name: 'hawk_gql_resolver_duration_seconds',
   help: 'Histogram of resolver execution time per type, field, and operation',
   labelNames: ['type_name', 'field_name', 'operation_name'],
-  buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5],
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 5],
 });
 
 /**
  * Apollo Server plugin to track GraphQL metrics
  */
 export const graphqlMetricsPlugin: ApolloServerPlugin = {
-  async requestDidStart(requestContext: GraphQLRequestContext): Promise<GraphQLRequestListener> {
+  async requestDidStart(_requestContext: GraphQLRequestContext): Promise<GraphQLRequestListener> {
     const startTime = Date.now();
     let operationName = 'unknown';
     let operationType = 'unknown';
 
     return {
-      async didResolveOperation(requestContext: GraphQLRequestContext) {
-        operationName = requestContext.operationName || 'anonymous';
-        operationType = requestContext.operation?.operation || 'unknown';
+      async didResolveOperation(ctx: GraphQLRequestContext): Promise<void> {
+        operationName = ctx.operationName || 'anonymous';
+        operationType = ctx.operation?.operation || 'unknown';
       },
 
-      async executionDidStart() {
+      async executionDidStart(): Promise<GraphQLRequestListener> {
         return {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          willResolveField({ info }: any) {
+          willResolveField({ info }: any): () => void {
             const fieldStartTime = Date.now();
 
-            return () => {
+            return (): void => {
               const duration = (Date.now() - fieldStartTime) / 1000;
 
               gqlResolverDuration
@@ -70,7 +70,7 @@ export const graphqlMetricsPlugin: ApolloServerPlugin = {
         };
       },
 
-      async willSendResponse(requestContext: GraphQLRequestContext) {
+      async willSendResponse(ctx: GraphQLRequestContext): Promise<void> {
         const duration = (Date.now() - startTime) / 1000;
 
         gqlOperationDuration
@@ -78,8 +78,8 @@ export const graphqlMetricsPlugin: ApolloServerPlugin = {
           .observe(duration);
 
         // Track errors if any
-        if (requestContext.errors && requestContext.errors.length > 0) {
-          requestContext.errors.forEach((error: GraphQLError) => {
+        if (ctx.errors && ctx.errors.length > 0) {
+          ctx.errors.forEach((error: GraphQLError) => {
             const errorType = error.extensions?.code || error.name || 'unknown';
 
             gqlOperationErrors
