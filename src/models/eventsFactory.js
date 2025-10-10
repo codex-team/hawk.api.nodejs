@@ -7,6 +7,8 @@ const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
 const { composeEventPayloadByRepetition } = require('../utils/merge');
 
+const MAX_DB_READ_BATCH_SIZE = 80000;
+
 /**
  * @typedef {import('mongodb').UpdateWriteOpResult} UpdateWriteOpResult
  */
@@ -424,7 +426,7 @@ class EventsFactory extends Factory {
 
     let dailyEventsCursor = await this.getCollection(this.TYPES.DAILY_EVENTS)
       .find(options, { projection: { lastRepetitionTime: 1, groupingTimestamp: 1, count: 1 } })
-      .batchSize(80_000);
+      .batchSize(MAX_DB_READ_BATCH_SIZE);
 
     const groupedCounts = {};
 
