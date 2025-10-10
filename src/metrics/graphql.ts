@@ -38,24 +38,24 @@ export const gqlResolverDuration = new client.Histogram({
  * Apollo Server plugin to track GraphQL metrics
  */
 export const graphqlMetricsPlugin: ApolloServerPlugin = {
-  async requestDidStart(requestContext: GraphQLRequestContext): Promise<GraphQLRequestListener> {
+  async requestDidStart(_requestContext: GraphQLRequestContext): Promise<GraphQLRequestListener> {
     const startTime = Date.now();
     let operationName = 'unknown';
     let operationType = 'unknown';
 
     return {
-      async didResolveOperation(requestContext: GraphQLRequestContext) {
-        operationName = requestContext.operationName || 'anonymous';
-        operationType = requestContext.operation?.operation || 'unknown';
+      async didResolveOperation(ctx: GraphQLRequestContext): Promise<void> {
+        operationName = ctx.operationName || 'anonymous';
+        operationType = ctx.operation?.operation || 'unknown';
       },
 
-      async executionDidStart() {
+      async executionDidStart(): Promise<GraphQLRequestListener> {
         return {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          willResolveField({ info }: any) {
+          willResolveField({ info }: any): () => void {
             const fieldStartTime = Date.now();
 
-            return () => {
+            return (): void => {
               const duration = (Date.now() - fieldStartTime) / 1000;
 
               gqlResolverDuration
@@ -70,7 +70,7 @@ export const graphqlMetricsPlugin: ApolloServerPlugin = {
         };
       },
 
-      async willSendResponse(requestContext: GraphQLRequestContext) {
+      async willSendResponse(ctx: GraphQLRequestContext): Promise<void> {
         const duration = (Date.now() - startTime) / 1000;
 
         gqlOperationDuration
@@ -78,8 +78,8 @@ export const graphqlMetricsPlugin: ApolloServerPlugin = {
           .observe(duration);
 
         // Track errors if any
-        if (requestContext.errors && requestContext.errors.length > 0) {
-          requestContext.errors.forEach((error: GraphQLError) => {
+        if (ctx.errors && ctx.errors.length > 0) {
+          ctx.errors.forEach((error: GraphQLError) => {
             const errorType = error.extensions?.code || error.name || 'unknown';
 
             gqlOperationErrors

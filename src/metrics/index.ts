@@ -51,6 +51,9 @@ register.registerMetric(mongoCommandErrors);
 
 /**
  * Express middleware to track HTTP metrics
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
  */
 export function metricsMiddleware(req: express.Request, res: express.Response, next: express.NextFunction): void {
   const start = Date.now();

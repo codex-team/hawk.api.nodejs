@@ -44,10 +44,7 @@ export function setupMongoMetrics(client: MongoClient): void {
     const metadataKey = `${event.requestId}`;
 
     // Extract collection name from the command
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    console.log('event', event);
-
-    const collection = event.command ? ((event.command as any)[event.commandName] || 'unknown') : 'unknown';
+    const collection = event.command ? ((event.command)[event.commandName] || 'unknown') : 'unknown';
     const db = event.databaseName || 'unknown';
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
