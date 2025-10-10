@@ -1,11 +1,11 @@
-import client from 'prom-client';
+import promClient from 'prom-client';
 import { MongoClient, MongoClientOptions } from 'mongodb';
 
 /**
  * MongoDB command duration histogram
  * Tracks MongoDB command duration by command, collection, and database
  */
-export const mongoCommandDuration = new client.Histogram({
+export const mongoCommandDuration = new promClient.Histogram({
   name: 'hawk_mongo_command_duration_seconds',
   help: 'Histogram of MongoDB command duration by command, collection, and db',
   labelNames: ['command', 'collection', 'db'],
@@ -16,7 +16,7 @@ export const mongoCommandDuration = new client.Histogram({
  * MongoDB command errors counter
  * Tracks failed MongoDB commands grouped by command and error code
  */
-export const mongoCommandErrors = new client.Counter({
+export const mongoCommandErrors = new promClient.Counter({
   name: 'hawk_mongo_command_errors_total',
   help: 'Counter of failed MongoDB commands grouped by command and error code',
   labelNames: ['command', 'error_code'],
@@ -40,71 +40,65 @@ export function withMongoMetrics(options: MongoClientOptions = {}): MongoClientO
  */
 export function setupMongoMetrics(client: MongoClient): void {
   client.on('commandStarted', (event) => {
-    // Store start time for this command
-    const startTimeKey = `${event.requestId}`;
+    // Store start time and metadata for this command
+    const metadataKey = `${event.requestId}`;
+
+    // Extract collection name from the command
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    console.log('event', event);
+
+    const collection = event.command ? ((event.command as any)[event.commandName] || 'unknown') : 'unknown';
+    const db = event.databaseName || 'unknown';
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (client as any)[startTimeKey] = Date.now();
+    (client as any)[metadataKey] = {
+      startTime: Date.now(),
+      collection,
+      db,
+      commandName: event.commandName,
+    };
   });
 
   client.on('commandSucceeded', (event) => {
-    const startTimeKey = `${event.requestId}`;
+    const metadataKey = `${event.requestId}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const startTime = (client as any)[startTimeKey];
+    const metadata = (client as any)[metadataKey];
 
-    if (startTime) {
-      const duration = (Date.now() - startTime) / 1000;
-
-      /**
-       * Extract collection name from the command
-       * For most commands, the collection name is the value of the command name key
-       * e.g., { find: "users" } -> collection is "users"
-       */
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const collection = event.command ? ((event.command as any)[event.commandName] || 'unknown') : 'unknown';
-      const db = event.databaseName || 'unknown';
+    if (metadata) {
+      const duration = (Date.now() - metadata.startTime) / 1000;
 
       mongoCommandDuration
-        .labels(event.commandName, collection, db)
+        .labels(metadata.commandName, metadata.collection, metadata.db)
         .observe(duration);
 
-      // Clean up start time
+      // Clean up metadata
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (client as any)[startTimeKey];
+      delete (client as any)[metadataKey];
     }
   });
 
   client.on('commandFailed', (event) => {
-    const startTimeKey = `${event.requestId}`;
+    const metadataKey = `${event.requestId}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const startTime = (client as any)[startTimeKey];
+    const metadata = (client as any)[metadataKey];
 
-    if (startTime) {
-      const duration = (Date.now() - startTime) / 1000;
-
-      /**
-       * Extract collection name from the command
-       * For most commands, the collection name is the value of the command name key
-       * e.g., { find: "users" } -> collection is "users"
-       */
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const collection = event.command ? ((event.command as any)[event.commandName] || 'unknown') : 'unknown';
-      const db = event.databaseName || 'unknown';
+    if (metadata) {
+      const duration = (Date.now() - metadata.startTime) / 1000;
 
       mongoCommandDuration
-        .labels(event.commandName, collection, db)
+        .labels(metadata.commandName, metadata.collection, metadata.db)
         .observe(duration);
 
       // Track error
       const errorCode = event.failure?.code?.toString() || 'unknown';
 
       mongoCommandErrors
-        .labels(event.commandName, errorCode)
+        .labels(metadata.commandName, errorCode)
         .inc();
 
-      // Clean up start time
+      // Clean up metadata
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (client as any)[startTimeKey];
+      delete (client as any)[metadataKey];
     }
   });
 }
