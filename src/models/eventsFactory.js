@@ -1,5 +1,4 @@
 import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
-import { groupBy } from '../utils/grouper';
 import safe from 'safe-regex';
 
 const Factory = require('./modelFactory');
@@ -7,6 +6,8 @@ const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
 const { composeEventPayloadByRepetition } = require('../utils/merge');
+
+const MAX_DB_READ_BATCH_SIZE = 80000;
 
 /**
  * @typedef {import('mongodb').UpdateWriteOpResult} UpdateWriteOpResult
@@ -423,24 +424,35 @@ class EventsFactory extends Factory {
       };
     }
 
-    let dailyEvents = await this.getCollection(this.TYPES.DAILY_EVENTS)
-      .find(options)
-      .toArray();
+    const dailyEventsCursor = await this.getCollection(this.TYPES.DAILY_EVENTS)
+      .find(options, {
+        projection: {
+          lastRepetitionTime: 1,
+          groupingTimestamp: 1,
+          count: 1,
+        },
+      })
+      .batchSize(MAX_DB_READ_BATCH_SIZE);
 
-    /**
-     * Convert UTC midnight to midnights in user's timezone
-     */
-    dailyEvents = dailyEvents.map((item) => {
-      return Object.assign({}, item, {
-        groupingTimestamp: getMidnightWithTimezoneOffset(item.lastRepetitionTime, item.groupingTimestamp, timezoneOffset),
-      });
-    });
+    const groupedCounts = {};
 
-    /**
-     * Group events using 'groupingTimestamp:NNNNNNNN' key
-     * @type {ProjectChartItem[]}
-     */
-    const groupedData = groupBy('groupingTimestamp')(dailyEvents);
+    for await (const item of dailyEventsCursor) {
+      const groupingTimestamp = getMidnightWithTimezoneOffset(
+        item.lastRepetitionTime,
+        item.groupingTimestamp,
+        timezoneOffset
+      );
+
+      const key = `groupingTimestamp:${groupingTimestamp}`;
+      const current = groupedCounts[key] || 0;
+
+      if (item.count === undefined || item.count === null) {
+        console.warn(`Missing 'count' field for daily event with key ${key}. Defaulting to 0.`);
+        groupedCounts[key] = current;
+      } else {
+        groupedCounts[key] = current + item.count;
+      }
+    }
 
     /**
      * Now fill all requested days
@@ -451,11 +463,16 @@ class EventsFactory extends Factory {
       const now = new Date();
       const day = new Date(now.setDate(now.getDate() - i));
       const dayMidnight = getUTCMidnight(day) / 1000;
-      const groupedEvents = groupedData[`groupingTimestamp:${dayMidnight}`];
+
+      let groupedCount = groupedCounts[`groupingTimestamp:${dayMidnight}`];
+
+      if (!groupedCount) {
+        groupedCount = 0;
+      }
 
       result.push({
         timestamp: dayMidnight,
-        count: groupedEvents ? groupedEvents.reduce((sum, value) => sum + value.count, 0) : 0,
+        count: groupedCount,
       });
     }
 
