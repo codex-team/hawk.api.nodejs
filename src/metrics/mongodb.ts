@@ -3,12 +3,12 @@ import { MongoClient, MongoClientOptions } from 'mongodb';
 
 /**
  * MongoDB command duration histogram
- * Tracks MongoDB command duration by command, collection, and database
+ * Tracks MongoDB command duration by command, collection family, and database
  */
 export const mongoCommandDuration = new promClient.Histogram({
   name: 'hawk_mongo_command_duration_seconds',
-  help: 'Histogram of MongoDB command duration by command, collection, and db',
-  labelNames: ['command', 'collection', 'db'],
+  help: 'Histogram of MongoDB command duration by command, collection family, and db',
+  labelNames: ['command', 'collection_family', 'db'],
   buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10],
 });
 
@@ -21,6 +21,27 @@ export const mongoCommandErrors = new promClient.Counter({
   help: 'Counter of failed MongoDB commands grouped by command and error code',
   labelNames: ['command', 'error_code'],
 });
+
+/**
+ * Extract collection family from full collection name
+ * Reduces cardinality by grouping dynamic collections
+ * @param collectionName - Full collection name (e.g., "events:projectId")
+ * @returns Collection family (e.g., "events")
+ */
+function getCollectionFamily(collectionName: string): string {
+  if (collectionName === 'unknown') {
+    return 'unknown';
+  }
+
+  // Extract prefix before colon for dynamic collections
+  const colonIndex = collectionName.indexOf(':');
+
+  if (colonIndex > 0) {
+    return collectionName.substring(0, colonIndex);
+  }
+
+  return collectionName;
+}
 
 /**
  * Enhance MongoClient options with monitoring
@@ -45,12 +66,13 @@ export function setupMongoMetrics(client: MongoClient): void {
 
     // Extract collection name from the command
     const collection = event.command ? ((event.command)[event.commandName] || 'unknown') : 'unknown';
+    const collectionFamily = getCollectionFamily(collection);
     const db = event.databaseName || 'unknown';
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (client as any)[metadataKey] = {
       startTime: Date.now(),
-      collection,
+      collectionFamily,
       db,
       commandName: event.commandName,
     };
@@ -65,7 +87,7 @@ export function setupMongoMetrics(client: MongoClient): void {
       const duration = (Date.now() - metadata.startTime) / 1000;
 
       mongoCommandDuration
-        .labels(metadata.commandName, metadata.collection, metadata.db)
+        .labels(metadata.commandName, metadata.collectionFamily, metadata.db)
         .observe(duration);
 
       // Clean up metadata
@@ -83,7 +105,7 @@ export function setupMongoMetrics(client: MongoClient): void {
       const duration = (Date.now() - metadata.startTime) / 1000;
 
       mongoCommandDuration
-        .labels(metadata.commandName, metadata.collection, metadata.db)
+        .labels(metadata.commandName, metadata.collectionFamily, metadata.db)
         .observe(duration);
 
       // Track error
