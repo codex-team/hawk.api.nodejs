@@ -424,8 +424,14 @@ class EventsFactory extends Factory {
       };
     }
 
-    let dailyEventsCursor = await this.getCollection(this.TYPES.DAILY_EVENTS)
-      .find(options, { projection: { lastRepetitionTime: 1, groupingTimestamp: 1, count: 1 } })
+    const dailyEventsCursor = await this.getCollection(this.TYPES.DAILY_EVENTS)
+      .find(options, {
+        projection: {
+          lastRepetitionTime: 1,
+          groupingTimestamp: 1,
+          count: 1,
+        },
+      })
       .batchSize(MAX_DB_READ_BATCH_SIZE);
 
     const groupedCounts = {};
@@ -439,6 +445,7 @@ class EventsFactory extends Factory {
 
       const key = `groupingTimestamp:${groupingTimestamp}`;
       const current = groupedCounts[key] || 0;
+
       if (item.count === undefined || item.count === null) {
         console.warn(`Missing 'count' field for daily event with key ${key}. Defaulting to 0.`);
         groupedCounts[key] = current;
@@ -446,7 +453,6 @@ class EventsFactory extends Factory {
         groupedCounts[key] = current + item.count;
       }
     }
-
 
     /**
      * Now fill all requested days
@@ -458,9 +464,15 @@ class EventsFactory extends Factory {
       const day = new Date(now.setDate(now.getDate() - i));
       const dayMidnight = getUTCMidnight(day) / 1000;
 
+      let groupedCount = groupedCounts[`groupingTimestamp:${dayMidnight}`];
+
+      if (!groupedCount) {
+        groupedCount = 0;
+      }
+
       result.push({
         timestamp: dayMidnight,
-        count: groupedCounts[`groupingTimestamp:${dayMidnight}`] ?? 0,
+        count: groupedCount,
       });
     }
 
