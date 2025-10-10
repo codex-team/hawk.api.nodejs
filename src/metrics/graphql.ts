@@ -10,7 +10,7 @@ export const gqlOperationDuration = new client.Histogram({
   name: 'hawk_gql_operation_duration_seconds',
   help: 'Histogram of total GraphQL operation duration by operation name and type',
   labelNames: ['operation_name', 'operation_type'],
-  buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10],
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 5, 10],
 });
 
 /**
@@ -31,7 +31,7 @@ export const gqlResolverDuration = new client.Histogram({
   name: 'hawk_gql_resolver_duration_seconds',
   help: 'Histogram of resolver execution time per type, field, and operation',
   labelNames: ['type_name', 'field_name', 'operation_name'],
-  buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5],
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 5],
 });
 
 /**

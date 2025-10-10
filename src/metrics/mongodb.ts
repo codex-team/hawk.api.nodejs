@@ -9,7 +9,7 @@ export const mongoCommandDuration = new promClient.Histogram({
   name: 'hawk_mongo_command_duration_seconds',
   help: 'Histogram of MongoDB command duration by command, collection family, and db',
   labelNames: ['command', 'collection_family', 'db'],
-  buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10],
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 5, 10],
 });
 
 /**
@@ -21,6 +21,64 @@ export const mongoCommandErrors = new promClient.Counter({
   help: 'Counter of failed MongoDB commands grouped by command and error code',
   labelNames: ['command', 'error_code'],
 });
+
+/**
+ * Extract collection name from MongoDB command
+ * Handles different command types and their collection name locations
+ * @param command - MongoDB command object
+ * @param commandName - Name of the command (find, insert, getMore, etc.)
+ * @returns Raw collection identifier or null
+ */
+function extractCollectionFromCommand(command: any, commandName: string): unknown {
+  if (!command) {
+    return null;
+  }
+
+  // Special handling for getMore command - collection is in a different field
+  if (commandName === 'getMore') {
+    return command.collection || null;
+  }
+
+  /*
+   * For most commands, collection name is the value of the command name key
+   * e.g., { find: "users" } -> collection is "users"
+   */
+  return command[commandName] || null;
+}
+
+/**
+ * Normalize collection value to string
+ * Handles BSON types and other non-string values
+ * @param collection - Collection value from MongoDB command
+ * @returns Normalized string or 'unknown'
+ */
+function normalizeCollectionName(collection: unknown): string {
+  if (!collection) {
+    return 'unknown';
+  }
+
+  // Handle string values directly
+  if (typeof collection === 'string') {
+    return collection;
+  }
+
+  // Handle BSON types and objects with toString method
+  if (typeof collection === 'object' && 'toString' in collection) {
+    try {
+      const str = String(collection);
+
+      // Skip if toString returns object representation like [object Object]
+      if (!str.startsWith('[object') && str !== 'unknown') {
+        return str;
+      }
+    } catch (e) {
+      console.error('Error normalizing collection name', e);
+      // Ignore conversion errors
+    }
+  }
+
+  return 'unknown';
+}
 
 /**
  * Extract collection family from full collection name
@@ -65,8 +123,10 @@ export function setupMongoMetrics(client: MongoClient): void {
     const metadataKey = `${event.requestId}`;
 
     // Extract collection name from the command
-    const collection = event.command ? ((event.command)[event.commandName] || 'unknown') : 'unknown';
+    const collectionRaw = extractCollectionFromCommand(event.command, event.commandName);
+    const collection = normalizeCollectionName(collectionRaw);
     const collectionFamily = getCollectionFamily(collection);
+
     const db = event.databaseName || 'unknown';
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

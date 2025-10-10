@@ -55,7 +55,7 @@ Duration of HTTP requests in seconds, labeled by:
 - `route` - Request route/path
 - `status_code` - HTTP status code
 
-Buckets: 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10 seconds
+Buckets: 0.01, 0.05, 0.1, 0.5, 1, 5, 10 seconds
 
 #### http_requests_total (Counter)
 
@@ -74,7 +74,7 @@ Labels:
 - `operation_name` - Name of the GraphQL operation
 - `operation_type` - Type of operation (query, mutation, subscription)
 
-Buckets: 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10 seconds
+Buckets: 0.01, 0.05, 0.1, 0.5, 1, 5, 10 seconds
 
 **Purpose**: Identify slow API operations (P95/P99 latency).
 
@@ -97,7 +97,7 @@ Labels:
 - `field_name` - Field name being resolved
 - `operation_name` - Name of the GraphQL operation
 
-Buckets: 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5 seconds
+Buckets: 0.01, 0.05, 0.1, 0.5, 1, 5 seconds
 
 **Purpose**: Find slow or CPU-intensive resolvers that degrade overall performance.
 
@@ -105,16 +105,25 @@ Buckets: 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5 seconds
 
 #### hawk_mongo_command_duration_seconds (Histogram)
 
-Histogram of MongoDB command duration by command, collection, and database.
+Histogram of MongoDB command duration by command, collection family, and database.
 
 Labels:
 - `command` - MongoDB command name (find, insert, update, etc.)
-- `collection` - Collection name
+- `collection_family` - Collection family name (extracted from dynamic collection names to reduce cardinality)
 - `db` - Database name
 
-Buckets: 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10 seconds
+Buckets: 0.01, 0.05, 0.1, 0.5, 1, 5, 10 seconds
 
 **Purpose**: Detect slow queries and high-latency collections.
+
+**Note on Collection Families**: To reduce metric cardinality, dynamic collection names are grouped into families. For example:
+- `events:projectId` → `events`
+- `dailyEvents:projectId` → `dailyEvents`
+- `repetitions:projectId` → `repetitions`
+- `membership:userId` → `membership`
+- `team:workspaceId` → `team`
+
+This prevents metric explosion when dealing with thousands of projects, users, or workspaces, while still providing meaningful insights into collection performance patterns.
 
 #### hawk_mongo_command_errors_total (Counter)
 
@@ -173,6 +182,7 @@ The metrics implementation uses the `prom-client` library and consists of:
    - Implements MongoDB command monitoring
    - Tracks command duration and errors
    - Uses MongoDB's command monitoring events
+   - Extracts collection families from dynamic collection names to reduce cardinality
 
 4. **Integration** (`src/index.ts`, `src/mongo.ts`):
    - Adds GraphQL metrics plugin to Apollo Server
