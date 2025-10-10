@@ -424,13 +424,11 @@ class EventsFactory extends Factory {
 
     let dailyEventsCursor = await this.getCollection(this.TYPES.DAILY_EVENTS)
       .find(options, { projection: { lastRepetitionTime: 1, groupingTimestamp: 1, count: 1 } })
-      .batchSize(100000);
+      .batchSize(80_000);
 
     const groupedCounts = {};
-    let currentCount = 1;
 
     for await (const item of dailyEventsCursor) {
-      currentCount++;
       const groupingTimestamp = getMidnightWithTimezoneOffset(
         item.lastRepetitionTime,
         item.groupingTimestamp,
