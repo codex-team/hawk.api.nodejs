@@ -7,7 +7,7 @@ const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
 const { composeEventPayloadByRepetition } = require('../utils/merge');
 
-const MAX_DB_READ_BATCH_SIZE = process.env.MAX_DB_READ_BATCH_SIZE;
+const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE ?? 0);
 
 /**
  * @typedef {import('mongodb').UpdateWriteOpResult} UpdateWriteOpResult
