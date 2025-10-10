@@ -99,7 +99,20 @@ module.exports = {
 
       const projectRepetitionsEventsCollection = await mongo.databases.events.createCollection('repetitions:' + project._id);
 
-      await mongo.databases.events.createCollection('dailyEvents:' + project._id);
+      const projectDailyEventsCollection = await mongo.databases.events.createCollection('dailyEvents:' + project._id);
+
+      await projectDailyEventsCollection.createIndex({
+        groupingTimestamp: 1,
+      }, {
+        name: 'groupingTimestamp',
+      });
+
+      await projectDailyEventsCollection.createIndex({
+        groupingTimestamp: 1,
+        groupHash: 1,
+      }, {
+        name: 'groupingTimestampAndGroupHash',
+      });
 
       await projectEventsCollection.createIndex({
         groupHash: 1,
