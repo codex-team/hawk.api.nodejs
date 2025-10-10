@@ -1,5 +1,7 @@
 import client from 'prom-client';
 import express from 'express';
+import { gqlOperationDuration, gqlOperationErrors, gqlResolverDuration } from './graphql';
+import { mongoCommandDuration, mongoCommandErrors } from './mongodb';
 
 /**
  * Create a Registry to register the metrics
@@ -19,7 +21,7 @@ const httpRequestDuration = new client.Histogram({
   name: 'http_request_duration_seconds',
   help: 'Duration of HTTP requests in seconds',
   labelNames: ['method', 'route', 'status_code'],
-  buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10],
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 5, 10],
   registers: [ register ],
 });
 
@@ -35,7 +37,23 @@ const httpRequestCounter = new client.Counter({
 });
 
 /**
+ * Register GraphQL metrics
+ */
+register.registerMetric(gqlOperationDuration);
+register.registerMetric(gqlOperationErrors);
+register.registerMetric(gqlResolverDuration);
+
+/**
+ * Register MongoDB metrics
+ */
+register.registerMetric(mongoCommandDuration);
+register.registerMetric(mongoCommandErrors);
+
+/**
  * Express middleware to track HTTP metrics
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
  */
 export function metricsMiddleware(req: express.Request, res: express.Response, next: express.NextFunction): void {
   const start = Date.now();
@@ -71,3 +89,9 @@ export function createMetricsServer(): express.Application {
 
   return metricsApp;
 }
+
+/**
+ * Export GraphQL metrics plugin and MongoDB metrics setup
+ */
+export { graphqlMetricsPlugin } from './graphql';
+export { setupMongoMetrics, withMongoMetrics } from './mongodb';
