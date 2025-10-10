@@ -439,7 +439,12 @@ class EventsFactory extends Factory {
 
       const key = `groupingTimestamp:${groupingTimestamp}`;
       const current = groupedCounts[key] || 0;
-      groupedCounts[key] = current + (item.count ?? 0);
+      if (item.count === undefined || item.count === null) {
+        console.warn(`Missing 'count' field for daily event with key ${key}. Defaulting to 0.`);
+        groupedCounts[key] = current;
+      } else {
+        groupedCounts[key] = current + item.count;
+      }
     }
 
 
