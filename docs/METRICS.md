@@ -55,7 +55,7 @@ Duration of HTTP requests in seconds, labeled by:
 - `route` - Request route/path
 - `status_code` - HTTP status code
 
-Buckets: 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10 seconds
+Buckets: 0.01, 0.05, 0.1, 0.5, 1, 5, 10 seconds
 
 #### http_requests_total (Counter)
 
@@ -63,6 +63,77 @@ Total number of HTTP requests, labeled by:
 - `method` - HTTP method (GET, POST, etc.)
 - `route` - Request route/path
 - `status_code` - HTTP status code
+
+### GraphQL Metrics
+
+#### hawk_gql_operation_duration_seconds (Histogram)
+
+Histogram of total GraphQL operation duration by operation name and type.
+
+Labels:
+- `operation_name` - Name of the GraphQL operation
+- `operation_type` - Type of operation (query, mutation, subscription)
+
+Buckets: 0.01, 0.05, 0.1, 0.5, 1, 5, 10 seconds
+
+**Purpose**: Identify slow API operations (P95/P99 latency).
+
+#### hawk_gql_operation_errors_total (Counter)
+
+Counter of failed GraphQL operations grouped by operation name and error class.
+
+Labels:
+- `operation_name` - Name of the GraphQL operation
+- `error_type` - Type/class of the error
+
+**Purpose**: Detect increased error rates and failing operations.
+
+#### hawk_gql_resolver_duration_seconds (Histogram)
+
+Histogram of resolver execution time per type, field, and operation.
+
+Labels:
+- `type_name` - GraphQL type name
+- `field_name` - Field name being resolved
+- `operation_name` - Name of the GraphQL operation
+
+Buckets: 0.01, 0.05, 0.1, 0.5, 1, 5 seconds
+
+**Purpose**: Find slow or CPU-intensive resolvers that degrade overall performance.
+
+### MongoDB Metrics
+
+#### hawk_mongo_command_duration_seconds (Histogram)
+
+Histogram of MongoDB command duration by command, collection family, and database.
+
+Labels:
+- `command` - MongoDB command name (find, insert, update, etc.)
+- `collection_family` - Collection family name (extracted from dynamic collection names to reduce cardinality)
+- `db` - Database name
+
+Buckets: 0.01, 0.05, 0.1, 0.5, 1, 5, 10 seconds
+
+**Purpose**: Detect slow queries and high-latency collections.
+
+**Note on Collection Families**: To reduce metric cardinality, dynamic collection names are grouped into families. For example:
+- `events:projectId` → `events`
+- `dailyEvents:projectId` → `dailyEvents`
+- `repetitions:projectId` → `repetitions`
+- `membership:userId` → `membership`
+- `team:workspaceId` → `team`
+
+This prevents metric explosion when dealing with thousands of projects, users, or workspaces, while still providing meaningful insights into collection performance patterns.
+
+#### hawk_mongo_command_errors_total (Counter)
+
+Counter of failed MongoDB commands grouped by command and error code.
+
+Labels:
+- `command` - MongoDB command name
+- `error_code` - MongoDB error code
+
+**Purpose**: Track transient or persistent database errors.
 
 ## Testing
 
@@ -98,11 +169,25 @@ The metrics implementation uses the `prom-client` library and consists of:
    - Initializes a Prometheus registry
    - Configures default Node.js metrics collection
    - Defines custom HTTP metrics (duration histogram and request counter)
+   - Registers GraphQL and MongoDB metrics
    - Provides middleware for tracking HTTP requests
    - Creates a separate Express app for serving metrics
 
-2. **Integration** (`src/index.ts`):
+2. **GraphQL Metrics** (`src/metrics/graphql.ts`):
+   - Implements Apollo Server plugin for tracking GraphQL operations
+   - Tracks operation duration, errors, and resolver execution time
+   - Automatically captures operation name, type, and field information
+
+3. **MongoDB Metrics** (`src/metrics/mongodb.ts`):
+   - Implements MongoDB command monitoring
+   - Tracks command duration and errors
+   - Uses MongoDB's command monitoring events
+   - Extracts collection families from dynamic collection names to reduce cardinality
+
+4. **Integration** (`src/index.ts`, `src/mongo.ts`):
+   - Adds GraphQL metrics plugin to Apollo Server
    - Adds metrics middleware to the main Express app
+   - Enables MongoDB command monitoring on database clients
    - Starts metrics server on a separate port
    - Keeps metrics server isolated from main API traffic
 

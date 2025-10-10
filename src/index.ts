@@ -27,7 +27,7 @@ import BusinessOperationsFactory from './models/businessOperationsFactory';
 import schema from './schema';
 import { graphqlUploadExpress } from 'graphql-upload';
 import morgan from 'morgan';
-import { metricsMiddleware, createMetricsServer } from './metrics';
+import { metricsMiddleware, createMetricsServer, graphqlMetricsPlugin } from './metrics';
 
 /**
  * Option to enable playground
@@ -122,6 +122,7 @@ class HawkAPI {
         process.env.NODE_ENV === 'production'
           ? ApolloServerPluginLandingPageDisabled()
           : ApolloServerPluginLandingPageGraphQLPlayground(),
+        graphqlMetricsPlugin,
       ],
       context: ({ req }): ResolverContextBase => req.context,
       formatError: (error): GraphQLError => {
