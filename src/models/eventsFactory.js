@@ -1,5 +1,4 @@
 import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
-import { groupBy } from '../utils/grouper';
 import safe from 'safe-regex';
 
 const Factory = require('./modelFactory');
@@ -423,24 +422,26 @@ class EventsFactory extends Factory {
       };
     }
 
-    let dailyEvents = await this.getCollection(this.TYPES.DAILY_EVENTS)
-      .find(options)
-      .toArray();
+    let dailyEventsCursor = await this.getCollection(this.TYPES.DAILY_EVENTS)
+      .find(options, { projection: { lastRepetitionTime: 1, groupingTimestamp: 1, count: 1 } })
+      .batchSize(100000);
 
-    /**
-     * Convert UTC midnight to midnights in user's timezone
-     */
-    dailyEvents = dailyEvents.map((item) => {
-      return Object.assign({}, item, {
-        groupingTimestamp: getMidnightWithTimezoneOffset(item.lastRepetitionTime, item.groupingTimestamp, timezoneOffset),
-      });
-    });
+    const groupedCounts = {};
+    let currentCount = 1;
 
-    /**
-     * Group events using 'groupingTimestamp:NNNNNNNN' key
-     * @type {ProjectChartItem[]}
-     */
-    const groupedData = groupBy('groupingTimestamp')(dailyEvents);
+    for await (const item of dailyEventsCursor) {
+      currentCount++;
+      const groupingTimestamp = getMidnightWithTimezoneOffset(
+        item.lastRepetitionTime,
+        item.groupingTimestamp,
+        timezoneOffset
+      );
+
+      const key = `groupingTimestamp:${groupingTimestamp}`;
+      const current = groupedCounts[key] || 0;
+      groupedCounts[key] = current + (item.count ?? 0);
+    }
+
 
     /**
      * Now fill all requested days
@@ -451,11 +452,10 @@ class EventsFactory extends Factory {
       const now = new Date();
       const day = new Date(now.setDate(now.getDate() - i));
       const dayMidnight = getUTCMidnight(day) / 1000;
-      const groupedEvents = groupedData[`groupingTimestamp:${dayMidnight}`];
 
       result.push({
         timestamp: dayMidnight,
-        count: groupedEvents ? groupedEvents.reduce((sum, value) => sum + value.count, 0) : 0,
+        count: groupedCounts[`groupingTimestamp:${dayMidnight}`] ?? 0,
       });
     }
 
