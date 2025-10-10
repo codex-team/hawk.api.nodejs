@@ -1,5 +1,6 @@
 import { Db, MongoClient, MongoClientOptions } from 'mongodb';
 import HawkCatcher from '@hawk.so/nodejs';
+import { setupMongoMetrics, withMongoMetrics } from './metrics';
 
 const hawkDBUrl = process.env.MONGO_HAWK_DB_URL || 'mongodb://localhost:27017/hawk';
 const eventsDBUrl = process.env.MONGO_EVENTS_DB_URL || 'mongodb://localhost:27017/events';
@@ -53,10 +54,10 @@ export const mongoClients: MongoClients = {
 /**
  * Common params for all connections
  */
-const connectionConfig: MongoClientOptions = {
+const connectionConfig: MongoClientOptions = withMongoMetrics({
   useNewUrlParser: true,
   useUnifiedTopology: true,
-};
+});
 
 /**
  * Setups connections to the databases (hawk api and events databases)
@@ -73,6 +74,10 @@ export async function setupConnections(): Promise<void> {
 
     databases.hawk = hawkMongoClient.db();
     databases.events = eventsMongoClient.db();
+
+    // Setup metrics monitoring for both clients
+    setupMongoMetrics(hawkMongoClient);
+    setupMongoMetrics(eventsMongoClient);
   } catch (e) {
     /** Catch start Mongo errors  */
     HawkCatcher.send(e as Error);
