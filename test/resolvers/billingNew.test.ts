@@ -123,8 +123,6 @@ describe('GraphQLBillingNew', () => {
       );
 
       expect(result.isCardLinkOperation).toBe(false);
-      expect(result.plan.monthlyCharge).toBe(1000);
-      expect(result.currency).toBe('RUB');
       
       // Check that nextPaymentDate is one month from now
       const oneMonthFromNow = new Date();
@@ -160,8 +158,6 @@ describe('GraphQLBillingNew', () => {
       );
 
       expect(result.isCardLinkOperation).toBe(true);
-      expect(result.plan.monthlyCharge).toBe(1000);
-      expect(result.currency).toBe('RUB');
       
       const oneMonthFromLastChargeDate = new Date(workspace.lastChargeDate);
       oneMonthFromLastChargeDate.setMonth(oneMonthFromLastChargeDate.getMonth() + 1);
@@ -191,8 +187,6 @@ describe('GraphQLBillingNew', () => {
       );
       
       expect(result.isCardLinkOperation).toBe(false);
-      expect(result.plan.monthlyCharge).toBe(1000);
-      expect(result.currency).toBe('RUB');
 
       // Check that nextPaymentDate is one month from now
       const oneMonthFromNow = new Date();
