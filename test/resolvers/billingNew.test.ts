@@ -4,15 +4,6 @@ import { PlanDBScheme, WorkspaceDBScheme, UserDBScheme } from '@hawk.so/types';
 import billingNewResolver from '../../src/resolvers/billingNew';
 import { ResolverContextWithUser } from '../../src/types/graphql';
 
-// Мокаем telegram модуль
-// jest.mock('../../src/utils/telegram', () => ({
-//   sendMessage: jest.fn().mockResolvedValue(undefined),
-//   TelegramBotURLs: {
-//     Base: 'base',
-//     Money: 'money',
-//   },
-// }));
-
 // Устанавливаем переменные окружения для теста
 process.env.JWT_SECRET_BILLING_CHECKSUM = 'checksum_secret';
 process.env.JWT_SECRET_ACCESS_TOKEN = 'belarus';
