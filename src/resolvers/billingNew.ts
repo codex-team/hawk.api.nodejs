@@ -111,7 +111,18 @@ export default {
 
       let isCardLinkOperation = false;
 
-      if (workspace.tariffPlanId.toString() === tariffPlanId && !workspace.isTariffPlanExpired() && !workspace.isBlocked) {
+
+      /**
+       * We need to only link card and not pay for the whole plan in case
+       * 1. We are paying for the same plan and
+       * 2. Plan is not expired and
+       * 3. Workspace is not blocked
+       */
+      if (
+        workspace.tariffPlanId.toString() === tariffPlanId && // 1
+        !workspace.isTariffPlanExpired() && // 2
+        !workspace.isBlocked // 3
+      ) {
         isCardLinkOperation = true;
       }
 
