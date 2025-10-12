@@ -1,77 +1,113 @@
 import '../../src/env-test';
 import { ObjectId } from 'mongodb';
-import { PlanDBScheme, WorkspaceDBScheme, UserDBScheme } from '@hawk.so/types';
+import { PlanDBScheme, WorkspaceDBScheme } from '@hawk.so/types';
 import billingNewResolver from '../../src/resolvers/billingNew';
 import { ResolverContextWithUser } from '../../src/types/graphql';
 
-// Устанавливаем переменные окружения для теста
+// Set environment variables for test
 process.env.JWT_SECRET_BILLING_CHECKSUM = 'checksum_secret';
 process.env.JWT_SECRET_ACCESS_TOKEN = 'belarus';
 process.env.JWT_SECRET_REFRESH_TOKEN = 'abacaba';
 process.env.JWT_SECRET_PROJECT_TOKEN = 'qwerty';
 
+/**
+ * Creates test data and mocks for composePayment tests
+ */
+function createComposePaymentTestSetup(options: {
+  isTariffPlanExpired?: boolean;
+  isBlocked?: boolean;
+  lastChargeDate?: Date;
+  planMonthlyCharge?: number;
+  planCurrency?: string;
+}) {
+  const {
+    isTariffPlanExpired = false,
+    isBlocked = false,
+    lastChargeDate = new Date(),
+    planMonthlyCharge = 1000,
+    planCurrency = 'RUB'
+  } = options;
+
+  const userId = new ObjectId().toString();
+  const workspaceId = new ObjectId().toString();
+  const planId = new ObjectId().toString();
+  
+  const plan: PlanDBScheme = {
+    _id: new ObjectId(planId),
+    name: 'Test Plan',
+    monthlyCharge: planMonthlyCharge,
+    monthlyChargeCurrency: planCurrency,
+    eventsLimit: 1000,
+    isDefault: false,
+    isHidden: false,
+  };
+  
+  const workspace: WorkspaceDBScheme = {
+    _id: new ObjectId(workspaceId),
+    name: 'Test Workspace',
+    accountId: 'test-account-id',
+    balance: 0,
+    billingPeriodEventsCount: 0,
+    isBlocked,
+    lastChargeDate,
+    tariffPlanId: new ObjectId(planId),
+    inviteHash: 'test-invite-hash',
+    subscriptionId: undefined,
+  };
+
+  // Mock workspaces factory
+  const mockWorkspacesFactory = {
+    findById: jest.fn().mockResolvedValue({
+      ...workspace,
+      getMemberInfo: jest.fn().mockResolvedValue({ isAdmin: true }),
+      isTariffPlanExpired: jest.fn().mockReturnValue(isTariffPlanExpired),
+      isBlocked,
+    }),
+  };
+
+  // Mock plans factory
+  const mockPlansFactory = {
+    findById: jest.fn().mockResolvedValue(plan),
+  };
+
+  const mockContext: ResolverContextWithUser = {
+    user: { 
+      id: userId,
+      accessTokenExpired: false,
+    },
+    factories: {
+      workspacesFactory: mockWorkspacesFactory as any,
+      plansFactory: mockPlansFactory as any,
+      usersFactory: {} as any,
+      projectsFactory: {} as any,
+      businessOperationsFactory: {} as any,
+    },
+  };
+
+  return {
+    userId,
+    workspaceId,
+    planId,
+    plan,
+    workspace,
+    mockContext,
+    mockWorkspacesFactory,
+    mockPlansFactory,
+  };
+}
+
 describe('GraphQLBillingNew', () => {
   describe('composePayment', () => {
     it('should return isCardLinkOperation = false in case of expired tariff plan', async () => {
-      const userId = new ObjectId().toString();
-      const workspaceId = new ObjectId().toString();
-      const planId = new ObjectId().toString();
-      
-      const plan: PlanDBScheme = {
-        _id: new ObjectId(planId),
-        name: 'Test Plan',
-        monthlyCharge: 1000,
-        monthlyChargeCurrency: 'RUB',
-        eventsLimit: 1000,
-        isDefault: false,
-        isHidden: false,
-      };
-
-      // Workspace with expired tariff plan
+      // Create 2 months ago date
       const expiredDate = new Date();
       expiredDate.setMonth(expiredDate.getMonth() - 2);
       
-      const workspace: WorkspaceDBScheme = {
-        _id: new ObjectId(workspaceId),
-        name: 'Test Workspace',
-        accountId: 'test-account-id',
-        balance: 0,
-        billingPeriodEventsCount: 0,
+      const { mockContext, planId, workspaceId } = createComposePaymentTestSetup({
+        isTariffPlanExpired: true,
         isBlocked: false,
         lastChargeDate: expiredDate,
-        tariffPlanId: new ObjectId(planId),
-        inviteHash: 'test-invite-hash',
-        subscriptionId: undefined,
-      };
-
-      // Mock workspaces factory
-      const mockWorkspacesFactory = {
-        findById: jest.fn().mockResolvedValue({
-          ...workspace,
-          getMemberInfo: jest.fn().mockResolvedValue({ isAdmin: true }),
-          isTariffPlanExpired: jest.fn().mockReturnValue(true), // План истек
-          isBlocked: false,
-        }),
-      };
-
-      // Mock plans factory
-      const mockPlansFactory = {
-        findById: jest.fn().mockResolvedValue(plan),
-      };
-
-      const mockContext: ResolverContextWithUser = {
-        user: { 
-          id: userId,
-          accessTokenExpired: false,
-        },
-        factories: {
-          workspacesFactory: mockWorkspacesFactory as any,
-          plansFactory: mockPlansFactory as any,
-          usersFactory: {} as any,
-          projectsFactory: {} as any,
-          businessOperationsFactory: {} as any,
-        },
-      };
+      });
 
       // Call composePayment resolver
       const result = await billingNewResolver.Query.composePayment(
@@ -102,61 +138,14 @@ describe('GraphQLBillingNew', () => {
     });
 
     it('should return isCardLinkOperation = true in case of active tariff plan', async () => {
-      const userId = new ObjectId().toString();
-      const workspaceId = new ObjectId().toString();
-      const planId = new ObjectId().toString();
+      // Create 2 days ago date
+      const lastChargeDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
       
-      
-      const plan: PlanDBScheme = {
-        _id: new ObjectId(planId),
-        name: 'Test Plan',
-        monthlyCharge: 1000,
-        monthlyChargeCurrency: 'RUB',
-        eventsLimit: 1000,
-        isDefault: false,
-        isHidden: false,
-      };
-
-      const lastChargeDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000); // Last charge date is 2 days ago
-
-      const workspace: WorkspaceDBScheme = {
-        _id: new ObjectId(workspaceId),
-        name: 'Test Workspace',
-        accountId: 'test-account-id',
-        balance: 0,
-        billingPeriodEventsCount: 0,
+      const { mockContext, planId, workspaceId, workspace } = createComposePaymentTestSetup({
+        isTariffPlanExpired: false,
         isBlocked: false,
         lastChargeDate,
-        tariffPlanId: new ObjectId(planId),
-        inviteHash: 'test-invite-hash',
-        subscriptionId: undefined,
-      };
-
-      const mockWorkspacesFactory = {
-        findById: jest.fn().mockResolvedValue({
-          ...workspace,
-          getMemberInfo: jest.fn().mockResolvedValue({ isAdmin: true }),
-          isTariffPlanExpired: jest.fn().mockReturnValue(false),
-        }),
-      };
-      
-      const mockPlansFactory = {
-        findById: jest.fn().mockResolvedValue(plan),
-      };
-
-      const mockContext: ResolverContextWithUser = {
-        user: { 
-          id: userId,
-          accessTokenExpired: false,
-        },
-        factories: {
-          workspacesFactory: mockWorkspacesFactory as any,
-          plansFactory: mockPlansFactory as any,
-          usersFactory: {} as any,
-          projectsFactory: {} as any,
-          businessOperationsFactory: {} as any,
-        },
-      };
+      });
 
       const result = await billingNewResolver.Query.composePayment(
         undefined,
@@ -174,7 +163,7 @@ describe('GraphQLBillingNew', () => {
       expect(result.plan.monthlyCharge).toBe(1000);
       expect(result.currency).toBe('RUB');
       
-      const oneMonthFromLastChargeDate = new Date(lastChargeDate);
+      const oneMonthFromLastChargeDate = new Date(workspace.lastChargeDate);
       oneMonthFromLastChargeDate.setMonth(oneMonthFromLastChargeDate.getMonth() + 1);
 
       const oneMonthFromLastChargeDateStr = oneMonthFromLastChargeDate.toISOString().split('T')[0];
@@ -183,59 +172,11 @@ describe('GraphQLBillingNew', () => {
     });
 
     it('should return isCardLinkOperation = false in case of blocked workspace', async () => {
-      const userId = new ObjectId().toString();
-      const workspaceId = new ObjectId().toString();
-      const planId = new ObjectId().toString();
-
-      const plan: PlanDBScheme = {
-        _id: new ObjectId(planId),
-        name: 'Test Plan',
-        monthlyCharge: 1000,
-        monthlyChargeCurrency: 'RUB',
-        eventsLimit: 1000,
-        isDefault: false,
-        isHidden: false,
-      };
-
-      const workspace: WorkspaceDBScheme = {
-        _id: new ObjectId(workspaceId),
-        name: 'Test Workspace',
-        accountId: 'test-account-id',
-        balance: 0,
-        billingPeriodEventsCount: 0,
+      const { mockContext, planId, workspaceId } = createComposePaymentTestSetup({
+        isTariffPlanExpired: false,
         isBlocked: true,
         lastChargeDate: new Date(),
-        tariffPlanId: new ObjectId(planId),
-        inviteHash: 'test-invite-hash',
-        subscriptionId: undefined,
-      };
-      
-      const mockWorkspacesFactory = {
-        findById: jest.fn().mockResolvedValue({
-          ...workspace,
-          getMemberInfo: jest.fn().mockResolvedValue({ isAdmin: true }),
-          isTariffPlanExpired: jest.fn().mockReturnValue(false),
-        }),
-      };
-      
-      
-      const mockPlansFactory = {
-        findById: jest.fn().mockResolvedValue(plan),
-      };
-      
-      const mockContext: ResolverContextWithUser = {
-        user: { 
-          id: userId,
-          accessTokenExpired: false,
-        },
-        factories: {
-          workspacesFactory: mockWorkspacesFactory as any,
-          plansFactory: mockPlansFactory as any,
-          usersFactory: {} as any,
-          projectsFactory: {} as any,
-          businessOperationsFactory: {} as any,
-        },
-      };
+      });
       
       const result = await billingNewResolver.Query.composePayment(
         undefined,
