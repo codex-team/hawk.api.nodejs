@@ -272,7 +272,10 @@ export default class CloudPaymentsWebhooks {
 
     try {
       await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
-      await workspace.changePlan(tariffPlan._id);
+      
+      if (!data.isCardLinkOperation) {
+        await workspace.changePlan(tariffPlan._id);
+      }
 
       const subscriptionId = body.SubscriptionId;
 
