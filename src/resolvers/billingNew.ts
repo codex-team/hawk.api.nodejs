@@ -111,7 +111,6 @@ export default {
 
       let isCardLinkOperation = false;
 
-
       /**
        * We need to only link card and not pay for the whole plan in case
        * 1. We are paying for the same plan and
