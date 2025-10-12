@@ -272,7 +272,7 @@ export default class CloudPaymentsWebhooks {
 
     try {
       await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
-      
+
       if (!data.isCardLinkOperation) {
         await workspace.changePlan(tariffPlan._id);
       }
@@ -353,13 +353,12 @@ export default class CloudPaymentsWebhooks {
         }));
       } catch (e) {
         const error = e as Error;
-  
+
         this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending task to limiter worker ${error.toString()}`, body);
-  
+
         return;
       }
     }
-
 
     try {
       // todo: add plan-prolongation notification if it was a payment by subscription
