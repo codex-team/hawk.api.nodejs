@@ -109,7 +109,11 @@ export default {
       const now = new Date();
       const invoiceId = `${workspace.name} ${now.getDate()}/${now.getMonth() + 1} ${plan.name}`;
 
-      const isCardLinkOperation = workspace.tariffPlanId.toString() === tariffPlanId && !workspace.isTariffPlanExpired();
+      let isCardLinkOperation = false;
+
+      if (workspace.tariffPlanId.toString() === tariffPlanId && !workspace.isTariffPlanExpired() && !workspace.isBlocked) {
+        isCardLinkOperation = true;
+      }
 
       // Calculate next payment date
       const lastChargeDate = workspace.lastChargeDate ? new Date(workspace.lastChargeDate) : now;
