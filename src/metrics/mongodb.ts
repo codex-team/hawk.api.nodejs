@@ -1,5 +1,6 @@
 import promClient from 'prom-client';
 import { MongoClient, MongoClientOptions } from 'mongodb';
+import { Effect, sgr } from '../utils/ansi';
 
 /**
  * MongoDB command duration histogram
@@ -137,8 +138,9 @@ function formatParams(params: any): string {
  */
 function logCommandStarted(event: any): void {
   const collectionRaw = extractCollectionFromCommand(event.command, event.commandName);
-  const collection = normalizeCollectionName(collectionRaw);
+  const collection = sgr(normalizeCollectionName(collectionRaw), Effect.ForegroundGreen);
   const db = event.databaseName || 'unknown db';
+  const commandName = sgr(event.commandName, Effect.ForegroundRed);
   const filter = event.command.filter;
   const update = event.command.update;
   const pipeline = event.command.pipeline;
@@ -146,7 +148,7 @@ function logCommandStarted(event: any): void {
   const params = filter || update || pipeline;
   const paramsStr = formatParams(params);
 
-  console.log(`[${event.requestId}] ${db}.${collection}.${event.commandName}(${paramsStr}) ${projection ? `projection: ${formatParams(projection)}` : ''}`);
+  console.log(`[${event.requestId}] ${db}.${collection}.${commandName}(${paramsStr}) ${projection ? `projection: ${formatParams(projection)}` : ''}`);
 }
 
 /**

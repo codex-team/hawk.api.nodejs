@@ -1,5 +1,6 @@
 import morgan from 'morgan';
 import express from 'express';
+import { sgr, Effect } from './ansi';
 
 /**
  * Setup custom GraphQL-aware morgan token.
@@ -14,7 +15,7 @@ morgan.token('graphql-operation', (req: express.Request) => {
     const match = req.body.query.match(/(?:query|mutation)\s+(\w+)/);
 
     if (match && match[1]) {
-      return match[1];
+      return sgr(sgr(match[1], Effect.ForegroundMagenta), Effect.Bold);
     }
   }
 
@@ -27,8 +28,8 @@ morgan.token('graphql-operation', (req: express.Request) => {
  * Production: Apache-style format with operation name included
  */
 const customFormat = process.env.NODE_ENV === 'production'
-  ? ':remote-addr - :remote-user [:date[clf]] ":method :url :graphql-operation" :status :res[content-length] - :response-time ms'
-  : ':method :url :graphql-operation :status :response-time ms - :res[content-length]';
+  ? ':remote-addr - :remote-user [:date[clf]] ":method :url :graphql-operation" :status :res[content-length] bytes - :response-time ms'
+  : ':method :url :graphql-operation :status :res[content-length] bytes - :response-time ms';
 
 /**
  * Configured morgan middleware with GraphQL operation name logging
