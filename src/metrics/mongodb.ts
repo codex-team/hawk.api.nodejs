@@ -1,5 +1,6 @@
 import promClient from 'prom-client';
 import { MongoClient, MongoClientOptions } from 'mongodb';
+import { Effect, sgr } from '../utils/ansi';
 
 /**
  * MongoDB command duration histogram
@@ -114,11 +115,154 @@ export function withMongoMetrics(options: MongoClientOptions = {}): MongoClientO
 }
 
 /**
+ * Format filter/update parameters for logging
+ * @param params - Parameters to format
+ * @returns Formatted string
+ */
+function formatParams(params: any): string {
+  if (!params || Object.keys(params).length === 0) {
+    return '';
+  }
+
+  try {
+    return JSON.stringify(params);
+  } catch (e) {
+    return String(params);
+  }
+}
+
+/**
+ * Colorize duration based on performance thresholds
+ * @param duration - Duration in milliseconds
+ * @returns Colorized duration string
+ */
+function colorizeDuration(duration: number): string {
+  let color: Effect;
+
+  if (duration < 50) {
+    color = Effect.ForegroundGreen;
+  } else if (duration < 100) {
+    color = Effect.ForegroundYellow;
+  } else {
+    color = Effect.ForegroundRed;
+  }
+
+  return sgr(`${duration}ms`, color);
+}
+
+/**
+ * Interface for storing command information with timestamp
+ */
+interface StoredCommandInfo {
+  formattedCommand: string;
+  timestamp: number;
+}
+
+/**
+ * Map to store formatted command information by requestId
+ */
+const commandInfoMap = new Map<number, StoredCommandInfo>();
+
+/**
+ * Timeout for cleaning up stale command info (30 seconds)
+ */
+const COMMAND_INFO_TIMEOUT_MS = 30000;
+
+/**
+ * Cleanup stale command info to prevent memory leaks
+ * Removes entries older than COMMAND_INFO_TIMEOUT_MS
+ */
+function cleanupStaleCommandInfo(): void {
+  const now = Date.now();
+  const keysToDelete: number[] = [];
+
+  for (const [requestId, info] of commandInfoMap.entries()) {
+    if (now - info.timestamp > COMMAND_INFO_TIMEOUT_MS) {
+      keysToDelete.push(requestId);
+    }
+  }
+
+  if (keysToDelete.length > 0) {
+    console.warn(`Cleaning up ${keysToDelete.length} stale MongoDB command info entries (possible memory leak)`);
+    for (const key of keysToDelete) {
+      commandInfoMap.delete(key);
+    }
+  }
+}
+
+/**
+ * Periodic cleanup interval
+ */
+setInterval(cleanupStaleCommandInfo, COMMAND_INFO_TIMEOUT_MS);
+
+/**
+ * Store MongoDB command details for later logging
+ * @param event - MongoDB command event
+ */
+function storeCommandInfo(event: any): void {
+  const collectionRaw = extractCollectionFromCommand(event.command, event.commandName);
+  const collection = sgr(normalizeCollectionName(collectionRaw), Effect.ForegroundGreen);
+  const db = event.databaseName || 'unknown db';
+  const commandName = sgr(event.commandName, Effect.ForegroundRed);
+  const filter = event.command.filter;
+  const update = event.command.update;
+  const pipeline = event.command.pipeline;
+  const projection = event.command.projection;
+  const params = filter || update || pipeline;
+  const paramsStr = formatParams(params);
+  const projectionStr = projection ? ` projection: ${formatParams(projection)}` : '';
+
+  const formattedCommand = `[${event.requestId}] ${db}.${collection}.${commandName}(${paramsStr})${projectionStr}`;
+
+  commandInfoMap.set(event.requestId, {
+    formattedCommand,
+    timestamp: Date.now(),
+  });
+}
+
+/**
+ * Log MongoDB command success to console
+ * Format: [requestId] db.collection.command(params) ✓ duration
+ * @param event - MongoDB command event
+ */
+function logCommandSucceeded(event: any): void {
+  const info = commandInfoMap.get(event.requestId);
+  const durationStr = colorizeDuration(event.duration);
+
+  if (info) {
+    console.log(`${info.formattedCommand} ✓ ${durationStr}`);
+    commandInfoMap.delete(event.requestId);
+  } else {
+    console.log(`[${event.requestId}] ${event.commandName} ✓ ${durationStr}`);
+  }
+}
+
+/**
+ * Log MongoDB command failure to console
+ * Format: [requestId] db.collection.command(params) ✗ error duration
+ * @param event - MongoDB command event
+ */
+function logCommandFailed(event: any): void {
+  const errorMsg = event.failure?.message || event.failure?.errmsg || 'Unknown error';
+  const info = commandInfoMap.get(event.requestId);
+  const durationStr = colorizeDuration(event.duration);
+
+  if (info) {
+    console.error(`${info.formattedCommand} ✗ ${errorMsg} ${durationStr}`);
+    commandInfoMap.delete(event.requestId);
+  } else {
+    console.error(`[${event.requestId}] ${event.commandName} ✗ ${errorMsg} ${durationStr}`);
+  }
+}
+
+/**
  * Setup MongoDB metrics monitoring on a MongoClient
  * @param client - MongoDB client to monitor
  */
 export function setupMongoMetrics(client: MongoClient): void {
   client.on('commandStarted', (event) => {
+    storeCommandInfo(event);
+
     // Store start time and metadata for this command
     const metadataKey = `${event.requestId}`;
 
@@ -139,6 +283,8 @@ export function setupMongoMetrics(client: MongoClient): void {
   });
 
   client.on('commandSucceeded', (event) => {
+    logCommandSucceeded(event);
+
     const metadataKey = `${event.requestId}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metadata = (client as any)[metadataKey];
@@ -157,6 +303,8 @@ export function setupMongoMetrics(client: MongoClient): void {
   });
 
   client.on('commandFailed', (event) => {
+    logCommandFailed(event);
+
     const metadataKey = `${event.requestId}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metadata = (client as any)[metadataKey];
