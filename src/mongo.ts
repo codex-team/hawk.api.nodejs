@@ -75,7 +75,9 @@ export async function setupConnections(): Promise<void> {
     databases.hawk = hawkMongoClient.db();
     databases.events = eventsMongoClient.db();
 
-    // Setup metrics monitoring for both clients
+    /**
+     * Log and and measure MongoDB metrics
+     */
     setupMongoMetrics(hawkMongoClient);
     setupMongoMetrics(eventsMongoClient);
   } catch (e) {

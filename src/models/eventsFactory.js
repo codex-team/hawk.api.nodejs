@@ -665,7 +665,7 @@ class EventsFactory extends Factory {
   async getEventRelease(eventId) {
     const eventOriginal = await this.findById(eventId);
 
-    if (!eventOriginal) {
+    if (!eventOriginal || !eventOriginal.payload.release) {
       return null;
     }
 

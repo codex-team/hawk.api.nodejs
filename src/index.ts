@@ -26,8 +26,8 @@ import PlansFactory from './models/plansFactory';
 import BusinessOperationsFactory from './models/businessOperationsFactory';
 import schema from './schema';
 import { graphqlUploadExpress } from 'graphql-upload';
-import morgan from 'morgan';
 import { metricsMiddleware, createMetricsServer, graphqlMetricsPlugin } from './metrics';
+import { requestLogger } from './utils/logger';
 
 /**
  * Option to enable playground
@@ -86,18 +86,16 @@ class HawkAPI {
     });
 
     /**
-     * Setup request logger.
-     * Uses 'combined' format in production for Apache-style logging,
-     * and 'dev' format in development for colored, concise output.
-     */
-    this.app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
-
-    /**
      * Add metrics middleware to track HTTP requests
      */
     this.app.use(metricsMiddleware);
 
     this.app.use(express.json());
+
+    /**
+     * Setup request logger with custom formatters (GraphQL operation name support)
+     */
+    this.app.use(requestLogger);
     this.app.use(bodyParser.urlencoded({ extended: false }));
     this.app.use('/static', express.static(`./static`));
 
