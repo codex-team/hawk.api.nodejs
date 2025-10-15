@@ -114,11 +114,69 @@ export function withMongoMetrics(options: MongoClientOptions = {}): MongoClientO
 }
 
 /**
+ * Format filter/update parameters for logging
+ * @param params - Parameters to format
+ * @returns Formatted string
+ */
+function formatParams(params: any): string {
+  if (!params || Object.keys(params).length === 0) {
+    return '';
+  }
+
+  try {
+    return JSON.stringify(params);
+  } catch (e) {
+    return String(params);
+  }
+}
+
+/**
+ * Log MongoDB command details to console
+ * Format: [requestId] db.collection.command(params)
+ * @param event - MongoDB command event
+ */
+function logCommandStarted(event: any): void {
+  const collectionRaw = extractCollectionFromCommand(event.command, event.commandName);
+  const collection = normalizeCollectionName(collectionRaw);
+  const db = event.databaseName || 'unknown db';
+  const filter = event.command.filter;
+  const update = event.command.update;
+  const pipeline = event.command.pipeline;
+  const projection = event.command.projection;
+  const params = filter || update || pipeline;
+  const paramsStr = formatParams(params);
+
+  console.log(`[${event.requestId}] ${db}.${collection}.${event.commandName}(${paramsStr}) ${projection ? `projection: ${formatParams(projection)}` : ''}`);
+}
+
+/**
+ * Log MongoDB command success to console
+ * Format: [requestId] commandName ✓ duration
+ * @param event - MongoDB command event
+ */
+function logCommandSucceeded(event: any): void {
+  console.log(`[${event.requestId}] ${event.commandName} ✓ ${event.duration}ms`);
+}
+
+/**
+ * Log MongoDB command failure to console
+ * Format: [requestId] ✗ error
+ * @param event - MongoDB command event
+ */
+function logCommandFailed(event: any): void {
+  const errorMsg = event.failure?.message || event.failure?.errmsg || 'Unknown error';
+
+  console.error(`[${event.requestId}] ${event.commandName} ✗ ${errorMsg} (${event.duration}ms)`);
+}
+
+/**
  * Setup MongoDB metrics monitoring on a MongoClient
  * @param client - MongoDB client to monitor
  */
 export function setupMongoMetrics(client: MongoClient): void {
   client.on('commandStarted', (event) => {
+    logCommandStarted(event);
+
     // Store start time and metadata for this command
     const metadataKey = `${event.requestId}`;
 
@@ -139,6 +197,8 @@ export function setupMongoMetrics(client: MongoClient): void {
   });
 
   client.on('commandSucceeded', (event) => {
+    logCommandSucceeded(event);
+
     const metadataKey = `${event.requestId}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metadata = (client as any)[metadataKey];
@@ -157,6 +217,8 @@ export function setupMongoMetrics(client: MongoClient): void {
   });
 
   client.on('commandFailed', (event) => {
+    logCommandFailed(event);
+
     const metadataKey = `${event.requestId}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metadata = (client as any)[metadataKey];
