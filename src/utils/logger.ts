@@ -16,7 +16,7 @@ morgan.token('graphql-operation', (req: express.Request) => {
     const isMutation = req.body.query.includes('mutation');
 
     const effect = isMutation ? Effect.ForegroundRed : Effect.ForegroundMagenta;
-    const prefix = sgr(isMutation ? 'Mutation' : 'Query', effect);
+    const prefix = sgr(isMutation ? 'mutation' : 'query', effect);
 
     if (match && match[1]) {
       return prefix + ' ' + sgr(sgr(match[1], effect), Effect.Bold);
