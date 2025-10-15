@@ -35,4 +35,3 @@ const customFormat = process.env.NODE_ENV === 'production'
  * Configured morgan middleware with GraphQL operation name logging
  */
 export const requestLogger = morgan(customFormat);
-
