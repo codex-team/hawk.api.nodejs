@@ -13,9 +13,13 @@ morgan.token('graphql-operation', (req: express.Request) => {
   if (req.body && req.body.query) {
     /* Try to extract operation name from query string if operationName is not provided */
     const match = req.body.query.match(/(?:query|mutation)\s+(\w+)/);
+    const isMutation = req.body.query.includes('mutation');
+
+    const effect = isMutation ? Effect.ForegroundRed : Effect.ForegroundMagenta;
+    const prefix = sgr(isMutation ? 'Mutation' : 'Query', effect);
 
     if (match && match[1]) {
-      return sgr(sgr(match[1], Effect.ForegroundMagenta), Effect.Bold);
+      return prefix + ' ' + sgr(sgr(match[1], effect), Effect.Bold);
     }
   }
 
