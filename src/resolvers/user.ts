@@ -65,7 +65,9 @@ export default {
           priority: TaskPriorities.IMPORTANT,
         });
 
-        telegram.sendMessage(`🚶 User "${email}" signed up`);
+        const source = user.utm?.source;
+
+        telegram.sendMessage(`🚶 User "${email}" signed up` + (source ? `, source: ${source}` : ''));
 
         return isE2E ? password : true;
       } catch (e) {
