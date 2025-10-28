@@ -67,7 +67,7 @@ export default {
 
         const source = user.utm?.source;
 
-        telegram.sendMessage(`🚶 User "${email}" signed up` + (source ? `, source: ${source}` : ''));
+        telegram.sendMessage(`🚶 User "${email}" signed up` + (source ? `, from ${source}` : ''));
 
         return isE2E ? password : true;
       } catch (e) {
