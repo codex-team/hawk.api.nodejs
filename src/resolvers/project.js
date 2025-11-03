@@ -412,10 +412,17 @@ module.exports = {
         { $match: { projectId: project._id.toString() } },
         {
           $project: {
-            release: { $convert: { input: '$release', to: 'string', onError: '', onNull: '' } },
-            commitsCount: { $size: { $ifNull: ['$commits', []] } },
-            filesCount: { $size: { $ifNull: ['$files', []] } },
-            _releaseIdSec: { $floor: { $divide: [ { $toLong: { $toDate: '$_id' } }, 1000 ] } },
+            release: {
+              $convert: {
+                input: '$release',
+                to: 'string',
+                onError: '',
+                onNull: '',
+              },
+            },
+            commitsCount: { $size: { $ifNull: ['$commits', [] ] } },
+            filesCount: { $size: { $ifNull: ['$files', [] ] } },
+            _releaseIdSec: { $floor: { $divide: [ { $toLong: { $toDate: '$_id' } }, 1000] } },
           },
         },
         { $match: { release: { $ne: '' } } },
@@ -424,8 +431,27 @@ module.exports = {
             from: 'events:' + project._id,
             let: { rel: '$release' },
             pipeline: [
-              { $match: { $expr: { $eq: [ { $convert: { input: '$payload.release', to: 'string', onError: '', onNull: '' } }, '$$rel' ] } } },
-              { $group: { _id: null, minTs: { $min: '$timestamp' }, count: { $sum: 1 } } },
+              {
+                $match: {
+                  $expr: {
+                    $eq: [ {
+                      $convert: {
+                        input: '$payload.release',
+                        to: 'string',
+                        onError: '',
+                        onNull: '',
+                      },
+                    }, '$$rel'],
+                  },
+                },
+              },
+              {
+                $group: {
+                  _id: null,
+                  minTs: { $min: '$timestamp' },
+                  count: { $sum: 1 },
+                },
+              },
             ],
             as: 'eventAgg',
           },
@@ -436,9 +462,9 @@ module.exports = {
             release: 1,
             commitsCount: 1,
             filesCount: 1,
-            newEventsCount: { $ifNull: [ { $arrayElemAt: ['$eventAgg.count', 0] }, 0 ] },
+            newEventsCount: { $ifNull: [ { $arrayElemAt: ['$eventAgg.count', 0] }, 0] },
             timestamp: {
-              $ifNull: [ { $arrayElemAt: ['$eventAgg.minTs', 0] }, '$_releaseIdSec' ],
+              $ifNull: [ { $arrayElemAt: ['$eventAgg.minTs', 0] }, '$_releaseIdSec'],
             },
           },
         },
