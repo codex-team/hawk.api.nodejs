@@ -397,5 +397,58 @@ module.exports = {
 
       return factory.findChartData(days, timezoneOffset);
     },
+
+    /**
+     * Returns list of not archived releases with number of events that were introduced in this release
+     * We count events as new, cause payload.release only contain the same release name if the event is original
+     *
+     * @param {ProjectDBScheme} project - result of parent resolver
+     * @returns {Promise<Array<{release: string, timestamp: number, newEventsCount: number, commitsCount: number, filesCount: number}>>}
+     */
+    async releases(project) {
+      const releasesCol = mongo.databases.events.collection('releases');
+
+      const pipeline = [
+        { $match: { projectId: project._id.toString() } },
+        {
+          $project: {
+            release: { $convert: { input: '$release', to: 'string', onError: '', onNull: '' } },
+            commitsCount: { $size: { $ifNull: ['$commits', []] } },
+            filesCount: { $size: { $ifNull: ['$files', []] } },
+            _releaseIdSec: { $floor: { $divide: [ { $toLong: { $toDate: '$_id' } }, 1000 ] } },
+          },
+        },
+        { $match: { release: { $ne: '' } } },
+        {
+          $lookup: {
+            from: 'events:' + project._id,
+            let: { rel: '$release' },
+            pipeline: [
+              { $match: { $expr: { $eq: [ { $convert: { input: '$payload.release', to: 'string', onError: '', onNull: '' } }, '$$rel' ] } } },
+              { $group: { _id: null, minTs: { $min: '$timestamp' }, count: { $sum: 1 } } },
+            ],
+            as: 'eventAgg',
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            release: 1,
+            commitsCount: 1,
+            filesCount: 1,
+            newEventsCount: { $ifNull: [ { $arrayElemAt: ['$eventAgg.count', 0] }, 0 ] },
+            timestamp: {
+              $ifNull: [ { $arrayElemAt: ['$eventAgg.minTs', 0] }, '$_releaseIdSec' ],
+            },
+          },
+        },
+        { $sort: { timestamp: -1 } },
+      ];
+
+      const cursor = releasesCol.aggregate(pipeline);
+      const result = await cursor.toArray();
+
+      return result;
+    },
   },
 };
