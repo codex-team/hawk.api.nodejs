@@ -406,7 +406,7 @@ module.exports = {
      * @returns {Promise<Array<{release: string, timestamp: number, newEventsCount: number, commitsCount: number, filesCount: number}>>}
      */
     async releases(project) {
-      const releasesCol = mongo.databases.events.collection('releases');
+      const releasesCollection = mongo.databases.events.collection('releases');
 
       const pipeline = [
         { $match: { projectId: project._id.toString() } },
@@ -425,7 +425,6 @@ module.exports = {
             _releaseIdSec: { $floor: { $divide: [ { $toLong: { $toDate: '$_id' } }, 1000] } },
           },
         },
-        { $match: { release: { $ne: '' } } },
         {
           $lookup: {
             from: 'events:' + project._id,
@@ -448,7 +447,6 @@ module.exports = {
               {
                 $group: {
                   _id: null,
-                  minTs: { $min: '$timestamp' },
                   count: { $sum: 1 },
                 },
               },
@@ -463,15 +461,13 @@ module.exports = {
             commitsCount: 1,
             filesCount: 1,
             newEventsCount: { $ifNull: [ { $arrayElemAt: ['$eventAgg.count', 0] }, 0] },
-            timestamp: {
-              $ifNull: [ { $arrayElemAt: ['$eventAgg.minTs', 0] }, '$_releaseIdSec'],
-            },
+            timestamp: '$_releaseIdSec',
           },
         },
-        { $sort: { timestamp: -1 } },
+        { $sort: { _id: -1 } },
       ];
 
-      const cursor = releasesCol.aggregate(pipeline);
+      const cursor = releasesCollection.aggregate(pipeline);
       const result = await cursor.toArray();
 
       return result;

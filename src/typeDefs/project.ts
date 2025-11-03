@@ -285,7 +285,7 @@ type Project {
   eventGroupingPatterns: [ProjectEventGroupingPattern]
 
   """
-  List of releases with first mention timestamp and events count
+  List of releases with unique events count, commits count and files count
   """
   releases: [ProjectRelease!]!
 }
