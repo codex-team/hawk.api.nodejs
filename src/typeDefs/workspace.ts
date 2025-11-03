@@ -123,6 +123,11 @@ export default gql`
     isBlocked: Boolean
 
     """
+    For prepaid workspaces, date when the workspace is paid until
+    """
+    paidUntil: DateTime
+
+    """
     Workspace projects array
     """
     projects(
