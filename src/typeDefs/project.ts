@@ -347,6 +347,21 @@ extend type Mutation {
   ): Project! @requireAdmin
 
   """
+  Update project rate limits settings
+  """
+  updateProjectRateLimits(
+    """
+    What project to update
+    """
+    id: ID!
+
+    """
+    Rate limits configuration
+    """
+    rateLimitSettings: RateLimitSettingsInput!
+  ): Project! @requireAdmin
+
+  """
   Generates new project integration token by id
   """
   generateNewIntegrationToken(

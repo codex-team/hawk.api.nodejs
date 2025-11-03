@@ -185,6 +185,37 @@ module.exports = {
     },
 
     /**
+     * Update project rate limits settings
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} id - project id
+     * @param {Object} rateLimitSettings - rate limit settings
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Project}
+     */
+    async updateProjectRateLimits(_obj, { id, rateLimitSettings }, { user, factories }) {
+      const project = await factories.projectsFactory.findById(id);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id');
+      }
+
+      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+        throw new ApolloError('Unable to update demo project');
+      }
+
+      try {
+        return project.updateProject({
+          rateLimitSettings,
+        });
+      } catch (err) {
+        throw new ApolloError('Something went wrong');
+      }
+    },
+
+    /**
      * Generates new project integration token by id
      *
      * @param {ResolverObj} _obj - default resolver object
