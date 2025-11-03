@@ -1,6 +1,35 @@
 import { gql } from 'apollo-server-express';
 
 export default gql`
+  """
+  Rate limits configuration input
+  """
+  input RateLimitSettingsInput {
+    """
+    Rate limit threshold (N events)
+    """
+    N: Int!
+
+    """
+    Rate limit period in seconds (T seconds)
+    """
+    T: Int!
+  }
+
+  """
+  Rate limits configuration
+  """
+  type RateLimitSettings {
+    """
+    Rate limit threshold (N events)
+    """
+    N: Int!
+
+    """
+    Rate limit period in seconds (T seconds)
+    """
+    T: Int!
+  }
 
 """
 Possible events order
@@ -253,6 +282,11 @@ type Project {
   Event grouping patterns
   """
   eventGroupingPatterns: [ProjectEventGroupingPattern]
+
+  """
+  Rate limits configuration
+  """
+  rateLimitSettings: RateLimitSettings
 }
 
 extend type Query {
@@ -305,6 +339,11 @@ extend type Mutation {
     Project image
     """
     image: Upload @uploadImage
+
+    """
+    Rate limits configuration
+    """
+    rateLimitSettings: RateLimitSettingsInput
   ): Project! @requireAdmin
 
   """
