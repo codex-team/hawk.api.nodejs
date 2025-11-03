@@ -141,11 +141,7 @@ module.exports = {
      *
      * @returns {Project}
      */
-    async updateProject(
-      _obj,
-      { id, name, description, image, rateLimitSettings },
-      { user, factories }
-    ) {
+    async updateProject(_obj, { id, name, description, image }, { user, factories }) {
       if (!Validator.string(name)) {
         throw new UserInputError('Invalid name length');
       }
