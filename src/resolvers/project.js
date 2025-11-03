@@ -174,10 +174,6 @@ module.exports = {
           options.image = image;
         }
 
-        if (rateLimitSettings) {
-          options.rateLimitSettings = rateLimitSettings;
-        }
-
         return project.updateProject(options);
       } catch (err) {
         throw new ApolloError('Something went wrong');
