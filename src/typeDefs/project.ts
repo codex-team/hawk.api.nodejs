@@ -362,6 +362,16 @@ extend type Mutation {
   ): Project! @requireAdmin
 
   """
+  Remove project rate limits settings
+  """
+  removeProjectRateLimits(
+    """
+    What project to update
+    """
+    id: ID!
+  ): Project! @requireAdmin
+
+  """
   Generates new project integration token by id
   """
   generateNewIntegrationToken(
