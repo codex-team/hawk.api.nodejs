@@ -356,19 +356,9 @@ extend type Mutation {
     id: ID!
 
     """
-    Rate limits configuration
+    Rate limits configuration. Pass null to remove rate limits.
     """
-    rateLimitSettings: RateLimitSettingsInput!
-  ): Project! @requireAdmin
-
-  """
-  Remove project rate limits settings
-  """
-  removeProjectRateLimits(
-    """
-    What project to update
-    """
-    id: ID!
+    rateLimitSettings: RateLimitSettingsInput
   ): Project! @requireAdmin
 
   """
