@@ -198,6 +198,48 @@ module.exports = {
         throw new ApolloError('Unable to update demo project');
       }
 
+      // Validate rate limit settings if provided
+      if (rateLimitSettings !== null && rateLimitSettings !== undefined) {
+        const { N, T } = rateLimitSettings;
+
+        // Validate that N and T exist
+        if (N === undefined || N === null || T === undefined || T === null) {
+          throw new UserInputError(
+            'Rate limit settings must contain both N (threshold) and T (period) fields.'
+          );
+        }
+
+        // Validate N (threshold) - must be positive integer > 0
+        if (typeof N !== 'number' || !Number.isInteger(N) || N <= 0) {
+          throw new UserInputError(
+            'Invalid rate limit threshold. Must be a positive integer greater than 0.'
+          );
+        }
+
+        // Validate T (period) - must be positive integer >= 60
+        if (typeof T !== 'number' || !Number.isInteger(T) || T < 60) {
+          throw new UserInputError(
+            'Invalid rate limit period. Must be a positive integer greater than or equal to 60 seconds.'
+          );
+        }
+
+        // Validate reasonable maximums (prevent extremely large values)
+        const MAX_THRESHOLD = 1000000000; // 1 billion
+        const MAX_PERIOD = 31536000; // 1 year in seconds
+
+        if (N > MAX_THRESHOLD) {
+          throw new UserInputError(
+            `Rate limit threshold cannot exceed ${MAX_THRESHOLD.toLocaleString()}.`
+          );
+        }
+
+        if (T > MAX_PERIOD) {
+          throw new UserInputError(
+            `Rate limit period cannot exceed ${MAX_PERIOD.toLocaleString()} seconds (1 year).`
+          );
+        }
+      }
+
       try {
         return project.updateProject({
           rateLimitSettings: rateLimitSettings || null,
