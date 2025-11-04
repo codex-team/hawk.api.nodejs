@@ -178,6 +178,79 @@ module.exports = {
     },
 
     /**
+     * Update project rate limits settings
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} id - project id
+     * @param {Object | null} rateLimitSettings - rate limit settings (null to remove)
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Project}
+     */
+    async updateProjectRateLimits(_obj, { id, rateLimitSettings }, { user, factories }) {
+      const project = await factories.projectsFactory.findById(id);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id');
+      }
+
+      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+        throw new ApolloError('Unable to update demo project');
+      }
+
+      // Validate rate limit settings if provided
+      if (rateLimitSettings) {
+        const { N, T } = rateLimitSettings;
+
+        // Validate that N and T exist
+        if (!N || !T) {
+          throw new UserInputError(
+            'Rate limit settings must contain both N (threshold) and T (period) fields.'
+          );
+        }
+
+        // Validate N (threshold) - must be positive integer > 0
+        if (typeof N !== 'number' || !Number.isInteger(N) || N <= 0) {
+          throw new UserInputError(
+            'Invalid rate limit threshold. Must be a positive integer greater than 0.'
+          );
+        }
+
+        // Validate T (period) - must be positive integer >= 60 (1 minute)
+        if (typeof T !== 'number' || !Number.isInteger(T) || T < 60) {
+          throw new UserInputError(
+            'Invalid rate limit period. Must be a positive integer greater than or equal to 60 seconds.'
+          );
+        }
+
+        // Validate reasonable maximums (prevent extremely large values)
+        const MAX_THRESHOLD = 1000000000; // 1 billion
+        const MAX_PERIOD = 60 * 60 * 24 * 31; // 1 month in seconds
+
+        if (N > MAX_THRESHOLD) {
+          throw new UserInputError(
+            `Rate limit threshold cannot exceed ${MAX_THRESHOLD.toLocaleString()}.`
+          );
+        }
+
+        if (T > MAX_PERIOD) {
+          throw new UserInputError(
+            `Rate limit period cannot exceed ${MAX_PERIOD.toLocaleString()} seconds (1 month).`
+          );
+        }
+      }
+
+      try {
+        return project.updateProject({
+          rateLimitSettings: rateLimitSettings || null,
+        });
+      } catch (err) {
+        throw new ApolloError('Failed to update project rate limit settings', { originalError: err });
+      }
+    },
+
+    /**
      * Generates new project integration token by id
      *
      * @param {ResolverObj} _obj - default resolver object
@@ -373,6 +446,81 @@ module.exports = {
       const factory = getEventsFactory(context, project._id);
 
       return factory.findChartData(days, timezoneOffset);
+    },
+
+    /**
+     * Returns list of not archived releases with number of events that were introduced in this release
+     * We count events as new, cause payload.release only contain the same release name if the event is original
+     *
+     * @param {ProjectDBScheme} project - result of parent resolver
+     * @returns {Promise<Array<{release: string, timestamp: number, newEventsCount: number, commitsCount: number, filesCount: number}>>}
+     */
+    async releases(project) {
+      const releasesCollection = mongo.databases.events.collection('releases');
+
+      const pipeline = [
+        { $match: { projectId: project._id.toString() } },
+        {
+          $project: {
+            release: {
+              $convert: {
+                input: '$release',
+                to: 'string',
+                onError: '',
+                onNull: '',
+              },
+            },
+            commitsCount: { $size: { $ifNull: ['$commits', [] ] } },
+            filesCount: { $size: { $ifNull: ['$files', [] ] } },
+            _releaseIdSec: { $floor: { $divide: [ { $toLong: { $toDate: '$_id' } }, 1000] } },
+          },
+        },
+        {
+          $lookup: {
+            from: 'events:' + project._id,
+            let: { rel: '$release' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: [ {
+                      $convert: {
+                        input: '$payload.release',
+                        to: 'string',
+                        onError: '',
+                        onNull: '',
+                      },
+                    }, '$$rel'],
+                  },
+                },
+              },
+              {
+                $group: {
+                  _id: null,
+                  count: { $sum: 1 },
+                },
+              },
+            ],
+            as: 'eventAgg',
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            release: 1,
+            commitsCount: 1,
+            filesCount: 1,
+            newEventsCount: { $ifNull: [ { $arrayElemAt: ['$eventAgg.count', 0] }, 0] },
+            timestamp: '$_releaseIdSec',
+          },
+        },
+        { $sort: { _id: -1 } },
+      ];
+
+      const cursor = releasesCollection.aggregate(pipeline);
+      const result = await cursor.toArray();
+
+      return result;
     },
   },
 };
