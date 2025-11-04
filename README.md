@@ -25,8 +25,7 @@ To execute the request, enter it in the input field on the left and click on the
 On the right side you will see the result of the query.
 
 ## GraphQL Voyager
-You can view API Schema visualization in `/voyager` page in your browser.
-To see current production schema go to [here](https://api.beta.hawk.so/voyager)
+You can view API Schema visualization in `/voyager` page in your browser. To see current production schema go to [here](https://api.beta.hawk.so/voyager)
 
 ## Migrations
 
