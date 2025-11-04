@@ -240,7 +240,7 @@ module.exports = {
           );
         }
 
-        // Validate T (period) - must be positive integer >= 60
+        // Validate T (period) - must be positive integer >= 60 (1 minute)
         if (typeof T !== 'number' || !Number.isInteger(T) || T < 60) {
           throw new UserInputError(
             'Invalid rate limit period. Must be a positive integer greater than or equal to 60 seconds.'
@@ -249,7 +249,7 @@ module.exports = {
 
         // Validate reasonable maximums (prevent extremely large values)
         const MAX_THRESHOLD = 1000000000; // 1 billion
-        const MAX_PERIOD = 2678400; // 1 month in seconds
+        const MAX_PERIOD = 60 * 60 * 24 * 31; // 1 month in seconds
 
         if (N > MAX_THRESHOLD) {
           throw new UserInputError(
@@ -259,7 +259,7 @@ module.exports = {
 
         if (T > MAX_PERIOD) {
           throw new UserInputError(
-            `Rate limit period cannot exceed ${MAX_PERIOD.toLocaleString()} seconds (1 year).`
+            `Rate limit period cannot exceed ${MAX_PERIOD.toLocaleString()} seconds (1 month).`
           );
         }
       }
