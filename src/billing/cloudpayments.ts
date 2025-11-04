@@ -272,7 +272,10 @@ export default class CloudPaymentsWebhooks {
 
     try {
       await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
-      await workspace.changePlan(tariffPlan._id);
+
+      if (!data.isCardLinkOperation) {
+        await workspace.changePlan(tariffPlan._id);
+      }
 
       const subscriptionId = body.SubscriptionId;
 
@@ -339,17 +342,22 @@ export default class CloudPaymentsWebhooks {
      * }
      */
 
-    try {
-      await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
-        type: 'unblock-workspace',
-        workspaceId: data.workspaceId,
-      }));
-    } catch (e) {
-      const error = e as Error;
+    /**
+     * If it is not a card linking operation then unblock workspace
+     */
+    if (!data.isCardLinkOperation) {
+      try {
+        await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
+          type: 'unblock-workspace',
+          workspaceId: data.workspaceId,
+        }));
+      } catch (e) {
+        const error = e as Error;
 
-      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending task to limiter worker ${error.toString()}`, body);
+        this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while sending task to limiter worker ${error.toString()}`, body);
 
-      return;
+        return;
+      }
     }
 
     try {

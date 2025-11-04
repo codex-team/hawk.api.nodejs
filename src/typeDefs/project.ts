@@ -1,6 +1,35 @@
 import { gql } from 'apollo-server-express';
 
 export default gql`
+  """
+  Rate limits configuration input
+  """
+  input RateLimitSettingsInput {
+    """
+    Rate limit threshold (N events)
+    """
+    N: Int!
+
+    """
+    Rate limit period in seconds (T seconds)
+    """
+    T: Int!
+  }
+
+  """
+  Rate limits configuration
+  """
+  type RateLimitSettings {
+    """
+    Rate limit threshold (N events)
+    """
+    N: Int!
+
+    """
+    Rate limit period in seconds (T seconds)
+    """
+    T: Int!
+  }
 
 """
 Possible events order
@@ -94,6 +123,36 @@ input EventsFiltersInput {
   If True, includes events with ignored mark to the output
   """
   ignored: Boolean
+}
+
+"""
+Aggregated release info for project events
+"""
+type ProjectRelease {
+  """
+  Release identifier
+  """
+  release: String!
+
+  """
+  First occurrence timestamp
+  """
+  timestamp: Float!
+
+  """
+  Number of new events introduced in this release
+  """
+  newEventsCount: Int!
+
+  """
+  Number of commits in this release
+  """
+  commitsCount: Int!
+
+  """
+  Number of files in this release
+  """
+  filesCount: Int!
 }
 
 """
@@ -253,6 +312,16 @@ type Project {
   Event grouping patterns
   """
   eventGroupingPatterns: [ProjectEventGroupingPattern]
+
+  """
+  Rate limits configuration
+  """
+  rateLimitSettings: RateLimitSettings
+
+  """
+  List of releases with unique events count, commits count and files count
+  """
+  releases: [ProjectRelease!]!
 }
 
 extend type Query {
@@ -305,6 +374,26 @@ extend type Mutation {
     Project image
     """
     image: Upload @uploadImage
+
+    """
+    Rate limits configuration
+    """
+    rateLimitSettings: RateLimitSettingsInput
+  ): Project! @requireAdmin
+
+  """
+  Update project rate limits settings
+  """
+  updateProjectRateLimits(
+    """
+    What project to update
+    """
+    id: ID!
+
+    """
+    Rate limits configuration. Pass null to remove rate limits.
+    """
+    rateLimitSettings: RateLimitSettingsInput
   ): Project! @requireAdmin
 
   """

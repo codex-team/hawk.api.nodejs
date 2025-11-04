@@ -12,6 +12,11 @@ declare namespace NodeJS {
     PORT: string;
 
     /**
+     * Metrics server port
+     */
+    METRICS_PORT: string;
+
+    /**
      * MongoDB url
      */
     MONGO_URL: string;
