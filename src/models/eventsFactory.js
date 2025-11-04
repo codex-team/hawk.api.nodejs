@@ -1,12 +1,14 @@
 import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
-import { groupBy } from '../utils/grouper';
 import safe from 'safe-regex';
+import { createProjectEventsByIdLoader } from '../dataLoaders';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
 const { composeEventPayloadByRepetition } = require('../utils/merge');
+
+const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
 
 /**
  * @typedef {import('mongodb').UpdateWriteOpResult} UpdateWriteOpResult
@@ -93,6 +95,7 @@ class EventsFactory extends Factory {
     }
 
     this.projectId = projectId;
+    this.eventsDataLoader = createProjectEventsByIdLoader(mongo.databases.events, this.projectId);
   }
 
   /**
@@ -155,10 +158,7 @@ class EventsFactory extends Factory {
    * @returns {Event|null}
    */
   async findById(id) {
-    const searchResult = await this.getCollection(this.TYPES.EVENTS)
-      .findOne({
-        _id: new ObjectID(id),
-      });
+    const searchResult = await this.eventsDataLoader.load(id);
 
     const event = searchResult ? new Event(searchResult) : null;
 
@@ -423,24 +423,35 @@ class EventsFactory extends Factory {
       };
     }
 
-    let dailyEvents = await this.getCollection(this.TYPES.DAILY_EVENTS)
-      .find(options)
-      .toArray();
+    const dailyEventsCursor = await this.getCollection(this.TYPES.DAILY_EVENTS)
+      .find(options, {
+        projection: {
+          lastRepetitionTime: 1,
+          groupingTimestamp: 1,
+          count: 1,
+        },
+      })
+      .batchSize(MAX_DB_READ_BATCH_SIZE);
 
-    /**
-     * Convert UTC midnight to midnights in user's timezone
-     */
-    dailyEvents = dailyEvents.map((item) => {
-      return Object.assign({}, item, {
-        groupingTimestamp: getMidnightWithTimezoneOffset(item.lastRepetitionTime, item.groupingTimestamp, timezoneOffset),
-      });
-    });
+    const groupedCounts = {};
 
-    /**
-     * Group events using 'groupingTimestamp:NNNNNNNN' key
-     * @type {ProjectChartItem[]}
-     */
-    const groupedData = groupBy('groupingTimestamp')(dailyEvents);
+    for await (const item of dailyEventsCursor) {
+      const groupingTimestamp = getMidnightWithTimezoneOffset(
+        item.lastRepetitionTime,
+        item.groupingTimestamp,
+        timezoneOffset
+      );
+
+      const key = `groupingTimestamp:${groupingTimestamp}`;
+      const current = groupedCounts[key] || 0;
+
+      if (item.count === undefined || item.count === null) {
+        console.warn(`Missing 'count' field for daily event with key ${key}. Defaulting to 0.`);
+        groupedCounts[key] = current;
+      } else {
+        groupedCounts[key] = current + item.count;
+      }
+    }
 
     /**
      * Now fill all requested days
@@ -451,11 +462,16 @@ class EventsFactory extends Factory {
       const now = new Date();
       const day = new Date(now.setDate(now.getDate() - i));
       const dayMidnight = getUTCMidnight(day) / 1000;
-      const groupedEvents = groupedData[`groupingTimestamp:${dayMidnight}`];
+
+      let groupedCount = groupedCounts[`groupingTimestamp:${dayMidnight}`];
+
+      if (!groupedCount) {
+        groupedCount = 0;
+      }
 
       result.push({
         timestamp: dayMidnight,
-        count: groupedEvents ? groupedEvents.reduce((sum, value) => sum + value.count, 0) : 0,
+        count: groupedCount,
       });
     }
 
@@ -586,10 +602,7 @@ class EventsFactory extends Factory {
      * If originalEventId equals repetitionId than user wants to get first repetition which is original event
      */
     if (repetitionId === originalEventId) {
-      const originalEvent = await this.getCollection(this.TYPES.EVENTS)
-        .findOne({
-          _id: ObjectID(originalEventId),
-        });
+      const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
       /**
        * All events have same type with originalEvent id
@@ -609,10 +622,7 @@ class EventsFactory extends Factory {
         _id: ObjectID(repetitionId),
       });
 
-    const originalEvent = await this.getCollection(this.TYPES.EVENTS)
-      .findOne({
-        _id: ObjectID(originalEventId),
-      });
+    const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
     /**
      * If one of the ids are invalid (originalEvent or repetition not found) return null
@@ -648,7 +658,7 @@ class EventsFactory extends Factory {
   async getEventRelease(eventId) {
     const eventOriginal = await this.findById(eventId);
 
-    if (!eventOriginal) {
+    if (!eventOriginal || !eventOriginal.payload.release) {
       return null;
     }
 
@@ -693,7 +703,7 @@ class EventsFactory extends Factory {
   async toggleEventMark(eventId, mark) {
     const collection = this.getCollection(this.TYPES.EVENTS);
 
-    const event = await this.findById(eventId);
+    const event = await this.eventsDataLoader.load(eventId);
 
     if (!event) {
       throw new Error(`Event not found for eventId: ${eventId}`);
