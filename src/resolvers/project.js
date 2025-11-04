@@ -199,7 +199,7 @@ module.exports = {
       }
 
       // Validate rate limit settings if provided
-      if (!!rateLimitSettings) {
+      if (rateLimitSettings) {
         const { N, T } = rateLimitSettings;
 
         // Validate that N and T exist
