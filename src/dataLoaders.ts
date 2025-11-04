@@ -84,9 +84,15 @@ export default class DataLoaders {
     T extends { [key: string]: any },
     FieldType extends object | string
   >(collectionName: string, values: ReadonlyArray<FieldType>, fieldName: string): Promise<(T | null | Error)[]> {
+    const valuesMap = new Map<string, FieldType>();
+
+    for (const value of values) {
+      valuesMap.set(value.toString(), value);
+    }
+
     const queryResult = await this.dbConnection.collection(collectionName)
       .find({
-        [fieldName]: { $in: values },
+        [fieldName]: { $in: Array.from(valuesMap.values()) },
       })
       .toArray();
 
@@ -115,7 +121,10 @@ export function createProjectEventsByIdLoader(
   projectId: string
 ): DataLoader<string, EventDbScheme | null> {
   return new DataLoader<string, EventDbScheme | null>(async (ids) => {
-    const objectIds = ids.map((id) => new ObjectId(id));
+    /**
+     * Deduplicate only for the DB query; keep original ids array for mapping
+     */
+    const objectIds = [ ...new Set(ids) ].map(id => new ObjectId(id));
 
     const docs = await eventsDb
       .collection(`events:${projectId}`)

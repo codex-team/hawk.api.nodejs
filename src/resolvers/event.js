@@ -1,24 +1,5 @@
-const EventsFactory = require('../models/eventsFactory');
+const getEventsFactory = require('./helpers/eventsFactory').default;
 const sendPersonalNotification = require('../utils/personalNotifications').default;
-
-/**
- * Returns a per-request, per-project EventsFactory instance
- * Uses context.eventsFactoryCache to memoize by projectId
- *
- * @param {ResolverContextBase} context - resolver context
- * @param {string} projectId - project id to get EventsFactory instance for
- * @returns {EventsFactory} - EventsFactory instance bound to a specific project object
- */
-function getEventsFactoryForProjectId(context, projectId) {
-  const cache = context.eventsFactoryCache || (context.eventsFactoryCache = new Map());
-  const cacheKey = projectId.toString();
-
-  if (!cache.has(cacheKey)) {
-    cache.set(cacheKey, new EventsFactory(projectId));
-  }
-
-  return cache.get(cacheKey);
-}
 
 /**
  * See all types and fields here {@see ../typeDefs/event.graphql}
@@ -48,7 +29,7 @@ module.exports = {
      * @return {RepetitionsPortion}
      */
     async repetitionsPortion({ projectId, originalEventId }, { limit, cursor }, context) {
-      const factory = getEventsFactoryForProjectId(context, projectId);
+      const factory = getEventsFactory(context, projectId);
 
       return factory.getEventRepetitions(originalEventId, limit, cursor);
     },
@@ -103,7 +84,7 @@ module.exports = {
      * @returns {Promise<ProjectChartItem[]>}
      */
     async chartData({ projectId, groupHash }, { days, timezoneOffset }, context) {
-      const factory = getEventsFactoryForProjectId(context, projectId);
+      const factory = getEventsFactory(context, projectId);
 
       return factory.findChartData(days, timezoneOffset, groupHash);
     },
@@ -116,7 +97,7 @@ module.exports = {
      * @returns {Promise<Release>}
      */
     async release({ projectId, id: eventId }, _args, context) {
-      const factory = getEventsFactoryForProjectId(context, projectId);
+      const factory = getEventsFactory(context, projectId);
       const release = await factory.getEventRelease(eventId);
 
       return release;
@@ -133,7 +114,7 @@ module.exports = {
      * @return {Promise<boolean>}
      */
     async visitEvent(_obj, { projectId, eventId }, { user, ...context }) {
-      const factory = getEventsFactoryForProjectId(context, projectId);
+      const factory = getEventsFactory(context, projectId);
 
       const { result } = await factory.visitEvent(eventId, user.id);
 
@@ -150,7 +131,7 @@ module.exports = {
      * @return {Promise<boolean>}
      */
     async toggleEventMark(_obj, { project, eventId, mark }, context) {
-      const factory = getEventsFactoryForProjectId(context, project);
+      const factory = getEventsFactory(context, project);
 
       const { result } = await factory.toggleEventMark(eventId, mark);
 
@@ -175,7 +156,7 @@ module.exports = {
      */
     async updateAssignee(_obj, { input }, { factories, user, ...context }) {
       const { projectId, eventId, assignee } = input;
-      const factory = getEventsFactoryForProjectId(context, projectId);
+      const factory = getEventsFactory(context, projectId);
 
       const userExists = await factories.usersFactory.findById(assignee);
 
@@ -226,7 +207,7 @@ module.exports = {
      */
     async removeAssignee(_obj, { input }, context) {
       const { projectId, eventId } = input;
-      const factory = getEventsFactoryForProjectId(context, projectId);
+      const factory = getEventsFactory(context, projectId);
 
       const { result } = await factory.updateAssignee(eventId, '');
 
