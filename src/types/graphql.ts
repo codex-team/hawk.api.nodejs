@@ -22,9 +22,10 @@ export interface ResolverContextBase {
 
   /**
    * Request-scoped cache for EventsFactory instances keyed by projectId
+   * Set by getEventsFactory helper in event & project resolvers
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  eventsFactoryCache: Map<string, any>;
+  eventsFactoryCache?: Map<string, any>;
 
   // /**
   //  * SDK for working with CodeX Accounting API
