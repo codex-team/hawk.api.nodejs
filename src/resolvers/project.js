@@ -15,6 +15,30 @@ const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
 const MAX_SEARCH_QUERY_LENGTH = 50;
 
 /**
+ * Returns a singleton EventsFactory instance bound to a specific project object.
+ * Uses request-scoped cache to share across nested resolvers.
+ *
+ * @param {ProjectDBScheme|Object} project - project instance to make a instance of EventsFactory
+ * @param {ResolverContextBase} context - resolver context
+ * @returns {EventsFactory} - EventsFactory instance bound to a specific project object
+ */
+function getEventsFactoryForProject(project, context) {
+  const cache = context && context.eventsFactoryCache;
+  const key = project._id.toString();
+
+  if (cache) {
+    if (!cache.has(key)) {
+      cache.set(key, new EventsFactory(project._id));
+    }
+
+    return cache.get(key);
+  }
+
+  // Fallback (shouldn't happen in normal resolver flow): return a fresh instance
+  return new EventsFactory(project._id);
+}
+
+/**
  * See all types and fields here {@see ../typeDefs/project.graphql}
  */
 module.exports = {
@@ -288,8 +312,8 @@ module.exports = {
      *
      * @returns {EventRepetitionSchema}
      */
-    async event(project, { eventId: repetitionId, originalEventId }) {
-      const factory = new EventsFactory(project._id);
+    async event(project, { eventId: repetitionId, originalEventId }, context) {
+      const factory = getEventsFactoryForProject(project, context);
       const repetition = await factory.getEventRepetition(repetitionId, originalEventId);
 
       if (!repetition) {
@@ -310,8 +334,8 @@ module.exports = {
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @returns {Event[]}
      */
-    async events(project, { limit, skip }) {
-      const factory = new EventsFactory(project._id);
+    async events(project, { limit, skip }, context) {
+      const factory = getEventsFactoryForProject(project, context);
 
       return factory.find({}, limit, skip);
     },
@@ -325,8 +349,8 @@ module.exports = {
      *
      * @return {Promise<number>}
      */
-    async unreadCount(project, data, { user }) {
-      const eventsFactory = new EventsFactory(project._id);
+    async unreadCount(project, data, { user, ...context }) {
+      const eventsFactory = getEventsFactoryForProject(project, context);
       const userInProject = new UserInProject(user.id, project._id);
       const lastVisit = await userInProject.getLastVisit();
 
@@ -345,14 +369,14 @@ module.exports = {
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search }) {
+    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search }, context) {
       if (search) {
         if (search.length > MAX_SEARCH_QUERY_LENGTH) {
           search = search.slice(0, MAX_SEARCH_QUERY_LENGTH);
         }
       }
 
-      const factory = new EventsFactory(project._id);
+      const factory = getEventsFactoryForProject(project, context);
 
       const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search);
 
@@ -368,8 +392,8 @@ module.exports = {
      *
      * @return {Promise<ProjectChartItem[]>}
      */
-    async chartData(project, { days, timezoneOffset }) {
-      const factory = new EventsFactory(project._id);
+    async chartData(project, { days, timezoneOffset }, context) {
+      const factory = getEventsFactoryForProject(project, context);
 
       return factory.findChartData(days, timezoneOffset);
     },
