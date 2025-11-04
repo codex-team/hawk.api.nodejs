@@ -605,9 +605,6 @@ class EventsFactory extends Factory {
     if (repetitionId === originalEventId) {
       const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
-      if (!originalEvent) {
-        return null;
-      }
 
       /**
        * All events have same type with originalEvent id
@@ -629,9 +626,6 @@ class EventsFactory extends Factory {
 
     const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
-    if (!originalEvent) {
-      return null;
-    }
 
     /**
      * If one of the ids are invalid (originalEvent or repetition not found) return null
