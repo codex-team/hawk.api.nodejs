@@ -15,33 +15,27 @@ const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
 const MAX_SEARCH_QUERY_LENGTH = 50;
 
 /**
- * Symbol key for memoizing per-project EventsFactory instance
- */
-const PROJECT_EVENTS_FACTORY = Symbol('PROJECT_EVENTS_FACTORY');
-
-/**
  * Returns a singleton EventsFactory instance bound to a specific project object.
- * Also mirrors the instance into request-scoped cache to share across nested resolvers.
- * @param {ProjectDBScheme|Object} project
- * @param {ResolverContextBase} context
- * @returns {EventsFactory}
+ * Uses request-scoped cache to share across nested resolvers.
+ *
+ * @param {ProjectDBScheme|Object} project - project instance to make a instance of EventsFactory
+ * @param {ResolverContextBase} context - resolver context
+ * @returns {EventsFactory} - EventsFactory instance bound to a specific project object
  */
 function getEventsFactoryForProject(project, context) {
-  if (!project[PROJECT_EVENTS_FACTORY]) {
-    const factory = new EventsFactory(project._id);
+  const cache = context && context.eventsFactoryCache;
+  const key = project._id.toString();
 
-    Object.defineProperty(project, PROJECT_EVENTS_FACTORY, {
-      value: factory,
-      enumerable: false,
-      configurable: false,
-    });
-
-    if (context && context.eventsFactoryCache) {
-      context.eventsFactoryCache.set(project._id.toString(), factory);
+  if (cache) {
+    if (!cache.has(key)) {
+      cache.set(key, new EventsFactory(project._id));
     }
+
+    return cache.get(key);
   }
 
-  return project[PROJECT_EVENTS_FACTORY];
+  // Fallback (shouldn't happen in normal resolver flow): return a fresh instance
+  return new EventsFactory(project._id);
 }
 
 /**

@@ -106,6 +106,7 @@ export default class DataLoaders {
 
 /**
  * Create DataLoader for events in dynamic collections `events:<projectId>` stored in the events DB
+ *
  * @param eventsDb - MongoDB connection to the events database
  * @param projectId - project id used to pick a dynamic collection
  */

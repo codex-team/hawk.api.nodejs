@@ -96,7 +96,7 @@ class EventsFactory extends Factory {
     }
 
     this.projectId = projectId;
-    this.eventById = createProjectEventsByIdLoader(mongo.databases.events, this.projectId);
+    this.eventsDataLoader = createProjectEventsByIdLoader(mongo.databases.events, this.projectId);
   }
 
   /**
@@ -159,7 +159,7 @@ class EventsFactory extends Factory {
    * @returns {Event|null}
    */
   async findById(id) {
-    const searchResult = await this.eventById.load(id);
+    const searchResult = await this.eventsDataLoader.load(id);
 
     const event = searchResult ? new Event(searchResult) : null;
 
@@ -603,7 +603,7 @@ class EventsFactory extends Factory {
      * If originalEventId equals repetitionId than user wants to get first repetition which is original event
      */
     if (repetitionId === originalEventId) {
-      const originalEvent = await this.eventById.load(originalEventId);
+      const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
       if (!originalEvent) {
         return null;
@@ -627,7 +627,7 @@ class EventsFactory extends Factory {
         _id: ObjectID(repetitionId),
       });
 
-    const originalEvent = await this.eventById.load(originalEventId);
+    const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
     if (!originalEvent) {
       return null;
@@ -712,7 +712,7 @@ class EventsFactory extends Factory {
   async toggleEventMark(eventId, mark) {
     const collection = this.getCollection(this.TYPES.EVENTS);
 
-    const event = await this.eventsDataLoader.eventById.load(eventId);
+    const event = await this.eventsDataLoader.load(eventId);
 
     if (!event) {
       throw new Error(`Event not found for eventId: ${eventId}`);
