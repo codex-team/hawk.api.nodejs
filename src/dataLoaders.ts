@@ -18,11 +18,6 @@ export default class DataLoaders {
     { cache: false }
   );
 
-  public eventById = new DataLoader<string, EventDbScheme | null>(
-    (eventIds) => this.batchByIds<EventDbScheme>('events', eventIds),
-    { cache: true }
-  );
-
   /**
    * Loader for fetching workspaces
    */
