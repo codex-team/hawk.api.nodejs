@@ -1,6 +1,35 @@
 import { gql } from 'apollo-server-express';
 
 export default gql`
+  """
+  Rate limits configuration input
+  """
+  input RateLimitSettingsInput {
+    """
+    Rate limit threshold (N events)
+    """
+    N: Int!
+
+    """
+    Rate limit period in seconds (T seconds)
+    """
+    T: Int!
+  }
+
+  """
+  Rate limits configuration
+  """
+  type RateLimitSettings {
+    """
+    Rate limit threshold (N events)
+    """
+    N: Int!
+
+    """
+    Rate limit period in seconds (T seconds)
+    """
+    T: Int!
+  }
 
 """
 Possible events order
@@ -285,6 +314,11 @@ type Project {
   eventGroupingPatterns: [ProjectEventGroupingPattern]
 
   """
+  Rate limits configuration
+  """
+  rateLimitSettings: RateLimitSettings
+
+  """
   List of releases with unique events count, commits count and files count
   """
   releases: [ProjectRelease!]!
@@ -340,6 +374,26 @@ extend type Mutation {
     Project image
     """
     image: Upload @uploadImage
+
+    """
+    Rate limits configuration
+    """
+    rateLimitSettings: RateLimitSettingsInput
+  ): Project! @requireAdmin
+
+  """
+  Update project rate limits settings
+  """
+  updateProjectRateLimits(
+    """
+    What project to update
+    """
+    id: ID!
+
+    """
+    Rate limits configuration. Pass null to remove rate limits.
+    """
+    rateLimitSettings: RateLimitSettingsInput
   ): Project! @requireAdmin
 
   """
