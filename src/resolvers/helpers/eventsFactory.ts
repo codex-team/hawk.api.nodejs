@@ -4,8 +4,12 @@ import { ResolverContextBase } from '../../types/graphql';
 const EventsFactory = require('../../models/eventsFactory');
 
 /**
- * Returns a request-scoped, per-project EventsFactory instance using context cache
- * Falls back to a fresh instance if cache is not available (shouldn't happen in normal flow)
+ * Returns a per-request, per-project EventsFactory instance
+ * Uses context.eventsFactoryCache to memoize by projectId
+ *
+ * @param {ResolverContextBase} context - resolver context
+ * @param {string} projectId - project id to get EventsFactory instance for
+ * @returns {EventsFactory} - EventsFactory instance bound to a specific project object
  */
 export function getEventsFactory(context: ResolverContextBase, projectId: string) {
   const cache = context && context.eventsFactoryCache;
