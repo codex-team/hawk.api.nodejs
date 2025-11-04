@@ -12,7 +12,11 @@ const EventsFactory = require('../../models/eventsFactory');
  * @returns {EventsFactory} - EventsFactory instance bound to a specific project object
  */
 export function getEventsFactory(context: ResolverContextBase, projectId: string) {
-  const cache = context && context.eventsFactoryCache;
+  if (!context.eventsFactoryCache) {
+    context.eventsFactoryCache = new Map();
+  }
+
+  const cache = context.eventsFactoryCache;
 
   if (cache) {
     if (!cache.has(projectId)) {
