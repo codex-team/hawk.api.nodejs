@@ -123,6 +123,11 @@ export default gql`
     isBlocked: Boolean
 
     """
+    For prepaid workspaces, date until which the workspace is paid
+    """
+    paidUntil: DateTime
+
+    """
     Workspace projects array
     """
     projects(
@@ -130,7 +135,7 @@ export default gql`
       Project(s) id(s)
       """
       ids: [ID!] = []
-    ): [Project!] @requireAuth
+    ): [Project!]
   }
 
   extend type Query {
@@ -138,7 +143,7 @@ export default gql`
     Returns workspace(s) info
     If ids = [] returns all user's workspaces
     """
-    workspaces("Workspace(s) id(s)" ids: [ID] = []): [Workspace] @requireAuth
+    workspaces("Workspace(s) id(s)" ids: [ID] = []): [Workspace]
   }
 
   extend type Mutation {
@@ -160,7 +165,7 @@ export default gql`
       New workspace image
       """
       image: Upload @uploadImage
-    ): Workspace! @requireAuth
+    ): Workspace!
 
     """
     Invite user to workspace
@@ -176,7 +181,7 @@ export default gql`
       id of the workspace to which the user is invited
       """
       workspaceId: ID!
-    ): Boolean! @requireAuth
+    ): Boolean!
 
     """
     Update workspace settings
@@ -211,7 +216,7 @@ export default gql`
       Workspace invite hash from link
       """
       inviteHash: String!
-    ): UpdateWorkspaceResponse! @requireAuth
+    ): UpdateWorkspaceResponse!
 
     """
     Confirm invitation to workspace
@@ -227,7 +232,7 @@ export default gql`
       Id of the workspace to which the user was invited
       """
       workspaceId: ID!
-    ): UpdateWorkspaceResponse! @requireAuth
+    ): UpdateWorkspaceResponse!
 
     """
     Grant admin permissions
@@ -280,6 +285,6 @@ export default gql`
       Workspace ID
       """
       workspaceId: ID!
-    ): Boolean! @requireAuth
+    ): Boolean!
   }
 `;

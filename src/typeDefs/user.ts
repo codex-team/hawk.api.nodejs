@@ -90,7 +90,7 @@ export default gql`
     """
     Returns authenticated user data
     """
-    me: User @requireAuth
+    me: User
   }
 
   extend type Mutation {
@@ -107,7 +107,7 @@ export default gql`
       UTM parameters
       """
       utm: UtmInput
-    ): ${isE2E ? 'String!' : 'Boolean!'}
+    ): ${isE2E ? 'String!' : 'Boolean!'} @allowAnon
 
     """
     Login user with provided email and password
@@ -122,7 +122,7 @@ export default gql`
       User password
       """
       password: String! @validate(notEmpty: true)
-    ): Tokens!
+    ): Tokens! @allowAnon
 
     """
     Update user's tokens pair
@@ -132,7 +132,7 @@ export default gql`
       Refresh token for getting new token pair
       """
       refreshToken: String!
-    ): Tokens!
+    ): Tokens! @allowAnon
 
     """
     Reset user's password
@@ -142,7 +142,7 @@ export default gql`
       User email
       """
       email: String! @validate(isEmail: true)
-    ): Boolean!
+    ): Boolean! @allowAnon
 
     """
     Update user's profile
@@ -162,7 +162,7 @@ export default gql`
       User image file
       """
       image: Upload @uploadImage
-    ): Boolean! @requireAuth
+    ): Boolean!
 
     """
     Change user password
@@ -177,6 +177,6 @@ export default gql`
       New user password
       """
       newPassword: String! @validate(notEmpty: true)
-    ): Boolean! @requireAuth
+    ): Boolean!
   }
 `;

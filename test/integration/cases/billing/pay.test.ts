@@ -337,6 +337,26 @@ describe('Pay webhook', () => {
       expect(updatedWorkspace?.billingPeriodEventsCount).toBe(0);
     });
 
+    test('Should not reset events counter in workspace if it is a card linking operation', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', {
+        ...validPayRequestData,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            ...paymentSuccessPayload,
+            isCardLinkOperation: true,
+            nextPaymentDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toString(), // next day
+          }),
+        }),
+      });
+
+      const notUpdatedWorkspace = await workspacesCollection.findOne({
+        _id: workspace._id,
+      });
+
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+      expect(notUpdatedWorkspace?.billingPeriodEventsCount).not.toBe(0);
+    });
+
     test('Should reset last charge date in workspace', async () => {
       const apiResponse = await apiInstance.post('/billing/pay', validPayRequestData);
 
@@ -372,6 +392,26 @@ describe('Pay webhook', () => {
 
       expect(message).toBeTruthy();
       expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
+      expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
+    });
+
+    test('Should not send task to limiter worker if it is a card linking operation', async () => {
+      const apiResponse = await apiInstance.post('/billing/pay', {
+        ...validPayRequestData,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            ...paymentSuccessPayload,
+            isCardLinkOperation: true,
+            nextPaymentDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toString(), // next day
+          }),
+        }),
+      });
+
+      const message = await global.rabbitChannel.get('cron-tasks/limiter', {
+        noAck: true,
+      });
+
+      expect(message).toBeFalsy();
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
 
@@ -479,6 +519,8 @@ describe('Pay webhook', () => {
       expect(updatedUser?.bankCards?.shift()).toMatchObject(expectedCard);
       expect(apiResponse.data.code).toBe(PayCodes.SUCCESS);
     });
+
+
   });
 
   describe('With invalid request', () => {

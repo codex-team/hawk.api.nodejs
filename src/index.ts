@@ -26,6 +26,8 @@ import PlansFactory from './models/plansFactory';
 import BusinessOperationsFactory from './models/businessOperationsFactory';
 import schema from './schema';
 import { graphqlUploadExpress } from 'graphql-upload';
+import { metricsMiddleware, createMetricsServer, graphqlMetricsPlugin } from './metrics';
+import { requestLogger } from './utils/logger';
 
 /**
  * Option to enable playground
@@ -46,6 +48,11 @@ class HawkAPI {
    * Port to listen for requests
    */
   private serverPort = +(process.env.PORT || 4000);
+
+  /**
+   * Port to serve metrics endpoint
+   */
+  private metricsPort = +(process.env.METRICS_PORT || 9090);
 
   /**
    * Express application
@@ -77,7 +84,18 @@ class HawkAPI {
       res.setHeader('Access-Control-Allow-Headers', 'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers');
       next();
     });
+
+    /**
+     * Add metrics middleware to track HTTP requests
+     */
+    this.app.use(metricsMiddleware);
+
     this.app.use(express.json());
+
+    /**
+     * Setup request logger with custom formatters (GraphQL operation name support)
+     */
+    this.app.use(requestLogger);
     this.app.use(bodyParser.urlencoded({ extended: false }));
     this.app.use('/static', express.static(`./static`));
 
@@ -102,6 +120,7 @@ class HawkAPI {
         process.env.NODE_ENV === 'production'
           ? ApolloServerPluginLandingPageDisabled()
           : ApolloServerPluginLandingPageGraphQLPlayground(),
+        graphqlMetricsPlugin,
       ],
       context: ({ req }): ResolverContextBase => req.context,
       formatError: (error): GraphQLError => {
@@ -231,6 +250,15 @@ class HawkAPI {
     await this.server.start();
     this.app.use(graphqlUploadExpress());
     this.server.applyMiddleware({ app: this.app });
+
+    // Start metrics server on separate port
+    const metricsApp = createMetricsServer();
+
+    metricsApp.listen(this.metricsPort, () => {
+      console.log(
+        `📊 Metrics server ready at http://localhost:${this.metricsPort}/metrics`
+      );
+    });
 
     return new Promise((resolve) => {
       this.httpServer.listen({ port: this.serverPort }, () => {
