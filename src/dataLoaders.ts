@@ -82,7 +82,7 @@ export default class DataLoaders {
   private async batchByField<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     T extends { [key: string]: any },
-    FieldType extends object | string
+    FieldType extends ObjectId | string
   >(collectionName: string, values: ReadonlyArray<FieldType>, fieldName: string): Promise<(T | null | Error)[]> {
     const valuesMap = new Map<string, FieldType>();
 
