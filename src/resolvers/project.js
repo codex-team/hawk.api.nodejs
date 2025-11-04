@@ -199,11 +199,11 @@ module.exports = {
       }
 
       // Validate rate limit settings if provided
-      if (rateLimitSettings !== null && rateLimitSettings !== undefined) {
+      if (!!rateLimitSettings) {
         const { N, T } = rateLimitSettings;
 
         // Validate that N and T exist
-        if (N === undefined || N === null || T === undefined || T === null) {
+        if (!N || !T) {
           throw new UserInputError(
             'Rate limit settings must contain both N (threshold) and T (period) fields.'
           );
@@ -245,7 +245,7 @@ module.exports = {
           rateLimitSettings: rateLimitSettings || null,
         });
       } catch (err) {
-        throw new ApolloError('Something went wrong');
+        throw new ApolloError('Failed to update project rate limit settings', { originalError: err });
       }
     },
 
