@@ -128,17 +128,17 @@ module.exports = {
       await projectEventsCollection.createIndex({
         groupHash: 1,
       },
-        {
-          unique: true,
-          name: EVENTS_GROUP_HASH_INDEX_NAME,
-        });
+      {
+        unique: true,
+        name: EVENTS_GROUP_HASH_INDEX_NAME,
+      });
 
       await projectRepetitionsEventsCollection.createIndex({
         groupHash: 'hashed',
       },
-        {
-          name: REPETITIONS_GROUP_HASH_INDEX_NAME,
-        });
+      {
+        name: REPETITIONS_GROUP_HASH_INDEX_NAME,
+      });
 
       await projectRepetitionsEventsCollection.createIndex({
         'payload.user.id': 1,

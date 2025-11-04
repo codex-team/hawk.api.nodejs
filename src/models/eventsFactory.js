@@ -8,7 +8,6 @@ const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
 const { composeEventPayloadByRepetition } = require('../utils/merge');
 
-
 const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
 
 /**
@@ -138,7 +137,7 @@ class EventsFactory extends Factory {
 
     const cursor = this.getCollection(this.TYPES.EVENTS)
       .find(query)
-      .sort([['_id', -1]])
+      .sort([ ['_id', -1] ])
       .limit(limit)
       .skip(skip);
 
@@ -311,7 +310,7 @@ class EventsFactory extends Factory {
       ? Object.fromEntries(
         Object
           .entries(filters)
-          .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists }])
+          .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
       )
       : {};
 
@@ -605,7 +604,6 @@ class EventsFactory extends Factory {
     if (repetitionId === originalEventId) {
       const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
-
       /**
        * All events have same type with originalEvent id
        */
@@ -625,7 +623,6 @@ class EventsFactory extends Factory {
       });
 
     const originalEvent = await this.eventsDataLoader.load(originalEventId);
-
 
     /**
      * If one of the ids are invalid (originalEvent or repetition not found) return null
