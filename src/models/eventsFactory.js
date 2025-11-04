@@ -1,11 +1,13 @@
 import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 import safe from 'safe-regex';
+import { createProjectEventsByIdLoader } from '../dataLoaders';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
 const { composeEventPayloadByRepetition } = require('../utils/merge');
+
 
 const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
 
@@ -93,7 +95,10 @@ class EventsFactory extends Factory {
       throw new Error('Can not construct Event model, because projectId is not provided');
     }
 
+    console.log('projectId', projectId);
+
     this.projectId = projectId;
+    this.eventById = createProjectEventsByIdLoader(mongo.databases.events, this.projectId);
   }
 
   /**
@@ -135,7 +140,7 @@ class EventsFactory extends Factory {
 
     const cursor = this.getCollection(this.TYPES.EVENTS)
       .find(query)
-      .sort([ ['_id', -1] ])
+      .sort([['_id', -1]])
       .limit(limit)
       .skip(skip);
 
@@ -156,10 +161,7 @@ class EventsFactory extends Factory {
    * @returns {Event|null}
    */
   async findById(id) {
-    const searchResult = await this.getCollection(this.TYPES.EVENTS)
-      .findOne({
-        _id: new ObjectID(id),
-      });
+    const searchResult = await this.eventById.load(id);
 
     const event = searchResult ? new Event(searchResult) : null;
 
@@ -311,7 +313,7 @@ class EventsFactory extends Factory {
       ? Object.fromEntries(
         Object
           .entries(filters)
-          .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
+          .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists }])
       )
       : {};
 
@@ -603,10 +605,11 @@ class EventsFactory extends Factory {
      * If originalEventId equals repetitionId than user wants to get first repetition which is original event
      */
     if (repetitionId === originalEventId) {
-      const originalEvent = await this.getCollection(this.TYPES.EVENTS)
-        .findOne({
-          _id: ObjectID(originalEventId),
-        });
+      const originalEvent = await this.eventById.load(originalEventId);
+
+      if (!originalEvent) {
+        return null;
+      }
 
       /**
        * All events have same type with originalEvent id
@@ -626,10 +629,11 @@ class EventsFactory extends Factory {
         _id: ObjectID(repetitionId),
       });
 
-    const originalEvent = await this.getCollection(this.TYPES.EVENTS)
-      .findOne({
-        _id: ObjectID(originalEventId),
-      });
+    const originalEvent = await this.eventById.load(originalEventId);
+
+    if (!originalEvent) {
+      return null;
+    }
 
     /**
      * If one of the ids are invalid (originalEvent or repetition not found) return null
@@ -710,7 +714,7 @@ class EventsFactory extends Factory {
   async toggleEventMark(eventId, mark) {
     const collection = this.getCollection(this.TYPES.EVENTS);
 
-    const event = await this.findById(eventId);
+    const event = await this.eventsDataLoader.eventById.load(eventId);
 
     if (!event) {
       throw new Error(`Event not found for eventId: ${eventId}`);

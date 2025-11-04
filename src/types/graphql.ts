@@ -20,6 +20,12 @@ export interface ResolverContextBase {
    */
   factories: ContextFactories;
 
+  /**
+   * Request-scoped cache for EventsFactory instances keyed by projectId
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  eventsFactoryCache: Map<string, any>;
+
   // /**
   //  * SDK for working with CodeX Accounting API
   //  */
@@ -96,7 +102,7 @@ export interface ResolverContextWithUser extends ResolverContextBase {
  * e.g. in directive definition
  */
 export type UnknownGraphQLField<TContext extends ResolverContextBase = ResolverContextBase>
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   = GraphQLField<any, TContext>
 
 /**
@@ -104,5 +110,5 @@ export type UnknownGraphQLField<TContext extends ResolverContextBase = ResolverC
  * e.g. in directive definition
  */
 export type UnknownGraphQLResolverResult
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   = Promise<any>;

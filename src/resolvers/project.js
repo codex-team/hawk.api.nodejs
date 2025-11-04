@@ -15,6 +15,36 @@ const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
 const MAX_SEARCH_QUERY_LENGTH = 50;
 
 /**
+ * Symbol key for memoizing per-project EventsFactory instance
+ */
+const PROJECT_EVENTS_FACTORY = Symbol('PROJECT_EVENTS_FACTORY');
+
+/**
+ * Returns a singleton EventsFactory instance bound to a specific project object.
+ * Also mirrors the instance into request-scoped cache to share across nested resolvers.
+ * @param {ProjectDBScheme|Object} project
+ * @param {ResolverContextBase} context
+ * @returns {EventsFactory}
+ */
+function getEventsFactoryForProject(project, context) {
+  if (!project[PROJECT_EVENTS_FACTORY]) {
+    const factory = new EventsFactory(project._id);
+
+    Object.defineProperty(project, PROJECT_EVENTS_FACTORY, {
+      value: factory,
+      enumerable: false,
+      configurable: false,
+    });
+
+    if (context && context.eventsFactoryCache) {
+      context.eventsFactoryCache.set(project._id.toString(), factory);
+    }
+  }
+
+  return project[PROJECT_EVENTS_FACTORY];
+}
+
+/**
  * See all types and fields here {@see ../typeDefs/project.graphql}
  */
 module.exports = {
@@ -104,17 +134,17 @@ module.exports = {
       await projectEventsCollection.createIndex({
         groupHash: 1,
       },
-      {
-        unique: true,
-        name: EVENTS_GROUP_HASH_INDEX_NAME,
-      });
+        {
+          unique: true,
+          name: EVENTS_GROUP_HASH_INDEX_NAME,
+        });
 
       await projectRepetitionsEventsCollection.createIndex({
         groupHash: 'hashed',
       },
-      {
-        name: REPETITIONS_GROUP_HASH_INDEX_NAME,
-      });
+        {
+          name: REPETITIONS_GROUP_HASH_INDEX_NAME,
+        });
 
       await projectRepetitionsEventsCollection.createIndex({
         'payload.user.id': 1,
@@ -288,8 +318,8 @@ module.exports = {
      *
      * @returns {EventRepetitionSchema}
      */
-    async event(project, { eventId: repetitionId, originalEventId }) {
-      const factory = new EventsFactory(project._id);
+    async event(project, { eventId: repetitionId, originalEventId }, context) {
+      const factory = getEventsFactoryForProject(project, context);
       const repetition = await factory.getEventRepetition(repetitionId, originalEventId);
 
       if (!repetition) {
@@ -310,8 +340,8 @@ module.exports = {
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @returns {Event[]}
      */
-    async events(project, { limit, skip }) {
-      const factory = new EventsFactory(project._id);
+    async events(project, { limit, skip }, context) {
+      const factory = getEventsFactoryForProject(project, context);
 
       return factory.find({}, limit, skip);
     },
@@ -325,8 +355,8 @@ module.exports = {
      *
      * @return {Promise<number>}
      */
-    async unreadCount(project, data, { user }) {
-      const eventsFactory = new EventsFactory(project._id);
+    async unreadCount(project, data, { user, ...context }) {
+      const eventsFactory = getEventsFactoryForProject(project, context);
       const userInProject = new UserInProject(user.id, project._id);
       const lastVisit = await userInProject.getLastVisit();
 
@@ -345,14 +375,14 @@ module.exports = {
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search }) {
+    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search }, context) {
       if (search) {
         if (search.length > MAX_SEARCH_QUERY_LENGTH) {
           search = search.slice(0, MAX_SEARCH_QUERY_LENGTH);
         }
       }
 
-      const factory = new EventsFactory(project._id);
+      const factory = getEventsFactoryForProject(project, context);
 
       const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search);
 
@@ -368,8 +398,8 @@ module.exports = {
      *
      * @return {Promise<ProjectChartItem[]>}
      */
-    async chartData(project, { days, timezoneOffset }) {
-      const factory = new EventsFactory(project._id);
+    async chartData(project, { days, timezoneOffset }, context) {
+      const factory = getEventsFactoryForProject(project, context);
 
       return factory.findChartData(days, timezoneOffset);
     },
