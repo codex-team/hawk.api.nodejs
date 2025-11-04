@@ -1,5 +1,6 @@
 import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 import safe from 'safe-regex';
+import { createProjectEventsByIdLoader } from '../dataLoaders';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
@@ -94,6 +95,7 @@ class EventsFactory extends Factory {
     }
 
     this.projectId = projectId;
+    this.eventsDataLoader = createProjectEventsByIdLoader(mongo.databases.events, this.projectId);
   }
 
   /**
@@ -156,10 +158,7 @@ class EventsFactory extends Factory {
    * @returns {Event|null}
    */
   async findById(id) {
-    const searchResult = await this.getCollection(this.TYPES.EVENTS)
-      .findOne({
-        _id: new ObjectID(id),
-      });
+    const searchResult = await this.eventsDataLoader.load(id);
 
     const event = searchResult ? new Event(searchResult) : null;
 
@@ -603,10 +602,7 @@ class EventsFactory extends Factory {
      * If originalEventId equals repetitionId than user wants to get first repetition which is original event
      */
     if (repetitionId === originalEventId) {
-      const originalEvent = await this.getCollection(this.TYPES.EVENTS)
-        .findOne({
-          _id: ObjectID(originalEventId),
-        });
+      const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
       /**
        * All events have same type with originalEvent id
@@ -626,10 +622,7 @@ class EventsFactory extends Factory {
         _id: ObjectID(repetitionId),
       });
 
-    const originalEvent = await this.getCollection(this.TYPES.EVENTS)
-      .findOne({
-        _id: ObjectID(originalEventId),
-      });
+    const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
     /**
      * If one of the ids are invalid (originalEvent or repetition not found) return null
@@ -710,7 +703,7 @@ class EventsFactory extends Factory {
   async toggleEventMark(eventId, mark) {
     const collection = this.getCollection(this.TYPES.EVENTS);
 
-    const event = await this.findById(eventId);
+    const event = await this.eventsDataLoader.load(eventId);
 
     if (!event) {
       throw new Error(`Event not found for eventId: ${eventId}`);

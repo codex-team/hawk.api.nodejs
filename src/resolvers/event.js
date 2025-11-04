@@ -1,6 +1,24 @@
 const EventsFactory = require('../models/eventsFactory');
-const { ObjectID } = require('mongodb');
 const sendPersonalNotification = require('../utils/personalNotifications').default;
+
+/**
+ * Returns a per-request, per-project EventsFactory instance
+ * Uses context.eventsFactoryCache to memoize by projectId
+ *
+ * @param {ResolverContextBase} context - resolver context
+ * @param {string} projectId - project id to get EventsFactory instance for
+ * @returns {EventsFactory} - EventsFactory instance bound to a specific project object
+ */
+function getEventsFactoryForProjectId(context, projectId) {
+  const cache = context.eventsFactoryCache || (context.eventsFactoryCache = new Map());
+  const cacheKey = projectId.toString();
+
+  if (!cache.has(cacheKey)) {
+    cache.set(cacheKey, new EventsFactory(projectId));
+  }
+
+  return cache.get(cacheKey);
+}
 
 /**
  * See all types and fields here {@see ../typeDefs/event.graphql}
@@ -29,8 +47,8 @@ module.exports = {
      *
      * @return {RepetitionsPortion}
      */
-    async repetitionsPortion({ projectId, originalEventId }, { limit, cursor }) {
-      const factory = new EventsFactory(projectId);
+    async repetitionsPortion({ projectId, originalEventId }, { limit, cursor }, context) {
+      const factory = getEventsFactoryForProjectId(context, projectId);
 
       return factory.getEventRepetitions(originalEventId, limit, cursor);
     },
@@ -84,8 +102,8 @@ module.exports = {
      * @param {number} timezoneOffset - user's local timezone offset in minutes
      * @returns {Promise<ProjectChartItem[]>}
      */
-    async chartData({ projectId, groupHash }, { days, timezoneOffset }) {
-      const factory = new EventsFactory(new ObjectID(projectId));
+    async chartData({ projectId, groupHash }, { days, timezoneOffset }, context) {
+      const factory = getEventsFactoryForProjectId(context, projectId);
 
       return factory.findChartData(days, timezoneOffset, groupHash);
     },
@@ -97,8 +115,8 @@ module.exports = {
      * @param {String} eventId - event id
      * @returns {Promise<Release>}
      */
-    async release({ projectId, id: eventId }) {
-      const factory = new EventsFactory(new ObjectID(projectId));
+    async release({ projectId, id: eventId }, _args, context) {
+      const factory = getEventsFactoryForProjectId(context, projectId);
       const release = await factory.getEventRelease(eventId);
 
       return release;
@@ -114,8 +132,8 @@ module.exports = {
      * @param {UserInContext} user - user context
      * @return {Promise<boolean>}
      */
-    async visitEvent(_obj, { projectId, eventId }, { user }) {
-      const factory = new EventsFactory(projectId);
+    async visitEvent(_obj, { projectId, eventId }, { user, ...context }) {
+      const factory = getEventsFactoryForProjectId(context, projectId);
 
       const { result } = await factory.visitEvent(eventId, user.id);
 
@@ -131,8 +149,8 @@ module.exports = {
      * @param {string} mark - mark to set
      * @return {Promise<boolean>}
      */
-    async toggleEventMark(_obj, { project, eventId, mark }) {
-      const factory = new EventsFactory(project);
+    async toggleEventMark(_obj, { project, eventId, mark }, context) {
+      const factory = getEventsFactoryForProjectId(context, project);
 
       const { result } = await factory.toggleEventMark(eventId, mark);
 
@@ -155,9 +173,9 @@ module.exports = {
      * @param factories - factories for working with models
      * @return {Promise<boolean>}
      */
-    async updateAssignee(_obj, { input }, { factories, user }) {
+    async updateAssignee(_obj, { input }, { factories, user, ...context }) {
       const { projectId, eventId, assignee } = input;
-      const factory = new EventsFactory(projectId);
+      const factory = getEventsFactoryForProjectId(context, projectId);
 
       const userExists = await factories.usersFactory.findById(assignee);
 
@@ -206,9 +224,9 @@ module.exports = {
      * @param factories - factories for working with models
      * @return {Promise<boolean>}
      */
-    async removeAssignee(_obj, { input }) {
+    async removeAssignee(_obj, { input }, context) {
       const { projectId, eventId } = input;
-      const factory = new EventsFactory(projectId);
+      const factory = getEventsFactoryForProjectId(context, projectId);
 
       const { result } = await factory.updateAssignee(eventId, '');
 

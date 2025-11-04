@@ -237,6 +237,7 @@ class HawkAPI {
         id: userId,
         accessTokenExpired: isAccessTokenExpired,
       },
+      eventsFactoryCache: new Map(),
       // accounting,
     };
   }
