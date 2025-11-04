@@ -225,7 +225,7 @@ module.exports = {
 
         // Validate reasonable maximums (prevent extremely large values)
         const MAX_THRESHOLD = 1000000000; // 1 billion
-        const MAX_PERIOD = 31536000; // 1 year in seconds
+        const MAX_PERIOD = 2678400; // 1 month in seconds
 
         if (N > MAX_THRESHOLD) {
           throw new UserInputError(
