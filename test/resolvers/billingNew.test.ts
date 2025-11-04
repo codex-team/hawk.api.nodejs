@@ -71,7 +71,6 @@ function createComposePaymentTestSetup(options: {
   };
 
   const mockContext: ResolverContextWithUser = {
-    eventsFactoryCache: new Map(),
     user: { 
       id: userId,
       accessTokenExpired: false,
