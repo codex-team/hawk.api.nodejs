@@ -97,6 +97,36 @@ input EventsFiltersInput {
 }
 
 """
+Aggregated release info for project events
+"""
+type ProjectRelease {
+  """
+  Release identifier
+  """
+  release: String!
+
+  """
+  First occurrence timestamp
+  """
+  timestamp: Float!
+
+  """
+  Number of new events introduced in this release
+  """
+  newEventsCount: Int!
+
+  """
+  Number of commits in this release
+  """
+  commitsCount: Int!
+
+  """
+  Number of files in this release
+  """
+  filesCount: Int!
+}
+
+"""
 Respose object with updated project and his id
 """
 type UpdateProjectResponse {
@@ -253,6 +283,11 @@ type Project {
   Event grouping patterns
   """
   eventGroupingPatterns: [ProjectEventGroupingPattern]
+
+  """
+  List of releases with unique events count, commits count and files count
+  """
+  releases: [ProjectRelease!]!
 }
 
 extend type Query {
