@@ -289,9 +289,14 @@ type Project {
   """
   chartData(
     """
-    How many days we need to fetch for displaying in a chart
+    Grouping mode: 'hours' or 'days'
     """
-    days: Int! = 0
+    groupingBy: String!
+
+    """
+    Range value: number of hours or days depending on groupingBy
+    """
+    rangeValue: Int!
 
     """
     User's local timezone offset in minutes

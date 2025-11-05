@@ -282,9 +282,14 @@ type Event {
   """
   chartData(
     """
-    How many days we need to fetch for displaying in a chart
+    Grouping mode: 'hours' or 'days'
     """
-    days: Int! = 0
+    groupingBy: String! = "hours"
+
+    """
+    Range value: number of hours or days depending on groupingBy
+    """
+    rangeValue: Int! = 0
 
     """
     User's local timezone offset in minutes

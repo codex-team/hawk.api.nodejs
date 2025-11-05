@@ -402,17 +402,21 @@ class EventsFactory extends Factory {
     };
   }
 
-  async getChartData(hours = 24, timezoneOffset = 0, projectId = '', groupHash = '') {
+  async getChartData(groupingBy = 'hours', rangeValue = 24, timezoneOffset = 0, projectId = '', groupHash = '') {
     try {
-      const redisData = await this.redis.getChartDataFromRedis(hours, timezoneOffset, projectId, groupHash);
+      const redisData = await this.redis.getChartDataFromRedis(groupingBy, rangeValue, timezoneOffset, projectId, groupHash);
 
       if (redisData && redisData.length > 0) {
         return redisData;
       }
 
-      return this.findChartData(days = hours, timezoneOffset, groupHash);
+      const hours = groupingBy === 'hours' ? rangeValue : Math.max(1, rangeValue) * 24;
+      const days = Math.max(1, Math.ceil(hours / 24));
+      return this.findChartData(days, timezoneOffset, groupHash);
     } catch (err) {
-      return this.findChartData(days = hours, timezoneOffset, groupHash);
+      const hours = groupingBy === 'hours' ? rangeValue : Math.max(1, rangeValue) * 24;
+      const days = Math.max(1, Math.ceil(hours / 24));
+      return this.findChartData(days, timezoneOffset, groupHash);
     }
   }
 
