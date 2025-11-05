@@ -247,6 +247,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * Update user's last project visit
    *
    * @param projectId - project id
+   * @returns {Promise<number>} - last project visit timestamp
    */
   public async updateLastProjectVisit(projectId: string): Promise<number> {
     const time = Date.now() / 1000;
@@ -263,7 +264,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * Get user's last project visit
    *
    * @param projectId - project id
-   * @returns {Promise<number>}
+   * @returns {Promise<number>} - last project visit timestamp
    */
   public async getLastProjectVisit(projectId: string): Promise<number> {
     return this.projectsLastVisit?.[projectId] || 0;
