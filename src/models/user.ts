@@ -268,7 +268,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
         userId: this._id,
       },
       process.env.JWT_SECRET_ACCESS_TOKEN as Secret,
-      { expiresIn: '1d' }
+      { expiresIn: '15m' }
     );
 
     const refreshToken = await jwt.sign(
