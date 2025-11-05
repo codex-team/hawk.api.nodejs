@@ -35,7 +35,7 @@ async function run() {
             const userDocument = usersDocuments.find(u => u._id.toString() === userInProject.userId.toString());
             if (userDocument) {
                 const projectId = collectionName.split(':')[1];
-                await hawkDb.collection('users').updateOne({ _id: userDocument._id }, { $set: { projectsLastVisit: { [projectId]: userInProject.timestamp } } });
+                await hawkDb.collection('users').updateOne({ _id: userDocument._id }, { $set: { [`projectsLastVisit.${projectId}`]: userInProject.timestamp } });
                 usersUpdatedCount++;
                 console.log(`Updated ${usersUpdatedCount}/${usersInProject.length} users in project ${collectionName}.`);
             }
