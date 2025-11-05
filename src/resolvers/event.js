@@ -41,13 +41,18 @@ module.exports = {
      * @param factories - factories for working with models
      * @return {Promise<UserModel[]> | null}
      */
-    async visitedBy({ visitedBy, projectId }, _args, { factories, user }) {
+    async visitedBy({ visitedBy, projectId, workspaceId }, _args, { factories, user }) {
       /**
        * Crutch for Demo Workspace
+       * Prefer workspaceId from parent if present to avoid extra project lookup
        */
-      const project = await factories.projectsFactory.findById(projectId);
+      const resolvedWorkspaceId = workspaceId || (await (async () => {
+        const project = await factories.projectsFactory.findById(projectId);
 
-      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+        return project ? project.workspaceId.toString() : undefined;
+      })());
+
+      if (resolvedWorkspaceId === '6213b6a01e6281087467cc7a') {
         return [ await factories.usersFactory.findById(user.id) ];
       }
 
