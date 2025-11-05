@@ -11,6 +11,7 @@
     "dev:up": "docker-compose -f docker-compose.dev.yml up -d",
     "dev:down": "docker-compose -f docker-compose.dev.yml down",
     "build": "tsc",
+    "convert": "node ./convertors/set-user-project-last-visit.js",
     "migrations:create": "docker-compose exec api yarn migrate-mongo create",
     "migrations:up": "docker-compose exec api yarn migrate-mongo up",
     "migrations:down": "docker-compose exec api yarn migrate-mongo down",
