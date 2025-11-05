@@ -14,8 +14,8 @@ const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
 const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
 const EVENTS_TIMESTAMP_INDEX_NAME = 'timestamp';
 const GROUPING_TIMESTAMP_INDEX_NAME = 'groupingTimestamp';
-const GROUPING_TIMESTAMP_AND_GROUP_HASH_INDEX_NAME = 'groupingTimestampAndGroupHash';
 const GROUPING_TIMESTAMP_AND_LAST_REPETITION_TIME_AND_ID_INDEX_NAME = 'groupingTimestampAndLastRepetitionTimeAndId';
+const GROUPING_TIMESTAMP_AND_GROUP_HASH_INDEX_NAME = 'groupingTimestampAndGroupHash';
 const MAX_SEARCH_QUERY_LENGTH = 50;
 
 /**
