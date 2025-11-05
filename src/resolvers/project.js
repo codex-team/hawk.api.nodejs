@@ -3,7 +3,6 @@ import * as telegram from '../utils/telegram';
 const mongo = require('../mongo');
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
-const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 const getEventsFactory = require('./helpers/eventsFactory').default;
 const ProjectToWorkspace = require('../models/projectToWorkspace');
@@ -358,10 +357,14 @@ module.exports = {
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @return {Promise<Number>}
      */
-    async updateLastProjectVisit(_obj, { projectId }, { user }) {
-      const userInProject = new UserInProject(user.id, projectId);
+    async updateLastProjectVisit(_obj, { projectId }, { user, factories }) {
+      const userModel = await factories.usersFactory.findById(user.id);
 
-      return userInProject.updateLastVisit();
+      if (!userModel) {
+        throw new ApolloError('User not found');
+      }
+
+      return userModel.updateLastProjectVisit(projectId);
     },
   },
   Project: {
@@ -422,10 +425,14 @@ module.exports = {
      *
      * @return {Promise<number>}
      */
-    async unreadCount(project, data, { user, ...context }) {
+    async unreadCount(project, _args, { factories, user, ...context }) {
       const eventsFactory = getEventsFactory(context, project._id);
-      const userInProject = new UserInProject(user.id, project._id);
-      const lastVisit = await userInProject.getLastVisit();
+      const userModel = await factories.usersFactory.findById(user.id);
+
+      if (!userModel) {
+        throw new ApolloError('User not found');
+      }
+      const lastVisit = await userModel.getLastProjectVisit(project._id);
 
       return eventsFactory.getUnreadCount(lastVisit);
     },

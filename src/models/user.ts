@@ -62,7 +62,7 @@ export interface UserNotificationsDBScheme {
   /**
    * Types of notifications to receive
    */
-  whatToReceive: {[key in UserNotificationType]: boolean};
+  whatToReceive: { [key in UserNotificationType]: boolean };
 }
 
 /**
@@ -84,6 +84,11 @@ export enum UserNotificationType {
    */
   SystemMessages = 'SystemMessages',
 }
+
+/**
+ * This structure represents how user projects last visit is stored at the DB (in 'users' collection)
+ */
+type UserProjectsLastVisitDBScheme = Record<string, number>;
 
 /**
  * User model
@@ -129,6 +134,11 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * User notifications settings
    */
   public notifications!: UserNotificationsDBScheme;
+
+  /**
+   * User projects last visit
+   */
+  public projectsLastVisit!: UserProjectsLastVisitDBScheme;
 
   /**
    * Saved bank cards for one-click payments
@@ -234,6 +244,33 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   }
 
   /**
+   * Update user's last project visit
+   *
+   * @param projectId - project id
+   * @returns {Promise<number>} - last project visit timestamp
+   */
+  public async updateLastProjectVisit(projectId: string): Promise<number> {
+    const time = Date.now() / 1000;
+
+    await this.update(
+      { _id: new ObjectId(this._id) },
+      { [`projectsLastVisit.${projectId}`]: time }
+    );
+
+    return time;
+  }
+
+  /**
+   * Get user's last project visit
+   *
+   * @param projectId - project id
+   * @returns {Promise<number>} - last project visit timestamp
+   */
+  public async getLastProjectVisit(projectId: string): Promise<number> {
+    return this.projectsLastVisit?.[projectId] || 0;
+  }
+
+  /**
    * Update user profile data
    * @param  user – user object
    */
@@ -323,7 +360,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * Remove workspace from membership collection
    * @param workspaceId - id of workspace to remove
    */
-  public async removeWorkspace(workspaceId: string): Promise<{workspaceId: string}> {
+  public async removeWorkspace(workspaceId: string): Promise<{ workspaceId: string }> {
     await this.membershipCollection.deleteOne({
       workspaceId: new ObjectId(workspaceId),
     });
