@@ -86,7 +86,7 @@ module.exports = {
     async chartData({ projectId, groupHash }, { days, timezoneOffset }, context) {
       const factory = getEventsFactory(context, projectId);
 
-      return factory.findChartData(days, timezoneOffset, groupHash);
+      return factory.getChartData(days, timezoneOffset, projectId, groupHash);
     },
 
     /**

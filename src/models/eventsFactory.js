@@ -1,11 +1,13 @@
 import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 import safe from 'safe-regex';
 import { createProjectEventsByIdLoader } from '../dataLoaders';
+import { Effect, sgr } from '../utils/ansi';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
+import RedisHelper from '../redisHelper';
 const { composeEventPayloadByRepetition } = require('../utils/merge');
 
 const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
@@ -70,6 +72,12 @@ const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
  */
 class EventsFactory extends Factory {
   /**
+  /**
+   * Redis helper instance for modifying data through redis
+   */
+  redis = new RedisHelper();
+
+  /**
    * Event types with collections where they stored
    * @return {{EVENTS: string, DAILY_EVENTS: string, REPETITIONS: string, RELEASES: string}}
    * @constructor
@@ -93,6 +101,8 @@ class EventsFactory extends Factory {
     if (!projectId) {
       throw new Error('Can not construct Event model, because projectId is not provided');
     }
+
+    this.redis.initialize();
 
     this.projectId = projectId;
     this.eventsDataLoader = createProjectEventsByIdLoader(mongo.databases.events, this.projectId);
@@ -390,6 +400,20 @@ class EventsFactory extends Factory {
       nextCursor: nextCursor,
       dailyEvents: composedResult,
     };
+  }
+
+  async getChartData(hours = 24, timezoneOffset = 0, projectId = '', groupHash = '') {
+    try {
+      const redisData = await this.redis.getChartDataFromRedis(hours, timezoneOffset, projectId, groupHash);
+
+      if (redisData && redisData.length > 0) {
+        return redisData;
+      }
+
+      return this.findChartData(days = hours, timezoneOffset, groupHash);
+    } catch (err) {
+      return this.findChartData(days = hours, timezoneOffset, groupHash);
+    }
   }
 
   /**
