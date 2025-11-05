@@ -460,6 +460,20 @@ module.exports = {
 
       const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search);
 
+      /**
+       * Pass workspaceId down to events so nested resolvers (like Event.visitedBy)
+       * can avoid extra project lookups.
+       */
+      if (dailyEventsPortion && Array.isArray(dailyEventsPortion.dailyEvents)) {
+        dailyEventsPortion.dailyEvents = dailyEventsPortion.dailyEvents.map((item) => ({
+          ...item,
+          event: {
+            ...item.event,
+            workspaceId: project.workspaceId && project.workspaceId.toString ? project.workspaceId.toString() : project.workspaceId,
+          },
+        }));
+      }
+
       return dailyEventsPortion;
     },
 
