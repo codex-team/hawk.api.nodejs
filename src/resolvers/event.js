@@ -83,10 +83,10 @@ module.exports = {
      * @param {number} timezoneOffset - user's local timezone offset in minutes
      * @returns {Promise<ProjectChartItem[]>}
      */
-    async chartData({ projectId, groupHash }, { groupingBy, rangeValue, timezoneOffset }, context) {
+    async chartData({ projectId, groupHash }, { startDate, endDate, groupBy, timezoneOffset }, context) {
       const factory = getEventsFactory(context, projectId);
 
-      return factory.getChartData(groupingBy, rangeValue, timezoneOffset, projectId, groupHash);
+      return factory.getChartData(startDate, endDate, groupBy, timezoneOffset, projectId, groupHash);
     },
 
     /**

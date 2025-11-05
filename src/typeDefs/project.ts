@@ -289,14 +289,19 @@ type Project {
   """
   chartData(
     """
-    Grouping mode: 'hours' or 'days'
+    Start date (ISO string or Unix timestamp in seconds)
     """
-    groupingBy: String!
+    startDate: String!
 
     """
-    Range value: number of hours or days depending on groupingBy
+    End date (ISO string or Unix timestamp in seconds)
     """
-    rangeValue: Int!
+    endDate: String!
+
+    """
+    Grouping interval in minutes (1=minute, 60=hour, 1440=day)
+    """
+    groupBy: Int! = 60
 
     """
     User's local timezone offset in minutes

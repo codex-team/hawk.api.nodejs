@@ -402,20 +402,31 @@ class EventsFactory extends Factory {
     };
   }
 
-  async getChartData(groupingBy = 'hours', rangeValue = 24, timezoneOffset = 0, projectId = '', groupHash = '') {
+  async getChartData(startDate, endDate, groupBy = 60, timezoneOffset = 0, projectId = '', groupHash = '') {
     try {
-      const redisData = await this.redis.getChartDataFromRedis(groupingBy, rangeValue, timezoneOffset, projectId, groupHash);
+      const redisData = await this.redis.getChartDataFromRedis(
+        startDate,
+        endDate,
+        groupBy,
+        timezoneOffset,
+        projectId,
+        groupHash
+      );
 
       if (redisData && redisData.length > 0) {
         return redisData;
       }
 
-      const hours = groupingBy === 'hours' ? rangeValue : Math.max(1, rangeValue) * 24;
-      const days = Math.max(1, Math.ceil(hours / 24));
+      // Fallback to Mongo
+      const start = new Date(startDate).getTime();
+      const end = new Date(endDate).getTime();
+      const days = Math.ceil((end - start) / (24 * 60 * 60 * 1000));
       return this.findChartData(days, timezoneOffset, groupHash);
     } catch (err) {
-      const hours = groupingBy === 'hours' ? rangeValue : Math.max(1, rangeValue) * 24;
-      const days = Math.max(1, Math.ceil(hours / 24));
+      console.error('[EventsFactory] getChartData error:', err);
+      const start = new Date(startDate).getTime();
+      const end = new Date(endDate).getTime();
+      const days = Math.ceil((end - start) / (24 * 60 * 60 * 1000));
       return this.findChartData(days, timezoneOffset, groupHash);
     }
   }

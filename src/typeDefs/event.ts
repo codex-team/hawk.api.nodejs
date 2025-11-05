@@ -278,18 +278,23 @@ type Event {
   usersAffected: Int
 
   """
-  Return graph of the error rate for the last few days
+  Return graph of the error rate for the specified period
   """
   chartData(
     """
-    Grouping mode: 'hours' or 'days'
+    Start date (ISO string or Unix timestamp in seconds)
     """
-    groupingBy: String! = "hours"
+    startDate: String!
 
     """
-    Range value: number of hours or days depending on groupingBy
+    End date (ISO string or Unix timestamp in seconds)
     """
-    rangeValue: Int! = 0
+    endDate: String!
+
+    """
+    Grouping interval in minutes (1=minute, 60=hour, 1440=day)
+    """
+    groupBy: Int! = 60
 
     """
     User's local timezone offset in minutes
