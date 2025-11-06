@@ -580,7 +580,7 @@ module.exports = {
       if (enrichedFiles.length > 0) {
         try {
           const fileIds = [
-            ...new Set(enrichedFiles.map(file => String(file._id)))
+            ...new Set(enrichedFiles.map(file => String(file._id))),
           ].map(id => new ObjectId(id));
 
           if (fileIds.length > 0) {
