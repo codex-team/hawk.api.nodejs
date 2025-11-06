@@ -370,8 +370,13 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   public async getWorkspacesIds(ids: (string | ObjectId)[] = []): Promise<string[]> {
     const res = [];
 
+    if (ids.length === 0) {
+      return Object.keys(this.workspaces);
+    }
+
     for (const id of ids) {
       const workspaceId = id.toString();
+      console.log(workspaceId);
       const workspace = this.workspaces[workspaceId];
 
       if (workspace && workspace.isPending !== true) {
