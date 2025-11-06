@@ -5,6 +5,7 @@ import ProjectsFactory from '../models/projectsFactory';
 // import Accounting from 'codex-accounting-sdk';
 import PlansFactory from '../models/plansFactory';
 import BusinessOperationsFactory from '../models/businessOperationsFactory';
+import ReleasesFactory from '../models/releasesFactory';
 
 /**
  * Resolver's Context argument
@@ -86,6 +87,11 @@ export interface ContextFactories {
    * Allows to work with the Business Operations models
    */
   businessOperationsFactory: BusinessOperationsFactory;
+
+  /**
+   * Releases factory for working with releases
+   */
+  releasesFactory: ReleasesFactory;
 }
 
 /**
