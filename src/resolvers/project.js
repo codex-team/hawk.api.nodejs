@@ -579,15 +579,13 @@ module.exports = {
       // If there are files to enrich, try to get their metadata
       if (enrichedFiles.length > 0) {
         try {
-          const fileIds = [ ...new Set(
-            enrichedFiles
-              .filter(file => file && typeof file === 'object' && file._id)
-              .map(file => String(file._id))
-          ) ].map(id => new ObjectId(id));
+          const fileIds = [
+            ...new Set(enrichedFiles.map(file => String(file._id)))
+          ].map(id => new ObjectId(id));
 
           if (fileIds.length > 0) {
             const filesInfo = await factories.releasesFactory.findFilesByReleaseId(
-              releaseDoc._id.toString()
+              fileIds
             );
 
             const metaById = new Map(

@@ -36,7 +36,6 @@ export interface ReleaseFileDBScheme {
   md5: string;
 }
 
-
 /**
  * ReleasesFactory
  * Helper for accessing releases collection
@@ -93,7 +92,7 @@ export default class ReleasesFactory {
    * @param releaseId - release id
    * @returns files
    */
-  public async findFilesByReleaseId(releaseId: string): Promise<ReleaseFileDBScheme[]> {
-    return this.filesCollection.find({ releaseId }).toArray();
+  public async findFilesByReleaseId(fileIds: ObjectId[]): Promise<ReleaseFileDBScheme[]> {
+    return this.filesCollection.find({ _id: { $in: fileIds } }).toArray();
   }
 }
