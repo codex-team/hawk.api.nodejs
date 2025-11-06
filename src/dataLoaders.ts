@@ -39,7 +39,7 @@ export default class DataLoaders {
    */
   public userById = new DataLoader<string, UserDBScheme | null>(
     (userIds) => this.batchByIds<UserDBScheme>('users', userIds),
-    { cache: false }
+    { cache: true }
   );
 
   /**
