@@ -19,7 +19,6 @@ async function run() {
 
     const usersDocuments = await hawkDb.collection('users').find({}).toArray();
 
-    // Convert events
     let i = 1;
 
     for (const collectionName of usersMembershipCollectionsToCheck) {
