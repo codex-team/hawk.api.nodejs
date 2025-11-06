@@ -1,6 +1,7 @@
 import { ReceiveTypes } from '@hawk.so/types';
 import * as telegram from '../utils/telegram';
 const mongo = require('../mongo');
+const { ObjectId } = require('mongodb');
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
 const EventsFactory = require('../models/eventsFactory');
@@ -577,13 +578,56 @@ module.exports = {
         release: release,
       });
 
+      let enrichedFiles = Array.isArray(releaseDoc?.files) ? releaseDoc.files : [];
+
+      if (enrichedFiles.length > 0) {
+        try {
+          const filesColl = mongo.databases.events.collection('releases.files');
+
+          const ids = [...new Set(
+            enrichedFiles
+              .filter(f => f && typeof f === 'object' && f._id)
+              .map(f => String(f._id))
+          )].map(id => new ObjectId(id));
+
+          if (ids.length > 0) {
+            const filesInfo = await filesColl.find(
+              { _id: { $in: ids } },
+              { projection: { length: 1, uploadDate: 1 } }
+            ).toArray();
+
+            const metaById = new Map(
+              filesInfo.map(doc => [String(doc._id), { length: doc.length, uploadDate: doc.uploadDate }])
+            );
+
+            enrichedFiles = enrichedFiles.map((entry) => {
+              if (typeof entry === 'string') {
+                return entry;
+              }
+
+              const meta = metaById.get(String(entry._id));
+
+              return {
+                mapFileName: entry.mapFileName,
+                originFileName: entry.originFileName,
+                length: meta?.length ?? null,
+                uploadDate: meta?.uploadDate ?? null,
+              };
+            });
+          }
+        } catch (e) {
+          // In case of any error with enrichment, fallback to original structure
+          enrichedFiles = releaseDoc?.files || [];
+        }
+      }
+
       return {
         release,
         projectId: project._id,
         commitsCount: Array.isArray(releaseDoc?.commits) ? releaseDoc.commits.length : 0,
         filesCount: Array.isArray(releaseDoc?.files) ? releaseDoc.files.length : 0,
         commits: releaseDoc?.commits || [],
-        files: releaseDoc?.files || [],
+        files: enrichedFiles,
         timestamp: releaseDoc?._id ? dateFromObjectId(releaseDoc._id) : null,
       };
     },

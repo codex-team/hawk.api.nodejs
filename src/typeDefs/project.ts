@@ -168,6 +168,16 @@ type SourceMapDataExtended {
   Bundle or chunk name
   """
   originFileName: String!
+
+  """
+  File size in bytes (from releases-js.files)
+  """
+  length: Int
+
+  """
+  Upload date (from releases-js.files)
+  """
+  uploadDate: DateTime
 }
 
 """
@@ -412,6 +422,11 @@ type Project {
   List of releases with unique events count, commits count and files count
   """
   releases: [ProjectRelease!]!
+
+  """
+  Detailed info for a specific release
+  """
+  releaseDetails(release: String!): ProjectReleaseDetails!
 }
 
 extend type Query {
