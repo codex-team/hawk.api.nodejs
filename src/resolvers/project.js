@@ -6,6 +6,7 @@ const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
 const EventsFactory = require('../models/eventsFactory');
 const getEventsFactory = require('./helpers/eventsFactory').default;
+const ReleasesFactory = require('../models/releasesFactory').default;
 const ProjectToWorkspace = require('../models/projectToWorkspace');
 const { dateFromObjectId } = require('../utils/dates');
 const ProjectModel = require('../models/project').default;
@@ -570,13 +571,9 @@ module.exports = {
      * @param {Object} args
      * @param {string} args.release - release identifier
      */
-    async releaseDetails(project, { release }) {
-      const releasesCollection = mongo.databases.events.collection('releases');
-
-      const releaseDoc = await releasesCollection.findOne({
-        projectId: project._id.toString(),
-        release: release,
-      });
+    async releaseDetails(project, { release }, { factories }) {
+      const releasesFactory = factories.releasesFactory;
+      const releaseDoc = await releasesFactory.findByProjectAndRelease(project._id, release);
 
       let enrichedFiles = Array.isArray(releaseDoc?.files) ? releaseDoc.files : [];
 
