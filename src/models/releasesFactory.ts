@@ -1,3 +1,4 @@
+// TODO: it would be great to move release logic from another factories/resolvers to this class
 import type { Collection, Db, ObjectId } from 'mongodb';
 import type { ReleaseDBScheme } from '@hawk.so/types';
 
@@ -89,10 +90,10 @@ export default class ReleasesFactory {
 
   /**
    * Find files by release id
-   * @param releaseId - release id
+   * @param fileIds - file ids
    * @returns files
    */
-  public async findFilesByReleaseId(fileIds: ObjectId[]): Promise<ReleaseFileDBScheme[]> {
+  public async findFilesByFileIds(fileIds: ObjectId[]): Promise<ReleaseFileDBScheme[]> {
     return this.filesCollection.find({ _id: { $in: fileIds } }).toArray();
   }
 }

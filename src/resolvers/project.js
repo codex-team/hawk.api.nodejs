@@ -584,7 +584,7 @@ module.exports = {
           ].map(id => new ObjectId(id));
 
           if (fileIds.length > 0) {
-            const filesInfo = await factories.releasesFactory.findFilesByReleaseId(
+            const filesInfo = await factories.releasesFactory.findFilesByFileIds(
               fileIds
             );
 
@@ -596,10 +596,6 @@ module.exports = {
             );
 
             enrichedFiles = enrichedFiles.map((entry) => {
-              if (typeof entry === 'string') {
-                return entry;
-              }
-
               const meta = metaById.get(String(entry._id));
 
               return {
