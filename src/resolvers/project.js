@@ -6,7 +6,6 @@ const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
 const EventsFactory = require('../models/eventsFactory');
 const getEventsFactory = require('./helpers/eventsFactory').default;
-const ReleasesFactory = require('../models/releasesFactory').default;
 const ProjectToWorkspace = require('../models/projectToWorkspace');
 const { dateFromObjectId } = require('../utils/dates');
 const ProjectModel = require('../models/project').default;
@@ -575,26 +574,34 @@ module.exports = {
       const releasesFactory = factories.releasesFactory;
       const releaseDoc = await releasesFactory.findByProjectAndRelease(project._id, release);
 
-      let enrichedFiles = Array.isArray(releaseDoc?.files) ? releaseDoc.files : [];
+      let enrichedFiles = Array.isArray(releaseDoc.files) ? releaseDoc.files : [];
 
       if (enrichedFiles.length > 0) {
         try {
           const filesColl = mongo.databases.events.collection('releases.files');
 
-          const ids = [...new Set(
+          const ids = [ ...new Set(
             enrichedFiles
               .filter(f => f && typeof f === 'object' && f._id)
               .map(f => String(f._id))
-          )].map(id => new ObjectId(id));
+          ) ].map(id => new ObjectId(id));
 
           if (ids.length > 0) {
             const filesInfo = await filesColl.find(
               { _id: { $in: ids } },
-              { projection: { length: 1, uploadDate: 1 } }
+              {
+                projection: {
+                  length: 1,
+                  uploadDate: 1,
+                },
+              }
             ).toArray();
 
             const metaById = new Map(
-              filesInfo.map(doc => [String(doc._id), { length: doc.length, uploadDate: doc.uploadDate }])
+              filesInfo.map(doc => [String(doc._id), {
+                length: doc.length,
+                uploadDate: doc.uploadDate,
+              } ])
             );
 
             enrichedFiles = enrichedFiles.map((entry) => {
@@ -607,25 +614,25 @@ module.exports = {
               return {
                 mapFileName: entry.mapFileName,
                 originFileName: entry.originFileName,
-                length: meta?.length ?? null,
-                uploadDate: meta?.uploadDate ?? null,
+                length: meta.length ? meta.length : null,
+                uploadDate: meta.uploadDate ? meta.uploadDate : null,
               };
             });
           }
         } catch (e) {
           // In case of any error with enrichment, fallback to original structure
-          enrichedFiles = releaseDoc?.files || [];
+          enrichedFiles = releaseDoc.files ? releaseDoc.files : [];
         }
       }
 
       return {
         release,
         projectId: project._id,
-        commitsCount: Array.isArray(releaseDoc?.commits) ? releaseDoc.commits.length : 0,
-        filesCount: Array.isArray(releaseDoc?.files) ? releaseDoc.files.length : 0,
-        commits: releaseDoc?.commits || [],
+        commitsCount: Array.isArray(releaseDoc.commits) ? releaseDoc.commits.length : 0,
+        filesCount: Array.isArray(releaseDoc.files) ? releaseDoc.files.length : 0,
+        commits: releaseDoc.commits ? releaseDoc.commits : [],
         files: enrichedFiles,
-        timestamp: releaseDoc?._id ? dateFromObjectId(releaseDoc._id) : null,
+        timestamp: releaseDoc._id ? dateFromObjectId(releaseDoc._id) : null,
       };
     },
   },
