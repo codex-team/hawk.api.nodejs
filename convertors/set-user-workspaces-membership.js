@@ -28,6 +28,11 @@ async function run() {
 
         const userDocument = usersDocuments.find(u => u._id.toString() === userId);
 
+        if (!userDocument) {
+            i++;
+            continue;
+        }
+
         const memberships = await hawkDb.collection(collectionName).find({}).toArray();
 
         for (const membership of memberships) {
