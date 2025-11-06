@@ -89,7 +89,7 @@ export default class ReleasesFactory {
   }
 
   /**
-   * Find files by release id
+   * Find files by file ids
    * @param fileIds - file ids
    * @returns files
    */
