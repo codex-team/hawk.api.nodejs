@@ -579,8 +579,6 @@ module.exports = {
       // If there are files to enrich, try to get their metadata
       if (enrichedFiles.length > 0) {
         try {
-          const filesColl = mongo.databases.events.collection('releases.files');
-
           const fileIds = [ ...new Set(
             enrichedFiles
               .filter(file => file && typeof file === 'object' && file._id)
@@ -588,15 +586,9 @@ module.exports = {
           ) ].map(id => new ObjectId(id));
 
           if (fileIds.length > 0) {
-            const filesInfo = await filesColl.find(
-              { _id: { $in: fileIds } },
-              {
-                projection: {
-                  length: 1,
-                  uploadDate: 1,
-                },
-              }
-            ).toArray();
+            const filesInfo = await factories.releasesFactory.findFilesByReleaseId(
+              releaseDoc._id.toString()
+            );
 
             const metaById = new Map(
               filesInfo.map(fileInfo => [String(fileInfo._id), {

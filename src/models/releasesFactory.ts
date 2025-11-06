@@ -2,6 +2,42 @@ import type { Collection, Db, ObjectId } from 'mongodb';
 import type { ReleaseDBScheme } from '@hawk.so/types';
 
 /**
+ * Interface representing how release files are stored in the DB
+ */
+export interface ReleaseFileDBScheme {
+  /**
+   * File's id
+   */
+  _id: ObjectId;
+
+  /**
+   * File length in bytes
+   */
+  length: number;
+
+  /**
+   * File upload date
+   */
+  uploadDate: Date;
+
+  /**
+   * File chunk size
+   */
+  chunkSize: number;
+
+  /**
+   * File map name
+   */
+  filename: string;
+
+  /**
+   * File MD5 hash
+   */
+  md5: string;
+}
+
+
+/**
  * ReleasesFactory
  * Helper for accessing releases collection
  */
@@ -10,6 +46,7 @@ export default class ReleasesFactory {
    * DataBase collection to work with
    */
   private readonly collection: Collection<ReleaseDBScheme>;
+  private readonly filesCollection: Collection<ReleaseFileDBScheme>;
 
   /**
    * Creates releases factory instance
@@ -17,6 +54,7 @@ export default class ReleasesFactory {
    */
   constructor(dbConnection: Db) {
     this.collection = dbConnection.collection<ReleaseDBScheme>('releases');
+    this.filesCollection = dbConnection.collection<ReleaseFileDBScheme>('releases.files');
   }
 
   /**
@@ -48,5 +86,14 @@ export default class ReleasesFactory {
     }
 
     return doc;
+  }
+
+  /**
+   * Find files by release id
+   * @param releaseId - release id
+   * @returns files
+   */
+  public async findFilesByReleaseId(releaseId: string): Promise<ReleaseFileDBScheme[]> {
+    return this.filesCollection.find({ releaseId }).toArray();
   }
 }
