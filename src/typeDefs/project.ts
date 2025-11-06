@@ -156,6 +156,91 @@ type ProjectRelease {
 }
 
 """
+Source map file information
+"""
+type SourceMapDataExtended {
+  """
+  Name of source-map file
+  """
+  mapFileName: String!
+
+  """
+  Bundle or chunk name
+  """
+  originFileName: String!
+}
+
+"""
+Detailed info for a specific release
+"""
+type ProjectReleaseDetails {
+  """
+  Release identifier
+  """
+  release: String!
+
+  """
+  Number of commits in this release
+  """
+  commitsCount: Int!
+
+  """
+  Number of files in this release
+  """
+  filesCount: Int!
+
+  """
+  Release creation timestamp
+  """
+  timestamp: Float!
+
+  """
+  Commits (from releases collection)
+  """
+  commits: [Commit!]
+
+  """
+  Changed files (from releases collection)
+  """
+  files: [SourceMapDataExtended!]
+
+  """
+  Portion of daily events for this release (same shape as Project.dailyEventsPortion)
+  """
+  dailyEventsPortion(
+    """
+    Maximum number of results
+    """
+    limit: Int! = 50
+
+    """
+    Pointer to the first event of the portion that would be fetched
+    """
+    nextCursor: DailyEventsCursorInput
+
+    """
+    Events sort order
+    """
+    sort: EventsSortOrder = lastRepetitionTime
+
+    """
+    Event marks by which events should be filtered
+    """
+    filters: EventsFiltersInput
+
+    """
+    Search query (for release label)
+    """
+    search: String
+
+    """
+    Release label to filter events by payload.release
+    """
+    release: String
+  ): DailyEventsPortion!
+}
+
+"""
 Respose object with updated project and his id
 """
 type UpdateProjectResponse {
@@ -282,6 +367,11 @@ type Project {
     Search query
     """
     search: String
+
+    """
+    Release label to filter events by payload.release
+    """
+    release: String
   ): DailyEventsPortion
 
   """

@@ -454,11 +454,12 @@ module.exports = {
      * @param {DailyEventsCursor} cursor - object with boundary values of the first event in the next portion
      * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
      * @param {EventsFilters} filters - marks by which events should be filtered
+     * @param {String} release - release name
      * @param {String} search - search query
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search }, context) {
+    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search, release }, context) {
       if (search) {
         if (search.length > MAX_SEARCH_QUERY_LENGTH) {
           search = search.slice(0, MAX_SEARCH_QUERY_LENGTH);
@@ -467,7 +468,7 @@ module.exports = {
 
       const factory = getEventsFactory(context, project._id);
 
-      const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search);
+      const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search, release);
 
       return dailyEventsPortion;
     },
@@ -560,6 +561,45 @@ module.exports = {
       const result = await cursor.toArray();
 
       return result;
+    },
+
+    /**
+     * Return detailed info for a specific release
+     * @param {ProjectDBScheme} project
+     * @param {Object} args
+     * @param {string} args.release - release identifier
+     */
+    async releaseDetails(project, { release }) {
+      const releasesCollection = mongo.databases.events.collection('releases');
+
+      const releaseDoc = await releasesCollection.findOne({
+        projectId: project._id.toString(),
+        release: release,
+      });
+
+      return {
+        release,
+        projectId: project._id,
+        commitsCount: Array.isArray(releaseDoc?.commits) ? releaseDoc.commits.length : 0,
+        filesCount: Array.isArray(releaseDoc?.files) ? releaseDoc.files.length : 0,
+        commits: releaseDoc?.commits || [],
+        files: releaseDoc?.files || [],
+        timestamp: releaseDoc?._id ? dateFromObjectId(releaseDoc._id) : null,
+      };
+    },
+  },
+
+  /**
+   * Field resolvers for ProjectReleaseDetails
+   */
+  ProjectReleaseDetails: {
+
+    /**
+     * Reuse dailyEventsPortion for release details
+     */
+    async dailyEventsPortion(parent, { limit, nextCursor, sort, filters, search }) {
+      const factory = new EventsFactory(parent.projectId);
+      return factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search, parent.release);
     },
   },
 };
