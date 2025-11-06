@@ -213,41 +213,6 @@ type ProjectReleaseDetails {
   Changed files (from releases collection)
   """
   files: [SourceMapDataExtended!]
-
-  """
-  Portion of daily events for this release (same shape as Project.dailyEventsPortion)
-  """
-  dailyEventsPortion(
-    """
-    Maximum number of results
-    """
-    limit: Int! = 50
-
-    """
-    Pointer to the first event of the portion that would be fetched
-    """
-    nextCursor: DailyEventsCursorInput
-
-    """
-    Events sort order
-    """
-    sort: EventsSortOrder = lastRepetitionTime
-
-    """
-    Event marks by which events should be filtered
-    """
-    filters: EventsFiltersInput
-
-    """
-    Search query (for release label)
-    """
-    search: String
-
-    """
-    Release label to filter events by payload.release
-    """
-    release: String
-  ): DailyEventsPortion!
 }
 
 """

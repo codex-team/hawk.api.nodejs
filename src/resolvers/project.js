@@ -632,18 +632,4 @@ module.exports = {
       };
     },
   },
-
-  /**
-   * Field resolvers for ProjectReleaseDetails
-   */
-  ProjectReleaseDetails: {
-
-    /**
-     * Reuse dailyEventsPortion for release details
-     */
-    async dailyEventsPortion(parent, { limit, nextCursor, sort, filters, search }) {
-      const factory = new EventsFactory(parent.projectId);
-      return factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search, parent.release);
-    },
-  },
 };
