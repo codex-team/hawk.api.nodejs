@@ -376,7 +376,6 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
 
     for (const id of ids) {
       const workspaceId = id.toString();
-      console.log(workspaceId);
       const workspace = this.workspaces[workspaceId];
 
       if (workspace && workspace.isPending !== true) {
