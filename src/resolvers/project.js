@@ -14,6 +14,7 @@ const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
 const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
 const EVENTS_TIMESTAMP_INDEX_NAME = 'timestamp';
+const EVENTS_PAYLOAD_RELEASE_INDEX_NAME = 'payloadRelease';
 const GROUPING_TIMESTAMP_INDEX_NAME = 'groupingTimestamp';
 const GROUPING_TIMESTAMP_AND_LAST_REPETITION_TIME_AND_ID_INDEX_NAME = 'groupingTimestampAndLastRepetitionTimeAndId';
 const GROUPING_TIMESTAMP_AND_GROUP_HASH_INDEX_NAME = 'groupingTimestampAndGroupHash';
@@ -125,6 +126,15 @@ module.exports = {
         _id: -1,
       }, {
         name: GROUPING_TIMESTAMP_AND_LAST_REPETITION_TIME_AND_ID_INDEX_NAME,
+      });
+
+      await projectEventsCollection.createIndex({
+        'payload.release': 1,
+      },
+      {
+        name: EVENTS_PAYLOAD_RELEASE_INDEX_NAME,
+        background: true,
+        sparse: true,
       });
 
       await projectEventsCollection.createIndex({
@@ -503,14 +513,7 @@ module.exports = {
         { $match: { projectId: project._id.toString() } },
         {
           $project: {
-            release: {
-              $convert: {
-                input: '$release',
-                to: 'string',
-                onError: '',
-                onNull: '',
-              },
-            },
+            release: '$release',
             commitsCount: { $size: { $ifNull: ['$commits', [] ] } },
             filesCount: { $size: { $ifNull: ['$files', [] ] } },
             _releaseIdSec: { $floor: { $divide: [ { $toLong: { $toDate: '$_id' } }, 1000] } },
@@ -524,14 +527,7 @@ module.exports = {
               {
                 $match: {
                   $expr: {
-                    $eq: [ {
-                      $convert: {
-                        input: '$payload.release',
-                        to: 'string',
-                        onError: '',
-                        onNull: '',
-                      },
-                    }, '$$rel'],
+                    $eq: ['$payload.release', '$$rel'],
                   },
                 },
               },
