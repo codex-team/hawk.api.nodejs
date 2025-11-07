@@ -129,7 +129,7 @@ module.exports = {
       });
 
       await projectEventsCollection.createIndex({
-        'payload.release': 1
+        'payload.release': 1,
       },
       {
         name: EVENTS_PAYLOAD_RELEASE_INDEX_NAME,
@@ -527,7 +527,7 @@ module.exports = {
               {
                 $match: {
                   $expr: {
-                    $eq: [ '$payload.release', '$$rel' ],
+                    $eq: ['$payload.release', '$$rel'],
                   },
                 },
               },
@@ -590,6 +590,7 @@ module.exports = {
                 uploadDate: fileInfo.uploadDate,
               } ])
             );
+
             enrichedFiles = enrichedFiles.map((entry) => {
               const meta = metaById.get(String(entry._id));
 
