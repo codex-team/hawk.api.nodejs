@@ -1,5 +1,5 @@
 import RedisHelper from '../redisHelper';
-import { composeTimeSeriesKey, getTimeSeriesSuffix } from '../utils/redisKeys';
+import { composeTimeSeriesKey, getTimeSeriesSuffix } from '../utils/chartStorageKeys';
 
 /**
  * Service for fetching chart data from Redis TimeSeries
