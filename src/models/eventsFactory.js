@@ -208,6 +208,7 @@ class EventsFactory extends Factory {
    * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
    * @param {EventsFilters} filters - marks by which events should be filtered
    * @param {String} search - Search query
+   * @param {String} release - release name
    *
    * @return {DaylyEventsPortionSchema}
    */
@@ -216,7 +217,8 @@ class EventsFactory extends Factory {
     paginationCursor = null,
     sort = 'BY_DATE',
     filters = {},
-    search = ''
+    search = '',
+    release
   ) {
     if (typeof search !== 'string') {
       throw new Error('Search parameter must be a string');
@@ -336,6 +338,25 @@ class EventsFactory extends Factory {
       )
       : {};
 
+    // Filter by release if provided (coerce event payload release to string)
+    const releaseFilter = release
+      ? {
+        $expr: {
+          $eq: [
+            {
+              $convert: {
+                input: '$event.payload.release',
+                to: 'string',
+                onError: '',
+                onNull: '',
+              },
+            },
+            String(release),
+          ],
+        },
+      }
+      : {};
+
     pipeline.push(
       /**
        * Left outer join original event on groupHash field
@@ -372,6 +393,7 @@ class EventsFactory extends Factory {
         $match: {
           ...matchFilter,
           ...searchFilter,
+          ...releaseFilter,
         },
       },
       { $limit: limit + 1 },

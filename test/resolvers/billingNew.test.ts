@@ -31,7 +31,7 @@ function createComposePaymentTestSetup(options: {
   const userId = new ObjectId().toString();
   const workspaceId = new ObjectId().toString();
   const planId = new ObjectId().toString();
-  
+
   const plan: PlanDBScheme = {
     _id: new ObjectId(planId),
     name: 'Test Plan',
@@ -41,7 +41,7 @@ function createComposePaymentTestSetup(options: {
     isDefault: false,
     isHidden: false,
   };
-  
+
   const workspace: WorkspaceDBScheme = {
     _id: new ObjectId(workspaceId),
     name: 'Test Workspace',
@@ -71,7 +71,7 @@ function createComposePaymentTestSetup(options: {
   };
 
   const mockContext: ResolverContextWithUser = {
-    user: { 
+    user: {
       id: userId,
       accessTokenExpired: false,
     },
@@ -81,6 +81,7 @@ function createComposePaymentTestSetup(options: {
       usersFactory: {} as any,
       projectsFactory: {} as any,
       businessOperationsFactory: {} as any,
+      releasesFactory: {} as any,
     },
   };
 
@@ -102,7 +103,7 @@ describe('GraphQLBillingNew', () => {
       // Create 2 months ago date
       const expiredDate = new Date();
       expiredDate.setMonth(expiredDate.getMonth() - 2);
-      
+
       const { mockContext, planId, workspaceId } = createComposePaymentTestSetup({
         isTariffPlanExpired: true,
         isBlocked: false,
@@ -123,22 +124,22 @@ describe('GraphQLBillingNew', () => {
       );
 
       expect(result.isCardLinkOperation).toBe(false);
-      
+
       // Check that nextPaymentDate is one month from now
       const oneMonthFromNow = new Date();
-      
+
       oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
 
       const oneMonthFromNowStr = oneMonthFromNow.toISOString().split('T')[0];
       const nextPaymentDateStr = result.nextPaymentDate.toISOString().split('T')[0];
-      
+
       expect(nextPaymentDateStr).toBe(oneMonthFromNowStr);
     });
 
     it('should return isCardLinkOperation = true in case of active tariff plan', async () => {
       // Create 2 days ago date
       const lastChargeDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
-      
+
       const { mockContext, planId, workspaceId, workspace } = createComposePaymentTestSetup({
         isTariffPlanExpired: false,
         isBlocked: false,
@@ -158,7 +159,7 @@ describe('GraphQLBillingNew', () => {
       );
 
       expect(result.isCardLinkOperation).toBe(true);
-      
+
       const oneMonthFromLastChargeDate = new Date(workspace.lastChargeDate);
       oneMonthFromLastChargeDate.setMonth(oneMonthFromLastChargeDate.getMonth() + 1);
 
@@ -173,7 +174,7 @@ describe('GraphQLBillingNew', () => {
         isBlocked: true,
         lastChargeDate: new Date(),
       });
-      
+
       const result = await billingNewResolver.Query.composePayment(
         undefined,
         {
@@ -185,17 +186,17 @@ describe('GraphQLBillingNew', () => {
         },
         mockContext
       );
-      
+
       expect(result.isCardLinkOperation).toBe(false);
 
       // Check that nextPaymentDate is one month from now
       const oneMonthFromNow = new Date();
-      
+
       oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
 
       const oneMonthFromNowStr = oneMonthFromNow.toISOString().split('T')[0];
       const nextPaymentDateStr = result.nextPaymentDate.toISOString().split('T')[0];
-      
+
       expect(nextPaymentDateStr).toBe(oneMonthFromNowStr);
     });
   });

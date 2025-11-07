@@ -156,6 +156,66 @@ type ProjectRelease {
 }
 
 """
+Source map file information
+"""
+type SourceMapDataExtended {
+  """
+  Name of source-map file
+  """
+  mapFileName: String!
+
+  """
+  Bundle or chunk name
+  """
+  originFileName: String!
+
+  """
+  File size in bytes (from releases-js.files)
+  """
+  length: Int
+
+  """
+  Upload date (from releases-js.files)
+  """
+  uploadDate: DateTime
+}
+
+"""
+Detailed info for a specific release
+"""
+type ProjectReleaseDetails {
+  """
+  Release identifier
+  """
+  release: String!
+
+  """
+  Number of commits in this release
+  """
+  commitsCount: Int!
+
+  """
+  Number of files in this release
+  """
+  filesCount: Int!
+
+  """
+  Release creation timestamp
+  """
+  timestamp: Float!
+
+  """
+  Commits (from releases collection)
+  """
+  commits: [Commit!]
+
+  """
+  Changed files (from releases collection)
+  """
+  files: [SourceMapDataExtended!]
+}
+
+"""
 Respose object with updated project and his id
 """
 type UpdateProjectResponse {
@@ -282,6 +342,11 @@ type Project {
     Search query
     """
     search: String
+
+    """
+    Release label to filter events by payload.release
+    """
+    release: String
   ): DailyEventsPortion
 
   """
@@ -322,6 +387,11 @@ type Project {
   List of releases with unique events count, commits count and files count
   """
   releases: [ProjectRelease!]!
+
+  """
+  Detailed info for a specific release
+  """
+  releaseDetails(release: String!): ProjectReleaseDetails!
 }
 
 extend type Query {
