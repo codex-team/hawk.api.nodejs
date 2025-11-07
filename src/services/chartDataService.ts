@@ -1,5 +1,5 @@
 import RedisHelper from '../redisHelper';
-import { composeTimeSeriesKey, getTimeSeriesSuffix } from '../utils/chartStorageKeys';
+import { composeProjectMetricsKey, getTimeSeriesSuffix } from '../utils/chartStorageKeys';
 
 /**
  * Service for fetching chart data from Redis TimeSeries
@@ -35,9 +35,9 @@ export default class ChartDataService {
       throw new Error('Redis client not connected');
     }
 
-    // Determine suffix and compose key
-    const suffix = getTimeSeriesSuffix(groupBy);
-    const key = composeTimeSeriesKey(suffix, projectId);
+    // Determine granularity and compose key
+    const granularity = getTimeSeriesSuffix(groupBy);
+    const key = composeProjectMetricsKey(granularity, projectId);
 
     // Parse ISO date strings to milliseconds
     const start = new Date(startDate).getTime();
