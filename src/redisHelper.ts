@@ -116,95 +116,32 @@ export default class RedisHelper {
   public isConnected(): boolean {
     return this.redisClient.isOpen;
   }
-  
-  public async getChartDataFromRedis(
-    startDate: string,
-    endDate: string,
-    groupBy: number, // minutes: 1=minute, 60=hour, 1440=day
-    timezoneOffset = 0,
-    projectId = '',
-    groupHash = ''
-  ): Promise<{ timestamp: number; count: number }[]> {
-    // If Redis is not connected, throw error to fallback to MongoDB
-    if (!this.redisClient.isOpen) {
-      console.warn('[Redis] Client not connected, will fallback to MongoDB');
-      throw new Error('Redis client not connected');
-    }
 
-    // Determine suffix based on groupBy
-    let suffix: string;
-    if (groupBy === 1) {
-      suffix = 'minutely';
-    } else if (groupBy === 60) {
-      suffix = 'hourly';
-    } else if (groupBy === 1440) {
-      suffix = 'daily';
-    } else {
-      // For custom intervals, fallback to minutely with aggregation
-      suffix = 'minutely';
-    }
-
-    const key = groupHash
-      ? `ts:events:${groupHash}:${suffix}`
-      : projectId
-      ? `ts:events:${projectId}:${suffix}`
-      : `ts:events:${suffix}`;
-
-    // Parse dates (support ISO string or Unix timestamp in seconds)
-    const start = typeof startDate === 'string' && startDate.includes('-')
-      ? new Date(startDate).getTime()
-      : Number(startDate) * 1000;
-    const end = typeof endDate === 'string' && endDate.includes('-')
-      ? new Date(endDate).getTime()
-      : Number(endDate) * 1000;
-
-    const bucketMs = groupBy * 60 * 1000;
-
-    let result: [string, string][] = [];
-    try {
-      // Use aggregation to sum values within each bucket
-      // TS.INCRBY creates one point per time period with accumulated count
-      result = (await this.redisClient.sendCommand([
-        'TS.RANGE',
-        key,
-        start.toString(),
-        end.toString(),
-        'AGGREGATION',
-        'sum',
-        bucketMs.toString(),
-      ])) as [string, string][] | [];
-    } catch (err: any) {
-      if (err.message.includes('TSDB: the key does not exist')) {
-        console.warn(`[Redis] Key ${key} does not exist, returning zeroed data`);
-        result = [];
-      } else {
-        throw err;
-      }
-    }
-
-    // Transform data from Redis
-    const dataPoints: { [ts: number]: number } = {};
-    for (const [tsStr, valStr] of result) {
-      const tsMs = Number(tsStr);
-      dataPoints[tsMs] = Number(valStr) || 0;
-    }
-
-    // Fill missing intervals with zeros
-    const filled: { timestamp: number; count: number }[] = [];
-    let current = start;
-
-    // Round current to the nearest bucket boundary
-    current = Math.floor(current / bucketMs) * bucketMs;
-
-    while (current <= end) {
-      const count = dataPoints[current] || 0;
-      filled.push({
-        timestamp: Math.floor((current + timezoneOffset * 60 * 1000) / 1000),
-        count,
-      });
-      current += bucketMs;
-    }
-
-    return filled.sort((a, b) => a.timestamp - b.timestamp);
+  /**
+   * Execute TS.RANGE command with aggregation
+   *
+   * @param key - Redis TimeSeries key
+   * @param start - start timestamp in milliseconds
+   * @param end - end timestamp in milliseconds
+   * @param aggregationType - aggregation type (sum, avg, min, max, etc.)
+   * @param bucketMs - bucket size in milliseconds
+   * @returns Array of [timestamp, value] tuples
+   */
+  public async tsRange(
+    key: string,
+    start: string,
+    end: string,
+    aggregationType: string,
+    bucketMs: string
+  ): Promise<[string, string][]> {
+    return (await this.redisClient.sendCommand([
+      'TS.RANGE',
+      key,
+      start,
+      end,
+      'AGGREGATION',
+      aggregationType,
+      bucketMs,
+    ])) as [string, string][];
   }
 }
