@@ -72,10 +72,9 @@ const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
  */
 class EventsFactory extends Factory {
   /**
-  /**
-   * Redis helper instance for modifying data through redis
+   * Redis helper instance for modifying data through redis (singleton)
    */
-  redis = new RedisHelper();
+  redis = RedisHelper.getInstance();
 
   /**
    * Event types with collections where they stored

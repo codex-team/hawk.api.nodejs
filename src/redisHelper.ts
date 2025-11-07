@@ -12,23 +12,62 @@ export default class RedisHelper {
   private static readonly LOCK_TTL = 10;
 
   /**
+   * Singleton instance
+   */
+  private static instance: RedisHelper | null = null;
+
+  /**
    * Redis client instance
    */
-  private readonly redisClient!: RedisClientType;
+  private redisClient!: RedisClientType;
+
+  /**
+   * Flag to track if we're currently reconnecting
+   */
+  private isReconnecting = false;
 
   /**
    * Constructor
-   * Initializes the Redis client and sets up error handling
+   * Initializes the Redis client and sets up error handling with auto-reconnect
    */
   constructor() {
     try {
-      this.redisClient = createClient({ url: process.env.REDIS_URL });
+      this.redisClient = createClient({
+        url: process.env.REDIS_URL,
+        socket: {
+          reconnectStrategy: (retries) => {
+            // Exponential backoff: wait longer between each retry
+            // Max wait time: 30 seconds
+            const delay = Math.min(retries * 1000, 30000);
+            console.log(`[Redis] Reconnecting... attempt ${retries}, waiting ${delay}ms`);
+            return delay;
+          },
+        },
+      });
 
+      // Handle connection errors
       this.redisClient.on('error', (error) => {
         console.error('[Redis] Client error:', error);
         if (error) {
           HawkCatcher.send(error);
         }
+      });
+
+      // Handle successful reconnection
+      this.redisClient.on('ready', () => {
+        console.log('[Redis] Client ready');
+        this.isReconnecting = false;
+      });
+
+      // Handle reconnecting event
+      this.redisClient.on('reconnecting', () => {
+        console.log('[Redis] Client reconnecting...');
+        this.isReconnecting = true;
+      });
+
+      // Handle connection end
+      this.redisClient.on('end', () => {
+        console.log('[Redis] Connection ended');
       });
     } catch (error) {
       console.error('[Redis] Error creating client:', error);
@@ -36,15 +75,28 @@ export default class RedisHelper {
   }
 
   /**
+   * Get singleton instance
+   */
+  public static getInstance(): RedisHelper {
+    if (!RedisHelper.instance) {
+      RedisHelper.instance = new RedisHelper();
+    }
+    return RedisHelper.instance;
+  }
+
+  /**
    * Connect to Redis
    */
   public async initialize(): Promise<void> {
     try {
-      await this.redisClient.connect();
-      console.log('[Redis] Connected successfully');
+      if (!this.redisClient.isOpen && !this.isReconnecting) {
+        await this.redisClient.connect();
+        console.log('[Redis] Connected successfully');
+      }
     } catch (error) {
       console.error('[Redis] Connection failed:', error);
       HawkCatcher.send(error as Error);
+      // Don't throw - let reconnectStrategy handle it
     }
   }
 
@@ -57,6 +109,13 @@ export default class RedisHelper {
       console.log('[Redis] Connection closed');
     }
   }
+
+  /**
+   * Check if Redis is connected
+   */
+  public isConnected(): boolean {
+    return this.redisClient.isOpen;
+  }
   
   public async getChartDataFromRedis(
     startDate: string,
@@ -66,7 +125,9 @@ export default class RedisHelper {
     projectId = '',
     groupHash = ''
   ): Promise<{ timestamp: number; count: number }[]> {
+    // If Redis is not connected, throw error to fallback to MongoDB
     if (!this.redisClient.isOpen) {
+      console.warn('[Redis] Client not connected, will fallback to MongoDB');
       throw new Error('Redis client not connected');
     }
 

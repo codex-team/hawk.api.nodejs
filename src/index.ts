@@ -29,6 +29,7 @@ import { graphqlUploadExpress } from 'graphql-upload';
 import { metricsMiddleware, createMetricsServer, graphqlMetricsPlugin } from './metrics';
 import { requestLogger } from './utils/logger';
 import ReleasesFactory from './models/releasesFactory';
+import RedisHelper from './redisHelper';
 
 /**
  * Option to enable playground
@@ -252,6 +253,11 @@ class HawkAPI {
   public async start(): Promise<void> {
     await mongo.setupConnections();
     await rabbitmq.setupConnections();
+    
+    // Initialize Redis singleton with auto-reconnect
+    const redis = RedisHelper.getInstance();
+    await redis.initialize();
+    
     await this.server.start();
     this.app.use(graphqlUploadExpress());
     this.server.applyMiddleware({ app: this.app });
