@@ -33,22 +33,9 @@ export interface TokensPair {
 /**
  * Membership collection DB implementation
  */
-export interface MembershipDBScheme {
-  /**
-   * Document id
-   */
-  _id: ObjectId;
-
-  /**
-   * User's workspace id
-   */
-  workspaceId: ObjectId;
-
-  /**
-   * Shows if member is pending
-   */
+export type MembershipDBScheme = Record<string, {
   isPending?: boolean;
-}
+}>;
 
 /**
  * This structure represents how user notifications are stored at the DB (in 'users' collection)
@@ -62,7 +49,7 @@ export interface UserNotificationsDBScheme {
   /**
    * Types of notifications to receive
    */
-  whatToReceive: {[key in UserNotificationType]: boolean};
+  whatToReceive: { [key in UserNotificationType]: boolean };
 }
 
 /**
@@ -84,6 +71,11 @@ export enum UserNotificationType {
    */
   SystemMessages = 'SystemMessages',
 }
+
+/**
+ * This structure represents how user projects last visit is stored at the DB (in 'users' collection)
+ */
+type UserProjectsLastVisitDBScheme = Record<string, number>;
 
 /**
  * User model
@@ -120,6 +112,11 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   public githubId?: string;
 
   /**
+   * User's workspaces
+   */
+  public workspaces!: MembershipDBScheme;
+
+  /**
    * User's original password (this field appears only after registration).
    * Using to send password to user after registration
    */
@@ -129,6 +126,11 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * User notifications settings
    */
   public notifications!: UserNotificationsDBScheme;
+
+  /**
+   * User projects last visit
+   */
+  public projectsLastVisit!: UserProjectsLastVisitDBScheme;
 
   /**
    * Saved bank cards for one-click payments
@@ -146,11 +148,6 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   protected collection: Collection<UserDBScheme>;
 
   /**
-   * Collection of user's workspaces
-   */
-  private membershipCollection: Collection<MembershipDBScheme>;
-
-  /**
    * Model constructor
    * @param modelData - user data
    */
@@ -164,7 +161,6 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
 
     super(modelData);
 
-    this.membershipCollection = this.dbConnection.collection('membership:' + this._id);
     this.collection = this.dbConnection.collection<UserDBScheme>('users');
   }
 
@@ -231,6 +227,33 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
     if (status !== 1) {
       throw new Error("Can't change password");
     }
+  }
+
+  /**
+   * Update user's last project visit
+   *
+   * @param projectId - project id
+   * @returns {Promise<number>} - last project visit timestamp
+   */
+  public async updateLastProjectVisit(projectId: string): Promise<number> {
+    const time = Date.now() / 1000;
+
+    await this.update(
+      { _id: new ObjectId(this._id) },
+      { [`projectsLastVisit.${projectId}`]: time }
+    );
+
+    return time;
+  }
+
+  /**
+   * Get user's last project visit
+   *
+   * @param projectId - project id
+   * @returns {Promise<number>} - last project visit timestamp
+   */
+  public async getLastProjectVisit(projectId: string): Promise<number> {
+    return this.projectsLastVisit?.[projectId] || 0;
   }
 
   /**
@@ -302,19 +325,13 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * @param workspaceId - user's id to add
    * @param isPending - if true, mark user's membership as pending
    */
-  public async addWorkspace(workspaceId: string, isPending = false): Promise<object> {
-    const doc: OptionalId<MembershipDBScheme> = {
-      workspaceId: new ObjectId(workspaceId),
-    };
-
-    if (isPending) {
-      doc.isPending = isPending;
-    }
-
-    const documentId = (await this.membershipCollection.insertOne(doc)).insertedId;
+  public async addWorkspace(workspaceId: string, isPending = false): Promise<{ workspaceId: string }> {
+    await this.update(
+      { _id: new ObjectId(this._id) },
+      { [`workspaces.${workspaceId}`]: { isPending } }
+    );
 
     return {
-      id: documentId,
       workspaceId,
     };
   }
@@ -323,10 +340,11 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * Remove workspace from membership collection
    * @param workspaceId - id of workspace to remove
    */
-  public async removeWorkspace(workspaceId: string): Promise<{workspaceId: string}> {
-    await this.membershipCollection.deleteOne({
-      workspaceId: new ObjectId(workspaceId),
-    });
+  public async removeWorkspace(workspaceId: string): Promise<{ workspaceId: string }> {
+    await this.collection.updateOne(
+      { _id: new ObjectId(this._id) },
+      { $unset: { [`workspaces.${workspaceId}`]: '' } }
+    );
 
     return {
       workspaceId,
@@ -338,11 +356,9 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * @param workspaceId - workspace id to confirm
    */
   public async confirmMembership(workspaceId: string): Promise<void> {
-    await this.membershipCollection.updateOne(
-      {
-        workspaceId: new ObjectId(workspaceId),
-      },
-      { $unset: { isPending: '' } }
+    await this.collection.updateOne(
+      { _id: new ObjectId(this._id) },
+      { $unset: { [`workspaces.${workspaceId}.isPending`]: '' } }
     );
   }
 
@@ -352,23 +368,22 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
    * @param ids - workspaces id to filter them if there are workspaces that doesn't belong to the user
    */
   public async getWorkspacesIds(ids: (string | ObjectId)[] = []): Promise<string[]> {
-    const idsAsObjectId = ids.map(id => new ObjectId(id));
-    const searchQuery = ids.length ? {
-      workspaceId: {
-        $in: idsAsObjectId,
-      },
-      isPending: {
-        $ne: true,
-      },
-    } : {
-      isPending: {
-        $ne: true,
-      },
-    };
+    const res = [];
 
-    const membershipDocuments = await this.membershipCollection.find(searchQuery).toArray();
+    if (ids.length === 0) {
+      return Object.keys(this.workspaces);
+    }
 
-    return membershipDocuments.map(doc => doc.workspaceId.toString());
+    for (const id of ids) {
+      const workspaceId = id.toString();
+      const workspace = this.workspaces[workspaceId];
+
+      if (workspace && workspace.isPending !== true) {
+        res.push(workspaceId);
+      }
+    }
+
+    return res;
   }
 
   /**

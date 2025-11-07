@@ -1,9 +1,9 @@
 import { ReceiveTypes } from '@hawk.so/types';
 import * as telegram from '../utils/telegram';
 const mongo = require('../mongo');
+const { ObjectId } = require('mongodb');
 const { ApolloError, UserInputError } = require('apollo-server-express');
 const Validator = require('../utils/validator');
-const UserInProject = require('../models/userInProject');
 const EventsFactory = require('../models/eventsFactory');
 const getEventsFactory = require('./helpers/eventsFactory').default;
 const ProjectToWorkspace = require('../models/projectToWorkspace');
@@ -15,6 +15,7 @@ const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
 const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
 const EVENTS_TIMESTAMP_INDEX_NAME = 'timestamp';
 const GROUPING_TIMESTAMP_INDEX_NAME = 'groupingTimestamp';
+const GROUPING_TIMESTAMP_AND_LAST_REPETITION_TIME_AND_ID_INDEX_NAME = 'groupingTimestampAndLastRepetitionTimeAndId';
 const GROUPING_TIMESTAMP_AND_GROUP_HASH_INDEX_NAME = 'groupingTimestampAndGroupHash';
 const MAX_SEARCH_QUERY_LENGTH = 50;
 
@@ -116,6 +117,14 @@ module.exports = {
         groupHash: 1,
       }, {
         name: GROUPING_TIMESTAMP_AND_GROUP_HASH_INDEX_NAME,
+      });
+
+      await projectDailyEventsCollection.createIndex({
+        groupingTimestamp: -1,
+        lastRepetitionTime: -1,
+        _id: -1,
+      }, {
+        name: GROUPING_TIMESTAMP_AND_LAST_REPETITION_TIME_AND_ID_INDEX_NAME,
       });
 
       await projectEventsCollection.createIndex({
@@ -358,10 +367,14 @@ module.exports = {
      * @param {Context.user} user - current authorized user {@see ../index.js}
      * @return {Promise<Number>}
      */
-    async updateLastProjectVisit(_obj, { projectId }, { user }) {
-      const userInProject = new UserInProject(user.id, projectId);
+    async updateLastProjectVisit(_obj, { projectId }, { user, factories }) {
+      const userModel = await factories.usersFactory.findById(user.id);
 
-      return userInProject.updateLastVisit();
+      if (!userModel) {
+        throw new ApolloError('User not found');
+      }
+
+      return userModel.updateLastProjectVisit(projectId);
     },
   },
   Project: {
@@ -422,10 +435,14 @@ module.exports = {
      *
      * @return {Promise<number>}
      */
-    async unreadCount(project, data, { user, ...context }) {
+    async unreadCount(project, _args, { factories, user, ...context }) {
       const eventsFactory = getEventsFactory(context, project._id);
-      const userInProject = new UserInProject(user.id, project._id);
-      const lastVisit = await userInProject.getLastVisit();
+      const userModel = await factories.usersFactory.findById(user.id);
+
+      if (!userModel) {
+        throw new ApolloError('User not found');
+      }
+      const lastVisit = await userModel.getLastProjectVisit(project._id);
 
       return eventsFactory.getUnreadCount(lastVisit);
     },
@@ -438,11 +455,12 @@ module.exports = {
      * @param {DailyEventsCursor} cursor - object with boundary values of the first event in the next portion
      * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
      * @param {EventsFilters} filters - marks by which events should be filtered
+     * @param {String} release - release name
      * @param {String} search - search query
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search }, context) {
+    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search, release }, context) {
       if (search) {
         if (search.length > MAX_SEARCH_QUERY_LENGTH) {
           search = search.slice(0, MAX_SEARCH_QUERY_LENGTH);
@@ -451,7 +469,7 @@ module.exports = {
 
       const factory = getEventsFactory(context, project._id);
 
-      const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search);
+      const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search, release);
 
       return dailyEventsPortion;
     },
@@ -544,6 +562,65 @@ module.exports = {
       const result = await cursor.toArray();
 
       return result;
+    },
+
+    /**
+     * Return detailed info for a specific release
+     * @param {ProjectDBScheme} project
+     * @param {Object} args
+     * @param {string} args.release - release identifier
+     */
+    async releaseDetails(project, { release }, { factories }) {
+      const releasesFactory = factories.releasesFactory;
+      const releaseDoc = await releasesFactory.findByProjectAndRelease(project._id, release);
+
+      let enrichedFiles = Array.isArray(releaseDoc.files) ? releaseDoc.files : [];
+
+      // If there are files to enrich, try to get their metadata
+      if (enrichedFiles.length > 0) {
+        try {
+          const fileIds = [
+            ...new Set(enrichedFiles.map(file => String(file._id))),
+          ].map(id => new ObjectId(id));
+
+          if (fileIds.length > 0) {
+            const filesInfo = await factories.releasesFactory.findFilesByFileIds(
+              fileIds
+            );
+
+            const metaById = new Map(
+              filesInfo.map(fileInfo => [String(fileInfo._id), {
+                length: fileInfo.length,
+                uploadDate: fileInfo.uploadDate,
+              } ])
+            );
+
+            enrichedFiles = enrichedFiles.map((entry) => {
+              const meta = metaById.get(String(entry._id));
+
+              return {
+                mapFileName: entry.mapFileName,
+                originFileName: entry.originFileName,
+                length: meta.length ? meta.length : null,
+                uploadDate: meta.uploadDate ? meta.uploadDate : null,
+              };
+            });
+          }
+        } catch (e) {
+          // In case of any error with enrichment, fallback to original structure
+          enrichedFiles = releaseDoc.files ? releaseDoc.files : [];
+        }
+      }
+
+      return {
+        release,
+        projectId: project._id,
+        commitsCount: Array.isArray(releaseDoc.commits) ? releaseDoc.commits.length : 0,
+        filesCount: Array.isArray(releaseDoc.files) ? releaseDoc.files.length : 0,
+        commits: releaseDoc.commits ? releaseDoc.commits : [],
+        files: enrichedFiles,
+        timestamp: releaseDoc._id ? dateFromObjectId(releaseDoc._id) : null,
+      };
     },
   },
 };
