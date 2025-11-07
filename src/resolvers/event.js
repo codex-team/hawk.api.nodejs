@@ -86,7 +86,7 @@ module.exports = {
     async chartData({ projectId, groupHash }, { days, timezoneOffset }, context) {
       const factory = getEventsFactory(context, projectId);
 
-      return factory.getChartDataFromMongo(days, timezoneOffset, groupHash);
+      return factory.getEventDailyChart(groupHash, days, timezoneOffset);
     },
 
     /**

@@ -486,7 +486,7 @@ module.exports = {
     async chartData(project, { startDate, endDate, groupBy, timezoneOffset }, context) {
       const factory = getEventsFactory(context, project._id);
 
-      return factory.getChartData(startDate, endDate, groupBy, timezoneOffset, project._id);
+      return factory.getProjectChartData(project._id, startDate, endDate, groupBy, timezoneOffset);
     },
 
     /**

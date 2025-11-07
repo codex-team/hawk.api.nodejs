@@ -354,14 +354,14 @@ type Project {
   """
   chartData(
     """
-    Start date (ISO string or Unix timestamp in seconds)
+    Start date (ISO 8601 DateTime string)
     """
-    startDate: String!
+    startDate: DateTime!
 
     """
-    End date (ISO string or Unix timestamp in seconds)
+    End date (ISO 8601 DateTime string)
     """
-    endDate: String!
+    endDate: DateTime!
 
     """
     Grouping interval in minutes (1=minute, 60=hour, 1440=day)
