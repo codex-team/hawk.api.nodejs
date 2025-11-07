@@ -7,17 +7,23 @@
  *
  * @param suffix - time granularity suffix (minutely, hourly, daily)
  * @param projectId - project ID
+ * @param metricType - metric type (default: 'events-accepted')
  * @returns Redis key string
  *
  * @example
  * composeTimeSeriesKey('hourly', '123abc')
- * // => 'ts:events:123abc:hourly'
+ * // => 'ts:project-events-accepted:123abc:hourly'
+ *
+ * @example
+ * composeTimeSeriesKey('daily', '123abc', 'events-rate-limited')
+ * // => 'ts:project-events-rate-limited:123abc:daily'
  */
 export function composeTimeSeriesKey(
   suffix: string,
-  projectId: string
+  projectId: string,
+  metricType = 'events-accepted'
 ): string {
-  return `ts:events:${projectId}:${suffix}`;
+  return `ts:project-${metricType}:${projectId}:${suffix}`;
 }
 
 /**
