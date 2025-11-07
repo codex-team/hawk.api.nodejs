@@ -282,19 +282,9 @@ type Event {
   """
   chartData(
     """
-    Start date (ISO string or Unix timestamp in seconds)
+    How many days we need to fetch for displaying in a chart
     """
-    startDate: String!
-
-    """
-    End date (ISO string or Unix timestamp in seconds)
-    """
-    endDate: String!
-
-    """
-    Grouping interval in minutes (1=minute, 60=hour, 1440=day)
-    """
-    groupBy: Int! = 60
+    days: Int! = 0
 
     """
     User's local timezone offset in minutes

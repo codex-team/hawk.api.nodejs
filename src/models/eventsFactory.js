@@ -402,6 +402,17 @@ class EventsFactory extends Factory {
     };
   }
 
+  /**
+   * Get chart data for projects (uses Redis with fallback to MongoDB)
+   *
+   * @param {string} startDate - start date (ISO string or Unix timestamp)
+   * @param {string} endDate - end date (ISO string or Unix timestamp)
+   * @param {number} groupBy - grouping interval in minutes
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @param {string} projectId - project ID
+   * @param {string} groupHash - event's group hash (empty for project-level data)
+   * @returns {Promise<Array>}
+   */
   async getChartData(startDate, endDate, groupBy = 60, timezoneOffset = 0, projectId = '', groupHash = '') {
     try {
       const redisData = await this.redis.getChartDataFromRedis(
@@ -429,6 +440,18 @@ class EventsFactory extends Factory {
       const days = Math.ceil((end - start) / (24 * 60 * 60 * 1000));
       return this.findChartData(days, timezoneOffset, groupHash);
     }
+  }
+
+  /**
+   * Get chart data from MongoDB only (for events)
+   *
+   * @param {number} days - how many days to fetch
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @param {string} groupHash - event's group hash
+   * @returns {Promise<Array>}
+   */
+  async getChartDataFromMongo(days, timezoneOffset = 0, groupHash = '') {
+    return this.findChartData(days, timezoneOffset, groupHash);
   }
 
   /**

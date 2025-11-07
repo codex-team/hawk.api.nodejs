@@ -101,8 +101,8 @@ export default class RedisHelper {
 
     let result: [string, string][] = [];
     try {
-      // Use aggregation to sum events within each bucket
-      // Since we now use TS.ADD (not TS.INCRBY), each sample is 1, so SUM gives us count
+      // Use aggregation to sum values within each bucket
+      // TS.INCRBY creates one point per time period with accumulated count
       result = (await this.redisClient.sendCommand([
         'TS.RANGE',
         key,
