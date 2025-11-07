@@ -137,9 +137,13 @@ module.exports = {
         sparse: true,
       });
 
-      projectEventsCollection.createIndex({
+      await projectEventsCollection.createIndex({
         groupHash: 1,
-      })
+      },
+      {
+        unique: true,
+        name: EVENTS_GROUP_HASH_INDEX_NAME,
+      });
 
       await projectRepetitionsEventsCollection.createIndex({
         groupHash: 'hashed',
