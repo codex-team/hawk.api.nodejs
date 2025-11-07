@@ -89,6 +89,13 @@ module.exports = {
       return factory.findChartData(days, timezoneOffset, groupHash);
     },
 
+    async askAi({ projectId, id: eventId, originalEventId }, _args, context) {
+      const factory = getEventsFactory(context, projectId);
+      const aiAnswer = await factory.askAi(eventId, originalEventId);
+
+      return aiAnswer;
+    },
+
     /**
      * Return release data for the event
      *

@@ -7,6 +7,7 @@ const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
 const { composeEventPayloadByRepetition } = require('../utils/merge');
+const { openAIApi } = require('../openai');
 
 const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
 
@@ -176,6 +177,27 @@ class EventsFactory extends Factory {
       .findOne(query);
 
     return new Event(searchResult);
+  }
+
+  /**
+   * Ask AI about solving repetition
+   *
+   * @param {string} repetitionId - repetition ID
+   * @param {string} eventId - event ID
+   *
+   * @return {string} - AI answer
+   */
+  async askAi(repetitionId, eventId) {
+    const repetition = await this.getEventRepetition(repetitionId, eventId);
+
+    if (!repetition) {
+      throw new Error('Repetition not found');
+    }
+
+    const payload = repetition.event.payload;
+    const solution = await openAIApi.solveEvent(payload);
+
+    return solution;
   }
 
   /**
