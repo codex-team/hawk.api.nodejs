@@ -87,7 +87,7 @@ class EventsFactory extends Factory {
 
   /**
    * Creates Event instance
-   * @param {ObjectId} projectId - project ID
+   * @param {ObjectId} projectId
    */
   constructor(projectId) {
     super();
