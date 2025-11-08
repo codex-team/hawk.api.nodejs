@@ -321,14 +321,7 @@ class EventsFactory extends Factory {
       ? {
         $expr: {
           $eq: [
-            {
-              $convert: {
-                input: '$event.payload.release',
-                to: 'string',
-                onError: '',
-                onNull: '',
-              },
-            },
+            '$event.payload.release',
             String(release),
           ],
         },
