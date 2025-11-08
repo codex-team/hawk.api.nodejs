@@ -1,4 +1,4 @@
-FROM node:16-alpine as builder
+FROM node:22-alpine as builder
 
 WORKDIR /usr/src/app
 RUN apk add --no-cache git gcc g++ python3 make musl-dev
@@ -11,7 +11,7 @@ COPY . .
 
 RUN yarn build
 
-FROM node:16-alpine
+FROM node:22-alpine
 
 WORKDIR /usr/src/app
 
