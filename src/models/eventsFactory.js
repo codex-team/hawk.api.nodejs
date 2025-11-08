@@ -459,6 +459,7 @@ class EventsFactory extends Factory {
       return this.findChartData(days, timezoneOffset, '');
     } catch (err) {
       console.error('[EventsFactory] getProjectChartData error:', err);
+
       // Fallback to Mongo on error (empty groupHash for project-level data)
       return this.findChartData(days, timezoneOffset, '');
     }
