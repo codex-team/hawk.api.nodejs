@@ -1,6 +1,6 @@
 /**
  * Utilities for composing Redis TimeSeries keys for chart data storage
- * 
+ *
  * Note: Event-level metrics use MongoDB only (not Redis TimeSeries)
  * Only project-level metrics are stored in Redis TimeSeries
  */
@@ -43,8 +43,7 @@ export function getTimeSeriesSuffix(groupBy: number): string {
   } else if (groupBy === 1440) {
     return 'daily';
   }
-  
+
   // For custom intervals, fallback to minutely with aggregation
   return 'minutely';
 }
-

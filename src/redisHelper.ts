@@ -1,6 +1,5 @@
 import HawkCatcher from '@hawk.so/nodejs';
 import { createClient, RedisClientType } from 'redis';
-import { Effect, sgr } from './utils/ansi';
 
 /**
  * Helper class for working with Redis

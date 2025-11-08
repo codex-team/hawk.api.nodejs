@@ -149,6 +149,7 @@ class HawkAPI {
   /**
    * Creates factories to work with models
    * @param dataLoaders - dataLoaders for fetching data form database
+   * @returns factories object
    */
   private static setupFactories(dataLoaders: DataLoaders): ContextFactories {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -213,21 +214,18 @@ class HawkAPI {
 
     /**
      * Initializing accounting SDK
-     */
-    let tlsVerify;
-
-    /**
      * Checking env variables
      * If at least one path is not transmitted, the variable tlsVerify is undefined
      */
     if (
       ![process.env.TLS_CA_CERT, process.env.TLS_CERT, process.env.TLS_KEY].some(value => value === undefined || value.length === 0)
     ) {
-      tlsVerify = {
-        tlsCaCertPath: `${process.env.TLS_CA_CERT}`,
-        tlsCertPath: `${process.env.TLS_CERT}`,
-        tlsKeyPath: `${process.env.TLS_KEY}`,
-      };
+      // tlsVerify is used for accounting SDK (currently commented out)
+      // const tlsVerify = {
+      //   tlsCaCertPath: `${process.env.TLS_CA_CERT}`,
+      //   tlsCertPath: `${process.env.TLS_CERT}`,
+      //   tlsKeyPath: `${process.env.TLS_KEY}`,
+      // };
     }
 
     /*
@@ -253,11 +251,12 @@ class HawkAPI {
   public async start(): Promise<void> {
     await mongo.setupConnections();
     await rabbitmq.setupConnections();
-    
+
     // Initialize Redis singleton with auto-reconnect
     const redis = RedisHelper.getInstance();
+
     await redis.initialize();
-    
+
     await this.server.start();
     this.app.use(graphqlUploadExpress());
     this.server.applyMiddleware({ app: this.app });

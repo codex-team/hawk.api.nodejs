@@ -1,14 +1,13 @@
 import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 import safe from 'safe-regex';
 import { createProjectEventsByIdLoader } from '../dataLoaders';
-import { Effect, sgr } from '../utils/ansi';
+import RedisHelper from '../redisHelper';
+import ChartDataService from '../services/chartDataService';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
-import RedisHelper from '../redisHelper';
-import ChartDataService from '../services/chartDataService';
 const { composeEventPayloadByRepetition } = require('../utils/merge');
 
 const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
