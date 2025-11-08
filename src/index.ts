@@ -220,12 +220,14 @@ class HawkAPI {
     if (
       ![process.env.TLS_CA_CERT, process.env.TLS_CERT, process.env.TLS_KEY].some(value => value === undefined || value.length === 0)
     ) {
-      // tlsVerify is used for accounting SDK (currently commented out)
-      // const tlsVerify = {
-      //   tlsCaCertPath: `${process.env.TLS_CA_CERT}`,
-      //   tlsCertPath: `${process.env.TLS_CERT}`,
-      //   tlsKeyPath: `${process.env.TLS_KEY}`,
-      // };
+      /*
+       * tlsVerify is used for accounting SDK (currently commented out)
+       * const tlsVerify = {
+       *   tlsCaCertPath: `${process.env.TLS_CA_CERT}`,
+       *   tlsCertPath: `${process.env.TLS_CERT}`,
+       *   tlsKeyPath: `${process.env.TLS_KEY}`,
+       * };
+       */
     }
 
     /*
