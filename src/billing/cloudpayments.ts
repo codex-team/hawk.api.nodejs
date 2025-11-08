@@ -202,7 +202,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`🙂‍↕️ [Billing / Check] All checks passed successfully «${workspace.name}»`, TelegramBotURLs.Money)
+    telegram.sendMessage(`🤗 [Billing / Check] All checks passed successfully «${workspace.name}»`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
 
     HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body as any);
