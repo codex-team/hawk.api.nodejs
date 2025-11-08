@@ -107,8 +107,6 @@ class EventsFactory extends Factory {
       throw new Error('Can not construct Event model, because projectId is not provided');
     }
 
-    this.redis.initialize();
-
     this.projectId = projectId;
     this.eventsDataLoader = createProjectEventsByIdLoader(mongo.databases.events, this.projectId);
   }
