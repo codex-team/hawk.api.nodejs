@@ -97,7 +97,7 @@ module.exports = {
      * @param {string} originalEventId - original event id
      * @returns {Promise<string>} AI suggestion for the event
      */
-    async aiSuggestion({ projectId, id: eventId, originalEventId }, _args, context) {
+    async aiSuggestion({ projectId, _id: eventId, originalEventId }, _args, context) {
       const factory = getEventsFactory(context, projectId);
 
       return factory.aiSuggestion(eventId, originalEventId);
