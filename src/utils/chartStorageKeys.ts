@@ -1,5 +1,8 @@
 /**
- * Utility for composing Redis TimeSeries keys
+ * Utilities for composing Redis TimeSeries keys for chart data storage
+ * 
+ * Note: Event-level metrics use MongoDB only (not Redis TimeSeries)
+ * Only project-level metrics are stored in Redis TimeSeries
  */
 
 /**
@@ -24,24 +27,6 @@ export function composeProjectMetricsKey(
   metricType = 'events-accepted'
 ): string {
   return `ts:project-${metricType}:${projectId}:${granularity}`;
-}
-
-/**
- * Compose Redis TimeSeries key for event-level metrics
- *
- * @param suffix - time granularity suffix (minutely, hourly, daily)
- * @param groupHash - event group hash
- * @returns Redis key string
- *
- * @example
- * composeEventTimeSeriesKey('daily', 'abc123def')
- * // => 'ts:events:abc123def:daily'
- */
-export function composeEventTimeSeriesKey(
-  suffix: string,
-  groupHash: string
-): string {
-  return `ts:events:${groupHash}:${suffix}`;
 }
 
 /**
