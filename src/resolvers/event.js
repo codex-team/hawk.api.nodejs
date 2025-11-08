@@ -89,11 +89,18 @@ module.exports = {
       return factory.findChartData(days, timezoneOffset, groupHash);
     },
 
-    async askAi({ projectId, id: eventId, originalEventId }, _args, context) {
+    /**
+     * Return AI suggestion for the event
+     *
+     * @param {string} projectId - event's project
+     * @param {string} eventId - event id
+     * @param {string} originalEventId - original event id
+     * @returns {Promise<string>} AI suggestion for the event
+     */
+    async aiSuggestion({ projectId, id: eventId, originalEventId }, _args, context) {
       const factory = getEventsFactory(context, projectId);
-      const aiAnswer = await factory.askAi(eventId, originalEventId);
 
-      return aiAnswer;
+      return factory.aiSuggestion(eventId, originalEventId);
     },
 
     /**

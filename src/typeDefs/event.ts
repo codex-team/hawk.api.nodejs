@@ -263,9 +263,9 @@ type Event {
   repetitionsPortion(cursor: String = null, limit: Int = 10): RepetitionsPortion!
 
   """
-  AI solution for the event
+  AI suggestion for the event
   """
-  askAi: String!
+  aiSuggestion: String!
 
   """
   Array of users who visited event

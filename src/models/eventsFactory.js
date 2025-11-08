@@ -7,7 +7,7 @@ const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
 const { composeEventPayloadByRepetition } = require('../utils/merge');
-const { openAIApi } = require('../openai');
+const { vercelAIApi } = require('../resolvers/vercel-ai');
 
 const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
 
@@ -180,22 +180,22 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Ask AI about solving repetition
+   * Generate AI suggestion for the event
    *
-   * @param {string} repetitionId - repetition ID
-   * @param {string} eventId - event ID
-   *
-   * @return {string} - AI answer
+   * @param {string} projectId - event's project
+   * @param {string} eventId - event id
+   * @param {string} originalEventId - original event id
+   * @returns {Promise<string>} AI suggestion for the event
    */
-  async askAi(repetitionId, eventId) {
-    const repetition = await this.getEventRepetition(repetitionId, eventId);
+  async aiSuggestion(eventId, originalEventId) {
+    const repetition = await this.getEventRepetition(eventId, originalEventId);
 
     if (!repetition) {
       throw new Error('Repetition not found');
     }
 
-    const payload = repetition.event.payload;
-    const solution = await openAIApi.solveEvent(payload);
+    const payload = repetition.payload;
+    const solution = await vercelAIApi.generateSuggestion(payload);
 
     return solution;
   }

@@ -11,7 +11,7 @@
     "dev:up": "docker-compose -f docker-compose.dev.yml up -d",
     "dev:down": "docker-compose -f docker-compose.dev.yml down",
     "build": "tsc",
-    "convert": "node ./convertors/set-user-project-last-visit.js",
+    "convert": "node ./convertors/set-user-workspaces-membership.js",
     "migrations:create": "docker-compose exec api yarn migrate-mongo create",
     "migrations:up": "docker-compose exec api yarn migrate-mongo up",
     "migrations:down": "docker-compose exec api yarn migrate-mongo down",
@@ -33,6 +33,7 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.64",
     "@amplitude/node": "^1.10.0",
     "@graphql-tools/merge": "^8.3.1",
     "@graphql-tools/schema": "^8.5.1",
@@ -55,6 +56,7 @@
     "@types/node-fetch": "^2.5.4",
     "@types/safe-regex": "^1.1.6",
     "@types/uuid": "^8.3.4",
+    "ai": "^5.0.89",
     "amqp-connection-manager": "^3.1.0",
     "amqplib": "^0.5.5",
     "apollo-server-express": "^3.10.0",
@@ -86,6 +88,8 @@
     "prom-client": "^15.1.3",
     "safe-regex": "^2.1.0",
     "ts-node-dev": "^2.0.0",
-    "uuid": "^8.3.2"
-  }
+    "uuid": "^8.3.2",
+    "zod": "^4.1.12"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

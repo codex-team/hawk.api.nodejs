@@ -1,4 +1,4 @@
-import { EventData, EventAddons } from "@hawk.so/types"
+import { EventData, EventAddons } from '@hawk.so/types';
 
 export const eventSolvingInput = (payload: EventData<EventAddons>) => `
 
@@ -12,4 +12,4 @@ Response:
   "solution": "...",
   "explanation": "..."
 }
-`
+`;
