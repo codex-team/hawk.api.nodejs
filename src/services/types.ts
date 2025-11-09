@@ -1,12 +1,15 @@
 import { EventAddons, EventData } from '@hawk.so/types';
 
+/**
+ * Event type which is returned by events factory
+ */
 type Event = {
     _id: string;
     payload: EventData<EventAddons>;
 };
 
 /**
- * Interface for events factory
+ * Interface for interacting with events factory
  */
 export interface EventsFactoryInterface {
   /**
