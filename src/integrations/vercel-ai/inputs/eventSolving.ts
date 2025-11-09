@@ -1,15 +1,11 @@
 import { EventData, EventAddons } from '@hawk.so/types';
 
 export const eventSolvingInput = (payload: EventData<EventAddons>) => `
-
-Проанализируй ошибку и предложи решение
-
 Payload: ${JSON.stringify(payload)}
 
-Response:
+Предоставь ответ в следующем формате:
 
-{
-  "solution": "...",
-  "explanation": "..."
-}
+1. Описание проблемы
+2. Решение проблемы
+3. Описание того, как можно предотвратить подобную ошибку в будущем
 `;
