@@ -25,6 +25,7 @@ class VercelAIApi {
      *
      * @param {EventData<EventAddons>} payload - event data
      * @returns {Promise<string>} AI suggestion for the event
+     * @todo add defence against invalid prompt injection
      */
     public async generateSuggestion(payload: EventData<EventAddons>) {
       const { text } = await generateText({
