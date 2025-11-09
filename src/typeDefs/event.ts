@@ -265,7 +265,7 @@ type Event {
   """
   AI suggestion for the event
   """
-  aiSuggestion: String!
+  aiSuggestion: String
 
   """
   Array of users who visited event

@@ -5,11 +5,11 @@ import { eventSolvingInput } from './inputs/eventSolving';
 import { ctoInstruction } from './instructions/cto';
 
 /**
- * Vercel AI API
+ * Interface for interacting with Vercel AI Gateway
  */
 class VercelAIApi {
     /**
-     * Model ID
+     * Model ID to use for generating suggestions
      */
     private readonly modelId: string;
 
