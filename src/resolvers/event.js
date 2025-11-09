@@ -1,5 +1,6 @@
 const getEventsFactory = require('./helpers/eventsFactory').default;
 const sendPersonalNotification = require('../utils/personalNotifications').default;
+const { aiService } = require('../services/ai');
 
 /**
  * See all types and fields here {@see ../typeDefs/event.graphql}
@@ -100,7 +101,7 @@ module.exports = {
     async aiSuggestion({ projectId, _id: eventId, originalEventId }, _args, context) {
       const factory = getEventsFactory(context, projectId);
 
-      return factory.aiSuggestion(eventId, originalEventId);
+      return aiService.generateSuggestion(factory, eventId, originalEventId);
     },
 
     /**
