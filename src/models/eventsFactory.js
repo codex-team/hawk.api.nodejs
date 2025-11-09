@@ -688,7 +688,7 @@ class EventsFactory extends Factory {
     /**
      * If originalEventId equals repetitionId than user wants to get first repetition which is original event
      */
-    if (repetitionId === originalEventId) {
+    if (repetitionId.toString() === originalEventId.toString()) {
       const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
       /**
