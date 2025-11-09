@@ -7,7 +7,7 @@ const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
 const { composeEventPayloadByRepetition } = require('../utils/merge');
-const { vercelAIApi } = require('../resolvers/vercel-ai');
+const { vercelAIApi } = require('../vercel-ai');
 
 const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
 
