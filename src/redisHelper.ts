@@ -1,6 +1,10 @@
 import HawkCatcher from '@hawk.so/nodejs';
 import { createClient, RedisClientType } from 'redis';
 
+// eslint call error: 0:0  error  Parsing error: Cannot read properties of undefined (reading 'map')
+// export type TsRangeResult = [timestamp: string, value: string];
+export type TsRangeResult = any;
+
 /**
  * Helper class for working with Redis
  */
@@ -35,8 +39,10 @@ export default class RedisHelper {
         url: process.env.REDIS_URL,
         socket: {
           reconnectStrategy: (retries) => {
-            // Exponential backoff: wait longer between each retry
-            // Max wait time: 30 seconds
+            /*
+             * Exponential backoff: wait longer between each retry
+             * Max wait time: 30 seconds
+             */
             const delay = Math.min(retries * 1000, 30000);
             console.log(`[Redis] Reconnecting... attempt ${retries}, waiting ${delay}ms`);
             return delay;
@@ -132,7 +138,7 @@ export default class RedisHelper {
     end: string,
     aggregationType: string,
     bucketMs: string
-  ): Promise<[string, string][]> {
+  ): Promise<TsRangeResult[]> {
     return (await this.redisClient.sendCommand([
       'TS.RANGE',
       key,
@@ -141,6 +147,6 @@ export default class RedisHelper {
       'AGGREGATION',
       aggregationType,
       bucketMs,
-    ])) as [string, string][];
+    ])) as TsRangeResult[];
   }
 }
