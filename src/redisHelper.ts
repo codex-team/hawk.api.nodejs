@@ -22,7 +22,7 @@ export default class RedisHelper {
   /**
    * Redis client instance
    */
-  private redisClient!: RedisClientType;
+  private redisClient: RedisClientType | null = null;
 
   /**
    * Flag to track if we're currently reconnecting
@@ -34,6 +34,11 @@ export default class RedisHelper {
    * Initializes the Redis client and sets up error handling with auto-reconnect
    */
   constructor() {
+    if (!process.env.REDIS_URL) {
+      console.warn('[Redis] REDIS_URL not set, Redis features will be disabled');
+      return;
+    }
+
     try {
       this.redisClient = createClient({
         url: process.env.REDIS_URL,
@@ -76,6 +81,7 @@ export default class RedisHelper {
       });
     } catch (error) {
       console.error('[Redis] Error creating client:', error);
+      this.redisClient = null;
     }
   }
 
@@ -93,6 +99,11 @@ export default class RedisHelper {
    * Connect to Redis
    */
   public async initialize(): Promise<void> {
+    if (!this.redisClient) {
+      console.warn('[Redis] Client not initialized, skipping connection');
+      return;
+    }
+
     try {
       if (!this.redisClient.isOpen && !this.isReconnecting) {
         await this.redisClient.connect();
@@ -109,7 +120,7 @@ export default class RedisHelper {
    * Close Redis client
    */
   public async close(): Promise<void> {
-    if (this.redisClient.isOpen) {
+    if (this.redisClient?.isOpen) {
       await this.redisClient.quit();
       console.log('[Redis] Connection closed');
     }
@@ -119,7 +130,7 @@ export default class RedisHelper {
    * Check if Redis is connected
    */
   public isConnected(): boolean {
-    return this.redisClient.isOpen;
+    return Boolean(this.redisClient?.isOpen);
   }
 
   /**
@@ -139,6 +150,10 @@ export default class RedisHelper {
     aggregationType: string,
     bucketMs: string
   ): Promise<TsRangeResult[]> {
+    if (!this.redisClient) {
+      throw new Error('Redis client not initialized');
+    }
+
     return (await this.redisClient.sendCommand([
       'TS.RANGE',
       key,

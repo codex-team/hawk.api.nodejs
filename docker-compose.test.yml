@@ -52,14 +52,6 @@ services:
       timeout: 3s
       retries: 5
 
-  redis:
-    image: redis:6.0.9
-    ports:
-      - 6379:6379
-    volumes:
-      - redis-data-test:/data
-    restart: unless-stopped
-
   # accounting:
   #   image: codexteamuser/codex-accounting:prod
   #   env_file:
