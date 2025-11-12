@@ -81,6 +81,7 @@ export default class RedisHelper {
       });
     } catch (error) {
       console.error('[Redis] Error creating client:', error);
+      HawkCatcher.send(error as Error);
       this.redisClient = null;
     }
   }
