@@ -36,14 +36,15 @@ export function composeProjectMetricsKey(
  * @returns suffix string (minutely, hourly, daily)
  */
 export function getTimeSeriesSuffix(groupBy: number): string {
-  if (groupBy === 1) {
-    return 'minutely';
-  } else if (groupBy === 60) {
-    return 'hourly';
-  } else if (groupBy === 1440) {
-    return 'daily';
+  switch (groupBy) {
+    case 1:
+      return 'minutely';
+    case 60:
+      return 'hourly';
+    case 1440:
+      return 'daily';
+    default:
+      // For custom intervals, fallback to minutely with aggregation
+      return 'minutely';
   }
-
-  // For custom intervals, fallback to minutely with aggregation
-  return 'minutely';
 }
