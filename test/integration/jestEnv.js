@@ -1,6 +1,7 @@
 const NodeEnvironment = require('jest-environment-node');
 const amqp = require('amqplib');
 const mongodb = require('mongodb');
+const { installRedisMock, uninstallRedisMock } = require('./redisMock');
 
 /**
  * Custom test environment for defining global connections
@@ -18,6 +19,12 @@ class CustomEnvironment extends NodeEnvironment {
     this.global.mongoClient = mongoClient;
     await mongoClient.db('hawk').dropDatabase();
     // await mongoClient.db('codex_accounting').dropDatabase();
+
+    /**
+     * Use redis-mock instead of a real Redis connection.
+     * This avoids spinning up Redis during integration tests while keeping the API surface.
+     */
+    this.global.redisClient = installRedisMock();
 
     this.rabbitMqConnection = await amqp.connect('amqp://guest:guest@rabbitmq:5672/');
     this.global.rabbitChannel = await this.rabbitMqConnection.createChannel();
@@ -41,6 +48,8 @@ class CustomEnvironment extends NodeEnvironment {
       if (this.rabbitMqConnection) {
         await this.rabbitMqConnection.close();
       }
+
+      uninstallRedisMock();
     } catch (error) {
       console.error('Error during teardown:', error);
     }

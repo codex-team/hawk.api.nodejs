@@ -1,14 +1,13 @@
 import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 import safe from 'safe-regex';
 import { createProjectEventsByIdLoader } from '../dataLoaders';
-import { Effect, sgr } from '../utils/ansi';
+import RedisHelper from '../redisHelper';
+import ChartDataService from '../services/chartDataService';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
 const { ObjectID } = require('mongodb');
-import RedisHelper from '../redisHelper';
-import ChartDataService from '../services/chartDataService';
 const { composeEventPayloadByRepetition } = require('../utils/merge');
 
 const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
@@ -88,7 +87,7 @@ class EventsFactory extends Factory {
 
   /**
    * Creates Event instance
-   * @param {ObjectId} projectId - project ID
+   * @param {ObjectId} projectId
    */
   constructor(projectId) {
     super();
@@ -106,8 +105,6 @@ class EventsFactory extends Factory {
     if (!projectId) {
       throw new Error('Can not construct Event model, because projectId is not provided');
     }
-
-    this.redis.initialize();
 
     this.projectId = projectId;
     this.eventsDataLoader = createProjectEventsByIdLoader(mongo.databases.events, this.projectId);
@@ -462,6 +459,7 @@ class EventsFactory extends Factory {
       return this.findChartData(days, timezoneOffset, '');
     } catch (err) {
       console.error('[EventsFactory] getProjectChartData error:', err);
+
       // Fallback to Mongo on error (empty groupHash for project-level data)
       return this.findChartData(days, timezoneOffset, '');
     }

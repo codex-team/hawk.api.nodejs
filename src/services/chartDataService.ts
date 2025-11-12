@@ -1,4 +1,4 @@
-import RedisHelper from '../redisHelper';
+import RedisHelper, { TsRangeResult } from '../redisHelper';
 import { composeProjectMetricsKey, getTimeSeriesSuffix } from '../utils/chartStorageKeys';
 
 /**
@@ -45,7 +45,7 @@ export default class ChartDataService {
     const bucketMs = groupBy * 60 * 1000;
 
     // Fetch data from Redis
-    let result: [string, string][] = [];
+    let result: TsRangeResult[] = [];
     try {
       result = await this.redisHelper.tsRange(
         key,
@@ -89,4 +89,3 @@ export default class ChartDataService {
     return filled.sort((a, b) => a.timestamp - b.timestamp);
   }
 }
-
