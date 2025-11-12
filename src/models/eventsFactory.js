@@ -1,6 +1,8 @@
 import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 import safe from 'safe-regex';
 import { createProjectEventsByIdLoader } from '../dataLoaders';
+import RedisHelper from '../redisHelper';
+import ChartDataService from '../services/chartDataService';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
@@ -85,10 +87,20 @@ class EventsFactory extends Factory {
 
   /**
    * Creates Event instance
-   * @param {ObjectId} projectId - project ID
+   * @param {ObjectId} projectId
    */
   constructor(projectId) {
     super();
+
+    /**
+     * Redis helper instance (singleton)
+     */
+    this.redis = RedisHelper.getInstance();
+
+    /**
+     * Chart data service for fetching data from Redis TimeSeries
+     */
+    this.chartDataService = new ChartDataService(this.redis);
 
     if (!projectId) {
       throw new Error('Can not construct Event model, because projectId is not provided');
@@ -412,6 +424,57 @@ class EventsFactory extends Factory {
       nextCursor: nextCursor,
       dailyEvents: composedResult,
     };
+  }
+
+  /**
+   * Get project chart data from Redis or fallback to MongoDB
+   *
+   * @param {string} projectId - project ID
+   * @param {string} startDate - start date (ISO string)
+   * @param {string} endDate - end date (ISO string)
+   * @param {number} groupBy - grouping interval in minutes (1=minute, 60=hour, 1440=day)
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @returns {Promise<Array>}
+   */
+  async getProjectChartData(projectId, startDate, endDate, groupBy = 60, timezoneOffset = 0) {
+    // Calculate days for MongoDB fallback
+    const start = new Date(startDate).getTime();
+    const end = new Date(endDate).getTime();
+    const days = Math.ceil((end - start) / (24 * 60 * 60 * 1000));
+
+    try {
+      const redisData = await this.chartDataService.getProjectChartData(
+        projectId,
+        startDate,
+        endDate,
+        groupBy,
+        timezoneOffset
+      );
+
+      if (redisData && redisData.length > 0) {
+        return redisData;
+      }
+
+      // Fallback to Mongo (empty groupHash for project-level data)
+      return this.findChartData(days, timezoneOffset, '');
+    } catch (err) {
+      console.error('[EventsFactory] getProjectChartData error:', err);
+
+      // Fallback to Mongo on error (empty groupHash for project-level data)
+      return this.findChartData(days, timezoneOffset, '');
+    }
+  }
+
+  /**
+   * Get event daily chart data from MongoDB only
+   *
+   * @param {string} groupHash - event's group hash
+   * @param {number} days - how many days to fetch
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @returns {Promise<Array>}
+   */
+  async getEventDailyChart(groupHash, days, timezoneOffset = 0) {
+    return this.findChartData(days, timezoneOffset, groupHash);
   }
 
   /**

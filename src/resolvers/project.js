@@ -493,10 +493,10 @@ module.exports = {
      *
      * @return {Promise<ProjectChartItem[]>}
      */
-    async chartData(project, { days, timezoneOffset }, context) {
+    async chartData(project, { startDate, endDate, groupBy, timezoneOffset }, context) {
       const factory = getEventsFactory(context, project._id);
 
-      return factory.findChartData(days, timezoneOffset);
+      return factory.getProjectChartData(project._id, startDate, endDate, groupBy, timezoneOffset);
     },
 
     /**

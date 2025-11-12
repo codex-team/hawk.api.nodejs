@@ -354,9 +354,19 @@ type Project {
   """
   chartData(
     """
-    How many days we need to fetch for displaying in a chart
+    Start date (ISO 8601 DateTime string)
     """
-    days: Int! = 0
+    startDate: DateTime!
+
+    """
+    End date (ISO 8601 DateTime string)
+    """
+    endDate: DateTime!
+
+    """
+    Grouping interval in minutes (1=minute, 60=hour, 1440=day)
+    """
+    groupBy: Int! = 60
 
     """
     User's local timezone offset in minutes

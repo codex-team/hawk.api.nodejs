@@ -278,7 +278,7 @@ type Event {
   usersAffected: Int
 
   """
-  Return graph of the error rate for the last few days
+  Return graph of the error rate for the specified period
   """
   chartData(
     """
