@@ -156,7 +156,7 @@ export default {
        * Send info to Telegram (non-blocking)
        */
       telegram
-        .sendMessage(`✅ [Billing / Compose payment]
+        .sendMessage(`👀 [Billing / Compose payment]
 
 card link operation: ${isCardLinkOperation}
 amount: ${+plan.monthlyCharge} RUB
