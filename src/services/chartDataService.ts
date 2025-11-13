@@ -19,6 +19,7 @@ export default class ChartDataService {
    * @param endDate - end date as ISO string (e.g., '2025-01-31T23:59:59Z')
    * @param groupBy - grouping interval in minutes (1=minute, 60=hour, 1440=day)
    * @param timezoneOffset - user's local timezone offset in minutes (default: 0)
+   * @param metricType - Redis metric type suffix (e.g., 'events-accepted', 'events-rate-limited')
    * @returns Array of data points with timestamp and count
    * @throws Error if Redis is not connected (caller should fallback to MongoDB)
    */
@@ -27,7 +28,8 @@ export default class ChartDataService {
     startDate: string,
     endDate: string,
     groupBy: number,
-    timezoneOffset = 0
+    timezoneOffset = 0,
+    metricType: string = 'events-accepted'
   ): Promise<{ timestamp: number; count: number }[]> {
     // Check if Redis is connected
     if (!this.redisHelper.isConnected()) {
@@ -37,7 +39,7 @@ export default class ChartDataService {
 
     // Determine granularity and compose key
     const granularity = getTimeSeriesSuffix(groupBy);
-    const key = composeProjectMetricsKey(granularity, projectId);
+    const key = composeProjectMetricsKey(granularity, projectId, metricType);
 
     // Parse ISO date strings to milliseconds
     const start = new Date(startDate).getTime();
@@ -46,6 +48,7 @@ export default class ChartDataService {
 
     // Fetch data from Redis
     let result: TsRangeResult[] = [];
+
     try {
       result = await this.redisHelper.tsRange(
         key,
@@ -65,8 +68,10 @@ export default class ChartDataService {
 
     // Transform data from Redis
     const dataPoints: { [ts: number]: number } = {};
+
     for (const [tsStr, valStr] of result) {
       const tsMs = Number(tsStr);
+
       dataPoints[tsMs] = Number(valStr) || 0;
     }
 
@@ -79,6 +84,7 @@ export default class ChartDataService {
 
     while (current <= end) {
       const count = dataPoints[current] || 0;
+
       filled.push({
         timestamp: Math.floor((current + timezoneOffset * 60 * 1000) / 1000),
         count,

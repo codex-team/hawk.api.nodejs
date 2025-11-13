@@ -443,25 +443,52 @@ class EventsFactory extends Factory {
     const days = Math.ceil((end - start) / (24 * 60 * 60 * 1000));
 
     try {
-      const redisData = await this.chartDataService.getProjectChartData(
-        projectId,
-        startDate,
-        endDate,
-        groupBy,
-        timezoneOffset
-      );
+      const [acceptedSeries, rateLimitedSeries] = await Promise.all([
+        this.chartDataService.getProjectChartData(
+          projectId,
+          startDate,
+          endDate,
+          groupBy,
+          timezoneOffset,
+          'events-accepted'
+        ),
+        this.chartDataService.getProjectChartData(
+          projectId,
+          startDate,
+          endDate,
+          groupBy,
+          timezoneOffset,
+          'events-rate-limited'
+        ),
+      ]);
 
-      if (redisData && redisData.length > 0) {
-        return redisData;
+      const hasAccepted = Array.isArray(acceptedSeries) && acceptedSeries.length > 0;
+      const hasRateLimited = Array.isArray(rateLimitedSeries) && rateLimitedSeries.length > 0;
+
+      if (hasAccepted || hasRateLimited) {
+        return {
+          accepted: acceptedSeries,
+          rateLimited: hasRateLimited
+            ? rateLimitedSeries
+            : this._composeZeroSeries(acceptedSeries),
+        };
       }
 
       // Fallback to Mongo (empty groupHash for project-level data)
-      return this.findChartData(days, timezoneOffset, '');
+      const fallbackAccepted = await this.findChartData(days, timezoneOffset, '');
+
+      return {
+        accepted: fallbackAccepted,
+      };
     } catch (err) {
       console.error('[EventsFactory] getProjectChartData error:', err);
 
       // Fallback to Mongo on error (empty groupHash for project-level data)
-      return this.findChartData(days, timezoneOffset, '');
+      const fallbackAccepted = await this.findChartData(days, timezoneOffset, '');
+
+      return {
+        accepted: fallbackAccepted,
+      };
     }
   }
 
@@ -566,6 +593,23 @@ class EventsFactory extends Factory {
     result = result.sort((a, b) => a.timestamp - b.timestamp);
 
     return result;
+  }
+
+  /**
+   * Compose zero-filled chart series using timestamps from the provided template
+   *
+   * @param {Array<{timestamp: number, count: number}>} template - reference series for timestamps
+   * @returns {Array<{timestamp: number, count: number}>}
+   */
+  _composeZeroSeries(template = []) {
+    if (!Array.isArray(template) || template.length === 0) {
+      return [];
+    }
+
+    return template.map((point) => ({
+      timestamp: point.timestamp,
+      count: 0,
+    }));
   }
 
   /**

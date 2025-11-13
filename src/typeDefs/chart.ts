@@ -12,4 +12,19 @@ export default gql`
     """
     count: Int
   }
+
+  """
+  Project chart data split by metric type
+  """
+  type ProjectChartSeries {
+    """
+    Accepted events (successfully processed)
+    """
+    accepted: [ChartDataItem!]!
+
+    """
+    Events rejected due to rate limiting
+    """
+    rateLimited: [ChartDataItem!]
+  }
 `;

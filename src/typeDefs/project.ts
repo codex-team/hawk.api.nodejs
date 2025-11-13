@@ -372,7 +372,7 @@ type Project {
     User's local timezone offset in minutes
     """
     timezoneOffset: Int! = 0
-  ): [ChartDataItem]
+  ): ProjectChartSeries
   """
   Returns number of unread events
   """
