@@ -14,17 +14,17 @@ export default gql`
   }
 
   """
-  Project chart data split by metric type
+  Chart line definition
   """
-  type ProjectChartSeries {
+  type ChartLine {
     """
-    Accepted events (successfully processed)
+    Series label (e.g., events-accepted)
     """
-    accepted: [ChartDataItem!]!
+    label: String!
 
     """
-    Events rejected due to rate limiting
+    Data points for the series
     """
-    rateLimited: [ChartDataItem!]
+    data: [ChartDataItem!]!
   }
 `;

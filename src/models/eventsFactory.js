@@ -466,29 +466,54 @@ class EventsFactory extends Factory {
       const hasRateLimited = Array.isArray(rateLimitedSeries) && rateLimitedSeries.length > 0;
 
       if (hasAccepted || hasRateLimited) {
-        return {
-          accepted: acceptedSeries,
-          rateLimited: hasRateLimited
-            ? rateLimitedSeries
-            : this._composeZeroSeries(acceptedSeries),
-        };
+        let normalizedAccepted = acceptedSeries;
+
+        if (!hasAccepted && hasRateLimited) {
+          normalizedAccepted = this._composeZeroSeries(rateLimitedSeries);
+        }
+
+        const normalizedRateLimited = hasRateLimited
+          ? rateLimitedSeries
+          : this._composeZeroSeries(normalizedAccepted);
+
+        const series = [
+          {
+            label: 'accepted',
+            data: normalizedAccepted,
+          },
+        ];
+
+        if (normalizedRateLimited.length > 0) {
+          series.push({
+            label: 'rate-limited',
+            data: normalizedRateLimited,
+          });
+        }
+
+        return series;
       }
 
       // Fallback to Mongo (empty groupHash for project-level data)
       const fallbackAccepted = await this.findChartData(days, timezoneOffset, '');
 
-      return {
-        accepted: fallbackAccepted,
-      };
+      return [
+        {
+          label: 'accepted',
+          data: fallbackAccepted,
+        },
+      ];
     } catch (err) {
       console.error('[EventsFactory] getProjectChartData error:', err);
 
       // Fallback to Mongo on error (empty groupHash for project-level data)
       const fallbackAccepted = await this.findChartData(days, timezoneOffset, '');
 
-      return {
-        accepted: fallbackAccepted,
-      };
+      return [
+        {
+          label: 'accepted',
+          data: fallbackAccepted,
+        },
+      ];
     }
   }
 
