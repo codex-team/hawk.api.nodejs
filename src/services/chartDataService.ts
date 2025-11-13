@@ -29,7 +29,7 @@ export default class ChartDataService {
     endDate: string,
     groupBy: number,
     timezoneOffset = 0,
-    metricType: string = 'events-accepted'
+    metricType = 'events-accepted'
   ): Promise<{ timestamp: number; count: number }[]> {
     // Check if Redis is connected
     if (!this.redisHelper.isConnected()) {
