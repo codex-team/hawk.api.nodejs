@@ -499,7 +499,14 @@ class EventsFactory extends Factory {
    * @returns {Promise<Array>}
    */
   async getEventDailyChart(groupHash, days, timezoneOffset = 0) {
-    return this.findChartData(days, timezoneOffset, groupHash);
+    const data = await this.findChartData(days, timezoneOffset, groupHash);
+
+    return [
+      {
+        label: 'accepted',
+        data,
+      },
+    ];
   }
 
   /**
