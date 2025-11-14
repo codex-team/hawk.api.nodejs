@@ -36,6 +36,7 @@ export default class RedisHelper {
   constructor() {
     if (!process.env.REDIS_URL) {
       console.warn('[Redis] REDIS_URL not set, Redis features will be disabled');
+
       return;
     }
 
@@ -49,7 +50,9 @@ export default class RedisHelper {
              * Max wait time: 30 seconds
              */
             const delay = Math.min(retries * 1000, 30000);
+
             console.log(`[Redis] Reconnecting... attempt ${retries}, waiting ${delay}ms`);
+
             return delay;
           },
         },
@@ -93,6 +96,7 @@ export default class RedisHelper {
     if (!RedisHelper.instance) {
       RedisHelper.instance = new RedisHelper();
     }
+
     return RedisHelper.instance;
   }
 
@@ -102,6 +106,7 @@ export default class RedisHelper {
   public async initialize(): Promise<void> {
     if (!this.redisClient) {
       console.warn('[Redis] Client not initialized, skipping connection');
+
       return;
     }
 
