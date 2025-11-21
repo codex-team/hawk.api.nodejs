@@ -39,7 +39,7 @@
     "@graphql-tools/schema": "^8.5.1",
     "@graphql-tools/utils": "^8.9.0",
     "@hawk.so/nodejs": "^3.1.1",
-    "@hawk.so/types": "^0.1.33",
+    "@hawk.so/types": "^0.1.37",
     "@n1ru4l/json-patch-plus": "^0.2.0",
     "@types/amqp-connection-manager": "^2.0.4",
     "@types/bson": "^4.0.5",
@@ -87,5 +87,6 @@
     "safe-regex": "^2.1.0",
     "ts-node-dev": "^2.0.0",
     "uuid": "^8.3.2"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
