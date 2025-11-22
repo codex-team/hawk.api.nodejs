@@ -1,5 +1,6 @@
 const getEventsFactory = require('./helpers/eventsFactory').default;
 const sendPersonalNotification = require('../utils/personalNotifications').default;
+const { aiService } = require('../services/ai');
 
 /**
  * See all types and fields here {@see ../typeDefs/event.graphql}
@@ -87,6 +88,20 @@ module.exports = {
       const factory = getEventsFactory(context, projectId);
 
       return factory.getEventDailyChart(groupHash, days, timezoneOffset);
+    },
+
+    /**
+     * Return AI suggestion for the event
+     *
+     * @param {string} projectId - event's project
+     * @param {string} eventId - event id
+     * @param {string} originalEventId - original event id
+     * @returns {Promise<string>} AI suggestion for the event
+     */
+    async aiSuggestion({ projectId, _id: eventId, originalEventId }, _args, context) {
+      const factory = getEventsFactory(context, projectId);
+
+      return aiService.generateSuggestion(factory, eventId, originalEventId);
     },
 
     /**
