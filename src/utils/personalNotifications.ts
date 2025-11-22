@@ -42,4 +42,14 @@ export default async function sendNotification(user: UserDBScheme, task: SenderW
       },
     });
   }
+
+  if (user.notifications.channels.loop?.isEnabled) {
+    await enqueue(WorkerPaths.Loop, {
+      type: task.type,
+      payload: {
+        ...task.payload,
+        endpoint: user.notifications.channels.loop.endpoint,
+      },
+    });
+  }
 }

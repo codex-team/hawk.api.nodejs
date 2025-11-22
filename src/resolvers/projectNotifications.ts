@@ -114,6 +114,12 @@ function validateNotificationsRuleChannels(channels: NotificationsChannelsDBSche
     }
   }
 
+  if (channels.loop!.isEnabled) {
+    if (!/^https:\/\/.+\/hooks\/.+$/.test(channels.loop!.endpoint)) {
+      return 'Invalid loop endpoint passed';
+    }
+  }
+
   if (channels.telegram!.isEnabled) {
     if (!/^https:\/\/notify\.bot\.codex\.so\/u\/[A-Za-z0-9]+$/.test(channels.telegram!.endpoint)) {
       return 'Invalid telegram endpoint passed';

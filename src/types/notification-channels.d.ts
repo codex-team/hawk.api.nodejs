@@ -18,6 +18,11 @@ export interface NotificationsChannelsDBScheme {
   slack?: NotificationsChannelSettingsDBScheme;
 
   /**
+   * Alerts through the Loop
+   */
+  loop?: NotificationsChannelSettingsDBScheme;
+
+  /**
    * Alerts through the Telegram
    */
   telegram?: NotificationsChannelSettingsDBScheme;
@@ -43,7 +48,7 @@ export interface NotificationsChannelSettingsDBScheme {
   isEnabled: boolean;
 
   /**
-   * Endpoint: email, slack webhook, telegram bot webhook, push subscription id, etc
+   * Endpoint: email, slack/loop webhook, telegram bot webhook, push subscription id, etc
    */
   endpoint: string;
 

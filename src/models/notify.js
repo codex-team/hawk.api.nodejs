@@ -90,6 +90,11 @@ class Notify {
             endpoint: 'slack',
             minPeriod: 60,
           },
+          loop: {
+            isEnabled: true,
+            endpoint: 'loop',
+            minPeriod: 60,
+          },
           telegram: {
             isEnabled: true,
             endpoint: 'telegram',

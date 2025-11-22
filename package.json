@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.2.23",
+  "version": "1.2.24",
   "main": "index.ts",
   "license": "BUSL-1.1",
   "scripts": {
@@ -39,7 +39,7 @@
     "@graphql-tools/schema": "^8.5.1",
     "@graphql-tools/utils": "^8.9.0",
     "@hawk.so/nodejs": "^3.1.1",
-    "@hawk.so/types": "^0.1.33",
+    "@hawk.so/types": "^0.1.37",
     "@n1ru4l/json-patch-plus": "^0.2.0",
     "@types/amqp-connection-manager": "^2.0.4",
     "@types/bson": "^4.0.5",
