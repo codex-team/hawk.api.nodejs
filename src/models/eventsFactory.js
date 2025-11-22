@@ -293,6 +293,12 @@ class EventsFactory extends Factory {
       ? {
         $or: [
           {
+            'repetition.delta': {
+              $regex: escapedSearch,
+              $options: 'i',
+            },
+          },
+          {
             'event.payload.title': {
               $regex: escapedSearch,
               $options: 'i',
