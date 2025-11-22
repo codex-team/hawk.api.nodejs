@@ -27,6 +27,7 @@ export enum Queues {
   Email = 'sender/email',
   Telegram = 'notify/telegram',
   Slack = 'notify/slack',
+  Loop = 'notify/loop',
   Limiter = 'cron-tasks/limiter',
 }
 
@@ -79,6 +80,14 @@ export const WorkerPaths: Record<string, WorkerPath> = {
   Slack: {
     exchange: Exchanges.Notify,
     queue: Queues.Slack,
+  },
+
+  /**
+   * Path to loop worker
+   */
+  Loop: {
+    exchange: Exchanges.Notify,
+    queue: Queues.Loop,
   },
 
   /**
