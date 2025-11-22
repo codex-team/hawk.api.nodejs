@@ -90,6 +90,11 @@ module.exports = {
               endpoint: '',
               minPeriod: 60,
             },
+            loop: {
+              isEnabled: false,
+              endpoint: '',
+              minPeriod: 60,
+            },
           },
         }, true);
 
