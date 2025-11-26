@@ -45,6 +45,11 @@ export default gql`
     slack: NotificationsChannelSettings
 
     """
+    Loop channel
+    """
+    loop: NotificationsChannelSettings
+
+    """
     Webpush
     """
     webPush: NotificationsChannelSettings

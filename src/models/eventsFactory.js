@@ -293,6 +293,12 @@ class EventsFactory extends Factory {
       ? {
         $or: [
           {
+            'repetition.delta': {
+              $regex: escapedSearch,
+              $options: 'i',
+            },
+          },
+          {
             'event.payload.title': {
               $regex: escapedSearch,
               $options: 'i',
@@ -640,7 +646,6 @@ class EventsFactory extends Factory {
   /**
    * Returns Event repetitions
    *
-   * @param {string|ObjectID} eventId - Event's id, could be repetitionId in case when we want to get repetitions portion by one repetition
    * @param {string|ObjectID} originalEventId - id of the original event
    * @param {Number} limit - count limitations
    * @param {Number} cursor - pointer to the next repetition
@@ -735,7 +740,7 @@ class EventsFactory extends Factory {
     /**
      * If originalEventId equals repetitionId than user wants to get first repetition which is original event
      */
-    if (repetitionId === originalEventId) {
+    if (repetitionId.toString() === originalEventId.toString()) {
       const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
       /**
