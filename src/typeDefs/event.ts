@@ -295,7 +295,7 @@ type Event {
     User's local timezone offset in minutes
     """
     timezoneOffset: Int! = 0
-  ): [ChartDataItem!]!
+  ): [ChartLine!]!
 }
 
 """
