@@ -13,6 +13,14 @@ const { composeEventPayloadByRepetition } = require('../utils/merge');
 const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
 
 /**
+ * Chart series labels
+ */
+const ChartType = {
+  Accepted: 'accepted',
+  RateLimited: 'rate-limited',
+};
+
+/**
  * @typedef {import('mongodb').UpdateWriteOpResult} UpdateWriteOpResult
  */
 
@@ -470,11 +478,11 @@ class EventsFactory extends Factory {
 
       return [
         {
-          label: 'accepted',
+          label: ChartType.Accepted,
           data: acceptedSeries,
         },
         {
-          label: 'rate-limited',
+          label: ChartType.RateLimited,
           data: rateLimitedSeries,
         },
       ];
@@ -485,11 +493,11 @@ class EventsFactory extends Factory {
 
       return [
         {
-          label: 'accepted',
+          label: ChartType.Accepted,
           data: fallbackAccepted,
         },
         {
-          label: 'rate-limited',
+          label: ChartType.RateLimited,
           data: this._composeZeroSeries(fallbackAccepted),
         },
       ];
@@ -509,7 +517,7 @@ class EventsFactory extends Factory {
 
     return [
       {
-        label: 'accepted',
+        label: ChartType.Accepted,
         data,
       },
     ];
