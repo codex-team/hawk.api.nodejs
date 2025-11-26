@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.2.26",
+  "version": "1.2.27",
   "main": "index.ts",
   "license": "BUSL-1.1",
   "scripts": {
