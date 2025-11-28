@@ -171,7 +171,7 @@ module.exports = {
         sparse: true,
       });
 
-      telegram.sendMessage(`🤯 Project ${name} was created`);
+      telegram.sendMessage(`🤯 Project ${name} was created in ${workspace.name}`);
 
       return project;
     },
