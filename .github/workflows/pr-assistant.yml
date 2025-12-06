@@ -17,4 +17,3 @@ jobs:
         with:
           check: description
           mode: draft
-          token: ${{ secrets.PR_ASSISTANT_SPECC_PAT }}
