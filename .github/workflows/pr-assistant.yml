@@ -15,6 +15,6 @@ jobs:
     steps:
       - uses: codex-team/action-pr-assistant@master
         with:
-          check: both
+          check: description
           mode: draft
           token: ${{ secrets.PR_ASSISTANT_SPECC_PAT }}
