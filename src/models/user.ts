@@ -371,7 +371,14 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
     const res = [];
 
     if (ids.length === 0) {
+      if (!this.workspaces) {
+        return [];
+      }
       return Object.keys(this.workspaces);
+    }
+
+    if (!this.workspaces) {
+      return [];
     }
 
     for (const id of ids) {
