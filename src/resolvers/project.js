@@ -576,7 +576,7 @@ module.exports = {
       const releaseDoc = await releasesFactory.findByProjectAndRelease(project._id, release);
 
       if (!releaseDoc) {
-        throw new UserInputError(`Release "${release}" not found for this project (id: ${project._id})`);
+        throw new UserInputError(`Release "${release}" not found for project (id: ${project._id})`);
       }
 
       let enrichedFiles = Array.isArray(releaseDoc.files) ? releaseDoc.files : [];
