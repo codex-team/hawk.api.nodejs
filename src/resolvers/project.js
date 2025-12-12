@@ -20,6 +20,9 @@ const GROUPING_TIMESTAMP_AND_LAST_REPETITION_TIME_AND_ID_INDEX_NAME = 'groupingT
 const GROUPING_TIMESTAMP_AND_GROUP_HASH_INDEX_NAME = 'groupingTimestampAndGroupHash';
 const MAX_SEARCH_QUERY_LENGTH = 50;
 
+const PROJECT_ID = '69395046d1a263942c05976b';
+
+
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
  */
@@ -482,7 +485,8 @@ module.exports = {
         }
       }
 
-      const factory = getEventsFactory(context, project._id);
+
+      const factory = getEventsFactory(context, PROJECT_ID);
 
       const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search, release);
 
@@ -499,9 +503,9 @@ module.exports = {
      * @return {Promise<ProjectChartItem[]>}
      */
     async chartData(project, { startDate, endDate, groupBy, timezoneOffset }, context) {
-      const factory = getEventsFactory(context, project._id);
+      const factory = getEventsFactory(context, PROJECT_ID);
 
-      return factory.getProjectChartData(project._id, startDate, endDate, groupBy, timezoneOffset);
+      return factory.getProjectChartData(PROJECT_ID, startDate, endDate, groupBy, timezoneOffset);
     },
 
     /**
