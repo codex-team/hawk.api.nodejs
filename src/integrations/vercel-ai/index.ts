@@ -17,7 +17,7 @@ class VercelAIApi {
       /**
        * @todo make it dynamic, get from project settings
        */
-      this.modelId = 'gpt-4o';
+      this.modelId = 'deepseek/deepseek-v3.1';
     }
 
     /**
@@ -29,7 +29,7 @@ class VercelAIApi {
      */
     public async generateSuggestion(payload: EventData<EventAddons>) {
       const { text } = await generateText({
-        model: openai(this.modelId),
+        model: this.modelId,
         system: ctoInstruction,
         prompt: eventSolvingInput(payload),
       });
