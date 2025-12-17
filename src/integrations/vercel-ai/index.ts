@@ -23,7 +23,7 @@ class VercelAIApi {
     /**
      * Generate AI suggestion for the event
      *
-     * @param {EventData<EventAddons>} payload - event data
+     * @param {EventData<EventAddons>} payload - event data to make suggestion
      * @returns {Promise<string>} AI suggestion for the event
      * @todo add defence against invalid prompt injection
      */
