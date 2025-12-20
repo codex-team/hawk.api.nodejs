@@ -491,12 +491,12 @@
   dependencies:
     "@types/mongodb" "^3.5.34"
 
-"@hawk.so/types@^0.1.37":
-  version "0.1.37"
-  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.1.37.tgz#e68d822957d86aac4fa1fdec7927a046ce0cf8c8"
-  integrity sha512-34C+TOWA5oJyOL3W+NXlSyY7u0OKkRu2+tIZ4jSJp0c1/5v+qpEPeo07FlOOHqDRRhMG4/2PAgQCronfF2qWPg==
+"@hawk.so/types@^0.4.0":
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.4.0.tgz#76627aba4c253352e088a6c2b1358065908334ae"
+  integrity sha512-PiwrZn2xGIfCnFFapAZPSXC75cdMOUewV3LTMZijF9lBgUHI2fIgbcMdT65WAkDFArtQTYzoLhDvJMbhtEyRKA==
   dependencies:
-    "@types/mongodb" "^3.5.34"
+    bson "^7.0.0"
 
 "@istanbuljs/load-nyc-config@^1.0.0":
   version "1.1.0"
@@ -2044,6 +2044,11 @@ bson@^1.1.4:
   version "1.1.6"
   resolved "https://registry.yarnpkg.com/bson/-/bson-1.1.6.tgz#fb819be9a60cd677e0853aee4ca712a785d6618a"
   integrity sha512-EvVNVeGo4tHxwi8L6bPj3y3itEvStdwvvlojVxxbyYfoaxJ6keLgrTuKdyfEAszFK+H3olzBuafE0yoh0D1gdg==
+
+bson@^7.0.0:
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/bson/-/bson-7.0.0.tgz#2ee7ac8296d61739a8d3d1799724a10d9f8afa8d"
+  integrity sha512-Kwc6Wh4lQ5OmkqqKhYGKIuELXl+EPYSCObVE6bWsp1T/cGkOCBN0I8wF/T44BiuhHyNi1mmKVPXk60d41xZ7kw==
 
 buffer-crc32@~0.2.3:
   version "0.2.13"

@@ -149,4 +149,19 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
 
     return !!result.ok;
   }
+
+  /**
+   * Find user by SAML identity
+   *
+   * @param workspaceId - workspace ID
+   * @param samlId - NameID value from IdP
+   * @returns UserModel or null if not found
+   */
+  public async findBySamlIdentity(workspaceId: string, samlId: string): Promise<UserModel | null> {
+    const userData = await this.collection.findOne({
+      [`identities.${workspaceId}.saml.id`]: samlId,
+    });
+
+    return userData ? new UserModel(userData) : null;
+  }
 }

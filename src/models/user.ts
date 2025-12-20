@@ -143,6 +143,25 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   public utm?: UserDBScheme['utm'];
 
   /**
+   * External identities for SSO (keyed by workspaceId)
+   */
+  public identities?: {
+    [workspaceId: string]: {
+      saml: {
+        /**
+         * NameID value from IdP (stable identifier)
+         */
+        id: string;
+
+        /**
+         * Email at the time of linking (for audit)
+         */
+        email: string;
+      };
+    };
+  };
+
+  /**
    * Model's collection
    */
   protected collection: Collection<UserDBScheme>;
@@ -417,5 +436,69 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
         },
       },
     });
+  }
+
+  /**
+   * Link SAML identity to user for specific workspace
+   *
+   * @param workspaceId - workspace ID
+   * @param samlId - NameID value from IdP (stable identifier)
+   * @param email - user email at the time of linking
+   */
+  public async linkSamlIdentity(workspaceId: string, samlId: string, email: string): Promise<void> {
+    /**
+     * Use Record<string, any> for MongoDB dot notation keys
+     */
+    const updateData: Record<string, any> = {
+      [`identities.${workspaceId}.saml.id`]: samlId,
+      [`identities.${workspaceId}.saml.email`]: email,
+    };
+
+    await this.update(
+      { _id: new ObjectId(this._id) },
+      { $set: updateData }
+    );
+
+    /**
+     * Update local state
+     */
+    if (!this.identities) {
+      this.identities = {};
+    }
+    if (!this.identities[workspaceId]) {
+      this.identities[workspaceId] = { saml: { id: samlId, email } };
+    } else {
+      this.identities[workspaceId].saml = { id: samlId, email };
+    }
+  }
+
+  /**
+   * Find user by SAML identity
+   *
+   * @param collection - users collection
+   * @param workspaceId - workspace ID
+   * @param samlId - NameID value from IdP
+   * @returns UserModel or null if not found
+   */
+  public static async findBySamlIdentity(
+    collection: Collection<UserDBScheme>,
+    workspaceId: string,
+    samlId: string
+  ): Promise<UserModel | null> {
+    const userData = await collection.findOne({
+      [`identities.${workspaceId}.saml.id`]: samlId,
+    });
+
+    return userData ? new UserModel(userData) : null;
+  }
+
+  /**
+   * Get SAML identity for workspace
+   *
+   * @param workspaceId - workspace ID
+   * @returns SAML identity or null if not found
+   */
+  public getSamlIdentity(workspaceId: string): { id: string; email: string } | null {
+    return this.identities?.[workspaceId]?.saml || null;
   }
 }

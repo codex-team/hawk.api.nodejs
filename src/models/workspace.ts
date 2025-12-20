@@ -77,6 +77,11 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   public isDebug?: boolean;
 
   /**
+   * SSO configuration
+   */
+  public sso?: WorkspaceDBScheme['sso'];
+
+  /**
    * Model's collection
    */
   protected collection: Collection<WorkspaceDBScheme>;
