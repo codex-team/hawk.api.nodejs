@@ -58,6 +58,7 @@
     "@types/uuid": "^8.3.4",
     "ai": "^5.0.89",
     "amqp-connection-manager": "^3.1.0",
+    "@node-saml/node-saml": "^5.0.1",
     "amqplib": "^0.5.5",
     "apollo-server-express": "^3.10.0",
     "argon2": "^0.28.7",

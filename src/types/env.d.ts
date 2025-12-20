@@ -30,5 +30,13 @@ declare namespace NodeJS {
      * Secret string for encoding/decoding user's tokens
      */
     JWT_SECRET_AUTH: string;
+
+    /**
+     * SSO Service Provider Entity ID
+     * Unique identifier for Hawk in SAML IdP configuration
+     *
+     * @example "urn:hawk:tracker:saml"
+     */
+    SSO_SP_ENTITY_ID: string;
   }
 }
