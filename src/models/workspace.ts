@@ -5,6 +5,12 @@ import UserModel from './user';
 import { ConfirmedMemberDBScheme, MemberDBScheme, PendingMemberDBScheme, WorkspaceDBScheme } from '@hawk.so/types';
 import crypto from 'crypto';
 
+
+/**
+ * Used for inserts into team collection which should not have '_id' field
+ */
+type MemberDBSchemeWithoutId = Omit<ConfirmedMemberDBScheme, '_id'> | Omit<PendingMemberDBScheme, '_id'>;
+
 /**
  * Workspace model
  */
@@ -84,7 +90,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Collection with information about team for workspace
    */
-  protected teamCollection: Collection<MemberDBScheme>;
+  protected teamCollection: Collection<MemberDBSchemeWithoutId>;
 
   /**
    * Creates Workspace instance
@@ -94,7 +100,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   constructor(workspaceData: WorkspaceDBScheme) {
     super(workspaceData);
     this.collection = this.dbConnection.collection<WorkspaceDBScheme>('workspaces');
-    this.teamCollection = this.dbConnection.collection<MemberDBScheme>('team:' + this._id.toString());
+    this.teamCollection = this.dbConnection.collection<MemberDBSchemeWithoutId>('team:' + this._id.toString());
   }
 
   /**
@@ -103,7 +109,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   public static generateInviteHash(): string {
     return crypto
       .createHash('sha256')
-      .update(crypto.randomBytes(256))
+      .update(crypto.randomBytes(256).toString('hex'))
       .digest('hex');
   }
 

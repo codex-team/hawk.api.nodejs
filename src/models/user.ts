@@ -1,8 +1,7 @@
 import argon2 from 'argon2';
 import crypto from 'crypto';
 import jwt, { Secret } from 'jsonwebtoken';
-import { OptionalId } from '../mongo';
-import { Collection, ObjectId } from 'mongodb';
+import { Collection, ObjectId, OptionalId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
@@ -80,7 +79,7 @@ type UserProjectsLastVisitDBScheme = Record<string, number>;
 /**
  * User model
  */
-export default class UserModel extends AbstractModel<UserDBScheme> implements UserDBScheme {
+export default class UserModel extends AbstractModel<Omit<UserDBScheme, '_id'>> implements UserDBScheme {
   /**
    * User's id
    */
@@ -145,13 +144,13 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   /**
    * Model's collection
    */
-  protected collection: Collection<UserDBScheme>;
+  protected collection: Collection<Omit<UserDBScheme, '_id'>>;
 
   /**
    * Model constructor
    * @param modelData - user data
    */
-  constructor(modelData: UserDBScheme) {
+  constructor(modelData: OptionalId<UserDBScheme>) {
     /**
      * Fallback for name using email
      */
@@ -161,7 +160,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
 
     super(modelData);
 
-    this.collection = this.dbConnection.collection<UserDBScheme>('users');
+    this.collection = this.dbConnection.collection('users');
   }
 
   /**
