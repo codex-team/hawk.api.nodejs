@@ -373,6 +373,7 @@ export default class UserModel extends AbstractModel<Omit<UserDBScheme, '_id'>> 
       if (!this.workspaces) {
         return [];
       }
+
       return Object.keys(this.workspaces);
     }
 

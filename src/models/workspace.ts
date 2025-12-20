@@ -5,7 +5,6 @@ import UserModel from './user';
 import { ConfirmedMemberDBScheme, MemberDBScheme, PendingMemberDBScheme, WorkspaceDBScheme } from '@hawk.so/types';
 import crypto from 'crypto';
 
-
 /**
  * Used for inserts into team collection which should not have '_id' field
  */
