@@ -69,17 +69,12 @@ class ProjectToWorkspace {
    * Creates new projects:<workspace._id> document
    *
    * @param {{projectId: ObjectId}} projectToWorkspaceData
-   * @returns {Promise<Object>}
+   * @returns {Promise<boolean>}
    */
   async add(projectToWorkspaceData) {
-    const projectToWorkspace = await this.collection.insertOne(
-      projectToWorkspaceData
-    );
+    const projectToWorkspaceResult = await this.collection.insertOne(projectToWorkspaceData);
 
-    return {
-      id: projectToWorkspace.insertedId,
-      ...projectToWorkspace,
-    };
+    return projectToWorkspaceResult.acknowledged;
   }
 
   /**

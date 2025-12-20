@@ -52,6 +52,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Workspace balance
+   * @deprecated NOT USED
    */
   public balance!: number;
 
