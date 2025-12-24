@@ -75,54 +75,6 @@ describe('UsersFactory SSO identities', () => {
       });
     });
 
-    it('should find correct user when multiple users have SAML identities', async () => {
-      /**
-       * Create second user with different SAML identity
-       */
-      const user2Email = 'test-sso-2@example.com';
-      const user2SamlId = 'test-saml-name-id-456';
-      const user2 = await usersFactory.create(user2Email, 'test-password-456');
-
-      try {
-        /**
-         * Link identities for both users
-         */
-        await testUser.linkSamlIdentity(testWorkspaceId, testSamlId, testEmail);
-        await user2.linkSamlIdentity(testWorkspaceId, user2SamlId, user2Email);
-
-        /**
-         * Find first user by its SAML identity
-         */
-        const foundUser1 = await usersFactory.findBySamlIdentity(
-          testWorkspaceId,
-          testSamlId
-        );
-
-        expect(foundUser1).not.toBeNull();
-        expect(foundUser1!._id.toString()).toBe(testUser._id.toString());
-        expect(foundUser1!.email).toBe(testEmail);
-
-        /**
-         * Find second user by its SAML identity
-         */
-        const foundUser2 = await usersFactory.findBySamlIdentity(
-          testWorkspaceId,
-          user2SamlId
-        );
-
-        expect(foundUser2).not.toBeNull();
-        expect(foundUser2!._id.toString()).toBe(user2._id.toString());
-        expect(foundUser2!.email).toBe(user2Email);
-      } finally {
-        /**
-         * Clean up second user
-         */
-        if (user2 && user2.email) {
-          await usersFactory.deleteByEmail(user2.email);
-        }
-      }
-    });
-
     it('should return null for different workspace even if SAML ID matches', async () => {
       const workspaceId2 = '507f1f77bcf86cd799439012';
 

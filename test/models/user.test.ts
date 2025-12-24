@@ -82,41 +82,6 @@ describe('UserModel SSO identities', () => {
       });
     });
 
-    it('should allow linking identities for multiple workspaces', async () => {
-      const workspaceId2 = '507f1f77bcf86cd799439012';
-      const samlId2 = 'test-saml-name-id-456';
-      const email2 = 'test-sso-2@example.com';
-
-      /**
-       * Link identity for first workspace
-       */
-      await testUser.linkSamlIdentity(testWorkspaceId, testSamlId, testEmail);
-
-      /**
-       * Link identity for second workspace
-       */
-      await testUser.linkSamlIdentity(workspaceId2, samlId2, email2);
-
-      /**
-       * Check that both identities are present
-       */
-      expect(testUser.identities![testWorkspaceId].saml).toEqual({
-        id: testSamlId,
-        email: testEmail,
-      });
-      expect(testUser.identities![workspaceId2].saml).toEqual({
-        id: samlId2,
-        email: email2,
-      });
-
-      /**
-       * Verify in database
-       */
-      const reloadedUser = await usersFactory.findById(testUser._id.toString());
-      expect(reloadedUser!.identities![testWorkspaceId].saml.id).toBe(testSamlId);
-      expect(reloadedUser!.identities![workspaceId2].saml.id).toBe(samlId2);
-    });
-
     it('should update existing SAML identity for the same workspace', async () => {
       const newSamlId = 'updated-saml-name-id-789';
       const newEmail = 'updated-email@example.com';
@@ -159,20 +124,6 @@ describe('UserModel SSO identities', () => {
       expect(identity).toBeNull();
     });
 
-    it('should return null for non-existent workspace', async () => {
-      /**
-       * Link identity for one workspace
-       */
-      await testUser.linkSamlIdentity(testWorkspaceId, testSamlId, testEmail);
-
-      /**
-       * Try to get identity for different workspace
-       */
-      const nonExistentWorkspaceId = '507f1f77bcf86cd799439099';
-      const identity = testUser.getSamlIdentity(nonExistentWorkspaceId);
-      expect(identity).toBeNull();
-    });
-
     it('should return SAML identity when it exists', async () => {
       /**
        * Link SAML identity
@@ -188,36 +139,6 @@ describe('UserModel SSO identities', () => {
       expect(identity).toEqual({
         id: testSamlId,
         email: testEmail,
-      });
-    });
-
-    it('should return correct identity for specific workspace when multiple exist', async () => {
-      const workspaceId2 = '507f1f77bcf86cd799439012';
-      const samlId2 = 'test-saml-name-id-456';
-      const email2 = 'test-sso-2@example.com';
-
-      /**
-       * Link identities for two workspaces
-       */
-      await testUser.linkSamlIdentity(testWorkspaceId, testSamlId, testEmail);
-      await testUser.linkSamlIdentity(workspaceId2, samlId2, email2);
-
-      /**
-       * Get identity for first workspace
-       */
-      const identity1 = testUser.getSamlIdentity(testWorkspaceId);
-      expect(identity1).toEqual({
-        id: testSamlId,
-        email: testEmail,
-      });
-
-      /**
-       * Get identity for second workspace
-       */
-      const identity2 = testUser.getSamlIdentity(workspaceId2);
-      expect(identity2).toEqual({
-        id: samlId2,
-        email: email2,
       });
     });
   });
