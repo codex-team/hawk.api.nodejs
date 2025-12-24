@@ -14,6 +14,11 @@ export enum SamlValidationErrorType {
   EXPIRED_ASSERTION = 'EXPIRED_ASSERTION',
   INVALID_NAME_ID = 'INVALID_NAME_ID',
   MISSING_EMAIL = 'MISSING_EMAIL',
+  /**
+   * Generic validation error when specific type cannot be determined
+   * Used as fallback when library error messages don't match known patterns
+   */
+  VALIDATION_FAILED = 'VALIDATION_FAILED',
 }
 
 /**

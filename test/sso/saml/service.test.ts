@@ -1,12 +1,18 @@
 import '../../../src/env-test';
 import SamlService from '../../../src/sso/saml/service';
 import { SamlConfig } from '../../../src/sso/types';
+import { SamlValidationError, SamlValidationErrorType } from '../../../src/sso/saml/types';
+import * as nodeSaml from '@node-saml/node-saml';
+
+/**
+ * Mock @node-saml/node-saml
+ */
+jest.mock('@node-saml/node-saml');
 
 describe('SamlService', () => {
   let samlService: SamlService;
   const testWorkspaceId = '507f1f77bcf86cd799439011';
   const testAcsUrl = 'https://api.example.com/auth/sso/saml/507f1f77bcf86cd799439011/acs';
-  const testRelayState = 'test-relay-state-123';
 
   /**
    * Test SAML configuration
@@ -22,8 +28,22 @@ describe('SamlService', () => {
     },
   };
 
+  const mockSamlInstance = {
+    validatePostResponseAsync: jest.fn(),
+  };
+
   beforeEach(() => {
+    jest.clearAllMocks();
+    (nodeSaml.SAML as jest.Mock).mockImplementation(() => mockSamlInstance);
+    process.env.SSO_SP_ENTITY_ID = 'urn:hawk:tracker:saml';
     samlService = new SamlService();
+  });
+
+  afterEach(() => {
+    /**
+     * Restore env
+     */
+    Reflect.deleteProperty(process.env, 'SSO_SP_ENTITY_ID');
   });
 
   describe('generateAuthnRequest', () => {
@@ -38,22 +58,239 @@ describe('SamlService', () => {
   });
 
   describe('validateAndParseResponse', () => {
-    /**
-     * TODO: Add tests for:
-     * 1. Should parse valid SAML Response
-     * 2. Should extract NameID correctly
-     * 3. Should extract email using attributeMapping
-     * 4. Should extract name using attributeMapping (if available)
-     * 5. Should validate signature
-     * 6. Should validate Audience (uses validateAudience from utils)
-     * 7. Should validate Recipient (uses validateRecipient from utils)
-     * 8. Should validate InResponseTo
-     * 9. Should validate time conditions (uses validateTimeConditions from utils)
-     * 10. Should throw error for invalid signature
-     * 11. Should throw error for invalid Audience
-     * 12. Should throw error for invalid Recipient
-     * 13. Should throw error for expired assertion
-     */
+    const testSamlResponse = 'base64EncodedSamlResponse';
+
+    it('should parse valid SAML Response and extract user data', async () => {
+      /**
+       * Mock successful SAML validation with all required attributes
+       */
+      mockSamlInstance.validatePostResponseAsync.mockResolvedValue({
+        profile: {
+          nameID: 'user-name-id-123',
+          inResponseTo: '_request-id-123',
+          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'user@example.com',
+          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'John Doe',
+        },
+      });
+
+      const result = await samlService.validateAndParseResponse(
+        testSamlResponse,
+        testWorkspaceId,
+        testAcsUrl,
+        testSamlConfig
+      );
+
+      expect(result).toEqual({
+        nameId: 'user-name-id-123',
+        email: 'user@example.com',
+        name: 'John Doe',
+        inResponseTo: '_request-id-123',
+      });
+    });
+
+    it('should work without optional name attribute', async () => {
+      mockSamlInstance.validatePostResponseAsync.mockResolvedValue({
+        profile: {
+          nameID: 'user-name-id-123',
+          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'user@example.com',
+          /**
+           * name attribute is not provided by IdP
+           */
+          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': undefined,
+        },
+      });
+
+      const result = await samlService.validateAndParseResponse(
+        testSamlResponse,
+        testWorkspaceId,
+        testAcsUrl,
+        testSamlConfig
+      );
+
+      expect(result.nameId).toBe('user-name-id-123');
+      expect(result.email).toBe('user@example.com');
+      expect(result.name).toBeUndefined();
+    });
+
+    it('should throw INVALID_SIGNATURE error when signature validation fails', async () => {
+      mockSamlInstance.validatePostResponseAsync.mockRejectedValue(
+        new Error('Invalid signature')
+      );
+
+      await expect(
+        samlService.validateAndParseResponse(
+          testSamlResponse,
+          testWorkspaceId,
+          testAcsUrl,
+          testSamlConfig
+        )
+      ).rejects.toThrow(SamlValidationError);
+
+      try {
+        await samlService.validateAndParseResponse(
+          testSamlResponse,
+          testWorkspaceId,
+          testAcsUrl,
+          testSamlConfig
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(SamlValidationError);
+        expect((error as SamlValidationError).type).toBe(SamlValidationErrorType.INVALID_SIGNATURE);
+      }
+    });
+
+    it('should throw EXPIRED_ASSERTION error when assertion is expired', async () => {
+      mockSamlInstance.validatePostResponseAsync.mockRejectedValue(
+        new Error('SAML assertion NotOnOrAfter condition not met')
+      );
+
+      const promise = samlService.validateAndParseResponse(
+        testSamlResponse,
+        testWorkspaceId,
+        testAcsUrl,
+        testSamlConfig
+      );
+
+      await expect(promise).rejects.toThrow(SamlValidationError);
+      await expect(promise).rejects.toMatchObject({
+        type: SamlValidationErrorType.EXPIRED_ASSERTION,
+      });
+    });
+
+    it('should throw INVALID_AUDIENCE error when audience validation fails', async () => {
+      mockSamlInstance.validatePostResponseAsync.mockRejectedValue(
+        new Error('SAML Audience not valid')
+      );
+
+      const promise = samlService.validateAndParseResponse(
+        testSamlResponse,
+        testWorkspaceId,
+        testAcsUrl,
+        testSamlConfig
+      );
+
+      await expect(promise).rejects.toThrow(SamlValidationError);
+      await expect(promise).rejects.toMatchObject({
+        type: SamlValidationErrorType.INVALID_AUDIENCE,
+      });
+    });
+
+    it('should throw INVALID_NAME_ID error when NameID is missing', async () => {
+      mockSamlInstance.validatePostResponseAsync.mockResolvedValue({
+        profile: {
+          /**
+           * No nameID in profile
+           */
+          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'user@example.com',
+        },
+      });
+
+      const promise = samlService.validateAndParseResponse(
+        testSamlResponse,
+        testWorkspaceId,
+        testAcsUrl,
+        testSamlConfig
+      );
+
+      await expect(promise).rejects.toThrow(SamlValidationError);
+      await expect(promise).rejects.toMatchObject({
+        type: SamlValidationErrorType.INVALID_NAME_ID,
+      });
+    });
+
+    it('should throw MISSING_EMAIL error when email attribute is not found', async () => {
+      mockSamlInstance.validatePostResponseAsync.mockResolvedValue({
+        profile: {
+          nameID: 'user-name-id-123',
+          /**
+           * Wrong attribute name, email attribute is missing
+           */
+          'wrong-attribute': 'user@example.com',
+        },
+      });
+
+      const promise = samlService.validateAndParseResponse(
+        testSamlResponse,
+        testWorkspaceId,
+        testAcsUrl,
+        testSamlConfig
+      );
+
+      await expect(promise).rejects.toThrow(SamlValidationError);
+      await expect(promise).rejects.toMatchObject({
+        type: SamlValidationErrorType.MISSING_EMAIL,
+      });
+    });
+
+    it('should throw INVALID_IN_RESPONSE_TO when InResponseTo does not match expected request ID', async () => {
+      mockSamlInstance.validatePostResponseAsync.mockResolvedValue({
+        profile: {
+          nameID: 'user-name-id-123',
+          inResponseTo: '_different-request-id',
+          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'user@example.com',
+        },
+      });
+
+      const promise = samlService.validateAndParseResponse(
+        testSamlResponse,
+        testWorkspaceId,
+        testAcsUrl,
+        testSamlConfig,
+        '_expected-request-id'
+      );
+
+      await expect(promise).rejects.toThrow(SamlValidationError);
+      await expect(promise).rejects.toMatchObject({
+        type: SamlValidationErrorType.INVALID_IN_RESPONSE_TO,
+        context: {
+          expected: '_expected-request-id',
+          received: '_different-request-id',
+        },
+      });
+    });
+
+    it('should validate InResponseTo when expectedRequestId is provided', async () => {
+      mockSamlInstance.validatePostResponseAsync.mockResolvedValue({
+        profile: {
+          nameID: 'user-name-id-123',
+          inResponseTo: '_expected-request-id',
+          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'user@example.com',
+        },
+      });
+
+      const result = await samlService.validateAndParseResponse(
+        testSamlResponse,
+        testWorkspaceId,
+        testAcsUrl,
+        testSamlConfig,
+        '_expected-request-id'
+      );
+
+      expect(result.inResponseTo).toBe('_expected-request-id');
+    });
+
+    it('should handle email as array attribute', async () => {
+      mockSamlInstance.validatePostResponseAsync.mockResolvedValue({
+        profile: {
+          nameID: 'user-name-id-123',
+          /**
+           * Some IdPs return attributes as arrays
+           */
+          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': ['user@example.com', 'secondary@example.com'],
+        },
+      });
+
+      const result = await samlService.validateAndParseResponse(
+        testSamlResponse,
+        testWorkspaceId,
+        testAcsUrl,
+        testSamlConfig
+      );
+
+      /**
+       * Should use first email from array
+       */
+      expect(result.email).toBe('user@example.com');
+    });
   });
 });
-
