@@ -1,10 +1,10 @@
 const mongo = require('../mongo');
-const { ObjectID } = require('mongodb');
+const { ObjectId } = require('mongodb');
 
 /**
  * @typedef {Object} ProjectToWorkspaceSchema
- * @property {string|ObjectID} id - ProjectWorkspace ID
- * @property {string|ObjectID} projectId - project ID
+ * @property {string|ObjectId} id - ProjectWorkspace ID
+ * @property {string|ObjectId} projectId - project ID
  * @property {string} [projectUri] - project unique URI
  */
 
@@ -15,10 +15,10 @@ const { ObjectID } = require('mongodb');
 class ProjectToWorkspace {
   /**
    * Creates an instance of ProjectToWorkspace
-   * @param {string|ObjectID} workspaceId
+   * @param {string|ObjectId} workspaceId
    */
   constructor(workspaceId) {
-    this.workspaceId = new ObjectID(workspaceId);
+    this.workspaceId = new ObjectId(workspaceId);
     this.collection = mongo.databases.hawk.collection(
       'projects:' + workspaceId
     );
@@ -47,12 +47,12 @@ class ProjectToWorkspace {
   /**
    * Find projectWorkspace by ID
    *
-   * @param {string|ObjectID} projectWorkspaceId
+   * @param {string|ObjectId} projectWorkspaceId
    * @returns {Promise<null|ProjectToWorkspaceSchema>}
    */
   async findById(projectWorkspaceId) {
     const projectWorkspace = await this.collection.findOne({
-      _id: new ObjectID(projectWorkspaceId),
+      _id: new ObjectId(projectWorkspaceId),
     });
 
     if (!projectWorkspace) {
@@ -68,24 +68,19 @@ class ProjectToWorkspace {
   /**
    * Creates new projects:<workspace._id> document
    *
-   * @param {{projectId: ObjectID}} projectToWorkspaceData
-   * @returns {Promise<Object>}
+   * @param {{projectId: ObjectId}} projectToWorkspaceData
+   * @returns {Promise<boolean>}
    */
   async add(projectToWorkspaceData) {
-    const projectToWorkspace = await this.collection.insertOne(
-      projectToWorkspaceData
-    );
+    const projectToWorkspaceResult = await this.collection.insertOne(projectToWorkspaceData);
 
-    return {
-      id: projectToWorkspace.insertedId,
-      ...projectToWorkspace,
-    };
+    return projectToWorkspaceResult.acknowledged;
   }
 
   /**
    * Remove project from workspace
    *
-   * @param {ObjectID} projectId - project Id for removing
+   * @param {ObjectId} projectId - project Id for removing
    *
    * @return {Promise<void>}
    */
@@ -97,11 +92,11 @@ class ProjectToWorkspace {
    * Gets projects in workspace.
    * If ids were not passed, returns all projects in workspace.
    *
-   * @param {string[]|ObjectID[]} ids - project(s) id(s)
+   * @param {string[]|ObjectId[]} ids - project(s) id(s)
    * @returns {ProjectSchema[]}
    */
   async getProjects(ids = []) {
-    ids = ids.map(id => new ObjectID(id));
+    ids = ids.map(id => new ObjectId(id));
 
     const pipleine = [
       {

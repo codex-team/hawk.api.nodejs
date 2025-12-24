@@ -7,7 +7,7 @@ import ChartDataService from '../services/chartDataService';
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
 const Event = require('../models/event');
-const { ObjectID } = require('mongodb');
+const { ObjectId } = require('mongodb');
 const { composeEventPayloadByRepetition } = require('../utils/merge');
 
 const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
@@ -174,7 +174,7 @@ class EventsFactory extends Factory {
   /**
    * Find event by id
    *
-   * @param {string|ObjectID} id - event's id
+   * @param {string|ObjectId} id - event's id
    * @returns {Event|null}
    */
   async findById(id) {
@@ -282,7 +282,7 @@ class EventsFactory extends Factory {
               $and: [
                 { groupingTimestamp: paginationCursor.groupingTimestampBoundary },
                 { [sort]: paginationCursor.sortValueBoundary },
-                { _id: { $lte: new ObjectID(paginationCursor.idBoundary) } },
+                { _id: { $lte: new ObjectId(paginationCursor.idBoundary) } },
               ],
             },
           ],
@@ -654,7 +654,7 @@ class EventsFactory extends Factory {
   /**
    * Returns Event repetitions
    *
-   * @param {string|ObjectID} originalEventId - id of the original event
+   * @param {string|ObjectId} originalEventId - id of the original event
    * @param {Number} limit - count limitations
    * @param {Number} cursor - pointer to the next repetition
    *
@@ -663,7 +663,7 @@ class EventsFactory extends Factory {
   async getEventRepetitions(originalEventId, limit = 10, cursor = null) {
     limit = this.validateLimit(limit);
 
-    cursor = cursor ? new ObjectID(cursor) : null;
+    cursor = cursor ? new ObjectId(cursor) : null;
 
     const result = {
       repetitions: [],
@@ -766,7 +766,7 @@ class EventsFactory extends Factory {
      */
     const repetition = await this.getCollection(this.TYPES.REPETITIONS)
       .findOne({
-        _id: ObjectID(repetitionId),
+        _id: new ObjectId(repetitionId),
       });
 
     const originalEvent = await this.eventsDataLoader.load(originalEventId);
@@ -828,8 +828,8 @@ class EventsFactory extends Factory {
   async visitEvent(eventId, userId) {
     const result = await this.getCollection(this.TYPES.EVENTS)
       .updateOne(
-        { _id: new ObjectID(eventId) },
-        { $addToSet: { visitedBy: new ObjectID(userId) } }
+        { _id: new ObjectId(eventId) },
+        { $addToSet: { visitedBy: new ObjectId(userId) } }
       );
 
     if (result.matchedCount === 0) {
@@ -856,7 +856,7 @@ class EventsFactory extends Factory {
       throw new Error(`Event not found for eventId: ${eventId}`);
     }
 
-    const query = { _id: new ObjectID(event._id) };
+    const query = { _id: new ObjectId(event._id) };
 
     const markKey = `marks.${mark}`;
 
@@ -908,7 +908,7 @@ class EventsFactory extends Factory {
   async updateAssignee(eventId, assignee) {
     const collection = this.getCollection(this.TYPES.EVENTS);
 
-    const query = { _id: new ObjectID(eventId) };
+    const query = { _id: new ObjectId(eventId) };
 
     const update = {
       $set: { assignee: assignee },
