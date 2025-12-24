@@ -456,7 +456,7 @@ export default class UserModel extends AbstractModel<Omit<UserDBScheme, '_id'>> 
 
     await this.update(
       { _id: new ObjectId(this._id) },
-      { $set: updateData }
+      updateData
     );
 
     /**
@@ -470,26 +470,6 @@ export default class UserModel extends AbstractModel<Omit<UserDBScheme, '_id'>> 
     } else {
       this.identities[workspaceId].saml = { id: samlId, email };
     }
-  }
-
-  /**
-   * Find user by SAML identity
-   *
-   * @param collection - users collection
-   * @param workspaceId - workspace ID
-   * @param samlId - NameID value from IdP
-   * @returns UserModel or null if not found
-   */
-  public static async findBySamlIdentity(
-    collection: Collection<UserDBScheme>,
-    workspaceId: string,
-    samlId: string
-  ): Promise<UserModel | null> {
-    const userData = await collection.findOne({
-      [`identities.${workspaceId}.saml.id`]: samlId,
-    });
-
-    return userData ? new UserModel(userData) : null;
   }
 
   /**
