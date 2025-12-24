@@ -17,19 +17,19 @@ class VercelAIApi {
       /**
        * @todo make it dynamic, get from project settings
        */
-      this.modelId = 'gpt-4o';
+      this.modelId = 'deepseek/deepseek-v3.1';
     }
 
     /**
      * Generate AI suggestion for the event
      *
-     * @param {EventData<EventAddons>} payload - event data
+     * @param {EventData<EventAddons>} payload - event data to make suggestion
      * @returns {Promise<string>} AI suggestion for the event
      * @todo add defence against invalid prompt injection
      */
     public async generateSuggestion(payload: EventData<EventAddons>) {
       const { text } = await generateText({
-        model: openai(this.modelId),
+        model: this.modelId,
         system: ctoInstruction,
         prompt: eventSolvingInput(payload),
       });
