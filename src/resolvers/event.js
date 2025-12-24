@@ -131,9 +131,9 @@ module.exports = {
     async visitEvent(_obj, { projectId, eventId }, { user, ...context }) {
       const factory = getEventsFactory(context, projectId);
 
-      const { result } = await factory.visitEvent(eventId, user.id);
+      const result = await factory.visitEvent(eventId, user.id);
 
-      return !!result.ok;
+      return !!result.acknowledged;
     },
 
     /**
@@ -148,9 +148,9 @@ module.exports = {
     async toggleEventMark(_obj, { project, eventId, mark }, context) {
       const factory = getEventsFactory(context, project);
 
-      const { result } = await factory.toggleEventMark(eventId, mark);
+      const result = await factory.toggleEventMark(eventId, mark);
 
-      return !!result.ok;
+      return !!result.acknowledged;
     },
 
     /**
@@ -192,7 +192,7 @@ module.exports = {
         };
       }
 
-      const { result } = await factory.updateAssignee(eventId, assignee);
+      const result = await factory.updateAssignee(eventId, assignee);
 
       const assigneeData = await factories.usersFactory.dataLoaders.userById.load(assignee);
 
@@ -207,7 +207,7 @@ module.exports = {
       });
 
       return {
-        success: !!result.ok,
+        success: !!result.acknowledged,
         record: assigneeData,
       };
     },
@@ -224,10 +224,10 @@ module.exports = {
       const { projectId, eventId } = input;
       const factory = getEventsFactory(context, projectId);
 
-      const { result } = await factory.updateAssignee(eventId, '');
+      const result = await factory.updateAssignee(eventId, '');
 
       return {
-        success: !!result.ok,
+        success: !!result.acknowledged,
       };
     },
   },
