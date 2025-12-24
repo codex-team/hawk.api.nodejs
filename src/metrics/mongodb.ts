@@ -317,7 +317,11 @@ export function setupMongoMetrics(client: MongoClient): void {
         .observe(duration);
 
       // Track error
-      const errorCode = event.failure?.code?.toString() || 'unknown';
+      /**
+       * MongoDB failure objects may have additional properties like 'code'
+       * that aren't part of the standard Error type
+       */
+      const errorCode = (event.failure as any)?.code?.toString() || 'unknown';
 
       mongoCommandErrors
         .labels(metadata.commandName, errorCode)

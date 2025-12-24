@@ -393,11 +393,11 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
         },
       },
       {
-        returnOriginal: false,
+        returnDocument: 'after',
       }
     );
 
-    return result.value?.notifications.find(doc => doc._id.toString() === payload.ruleId) || null;
+    return result?.notifications.find((doc: any) => doc._id.toString() === payload.ruleId) || null;
   }
 
   /**
@@ -417,10 +417,10 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
         },
       },
       {
-        returnOriginal: false,
+        returnDocument: 'after',
       });
 
-    return result.value?.notifications.find(doc => doc._id.toString() === ruleId) || null;
+    return result?.notifications.find((doc: any) => doc._id.toString() === ruleId) || null;
   }
 
   /**
@@ -456,11 +456,11 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
         },
       },
       {
-        returnOriginal: false,
+        returnDocument: 'after',
       }
     );
 
-    return result.value?.notifications.find(doc => doc._id.toString() === ruleId) || null;
+    return result?.notifications.find((doc) => doc._id.toString() === ruleId) || null;
   }
 
   /**
@@ -476,16 +476,16 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
         {
           $set: projectData,
         },
-        { returnOriginal: false }
+        { returnDocument: 'after' }
       );
     } catch (e) {
       throw new Error('Can\'t update project');
     }
-    if (!result.value) {
+    if (!result) {
       throw new Error('There is no project with provided id');
     }
 
-    return result.value;
+    return result;
   }
 
   /**

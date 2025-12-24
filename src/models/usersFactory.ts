@@ -1,6 +1,6 @@
 import AbstractModelFactory from './abstactModelFactory';
 import UserModel from './user';
-import { Collection, Db } from 'mongodb';
+import { Collection, Db, OptionalId } from 'mongodb';
 import DataLoaders from '../dataLoaders';
 import { UserDBScheme } from '@hawk.so/types';
 import { Analytics, AnalyticsEventTypes } from '../utils/analytics';
@@ -8,11 +8,11 @@ import { Analytics, AnalyticsEventTypes } from '../utils/analytics';
 /**
  * Users factory to work with User Model
  */
-export default class UsersFactory extends AbstractModelFactory<UserDBScheme, UserModel> {
+export default class UsersFactory extends AbstractModelFactory<Omit<UserDBScheme, '_id'>, UserModel> {
   /**
    * DataBase collection to work with
    */
-  protected collection: Collection<UserDBScheme>;
+  protected collection: Collection<Omit<UserDBScheme, '_id'>>;
 
   /**
    * DataLoaders for fetching data from database
@@ -72,7 +72,7 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
     const generatedPassword = password || (await UserModel.generatePassword());
     const hashedPassword = await UserModel.hashPassword(generatedPassword);
 
-    const userData: Partial<UserDBScheme> = {
+    const userData: OptionalId<UserDBScheme> = {
       email,
       password: hashedPassword,
       notifications: UserModel.generateDefaultNotificationsSettings(email),
@@ -121,7 +121,7 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
       image,
     };
 
-    const userId = (await this.collection.insertOne(userData)).insertedId;
+    const userId = (await this.collection.insertOne(userData as any)).insertedId;
 
     return new UserModel({
       _id: userId,
@@ -145,8 +145,8 @@ export default class UsersFactory extends AbstractModelFactory<UserDBScheme, Use
    * @param email - user email
    */
   public async deleteByEmail(email: string): Promise<boolean> {
-    const { result } = await this.collection.deleteOne({ email: email });
+    const result = await this.collection.deleteOne({ email: email });
 
-    return !!result.ok;
+    return result.acknowledged;
   }
 }
