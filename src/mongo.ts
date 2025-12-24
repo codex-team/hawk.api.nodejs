@@ -54,10 +54,11 @@ export const mongoClients: MongoClients = {
 /**
  * Common params for all connections
  */
-const connectionConfig: MongoClientOptions = withMongoMetrics({
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+/**
+ * Common params for all connections
+ * Note: useNewUrlParser and useUnifiedTopology are deprecated in mongodb 6.x and removed
+ */
+const connectionConfig: MongoClientOptions = withMongoMetrics({});
 
 /**
  * Setups connections to the databases (hawk api and events databases)

@@ -16,6 +16,11 @@ module.exports = {
   preset: '@shelf/jest-mongodb',
 
   /**
+   * Setup file to provide global APIs needed by MongoDB driver
+   */
+  setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+
+  /**
    * TypeScript support
    */
   transform: {

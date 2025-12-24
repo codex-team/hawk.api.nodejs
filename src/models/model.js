@@ -1,9 +1,9 @@
 const mongodbDriver = require('mongodb');
-const ObjectID = mongodbDriver.ObjectID;
+const ObjectId = mongodbDriver.ObjectId;
 
 /**
  * @typedef {Object} BaseModel
- * @typedef {string|ObjectID} id - record id
+ * @typedef {string|ObjectId} id - record id
  */
 
 /**
@@ -44,7 +44,7 @@ class Model {
    */
   static async findById(id) {
     const searchResult = await this.collection.findOne({
-      _id: new ObjectID(id),
+      _id: new ObjectId(id),
     });
 
     return new this({
