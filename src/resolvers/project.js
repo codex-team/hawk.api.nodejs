@@ -417,14 +417,14 @@ module.exports = {
      * @returns {EventRepetitionSchema}
      */
     async event(project, { eventId: repetitionId, originalEventId }, context) {
-      const factory = getEventsFactory(context, project._id);
+      const factory = getEventsFactory(context, PROJECT_ID);
       const repetition = await factory.getEventRepetition(repetitionId, originalEventId);
 
       if (!repetition) {
         return null;
       }
 
-      repetition.projectId = project._id;
+      repetition.projectId = PROJECT_ID;
 
       return repetition;
     },
