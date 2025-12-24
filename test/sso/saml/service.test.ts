@@ -30,6 +30,7 @@ describe('SamlService', () => {
 
   const mockSamlInstance = {
     validatePostResponseAsync: jest.fn(),
+    getAuthorizeMessageAsync: jest.fn(),
   };
 
   beforeEach(() => {
@@ -47,14 +48,109 @@ describe('SamlService', () => {
   });
 
   describe('generateAuthnRequest', () => {
+    const testRelayState = 'test-relay-state-123';
+
     /**
-     * TODO: Add tests for:
-     * 1. Should generate valid AuthnRequest with correct structure
-     * 2. Should include correct ACS URL
-     * 3. Should include correct SP Entity ID
-     * 4. Should return unique request ID
-     * 5. Should return base64-encoded request
+     * Helper to create a mock SAML AuthnRequest (deflated + base64 encoded)
      */
+    function createMockEncodedRequest(requestId: string): string {
+      const zlib = require('zlib');
+      const xml = `<?xml version="1.0"?>
+        <samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
+          ID="${requestId}"
+          Version="2.0"
+          IssueInstant="2025-01-01T00:00:00Z"
+          Destination="https://idp.example.com/sso"
+          AssertionConsumerServiceURL="https://api.example.com/auth/sso/saml/507f1f77bcf86cd799439011/acs">
+          <saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">urn:hawk:tracker:saml</saml:Issuer>
+        </samlp:AuthnRequest>`;
+
+      const deflated = zlib.deflateRawSync(xml);
+
+      return deflated.toString('base64');
+    }
+
+    it('should generate AuthnRequest and return request ID', async () => {
+      const mockRequestId = '_test-request-id-12345';
+      const mockEncodedRequest = createMockEncodedRequest(mockRequestId);
+
+      mockSamlInstance.getAuthorizeMessageAsync.mockResolvedValue({
+        SAMLRequest: mockEncodedRequest,
+        RelayState: testRelayState,
+      });
+
+      const result = await samlService.generateAuthnRequest(
+        testWorkspaceId,
+        testAcsUrl,
+        testRelayState,
+        testSamlConfig
+      );
+
+      expect(result.requestId).toBe(mockRequestId);
+      expect(result.encodedRequest).toBe(mockEncodedRequest);
+    });
+
+    it('should call getAuthorizeMessageAsync with correct relay state', async () => {
+      const mockRequestId = '_another-request-id';
+      const mockEncodedRequest = createMockEncodedRequest(mockRequestId);
+
+      mockSamlInstance.getAuthorizeMessageAsync.mockResolvedValue({
+        SAMLRequest: mockEncodedRequest,
+      });
+
+      await samlService.generateAuthnRequest(
+        testWorkspaceId,
+        testAcsUrl,
+        testRelayState,
+        testSamlConfig
+      );
+
+      expect(mockSamlInstance.getAuthorizeMessageAsync).toHaveBeenCalledWith(
+        testRelayState,
+        undefined,
+        {}
+      );
+    });
+
+    it('should throw error when SAMLRequest is not returned', async () => {
+      mockSamlInstance.getAuthorizeMessageAsync.mockResolvedValue({
+        /**
+         * No SAMLRequest in response
+         */
+      });
+
+      await expect(
+        samlService.generateAuthnRequest(
+          testWorkspaceId,
+          testAcsUrl,
+          testRelayState,
+          testSamlConfig
+        )
+      ).rejects.toThrow('Failed to generate SAML AuthnRequest');
+    });
+
+    it('should throw error when request ID cannot be extracted', async () => {
+      const zlib = require('zlib');
+      /**
+       * Invalid XML without ID attribute
+       */
+      const invalidXml = '<invalid>no id here</invalid>';
+      const deflated = zlib.deflateRawSync(invalidXml);
+      const invalidEncodedRequest = deflated.toString('base64');
+
+      mockSamlInstance.getAuthorizeMessageAsync.mockResolvedValue({
+        SAMLRequest: invalidEncodedRequest,
+      });
+
+      await expect(
+        samlService.generateAuthnRequest(
+          testWorkspaceId,
+          testAcsUrl,
+          testRelayState,
+          testSamlConfig
+        )
+      ).rejects.toThrow('Failed to extract request ID from AuthnRequest');
+    });
   });
 
   describe('validateAndParseResponse', () => {

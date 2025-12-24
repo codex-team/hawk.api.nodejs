@@ -12,7 +12,7 @@ export default class SamlService {
    *
    * @param workspaceId - workspace ID
    * @param acsUrl - Assertion Consumer Service URL
-   * @param relayState - relay state to pass through
+   * @param relayState - context of user returning (url + relay state id)
    * @param samlConfig - SAML configuration
    * @returns AuthnRequest ID and encoded SAML request
    */
@@ -22,16 +22,59 @@ export default class SamlService {
     relayState: string,
     samlConfig: SamlConfig
   ): Promise<{ requestId: string; encodedRequest: string }> {
+    const saml = this.createSamlInstance(acsUrl, samlConfig);
+
     /**
-     * @todo Implement using @node-saml/node-saml
-     *
-     * This method should:
-     * 1. Generate unique AuthnRequest ID
-     * 2. Create SAML AuthnRequest XML
-     * 3. Encode it as base64
-     * 4. Return both requestId and encoded request
+     * Generate AuthnRequest message
+     * node-saml returns object with SAMLRequest (deflated + base64 encoded)
      */
-    throw new Error('Not implemented');
+    const authorizeMessage = await saml.getAuthorizeMessageAsync(relayState, undefined, {});
+
+    const encodedRequest = authorizeMessage.SAMLRequest as string;
+
+    if (!encodedRequest) {
+      throw new Error('Failed to generate SAML AuthnRequest');
+    }
+
+    /**
+     * Extract request ID from the generated request
+     * node-saml generates unique ID internally using generateUniqueId option
+     * We need to decode and parse to get the ID for InResponseTo validation
+     */
+    const requestId = this.extractRequestIdFromEncodedRequest(encodedRequest);
+
+    return {
+      requestId,
+      encodedRequest,
+    };
+  }
+
+  /**
+   * Extract request ID from encoded SAML AuthnRequest
+   *
+   * @param encodedRequest - deflated and base64 encoded SAML request
+   * @returns request ID
+   */
+  private extractRequestIdFromEncodedRequest(encodedRequest: string): string {
+    const zlib = require('zlib');
+
+    /**
+     * Decode base64 and inflate
+     */
+    const decoded = Buffer.from(encodedRequest, 'base64');
+    const inflated = zlib.inflateRawSync(decoded).toString('utf-8');
+
+    /**
+     * Extract ID attribute from AuthnRequest XML
+     * Format: <samlp:AuthnRequest ... ID="_abc123" ...>
+     */
+    const idMatch = inflated.match(/ID="([^"]+)"/);
+
+    if (!idMatch || !idMatch[1]) {
+      throw new Error('Failed to extract request ID from AuthnRequest');
+    }
+
+    return idMatch[1];
   }
 
   /**
