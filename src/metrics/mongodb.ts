@@ -260,6 +260,18 @@ function logCommandFailed(event: any): void {
  * @param client - MongoDB client to monitor
  */
 export function setupMongoMetrics(client: MongoClient): void {
+  /**
+   * Skip setup in test environment
+   * Check NODE_ENV or if running under Jest
+   */
+  if (
+    process.env.NODE_ENV === 'test' ||
+    process.env.NODE_ENV === 'e2e' ||
+    typeof jest !== 'undefined'
+  ) {
+    return;
+  }
+
   client.on('commandStarted', (event) => {
     storeCommandInfo(event);
 

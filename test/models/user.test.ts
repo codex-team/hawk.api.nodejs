@@ -3,6 +3,7 @@ import UserModel from '../../src/models/user';
 import UsersFactory from '../../src/models/usersFactory';
 import * as mongo from '../../src/mongo';
 import DataLoaders from '../../src/dataLoaders';
+import { generateTestString } from '../utils/testData';
 
 beforeAll(async () => {
   await mongo.setupConnections();
@@ -11,36 +12,30 @@ beforeAll(async () => {
 describe('UserModel SSO identities', () => {
   let usersFactory: UsersFactory;
   let testUser: UserModel;
-  const testWorkspaceId = '507f1f77bcf86cd799439011';
-  const testSamlId = 'test-saml-name-id-123';
-  const testEmail = 'test-sso@example.com';
 
   beforeEach(async () => {
     /**
-     * Create factory instance
+     * Create factory instance with fresh DataLoaders
      */
     usersFactory = new UsersFactory(
       mongo.databases.hawk as any,
       new DataLoaders(mongo.databases.hawk as any)
     );
-
-    /**
-     * Create test user
-     */
-    testUser = await usersFactory.create(testEmail, 'test-password-123');
   });
 
   afterEach(async () => {
-    /**
-     * Clean up test user
-     */
-    if (testUser && testUser.email) {
+    if (testUser?.email) {
       await usersFactory.deleteByEmail(testUser.email);
     }
   });
 
   describe('linkSamlIdentity', () => {
     it('should link SAML identity to user and update local state', async () => {
+      const testWorkspaceId = '507f1f77bcf86cd799439011';
+      const testSamlId = generateTestString('model-link');
+      const testEmail = generateTestString('model-test-sso@example.com');
+
+      testUser = await usersFactory.create(testEmail, 'test-password-123');
       /**
        * Initially, user should not have any identities
        */
@@ -63,6 +58,11 @@ describe('UserModel SSO identities', () => {
     });
 
     it('should persist SAML identity in database', async () => {
+      const testWorkspaceId = '507f1f77bcf86cd799439011';
+      const testSamlId = generateTestString('model-persist');
+      const testEmail = generateTestString('model-test-sso@example.com');
+
+      testUser = await usersFactory.create(testEmail, 'test-password-123');
       /**
        * Link SAML identity
        */
@@ -83,13 +83,21 @@ describe('UserModel SSO identities', () => {
     });
 
     it('should update existing SAML identity for the same workspace', async () => {
-      const newSamlId = 'updated-saml-name-id-789';
+      const testWorkspaceId = '507f1f77bcf86cd799439011';
+      const testEmail = generateTestString('model-test-sso@example.com');
+      testUser = await usersFactory.create(testEmail, 'test-password-123');
+
+      /**
+       * Use unique SAML IDs for this test
+       */
+      const initialSamlId = generateTestString('initial-identity');
+      const newSamlId = generateTestString('updated-identity');
       const newEmail = 'updated-email@example.com';
 
       /**
        * Link initial identity
        */
-      await testUser.linkSamlIdentity(testWorkspaceId, testSamlId, testEmail);
+      await testUser.linkSamlIdentity(testWorkspaceId, initialSamlId, testEmail);
 
       /**
        * Update identity for the same workspace
@@ -116,7 +124,10 @@ describe('UserModel SSO identities', () => {
   });
 
   describe('getSamlIdentity', () => {
-    it('should return null when identity does not exist', () => {
+    it('should return null when identity does not exist', async () => {
+      const testWorkspaceId = '507f1f77bcf86cd799439011';
+      const testEmail = generateTestString('model-test-sso@example.com');
+      testUser = await usersFactory.create(testEmail, 'test-password-123');
       /**
        * User without any identities
        */
@@ -125,6 +136,11 @@ describe('UserModel SSO identities', () => {
     });
 
     it('should return SAML identity when it exists', async () => {
+      const testWorkspaceId = '507f1f77bcf86cd799439011';
+      const testSamlId = generateTestString('model-get');
+      const testEmail = generateTestString('model-test-sso@example.com');
+
+      testUser = await usersFactory.create(testEmail, 'test-password-123');
       /**
        * Link SAML identity
        */
