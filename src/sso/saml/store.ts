@@ -1,18 +1,16 @@
-import { RelayStateData, AuthnRequestState } from './types';
+import { AuthnRequestState, RelayStateData } from './types';
 
 /**
  * In-memory store for SAML state
- * @todo Replace with Redis for production
+ *
+ * Stores temporary data needed for SAML authentication flow:
+ * - RelayState: maps state ID to return URL and workspace ID
+ * - AuthnRequests: maps request ID to workspace ID for InResponseTo validation
+ *
+ * @todo Replace with Redis for production (multi-instance support)
  */
 class SamlStateStore {
-  /**
-   * Map of relay state IDs to relay state data
-   */
   private relayStates: Map<string, RelayStateData> = new Map();
-
-  /**
-   * Map of AuthnRequest IDs to AuthnRequest state
-   */
   private authnRequests: Map<string, AuthnRequestState> = new Map();
 
   /**
@@ -21,7 +19,24 @@ class SamlStateStore {
   private readonly TTL = 5 * 60 * 1000;
 
   /**
-   * Save relay state
+   * Interval for cleanup of expired entries (1 minute)
+   */
+  private readonly CLEANUP_INTERVAL = 60 * 1000;
+
+  /**
+   * Cleanup timer reference
+   */
+  private cleanupTimer: NodeJS.Timeout | null = null;
+
+  constructor() {
+    this.startCleanupTimer();
+  }
+
+  /**
+   * Save RelayState data
+   *
+   * @param stateId - unique state identifier (usually UUID)
+   * @param data - relay state data (returnUrl, workspaceId)
    */
   public saveRelayState(stateId: string, data: { returnUrl: string; workspaceId: string }): void {
     this.relayStates.set(stateId, {
@@ -31,7 +46,10 @@ class SamlStateStore {
   }
 
   /**
-   * Get relay state by ID
+   * Get and consume RelayState data
+   *
+   * @param stateId - state identifier
+   * @returns relay state data or null if not found/expired
    */
   public getRelayState(stateId: string): { returnUrl: string; workspaceId: string } | null {
     const state = this.relayStates.get(stateId);
@@ -40,16 +58,28 @@ class SamlStateStore {
       return null;
     }
 
+    /**
+     * Check expiration
+     */
     if (Date.now() > state.expiresAt) {
       this.relayStates.delete(stateId);
+
       return null;
     }
+
+    /**
+     * Consume (delete after use to prevent replay)
+     */
+    this.relayStates.delete(stateId);
 
     return { returnUrl: state.returnUrl, workspaceId: state.workspaceId };
   }
 
   /**
-   * Save AuthnRequest state
+   * Save AuthnRequest for InResponseTo validation
+   *
+   * @param requestId - SAML AuthnRequest ID
+   * @param workspaceId - workspace ID
    */
   public saveAuthnRequest(requestId: string, workspaceId: string): void {
     this.authnRequests.set(requestId, {
@@ -60,58 +90,102 @@ class SamlStateStore {
 
   /**
    * Validate and consume AuthnRequest
-   * Returns true if request is valid and not expired, false otherwise
-   * Removes the request from storage after validation
+   *
+   * @param requestId - SAML AuthnRequest ID (from InResponseTo)
+   * @param workspaceId - expected workspace ID
+   * @returns true if request is valid and matches workspace
    */
   public validateAndConsumeAuthnRequest(requestId: string, workspaceId: string): boolean {
-    const state = this.authnRequests.get(requestId);
+    const request = this.authnRequests.get(requestId);
 
-    if (!state) {
-      return false;
-    }
-
-    if (Date.now() > state.expiresAt) {
-      this.authnRequests.delete(requestId);
-      return false;
-    }
-
-    if (state.workspaceId !== workspaceId) {
-      this.authnRequests.delete(requestId);
+    if (!request) {
       return false;
     }
 
     /**
-     * Remove request after successful validation (prevent replay attacks)
+     * Check expiration
+     */
+    if (Date.now() > request.expiresAt) {
+      this.authnRequests.delete(requestId);
+
+      return false;
+    }
+
+    /**
+     * Check workspace match
+     */
+    if (request.workspaceId !== workspaceId) {
+      return false;
+    }
+
+    /**
+     * Consume (delete after use to prevent replay attacks)
      */
     this.authnRequests.delete(requestId);
+
     return true;
   }
 
   /**
-   * Clean up expired entries (can be called periodically)
+   * Start periodic cleanup of expired entries
    */
-  public cleanup(): void {
-    const now = Date.now();
+  private startCleanupTimer(): void {
+    /**
+     * Don't start timer in test environment
+     */
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+
+    this.cleanupTimer = setInterval(() => {
+      this.cleanup();
+    }, this.CLEANUP_INTERVAL);
 
     /**
-     * Clean up expired relay states
+     * Don't prevent process from exiting
      */
-    for (const [id, state] of this.relayStates.entries()) {
-      if (now > state.expiresAt) {
-        this.relayStates.delete(id);
+    this.cleanupTimer.unref();
+  }
+
+  /**
+   * Clean up expired entries
+   */
+  private cleanup(): void {
+    const now = Date.now();
+
+    for (const [key, value] of this.relayStates) {
+      if (now > value.expiresAt) {
+        this.relayStates.delete(key);
       }
     }
 
-    /**
-     * Clean up expired AuthnRequests
-     */
-    for (const [id, state] of this.authnRequests.entries()) {
-      if (now > state.expiresAt) {
-        this.authnRequests.delete(id);
+    for (const [key, value] of this.authnRequests) {
+      if (now > value.expiresAt) {
+        this.authnRequests.delete(key);
       }
     }
   }
+
+  /**
+   * Stop cleanup timer (for testing)
+   */
+  public stopCleanupTimer(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+  }
+
+  /**
+   * Clear all stored state (for testing)
+   */
+  public clear(): void {
+    this.relayStates.clear();
+    this.authnRequests.clear();
+  }
 }
 
+/**
+ * Singleton instance
+ */
 export default new SamlStateStore();
-
