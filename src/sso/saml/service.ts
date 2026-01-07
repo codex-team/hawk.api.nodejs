@@ -10,6 +10,8 @@ export default class SamlService {
   /**
    * Generate SAML AuthnRequest
    *
+   * AuthnRequest - a SAML-message that Hawk sends to IdP to initiate auth process.
+   *
    * @param workspaceId - workspace ID
    * @param acsUrl - Assertion Consumer Service URL
    * @param relayState - context of user returning (url + relay state id)
