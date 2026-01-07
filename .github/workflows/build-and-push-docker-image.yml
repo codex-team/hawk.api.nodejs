@@ -48,11 +48,19 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
+      - name: Read Node.js version from .nvmrc
+        id: node_version
+        run: |
+          NODE_VERSION=$(cat api/.nvmrc | tr -d 'v')
+          echo "version=${NODE_VERSION}" >> $GITHUB_OUTPUT
+
       - name: Build and push image
         uses: docker/build-push-action@v3
         with:
-          context: .
-          file: docker/Dockerfile.prod
+          context: ./api
+          file: ./api/docker/Dockerfile.prod
+          build-args: |
+            NODE_VERSION=${{ steps.node_version.outputs.version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ github.ref == 'refs/heads/stage' || github.ref == 'refs/heads/prod' || startsWith(github.ref, 'refs/tags/v') }}

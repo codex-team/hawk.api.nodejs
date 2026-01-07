@@ -38,5 +38,13 @@ declare namespace NodeJS {
      * @example "urn:hawk:tracker:saml"
      */
     SSO_SP_ENTITY_ID: string;
+
+    /**
+     * Redis connection URL
+     * Used for caching and TimeSeries data
+     *
+     * @example "redis://redis:6379" (Docker) or "redis://localhost:6379" (local)
+     */
+    REDIS_URL?: string;
   }
 }
