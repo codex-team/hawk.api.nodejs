@@ -262,12 +262,10 @@ function logCommandFailed(event: any): void {
 export function setupMongoMetrics(client: MongoClient): void {
   /**
    * Skip setup in test environment
-   * Check NODE_ENV or if running under Jest
    */
   if (
     process.env.NODE_ENV === 'test' ||
-    process.env.NODE_ENV === 'e2e' ||
-    typeof jest !== 'undefined'
+    process.env.NODE_ENV === 'e2e'
   ) {
     return;
   }
