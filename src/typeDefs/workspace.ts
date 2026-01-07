@@ -299,12 +299,41 @@ export default gql`
     saml: SamlConfigInput!
   }
 
+  """
+  Workspace preview with basic public info
+  Contains only basic fields: id, name, image
+  Used for public-facing features like SSO login page
+  """
+  type WorkspacePreview {
+    """
+    Workspace ID
+    """
+    id: ID! @renameFrom(name: "_id")
+
+    """
+    Workspace name
+    """
+    name: String!
+
+    """
+    Workspace image/logo URL
+    """
+    image: String
+  }
+
   extend type Query {
     """
     Returns workspace(s) info
     If ids = [] returns all user's workspaces
     """
     workspaces("Workspace(s) id(s)" ids: [ID] = []): [Workspace]
+
+    """
+    Get workspace public info by ID for SSO login page
+    Returns only id, name, image if SSO is enabled for the workspace
+    Available without authentication
+    """
+    ssoWorkspace("Workspace ID" id: ID!): WorkspacePreview @allowAnon
   }
 
   extend type Mutation {

@@ -33,6 +33,35 @@ module.exports = {
 
       return factories.workspacesFactory.findManyByIds(await authenticatedUser.getWorkspacesIds(ids));
     },
+
+    /**
+     * Get workspace public info by ID for SSO login page
+     * Returns only id, name, image if SSO is enabled for the workspace
+     * Available without authentication (@allowAnon)
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
+     * @param {String} id - workspace ID
+     * @param {ContextFactories} factories - factories for working with models
+     * @return {Object|null} Workspace public info or null if workspace not found or SSO not enabled
+     */
+    async ssoWorkspace(_obj, { id }, { factories }) {
+      const workspace = await factories.workspacesFactory.findById(id);
+
+      /**
+       * Check if workspace exists and has SSO enabled
+       */
+      if (!workspace || !workspace.sso?.enabled) {
+        // return null;
+      }
+
+      /**
+       * Return only public fields: id, name, image
+       */
+      return {
+        _id: workspace._id,
+        name: workspace.name,
+        image: workspace.image || null,
+      };
+    },
   },
   Mutation: {
     /**
