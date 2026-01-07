@@ -440,7 +440,7 @@ describe('SamlController', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'SSO is not enabled',
+        error: 'SSO is not enabled for this workspace',
       });
     });
 
@@ -452,7 +452,7 @@ describe('SamlController', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'SSO is not enabled',
+        error: 'SSO is not enabled for this workspace',
       });
     });
 
