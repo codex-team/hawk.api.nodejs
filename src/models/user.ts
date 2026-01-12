@@ -302,8 +302,15 @@ export default class UserModel extends AbstractModel<Omit<UserDBScheme, '_id'>> 
 
   /**
    * Generates JWT
+   *
+   * @param isSsoEnforced - if true, use shorter token lifetime (2 days instead of 30)
    */
-  public async generateTokensPair(): Promise<TokensPair> {
+  public async generateTokensPair(isSsoEnforced = false): Promise<TokensPair> {
+    /**
+     * Use shorter refresh token expiry for SSO users to enforce re-authentication
+     */
+    const refreshTokenExpiry = isSsoEnforced ? '2d' : '30d';
+
     const accessToken = await jwt.sign(
       {
         userId: this._id,
@@ -317,7 +324,7 @@ export default class UserModel extends AbstractModel<Omit<UserDBScheme, '_id'>> 
         userId: this._id,
       },
       process.env.JWT_SECRET_REFRESH_TOKEN as Secret,
-      { expiresIn: '30d' }
+      { expiresIn: refreshTokenExpiry }
     );
 
     return {

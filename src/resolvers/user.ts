@@ -143,7 +143,15 @@ export default {
         throw new ApolloError('There is no users with that id');
       }
 
-      return user.generateTokensPair();
+      /**
+       * Check if user is member of any workspace with enforced SSO
+       * to use shorter token lifetime
+       */
+      const workspacesIds = await user.getWorkspacesIds([]);
+      const workspaces = await factories.workspacesFactory.findManyByIds(workspacesIds);
+      const hasEnforcedSso = workspaces.some(w => w.sso?.enabled && w.sso?.enforced);
+
+      return user.generateTokensPair(hasEnforcedSso);
     },
 
     /**

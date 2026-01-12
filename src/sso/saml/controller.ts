@@ -287,8 +287,9 @@ export default class SamlController {
 
       /**
        * 5. Create Hawk session
+       * Use shorter token lifetime for enforced SSO workspaces
        */
-      const tokens = await user.generateTokensPair();
+      const tokens = await user.generateTokensPair(workspace.sso?.enforced || false);
 
       /**
        * 6. Redirect to Garage with tokens
