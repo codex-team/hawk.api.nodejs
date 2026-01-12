@@ -7,6 +7,7 @@ import { ContextFactories } from '../../types/graphql';
 import { SamlResponseData } from '../types';
 import WorkspaceModel from '../../models/workspace';
 import UserModel from '../../models/user';
+import { sgr, Effect } from '../../utils/ansi';
 
 /**
  * Controller for SAML SSO endpoints
@@ -25,6 +26,26 @@ export default class SamlController {
   constructor(factories: ContextFactories) {
     this.samlService = new SamlService();
     this.factories = factories;
+  }
+
+  /**
+   * Log message with SSO prefix
+   *
+   * @param level - log level ('log', 'warn', 'error', 'info', 'success')
+   * @param args - arguments to log
+   */
+  private log(level: 'log' | 'warn' | 'error' | 'info' | 'success', ...args: unknown[]): void {
+    const colors = {
+      log: Effect.ForegroundGreen,
+      warn: Effect.ForegroundYellow,
+      error: Effect.ForegroundRed,
+      info: Effect.ForegroundBlue,
+      success: [Effect.ForegroundGreen, Effect.Bold],
+    };
+
+    const logger = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
+
+    logger(sgr('[SSO]', colors[level]), ...args);
   }
 
   /**
@@ -52,14 +73,16 @@ export default class SamlController {
    * Initiate SSO login (GET /auth/sso/saml/:workspaceId)
    */
   public async initiateLogin(req: express.Request, res: express.Response): Promise<void> {
+    const { workspaceId } = req.params;
+
     try {
-      const { workspaceId } = req.params;
       const returnUrl = (req.query.returnUrl as string) || `/workspace/${workspaceId}`;
 
       /**
        * Validate workspace ID format
        */
       if (!this.isValidWorkspaceId(workspaceId)) {
+        this.log('warn', 'Invalid workspace ID format:', sgr(workspaceId, Effect.ForegroundRed));
         res.status(400).json({ error: 'Invalid workspace ID' });
         return;
       }
@@ -70,6 +93,7 @@ export default class SamlController {
       const workspace = await this.factories.workspacesFactory.findById(workspaceId);
 
       if (!workspace || !workspace.sso?.enabled) {
+        this.log('warn', 'SSO not enabled for workspace:', sgr(workspaceId, Effect.ForegroundCyan));
         res.status(400).json({ error: 'SSO is not enabled for this workspace' });
         return;
       }
@@ -107,12 +131,23 @@ export default class SamlController {
       redirectUrl.searchParams.set('SAMLRequest', encodedRequest);
       redirectUrl.searchParams.set('RelayState', relayStateId);
 
+      this.log(
+        'log',
+        'Initiating SSO login for workspace:',
+        sgr(workspaceId, [Effect.ForegroundCyan, Effect.Bold]),
+        '| Request ID:',
+        sgr(requestId.slice(0, 8), Effect.ForegroundGray)
+      );
+
       res.redirect(redirectUrl.toString());
     } catch (error) {
-      console.error('SSO initiation error:', {
-        workspaceId: req.params.workspaceId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      this.log(
+        'error',
+        'SSO initiation error for workspace:',
+        sgr(workspaceId, Effect.ForegroundCyan),
+        '|',
+        sgr(error instanceof Error ? error.message : 'Unknown error', Effect.ForegroundRed)
+      );
       res.status(500).json({ error: 'Failed to initiate SSO login' });
     }
   }
@@ -121,8 +156,9 @@ export default class SamlController {
    * Handle ACS callback (POST /auth/sso/saml/:workspaceId/acs)
    */
   public async handleAcs(req: express.Request, res: express.Response): Promise<void> {
+    const { workspaceId } = req.params;
+
     try {
-      const { workspaceId } = req.params;
       const samlResponse = req.body.SAMLResponse as string;
       const relayStateId = req.body.RelayState as string;
 
@@ -130,6 +166,7 @@ export default class SamlController {
        * Validate workspace ID format
        */
       if (!this.isValidWorkspaceId(workspaceId)) {
+        this.log('warn', '[ACS] Invalid workspace ID format:', sgr(workspaceId, Effect.ForegroundRed));
         res.status(400).json({ error: 'Invalid workspace ID' });
         return;
       }
@@ -138,6 +175,7 @@ export default class SamlController {
        * Validate required SAML response
        */
       if (!samlResponse) {
+        this.log('warn', '[ACS] Missing SAML response for workspace:', sgr(workspaceId, Effect.ForegroundCyan));
         res.status(400).json({ error: 'SAML response is required' });
         return;
       }
@@ -148,6 +186,7 @@ export default class SamlController {
       const workspace = await this.factories.workspacesFactory.findById(workspaceId);
 
       if (!workspace || !workspace.sso?.enabled) {
+        this.log('warn', '[ACS] SSO not enabled for workspace:', sgr(workspaceId, Effect.ForegroundCyan));
         res.status(400).json({ error: 'SSO is not enabled for this workspace' });
         return;
       }
@@ -171,6 +210,14 @@ export default class SamlController {
           workspace.sso.saml
         );
 
+        this.log(
+          'log',
+          '[ACS] SAML response validated for workspace:',
+          sgr(workspaceId, Effect.ForegroundCyan),
+          '| User:',
+          sgr(samlData.email, [Effect.ForegroundMagenta, Effect.Bold])
+        );
+
         /**
          * Validate InResponseTo against stored AuthnRequest
          */
@@ -181,15 +228,25 @@ export default class SamlController {
           );
 
           if (!isValidRequest) {
+            this.log(
+              'error',
+              '[ACS] InResponseTo validation failed for workspace:',
+              sgr(workspaceId, Effect.ForegroundCyan),
+              '| Request ID:',
+              sgr(samlData.inResponseTo.slice(0, 8), Effect.ForegroundGray)
+            );
             res.status(400).json({ error: 'Invalid SAML response: InResponseTo validation failed' });
             return;
           }
         }
       } catch (error) {
-        console.error('SAML validation error:', {
-          workspaceId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        this.log(
+          'error',
+          '[ACS] SAML validation error for workspace:',
+          sgr(workspaceId, Effect.ForegroundCyan),
+          '|',
+          sgr(error instanceof Error ? error.message : 'Unknown error', Effect.ForegroundRed)
+        );
         res.status(400).json({ error: 'Invalid SAML response' });
         return;
       }
@@ -203,7 +260,22 @@ export default class SamlController {
         /**
          * JIT provisioning or invite-only policy
          */
+        this.log(
+          'info',
+          '[ACS] User not found, starting provisioning:',
+          sgr(samlData.email, Effect.ForegroundMagenta),
+          '| Workspace:',
+          sgr(workspaceId, Effect.ForegroundCyan)
+        );
         user = await this.handleUserProvisioning(workspaceId, samlData, workspace);
+      } else {
+        this.log(
+          'log',
+          '[ACS] Existing user found:',
+          sgr(samlData.email, Effect.ForegroundMagenta),
+          '| User ID:',
+          sgr(user._id.toString().slice(0, 8), Effect.ForegroundGray)
+        );
       }
 
       /**
@@ -225,24 +297,40 @@ export default class SamlController {
       frontendUrl.searchParams.set('access_token', tokens.accessToken);
       frontendUrl.searchParams.set('refresh_token', tokens.refreshToken);
 
+      this.log(
+        'success',
+        '[ACS] ✓ SSO login successful:',
+        sgr(samlData.email, [Effect.ForegroundMagenta, Effect.Bold]),
+        '| Workspace:',
+        sgr(workspaceId, Effect.ForegroundCyan),
+        '| Redirecting to:',
+        sgr(finalReturnUrl, Effect.ForegroundGray)
+      );
+
       res.redirect(frontendUrl.toString());
     } catch (error) {
       /**
        * Handle specific error types
        */
       if (error instanceof Error && error.message.includes('SAML')) {
-        console.error('SAML processing error:', {
-          workspaceId: req.params.workspaceId,
-          error: error.message,
-        });
+        this.log(
+          'error',
+          '[ACS] SAML processing error for workspace:',
+          sgr(workspaceId, Effect.ForegroundCyan),
+          '|',
+          sgr(error.message, Effect.ForegroundRed)
+        );
         res.status(400).json({ error: 'Invalid SAML response' });
         return;
       }
 
-      console.error('ACS callback error:', {
-        workspaceId: req.params.workspaceId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      this.log(
+        'error',
+        '[ACS] ACS callback error for workspace:',
+        sgr(workspaceId, Effect.ForegroundCyan),
+        '|',
+        sgr(error instanceof Error ? error.message : 'Unknown error', Effect.ForegroundRed)
+      );
       res.status(500).json({ error: 'Failed to process SSO callback' });
     }
   }
@@ -260,44 +348,99 @@ export default class SamlController {
     samlData: SamlResponseData,
     workspace: WorkspaceModel
   ): Promise<UserModel> {
-    /**
-     * Find user by email
-     */
-    let user = await this.factories.usersFactory.findByEmail(samlData.email);
-
-    if (!user) {
+    try {
       /**
-       * Create new user (JIT provisioning)
-       * Password is not set - only SSO login is allowed
+       * Find user by email
        */
-      user = await this.factories.usersFactory.create(samlData.email, undefined, undefined);
+      let user = await this.factories.usersFactory.findByEmail(samlData.email);
+
+      if (!user) {
+        /**
+         * Create new user (JIT provisioning)
+         * Password is not set - only SSO login is allowed
+         */
+        this.log(
+          'info',
+          '[Provisioning] Creating new user:',
+          sgr(samlData.email, [Effect.ForegroundMagenta, Effect.Bold]),
+          '| Workspace:',
+          sgr(workspaceId, Effect.ForegroundCyan)
+        );
+        user = await this.factories.usersFactory.create(samlData.email, undefined, undefined);
+      }
+
+      /**
+       * Link SAML identity to user
+       */
+      this.log(
+        'info',
+        '[Provisioning] Linking SAML identity for user:',
+        sgr(samlData.email, Effect.ForegroundMagenta),
+        '| NameID:',
+        sgr(samlData.nameId.slice(0, 16) + '...', Effect.ForegroundGray)
+      );
+      await user.linkSamlIdentity(workspaceId, samlData.nameId, samlData.email);
+
+      /**
+       * Check if user is a member of the workspace
+       */
+      const member = await workspace.getMemberInfo(user._id.toString());
+
+      if (!member) {
+        /**
+         * Add user to workspace (JIT provisioning)
+         */
+        this.log(
+          'log',
+          '[Provisioning] Adding user to workspace:',
+          sgr(samlData.email, Effect.ForegroundMagenta),
+          '| Workspace:',
+          sgr(workspaceId, Effect.ForegroundCyan)
+        );
+        await workspace.addMember(user._id.toString());
+        await user.addWorkspace(workspaceId);
+      } else if (WorkspaceModel.isPendingMember(member)) {
+        /**
+         * Confirm pending membership
+         */
+        this.log(
+          'log',
+          '[Provisioning] Confirming pending membership:',
+          sgr(samlData.email, Effect.ForegroundMagenta),
+          '| Workspace:',
+          sgr(workspaceId, Effect.ForegroundCyan)
+        );
+        await workspace.confirmMembership(user);
+        await user.confirmMembership(workspaceId);
+      } else {
+        this.log(
+          'log',
+          '[Provisioning] User already member of workspace:',
+          sgr(samlData.email, Effect.ForegroundMagenta)
+        );
+      }
+
+      this.log(
+        'success',
+        '[Provisioning] ✓ User provisioning completed:',
+        sgr(samlData.email, [Effect.ForegroundMagenta, Effect.Bold]),
+        '| User ID:',
+        sgr(user._id.toString(), Effect.ForegroundGray)
+      );
+
+      return user;
+    } catch (error) {
+      this.log(
+        'error',
+        '[Provisioning] Provisioning error for user:',
+        sgr(samlData.email, Effect.ForegroundMagenta),
+        '| Workspace:',
+        sgr(workspaceId, Effect.ForegroundCyan),
+        '|',
+        sgr(error instanceof Error ? error.message : 'Unknown error', Effect.ForegroundRed)
+      );
+      throw error;
     }
-
-    /**
-     * Link SAML identity to user
-     */
-    await user.linkSamlIdentity(workspaceId, samlData.nameId, samlData.email);
-
-    /**
-     * Check if user is a member of the workspace
-     */
-    const member = await workspace.getMemberInfo(user._id.toString());
-
-    if (!member) {
-      /**
-       * Add user to workspace (JIT provisioning)
-       */
-      await workspace.addMember(user._id.toString());
-      await user.addWorkspace(workspaceId);
-    } else if (WorkspaceModel.isPendingMember(member)) {
-      /**
-       * Confirm pending membership
-       */
-      await workspace.confirmMembership(user);
-      await user.confirmMembership(workspaceId);
-    }
-
-    return user;
   }
 }
 
