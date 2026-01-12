@@ -382,33 +382,34 @@ module.exports = {
       }
 
       /**
-       * Prepare update data
+       * Prepare SSO configuration
        * If enabled=false, preserve existing SSO config and only update enabled flag
        * If enabled=true, update full SSO configuration
        */
-      const updateData = {
-        ...workspace,
-        sso: config.enabled ? {
-          enabled: config.enabled,
-          enforced: config.enforced || false,
-          type: 'saml',
-          saml: {
-            idpEntityId: config.saml.idpEntityId,
-            ssoUrl: config.saml.ssoUrl,
-            x509Cert: config.saml.x509Cert,
-            nameIdFormat: config.saml.nameIdFormat,
-            attributeMapping: {
-              email: config.saml.attributeMapping.email,
-              name: config.saml.attributeMapping.name,
-            },
+      const ssoConfig = config.enabled ? {
+        enabled: config.enabled,
+        enforced: config.enforced || false,
+        type: 'saml',
+        saml: {
+          idpEntityId: config.saml.idpEntityId,
+          ssoUrl: config.saml.ssoUrl,
+          x509Cert: config.saml.x509Cert,
+          nameIdFormat: config.saml.nameIdFormat,
+          attributeMapping: {
+            email: config.saml.attributeMapping.email,
+            name: config.saml.attributeMapping.name,
           },
-        } : workspace.sso ? {
-          ...workspace.sso,
-          enabled: false,
-        } : undefined,
-      };
+        },
+      } : workspace.sso ? {
+        ...workspace.sso,
+        enabled: false,
+      } : undefined;
 
-      await workspace.updateWorkspace(updateData);
+      /**
+       * Update SSO configuration using model method
+       * This method handles the update correctly without touching other fields
+       */
+      await workspace.setSsoConfig(ssoConfig);
 
       return true;
     },

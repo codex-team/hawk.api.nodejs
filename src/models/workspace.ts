@@ -421,6 +421,25 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   }
 
   /**
+   * Update SSO configuration
+   * @param ssoConfig - SSO configuration to set (or undefined to remove)
+   */
+  public async setSsoConfig(ssoConfig: WorkspaceDBScheme['sso'] | undefined): Promise<void> {
+    this.sso = ssoConfig;
+
+    await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
+      {
+        $set: {
+          sso: this.sso,
+        },
+      }
+    );
+  }
+
+  /**
    * Due date of the current workspace tariff plan
    */
   public getTariffPlanDueDate(): Date {

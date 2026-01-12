@@ -98,6 +98,21 @@ export default {
         throw new AuthenticationError('Wrong email or password');
       }
 
+      /**
+       * Check if there is a workspace with enforced SSO
+       * If user is a member of any workspace with enforced SSO, they must use SSO login
+       */
+      const workspacesIds = await user.getWorkspacesIds([]);
+      const workspaces = await factories.workspacesFactory.findManyByIds(workspacesIds);
+
+      const enforcedWorkspace = workspaces.find(w => w.sso?.enabled && w.sso?.enforced);
+
+      if (enforcedWorkspace) {
+        throw new AuthenticationError(
+          'This workspace requires SSO login. Please use SSO to sign in.'
+        );
+      }
+
       return user.generateTokensPair();
     },
 
