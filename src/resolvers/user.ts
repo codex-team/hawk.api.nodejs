@@ -108,9 +108,19 @@ export default {
       const enforcedWorkspace = workspaces.find(w => w.sso?.enabled && w.sso?.enforced);
 
       if (enforcedWorkspace) {
-        throw new AuthenticationError(
-          'This workspace requires SSO login. Please use SSO to sign in.'
+        const error = new AuthenticationError(
+          'SSO_REQUIRED'
         );
+
+        /**
+         * Add workspace info to extensions for frontend
+         */
+        error.extensions = {
+          code: 'SSO_REQUIRED',
+          workspaceName: enforcedWorkspace.name,
+          workspaceId: enforcedWorkspace._id.toString(),
+        };
+        throw error;
       }
 
       return user.generateTokensPair();

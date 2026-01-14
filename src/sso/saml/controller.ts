@@ -112,6 +112,19 @@ export default class SamlController {
       /**
        * 4. Generate AuthnRequest
        */
+      const spEntityId = process.env.SSO_SP_ENTITY_ID || 'NOT_SET';
+
+      this.log(
+        'info',
+        'Generating SAML AuthnRequest:',
+        '| Workspace:',
+        sgr(workspaceId, Effect.ForegroundCyan),
+        '| SP Entity ID:',
+        sgr(spEntityId, [Effect.ForegroundMagenta, Effect.Bold]),
+        '| ACS URL:',
+        sgr(acsUrl, Effect.ForegroundGray)
+      );
+
       const { requestId, encodedRequest } = await this.samlService.generateAuthnRequest(
         workspaceId,
         acsUrl,
@@ -292,11 +305,14 @@ export default class SamlController {
       const tokens = await user.generateTokensPair(workspace.sso?.enforced || false);
 
       /**
-       * 6. Redirect to Garage with tokens
+       * 6. Redirect to Garage SSO callback page with tokens
+       * The SSO callback page will save tokens to store and redirect to finalReturnUrl
        */
-      const frontendUrl = new URL(finalReturnUrl, process.env.GARAGE_URL || 'http://localhost:3000');
+      const callbackPath = `/login/sso/${workspaceId}`;
+      const frontendUrl = new URL(callbackPath, process.env.GARAGE_URL || 'http://localhost:3000');
       frontendUrl.searchParams.set('access_token', tokens.accessToken);
       frontendUrl.searchParams.set('refresh_token', tokens.refreshToken);
+      frontendUrl.searchParams.set('returnUrl', finalReturnUrl);
 
       this.log(
         'success',
@@ -305,6 +321,8 @@ export default class SamlController {
         '| Workspace:',
         sgr(workspaceId, Effect.ForegroundCyan),
         '| Redirecting to:',
+        sgr(callbackPath, Effect.ForegroundGray),
+        '→',
         sgr(finalReturnUrl, Effect.ForegroundGray)
       );
 
