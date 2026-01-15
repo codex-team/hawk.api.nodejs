@@ -83,6 +83,11 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   public isDebug?: boolean;
 
   /**
+   * SSO configuration
+   */
+  public sso?: WorkspaceDBScheme['sso'];
+
+  /**
    * Model's collection
    */
   protected collection: Collection<WorkspaceDBScheme>;
@@ -410,6 +415,25 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
       {
         $set: {
           subscriptionId: this.subscriptionId,
+        },
+      }
+    );
+  }
+
+  /**
+   * Update SSO configuration
+   * @param ssoConfig - SSO configuration to set (or undefined to remove)
+   */
+  public async setSsoConfig(ssoConfig: WorkspaceDBScheme['sso'] | undefined): Promise<void> {
+    this.sso = ssoConfig;
+
+    await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
+      {
+        $set: {
+          sso: this.sso,
         },
       }
     );

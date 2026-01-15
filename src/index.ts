@@ -30,6 +30,7 @@ import { metricsMiddleware, createMetricsServer, graphqlMetricsPlugin } from './
 import { requestLogger } from './utils/logger';
 import ReleasesFactory from './models/releasesFactory';
 import RedisHelper from './redisHelper';
+import { appendSsoRoutes } from './sso';
 
 /**
  * Option to enable playground
@@ -245,6 +246,22 @@ class HawkAPI {
     const redis = RedisHelper.getInstance();
 
     await redis.initialize();
+
+    /**
+     * Setup shared factories for SSO routes
+     * SSO endpoints don't require per-request DataLoaders isolation,
+     * so we can reuse the same factories instance
+     * Created here to avoid duplication with createContext
+     */
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const ssoDataLoaders = new DataLoaders(mongo.databases.hawk!);
+    const ssoFactories = HawkAPI.setupFactories(ssoDataLoaders);
+
+    /**
+     * Append SSO routes to Express app using shared factories
+     * Note: This must be called after database connections are established
+     */
+    appendSsoRoutes(this.app, ssoFactories);
 
     await this.server.start();
     this.app.use(graphqlUploadExpress());
