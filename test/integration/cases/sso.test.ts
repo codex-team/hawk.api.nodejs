@@ -7,7 +7,7 @@ import {
   createTestWorkspace,
   createTestUser,
   cleanupWorkspace,
-  cleanupUser,
+  cleanupUser
 } from '../utils';
 import { ObjectId } from 'mongodb';
 
@@ -34,7 +34,7 @@ describe('SSO Integration Tests', () => {
      * Get Keycloak SAML configuration
      */
     keycloakConfig = await getKeycloakSamlConfig();
-   }, 60000);
+  }, 60000);
 
   /**
    * Create test workspace before each test
@@ -184,7 +184,6 @@ describe('SSO Integration Tests', () => {
   });
 
   describe('ACS (Assertion Consumer Service)', () => {
-
     /**
      * This test requires full E2E flow with browser automation
      *
@@ -197,8 +196,7 @@ describe('SSO Integration Tests', () => {
      * 7. Verify user was logged in
      * 8. Verify user was redirected to the correct return URL with tokens
      */
-    test.todo('Should process valid SAML Response and create user session', async () => {
-    });
+    test.todo('Should process valid SAML Response and create user session');
 
     test('Should reject invalid SAML Response', async () => {
       /**
@@ -249,7 +247,7 @@ describe('SSO Integration Tests', () => {
       await createTestUser({
         email: testUser.email,
         name: testUser.firstName,
-        workspaces: [testWorkspaceId],
+        workspaces: [ testWorkspaceId ],
       });
 
       /**
@@ -352,7 +350,7 @@ describe('SSO Integration Tests', () => {
         email: testUser.email,
         password: testUser.password,
         name: testUser.firstName,
-        workspaces: [enforcedWorkspace],
+        workspaces: [ enforcedWorkspace ],
       });
 
       /**
