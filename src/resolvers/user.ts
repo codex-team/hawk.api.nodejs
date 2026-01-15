@@ -94,13 +94,15 @@ export default {
     ): Promise<TokensPair> {
       const user = await factories.usersFactory.findByEmail(email);
 
-      if (!user || !(await user.comparePassword(password))) {
+      if (!user) {
         throw new AuthenticationError('Wrong email or password');
       }
 
       /**
        * Check if there is a workspace with enforced SSO
        * If user is a member of any workspace with enforced SSO, they must use SSO login
+       * This check must happen BEFORE password validation to prevent password-based login
+       * even if the password is correct
        */
       const workspacesIds = await user.getWorkspacesIds([]);
       const workspaces = await factories.workspacesFactory.findManyByIds(workspacesIds);
@@ -121,6 +123,13 @@ export default {
           workspaceId: enforcedWorkspace._id.toString(),
         };
         throw error;
+      }
+
+      /**
+       * Only validate password if SSO is not enforced
+       */
+      if (!(await user.comparePassword(password))) {
+        throw new AuthenticationError('Wrong email or password');
       }
 
       return user.generateTokensPair();

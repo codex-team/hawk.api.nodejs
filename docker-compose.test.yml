@@ -11,9 +11,11 @@ services:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
       - ./test/integration/api.env:/usr/src/app/.env
+      - ../keycloak:/keycloak:ro
     depends_on:
       - mongodb
       - rabbitmq
+      - keycloak
       # - accounting
     stdin_open: true
     tty: true
@@ -32,10 +34,20 @@ services:
         condition: service_healthy
       api:
         condition: service_started
-    command: dockerize -wait http://api:4000/.well-known/apollo/server-health -timeout 30s yarn jest --config=./test/integration/jest.config.js --runInBand test/integration
+      keycloak:
+        condition: service_healthy
+    environment:
+      - KEYCLOAK_URL=http://keycloak:8180
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        dockerize -wait http://api:4000/.well-known/apollo/server-health -timeout 30s -wait http://keycloak:8180/health/ready -timeout 60s &&
+        /keycloak/setup.sh &&
+        yarn jest --config=./test/integration/jest.config.js --runInBand test/integration
     volumes:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
+      - ../keycloak:/keycloak:ro
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -52,6 +64,29 @@ services:
       timeout: 3s
       retries: 5
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_HTTP_PORT=8180
+      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME_STRICT_HTTPS=false
+      - KC_HTTP_ENABLED=true
+      - KC_HEALTH_ENABLED=true
+    ports:
+      - 8180:8180
+    command:
+      - start-dev
+    volumes:
+      - keycloak-test-data:/opt/keycloak/data
+      - ../keycloak:/opt/keycloak/config
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8180;echo -e 'GET /health/ready HTTP/1.1\r\nhost: http://localhost\r\nConnection: close\r\n\r\n' >&3;if [ $? -eq 0 ]; then echo 'Healthcheck Successful';exit 0;else echo 'Healthcheck Failed';exit 1;fi;"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   # accounting:
   #   image: codexteamuser/codex-accounting:prod
   #   env_file:
@@ -61,3 +96,4 @@ services:
 
 volumes:
   mongodata-test:
+  keycloak-test-data:
