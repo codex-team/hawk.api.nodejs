@@ -49,7 +49,7 @@ module.exports = {
       /**
        * Check if workspace exists and has SSO enabled
        */
-      if (!workspace || !workspace.sso?.enabled) {
+      if (!workspace || !(workspace.sso && workspace.sso.enabled)) {
         return null;
       }
 

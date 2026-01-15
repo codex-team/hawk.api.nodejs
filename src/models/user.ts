@@ -473,9 +473,17 @@ export default class UserModel extends AbstractModel<Omit<UserDBScheme, '_id'>> 
       this.identities = {};
     }
     if (!this.identities[workspaceId]) {
-      this.identities[workspaceId] = { saml: { id: samlId, email } };
+      this.identities[workspaceId] = {
+        saml: {
+          id: samlId,
+          email,
+        },
+      };
     } else {
-      this.identities[workspaceId].saml = { id: samlId, email };
+      this.identities[workspaceId].saml = {
+        id: samlId,
+        email,
+      };
     }
   }
 

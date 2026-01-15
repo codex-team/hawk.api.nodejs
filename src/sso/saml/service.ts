@@ -1,4 +1,5 @@
 import { SAML, SamlConfig as NodeSamlConfig, Profile } from '@node-saml/node-saml';
+import { inflateRawSync } from 'zlib';
 import { SamlConfig, SamlResponseData } from '../types';
 import { SamlValidationError, SamlValidationErrorType } from './types';
 import { extractAttribute } from './utils';
@@ -49,34 +50,6 @@ export default class SamlService {
       requestId,
       encodedRequest,
     };
-  }
-
-  /**
-   * Extract request ID from encoded SAML AuthnRequest
-   *
-   * @param encodedRequest - deflated and base64 encoded SAML request
-   * @returns request ID
-   */
-  private extractRequestIdFromEncodedRequest(encodedRequest: string): string {
-    const zlib = require('zlib');
-
-    /**
-     * Decode base64 and inflate
-     */
-    const decoded = Buffer.from(encodedRequest, 'base64');
-    const inflated = zlib.inflateRawSync(decoded).toString('utf-8');
-
-    /**
-     * Extract ID attribute from AuthnRequest XML
-     * Format: <samlp:AuthnRequest ... ID="_abc123" ...>
-     */
-    const idMatch = inflated.match(/ID="([^"]+)"/);
-
-    if (!idMatch || !idMatch[1]) {
-      throw new Error('Failed to extract request ID from AuthnRequest');
-    }
-
-    return idMatch[1];
   }
 
   /**
@@ -179,7 +152,10 @@ export default class SamlService {
       throw new SamlValidationError(
         SamlValidationErrorType.INVALID_IN_RESPONSE_TO,
         `InResponseTo mismatch: expected ${expectedRequestId}, got ${inResponseTo}`,
-        { expected: expectedRequestId, received: inResponseTo }
+        {
+          expected: expectedRequestId,
+          received: inResponseTo,
+        }
       );
     }
 
@@ -220,13 +196,39 @@ export default class SamlService {
   }
 
   /**
+   * Extract request ID from encoded SAML AuthnRequest
+   *
+   * @param encodedRequest - deflated and base64 encoded SAML request
+   * @returns request ID
+   */
+  private extractRequestIdFromEncodedRequest(encodedRequest: string): string {
+    /**
+     * Decode base64 and inflate
+     */
+    const decoded = Buffer.from(encodedRequest, 'base64');
+    const inflated = inflateRawSync(decoded as unknown as Uint8Array).toString('utf-8');
+
+    /**
+     * Extract ID attribute from AuthnRequest XML
+     * Format: <samlp:AuthnRequest ... ID="_abc123" ...>
+     */
+    const idMatch = inflated.match(/ID="([^"]+)"/);
+
+    if (!idMatch || !idMatch[1]) {
+      throw new Error('Failed to extract request ID from AuthnRequest');
+    }
+
+    return idMatch[1];
+  }
+
+  /**
    * Create node-saml SAML instance with given configuration
    *
    * @param acsUrl - Assertion Consumer Service URL
    * @param samlConfig - SAML configuration from workspace
    * @returns configured SAML instance
    */
-   private createSamlInstance(acsUrl: string, samlConfig: SamlConfig): SAML {
+  private createSamlInstance(acsUrl: string, samlConfig: SamlConfig): SAML {
     const spEntityId = process.env.SSO_SP_ENTITY_ID;
 
     if (!spEntityId) {
@@ -254,4 +256,3 @@ export default class SamlService {
     return new SAML(options);
   }
 }
-

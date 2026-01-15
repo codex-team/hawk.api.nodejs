@@ -10,6 +10,6 @@ import { ContextFactories } from '../types/graphql';
  */
 export function appendSsoRoutes(app: express.Application, factories: ContextFactories): void {
   const samlRouter = createSamlRouter(factories);
+
   app.use('/auth/sso/saml', samlRouter);
 }
-

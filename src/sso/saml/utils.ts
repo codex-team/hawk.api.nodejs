@@ -22,4 +22,3 @@ export function extractAttribute(attributes: Record<string, string | string[]>, 
 
   return undefined;
 }
-

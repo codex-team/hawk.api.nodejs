@@ -8,7 +8,6 @@ import {
   createTestUser,
   cleanupWorkspace,
   cleanupUser,
-  getUserByEmail,
 } from '../utils';
 import { ObjectId } from 'mongodb';
 

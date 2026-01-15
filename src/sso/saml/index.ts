@@ -38,4 +38,3 @@ export function createSamlRouter(factories: ContextFactories): express.Router {
 
   return router;
 }
-

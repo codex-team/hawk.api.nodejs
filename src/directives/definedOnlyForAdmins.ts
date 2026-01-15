@@ -1,7 +1,6 @@
 import { defaultFieldResolver, GraphQLSchema } from 'graphql';
 import { mapSchema, MapperKind, getDirective } from '@graphql-tools/utils';
 import { ResolverContextWithUser, UnknownGraphQLResolverResult } from '../types/graphql';
-import { ForbiddenError, UserInputError } from 'apollo-server-express';
 import WorkspaceModel from '../models/workspace';
 
 /**
@@ -98,4 +97,3 @@ export default function definedOnlyForAdminsDirective(directiveName = 'definedOn
       }),
   };
 }
-

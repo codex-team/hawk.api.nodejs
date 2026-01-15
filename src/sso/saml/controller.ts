@@ -23,54 +23,19 @@ export default class SamlController {
    */
   private factories: ContextFactories;
 
+  /**
+   * SAML controller constructor used for DI
+   * @param factories - for working with models
+   */
   constructor(factories: ContextFactories) {
     this.samlService = new SamlService();
     this.factories = factories;
   }
 
   /**
-   * Log message with SSO prefix
-   *
-   * @param level - log level ('log', 'warn', 'error', 'info', 'success')
-   * @param args - arguments to log
-   */
-  private log(level: 'log' | 'warn' | 'error' | 'info' | 'success', ...args: unknown[]): void {
-    const colors = {
-      log: Effect.ForegroundGreen,
-      warn: Effect.ForegroundYellow,
-      error: Effect.ForegroundRed,
-      info: Effect.ForegroundBlue,
-      success: [Effect.ForegroundGreen, Effect.Bold],
-    };
-
-    const logger = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
-
-    logger(sgr('[SSO]', colors[level]), ...args);
-  }
-
-  /**
-   * Validate workspace ID format
-   *
-   * @param workspaceId - workspace ID to validate
-   * @returns true if valid, false otherwise
-   */
-  private isValidWorkspaceId(workspaceId: string): boolean {
-    return ObjectId.isValid(workspaceId);
-  }
-
-  /**
-   * Compose Assertion Consumer Service URL for workspace
-   *
-   * @param workspaceId - workspace ID
-   * @returns ACS URL
-   */
-  private getAcsUrl(workspaceId: string): string {
-    const apiUrl = process.env.API_URL || 'https://api.hawk.so';
-    return `${apiUrl}/auth/sso/saml/${workspaceId}/acs`;
-  }
-
-  /**
    * Initiate SSO login (GET /auth/sso/saml/:workspaceId)
+   * @param req - Express request
+   * @param res - Express response
    */
   public async initiateLogin(req: express.Request, res: express.Response): Promise<void> {
     const { workspaceId } = req.params;
@@ -84,6 +49,7 @@ export default class SamlController {
       if (!this.isValidWorkspaceId(workspaceId)) {
         this.log('warn', 'Invalid workspace ID format:', sgr(workspaceId, Effect.ForegroundRed));
         res.status(400).json({ error: 'Invalid workspace ID' });
+
         return;
       }
 
@@ -95,6 +61,7 @@ export default class SamlController {
       if (!workspace || !workspace.sso?.enabled) {
         this.log('warn', 'SSO not enabled for workspace:', sgr(workspaceId, Effect.ForegroundCyan));
         res.status(400).json({ error: 'SSO is not enabled for this workspace' });
+
         return;
       }
 
@@ -107,7 +74,10 @@ export default class SamlController {
       /**
        * 3. Save RelayState to temporary storage
        */
-      samlStore.saveRelayState(relayStateId, { returnUrl, workspaceId });
+      samlStore.saveRelayState(relayStateId, {
+        returnUrl,
+        workspaceId,
+      });
 
       /**
        * 4. Generate AuthnRequest
@@ -141,6 +111,7 @@ export default class SamlController {
        * 6. Redirect to IdP
        */
       const redirectUrl = new URL(workspace.sso.saml.ssoUrl);
+
       redirectUrl.searchParams.set('SAMLRequest', encodedRequest);
       redirectUrl.searchParams.set('RelayState', relayStateId);
 
@@ -167,6 +138,9 @@ export default class SamlController {
 
   /**
    * Handle ACS callback (POST /auth/sso/saml/:workspaceId/acs)
+   * @param req - Express request object
+   * @param res - Express response object
+   * @returns void
    */
   public async handleAcs(req: express.Request, res: express.Response): Promise<void> {
     const { workspaceId } = req.params;
@@ -181,6 +155,7 @@ export default class SamlController {
       if (!this.isValidWorkspaceId(workspaceId)) {
         this.log('warn', '[ACS] Invalid workspace ID format:', sgr(workspaceId, Effect.ForegroundRed));
         res.status(400).json({ error: 'Invalid workspace ID' });
+
         return;
       }
 
@@ -190,6 +165,7 @@ export default class SamlController {
       if (!samlResponse) {
         this.log('warn', '[ACS] Missing SAML response for workspace:', sgr(workspaceId, Effect.ForegroundCyan));
         res.status(400).json({ error: 'SAML response is required' });
+
         return;
       }
 
@@ -201,6 +177,7 @@ export default class SamlController {
       if (!workspace || !workspace.sso?.enabled) {
         this.log('warn', '[ACS] SSO not enabled for workspace:', sgr(workspaceId, Effect.ForegroundCyan));
         res.status(400).json({ error: 'SSO is not enabled for this workspace' });
+
         return;
       }
 
@@ -249,6 +226,7 @@ export default class SamlController {
               sgr(samlData.inResponseTo.slice(0, 8), Effect.ForegroundGray)
             );
             res.status(400).json({ error: 'Invalid SAML response: InResponseTo validation failed' });
+
             return;
           }
         }
@@ -261,6 +239,7 @@ export default class SamlController {
           sgr(error instanceof Error ? error.message : 'Unknown error', Effect.ForegroundRed)
         );
         res.status(400).json({ error: 'Invalid SAML response' });
+
         return;
       }
 
@@ -310,6 +289,7 @@ export default class SamlController {
        */
       const callbackPath = `/login/sso/${workspaceId}`;
       const frontendUrl = new URL(callbackPath, process.env.GARAGE_URL || 'http://localhost:3000');
+
       frontendUrl.searchParams.set('access_token', tokens.accessToken);
       frontendUrl.searchParams.set('refresh_token', tokens.refreshToken);
       frontendUrl.searchParams.set('returnUrl', finalReturnUrl);
@@ -340,6 +320,7 @@ export default class SamlController {
           sgr(error.message, Effect.ForegroundRed)
         );
         res.status(400).json({ error: 'Invalid SAML response' });
+
         return;
       }
 
@@ -352,6 +333,56 @@ export default class SamlController {
       );
       res.status(500).json({ error: 'Failed to process SSO callback' });
     }
+  }
+
+  /**
+   * Log message with SSO prefix
+   *
+   * @param level - log level ('log', 'warn', 'error', 'info', 'success')
+   * @param args - arguments to log
+   */
+  private log(level: 'log' | 'warn' | 'error' | 'info' | 'success', ...args: unknown[]): void {
+    const colors = {
+      log: Effect.ForegroundGreen,
+      warn: Effect.ForegroundYellow,
+      error: Effect.ForegroundRed,
+      info: Effect.ForegroundBlue,
+      success: [Effect.ForegroundGreen, Effect.Bold],
+    };
+
+    let logger: typeof console.log;
+
+    if (level === 'error') {
+      logger = console.error;
+    } else if (level === 'warn') {
+      logger = console.warn;
+    } else {
+      logger = console.log;
+    }
+
+    logger(sgr('[SSO]', colors[level]), ...args);
+  }
+
+  /**
+   * Validate workspace ID format
+   *
+   * @param workspaceId - workspace ID to validate
+   * @returns true if valid, false otherwise
+   */
+  private isValidWorkspaceId(workspaceId: string): boolean {
+    return ObjectId.isValid(workspaceId);
+  }
+
+  /**
+   * Compose Assertion Consumer Service URL for workspace
+   *
+   * @param workspaceId - workspace ID
+   * @returns ACS URL
+   */
+  private getAcsUrl(workspaceId: string): string {
+    const apiUrl = process.env.API_URL || 'https://api.hawk.so';
+
+    return `${apiUrl}/auth/sso/saml/${workspaceId}/acs`;
   }
 
   /**
@@ -462,4 +493,3 @@ export default class SamlController {
     }
   }
 }
-

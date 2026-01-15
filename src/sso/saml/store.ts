@@ -28,6 +28,9 @@ class SamlStateStore {
    */
   private cleanupTimer: NodeJS.Timeout | null = null;
 
+  /**
+   * Store constructor
+   */
   constructor() {
     this.startCleanupTimer();
   }
@@ -72,7 +75,10 @@ class SamlStateStore {
      */
     this.relayStates.delete(stateId);
 
-    return { returnUrl: state.returnUrl, workspaceId: state.workspaceId };
+    return {
+      returnUrl: state.returnUrl,
+      workspaceId: state.workspaceId,
+    };
   }
 
   /**
@@ -127,6 +133,24 @@ class SamlStateStore {
   }
 
   /**
+   * Stop cleanup timer (for testing)
+   */
+  public stopCleanupTimer(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+  }
+
+  /**
+   * Clear all stored state (for testing)
+   */
+  public clear(): void {
+    this.relayStates.clear();
+    this.authnRequests.clear();
+  }
+
+  /**
    * Start periodic cleanup of expired entries
    */
   private startCleanupTimer(): void {
@@ -164,24 +188,6 @@ class SamlStateStore {
         this.authnRequests.delete(key);
       }
     }
-  }
-
-  /**
-   * Stop cleanup timer (for testing)
-   */
-  public stopCleanupTimer(): void {
-    if (this.cleanupTimer) {
-      clearInterval(this.cleanupTimer);
-      this.cleanupTimer = null;
-    }
-  }
-
-  /**
-   * Clear all stored state (for testing)
-   */
-  public clear(): void {
-    this.relayStates.clear();
-    this.authnRequests.clear();
   }
 }
 

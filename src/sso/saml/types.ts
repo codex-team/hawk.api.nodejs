@@ -35,6 +35,12 @@ export class SamlValidationError extends Error {
    */
   public readonly context?: Record<string, unknown>;
 
+  /**
+   * Error construcor
+   * @param type - error kind, see SamlValidationErrorType
+   * @param message - string message
+   * @param context - additional data
+   */
   constructor(type: SamlValidationErrorType, message: string, context?: Record<string, unknown>) {
     super(message);
     this.name = 'SamlValidationError';
@@ -77,4 +83,3 @@ export interface RelayStateData {
    */
   expiresAt: number;
 }
-

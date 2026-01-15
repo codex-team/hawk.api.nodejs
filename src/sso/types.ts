@@ -4,7 +4,7 @@
 export type {
   SamlAttributeMapping,
   SamlConfig,
-  WorkspaceSsoConfig,
+  WorkspaceSsoConfig
 } from '@hawk.so/types';
 
 /**
@@ -33,4 +33,3 @@ export interface SamlResponseData {
    */
   inResponseTo?: string;
 }
-
