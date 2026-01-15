@@ -413,6 +413,13 @@ export default class SamlController {
    * @param args - arguments to log
    */
   private log(level: 'log' | 'warn' | 'error' | 'info' | 'success', ...args: unknown[]): void {
+    /**
+     * Disable logging in test environment
+     */
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+
     const colors = {
       log: Effect.ForegroundGreen,
       warn: Effect.ForegroundYellow,

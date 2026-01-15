@@ -6,20 +6,15 @@ import { ContextFactories } from '../../../src/types/graphql';
 import { WorkspaceSsoConfig } from '../../../src/sso/types';
 import { WorkspaceDBScheme, UserDBScheme } from '@hawk.so/types';
 import SamlService from '../../../src/sso/saml/service';
-import samlStore from '../../../src/sso/saml/store';
+import { MemorySamlStateStore } from '../../../src/sso/saml/store/memory.store';
 import * as mongo from '../../../src/mongo';
+import WorkspaceModel from '../../../src/models/workspace';
+import UserModel from '../../../src/models/user';
 
 /**
  * Mock dependencies
  */
 jest.mock('../../../src/sso/saml/service');
-
-/**
- * Import models AFTER mongo setup to ensure databases.hawk is initialized
- * This must be done after beforeAll sets up connections
- */
-import WorkspaceModel from '../../../src/models/workspace';
-import UserModel from '../../../src/models/user';
 
 beforeAll(async () => {
   /**
@@ -55,6 +50,7 @@ describe('SamlController', () => {
   let mockSamlService: jest.Mocked<SamlService>;
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
+  let samlStore: MemorySamlStateStore;
 
   const testWorkspaceId = new ObjectId().toString();
   const testUserId = new ObjectId().toString();
@@ -140,6 +136,11 @@ describe('SamlController', () => {
      * Clear all mocks
      */
     jest.clearAllMocks();
+
+    /**
+     * Create fresh store instance for each test
+     */
+    samlStore = new MemorySamlStateStore();
     samlStore.clear();
 
     /**
@@ -182,9 +183,9 @@ describe('SamlController', () => {
     (SamlService as jest.Mock).mockImplementation(() => mockSamlService);
 
     /**
-     * Create controller
+     * Create controller with store
      */
-    controller = new SamlController(mockFactories);
+    controller = new SamlController(mockFactories, samlStore);
 
     /**
      * Mock Express Request
@@ -264,7 +265,7 @@ describe('SamlController', () => {
       /**
        * Verify AuthnRequest ID was saved by checking it can be validated
        */
-      expect(samlStore.validateAndConsumeAuthnRequest(mockRequestId, testWorkspaceId)).toBe(true);
+      expect(await samlStore.validateAndConsumeAuthnRequest(mockRequestId, testWorkspaceId)).toBe(true);
     });
 
     it('should use default returnUrl when not provided', async () => {
@@ -292,7 +293,7 @@ describe('SamlController', () => {
        * Verify that default returnUrl was saved in RelayState
        * Default returnUrl is `/workspace/${workspaceId}`
        */
-      const relayState = samlStore.getRelayState(relayStateId!);
+      const relayState = await samlStore.getRelayState(relayStateId!);
       expect(relayState).not.toBeNull();
       expect(relayState?.returnUrl).toBe(`/workspace/${testWorkspaceId}`);
       expect(relayState?.workspaceId).toBe(testWorkspaceId);
@@ -370,7 +371,7 @@ describe('SamlController', () => {
        * Setup test data
        */
       const testReturnUrl = '/workspace/test';
-      const expectedFrontendUrl = `${process.env.GARAGE_URL}${testReturnUrl}`;
+      const expectedCallbackPath = `/login/sso/${testWorkspaceId}`;
 
       mockWorkspacesFactory.findById.mockResolvedValue(workspace);
       mockUsersFactory.findBySamlIdentity.mockResolvedValue(user);
@@ -379,11 +380,11 @@ describe('SamlController', () => {
       /**
        * Setup samlStore to return valid state for tests
        */
-      samlStore.saveRelayState(testRelayStateId, {
+      await samlStore.saveRelayState(testRelayStateId, {
         returnUrl: testReturnUrl,
         workspaceId: testWorkspaceId,
       });
-      samlStore.saveAuthnRequest(testRequestId, testWorkspaceId);
+      await samlStore.saveAuthnRequest(testRequestId, testWorkspaceId);
 
       await controller.handleAcs(mockReq as Request, mockRes as Response);
 
@@ -421,16 +422,18 @@ describe('SamlController', () => {
       expect(user.generateTokensPair).toHaveBeenCalled();
 
       /**
-       * Verify redirect to frontend with returnUrl from RelayState
+       * Verify redirect to Garage SSO callback page with tokens and returnUrl
        * GARAGE_URL is set in beforeEach: 'https://garage.example.com'
        */
       expect(mockRes.redirect).toHaveBeenCalledWith(
-        expect.stringContaining(expectedFrontendUrl)
+        expect.stringContaining(expectedCallbackPath)
       );
 
       const redirectUrl = new URL((mockRes.redirect as jest.Mock).mock.calls[0][0]);
+      expect(redirectUrl.pathname).toBe(expectedCallbackPath);
       expect(redirectUrl.searchParams.get('access_token')).toBe('test-access-token');
       expect(redirectUrl.searchParams.get('refresh_token')).toBe('test-refresh-token');
+      expect(redirectUrl.searchParams.get('returnUrl')).toBe(testReturnUrl);
     });
 
     it('should return 400 error when workspace is not found', async () => {
@@ -502,11 +505,11 @@ describe('SamlController', () => {
       /**
        * Setup samlStore with valid state
        */
-      samlStore.saveRelayState(testRelayStateId, {
+      await samlStore.saveRelayState(testRelayStateId, {
         returnUrl: '/workspace/test',
         workspaceId: testWorkspaceId,
       });
-      samlStore.saveAuthnRequest(testRequestId, testWorkspaceId);
+      await samlStore.saveAuthnRequest(testRequestId, testWorkspaceId);
       (workspace.getMemberInfo as jest.Mock).mockResolvedValue(null);
 
       await controller.handleAcs(mockReq as Request, mockRes as Response);
@@ -546,11 +549,11 @@ describe('SamlController', () => {
       /**
        * Setup samlStore with valid state
        */
-      samlStore.saveRelayState(testRelayStateId, {
+      await samlStore.saveRelayState(testRelayStateId, {
         returnUrl: '/workspace/test',
         workspaceId: testWorkspaceId,
       });
-      samlStore.saveAuthnRequest(testRequestId, testWorkspaceId);
+      await samlStore.saveAuthnRequest(testRequestId, testWorkspaceId);
       (workspace.getMemberInfo as jest.Mock).mockResolvedValue(null);
 
       await controller.handleAcs(mockReq as Request, mockRes as Response);
@@ -582,11 +585,11 @@ describe('SamlController', () => {
       /**
        * Setup samlStore with valid state
        */
-      samlStore.saveRelayState(testRelayStateId, {
+      await samlStore.saveRelayState(testRelayStateId, {
         returnUrl: '/workspace/test',
         workspaceId: testWorkspaceId,
       });
-      samlStore.saveAuthnRequest(testRequestId, testWorkspaceId);
+      await samlStore.saveAuthnRequest(testRequestId, testWorkspaceId);
       (workspace.getMemberInfo as jest.Mock).mockResolvedValue({
         userEmail: testEmail,
       });
@@ -621,17 +624,23 @@ describe('SamlController', () => {
       /**
        * Setup samlStore with AuthnRequest but no RelayState
        */
-      samlStore.saveAuthnRequest(testRequestId, testWorkspaceId);
+      await samlStore.saveAuthnRequest(testRequestId, testWorkspaceId);
 
       await controller.handleAcs(mockReq as Request, mockRes as Response);
 
       /**
-       * Verify redirect uses default returnUrl
+       * Verify redirect to Garage SSO callback page with default returnUrl
        */
+      const expectedCallbackPath = `/login/sso/${testWorkspaceId}`;
+      const defaultReturnUrl = `/workspace/${testWorkspaceId}`;
+
       expect(mockRes.redirect).toHaveBeenCalledWith(
-        expect.stringContaining(`/workspace/${testWorkspaceId}`)
+        expect.stringContaining(expectedCallbackPath)
       );
+
+      const redirectUrl = new URL((mockRes.redirect as jest.Mock).mock.calls[0][0]);
+      expect(redirectUrl.pathname).toBe(expectedCallbackPath);
+      expect(redirectUrl.searchParams.get('returnUrl')).toBe(defaultReturnUrl);
     });
   });
 });
-
