@@ -40,6 +40,17 @@ declare namespace NodeJS {
     SSO_SP_ENTITY_ID: string;
 
     /**
+     * SAML state store type
+     * Determines which store implementation to use for SAML authentication state
+     * - 'redis': Uses Redis store for multi-instance support (default)
+     * - 'memory': Uses in-memory store (single instance only)
+     *
+     * @default 'redis'
+     * @example "redis" or "memory"
+     */
+    SAML_STORE_TYPE?: string;
+
+    /**
      * Redis connection URL
      * Used for caching and TimeSeries data
      *

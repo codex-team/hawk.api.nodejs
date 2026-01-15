@@ -140,6 +140,15 @@ export default class RedisHelper {
   }
 
   /**
+   * Get Redis client instance
+   *
+   * @returns Redis client or null if not initialized
+   */
+  public getClient(): RedisClientType | null {
+    return this.redisClient;
+  }
+
+  /**
    * Execute TS.RANGE command with aggregation
    *
    * @param key - Redis TimeSeries key

@@ -1,5 +1,6 @@
 import express from 'express';
 import SamlController from './controller';
+import { createSamlStateStore } from './storeFactory';
 import { ContextFactories } from '../../types/graphql';
 
 /**
@@ -10,7 +11,8 @@ import { ContextFactories } from '../../types/graphql';
  */
 export function createSamlRouter(factories: ContextFactories): express.Router {
   const router = express.Router();
-  const controller = new SamlController(factories);
+  const store = createSamlStateStore();
+  const controller = new SamlController(factories, store);
 
   /**
    * SSO login initiation

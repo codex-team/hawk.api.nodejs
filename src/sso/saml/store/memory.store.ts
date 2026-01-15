@@ -1,4 +1,5 @@
-import { AuthnRequestState, RelayStateData } from './types';
+import { AuthnRequestState, RelayStateData } from '../types';
+import { SamlStateStoreInterface } from './SamlStateStoreInterface';
 
 /**
  * In-memory store for SAML state
@@ -7,9 +8,15 @@ import { AuthnRequestState, RelayStateData } from './types';
  * - RelayState: maps state ID to return URL and workspace ID
  * - AuthnRequests: maps request ID to workspace ID for InResponseTo validation
  *
- * @todo Replace with Redis for production (multi-instance support)
+ * Note: This implementation is not suitable for multi-instance deployments.
+ * Use Redis store for production environments with multiple API instances.
  */
-class SamlStateStore {
+export class MemorySamlStateStore implements SamlStateStoreInterface {
+  /**
+   * Store type identifier
+   */
+  public readonly type = 'memory';
+
   private relayStates: Map<string, RelayStateData> = new Map();
   private authnRequests: Map<string, AuthnRequestState> = new Map();
 
@@ -41,7 +48,7 @@ class SamlStateStore {
    * @param stateId - unique state identifier (usually UUID)
    * @param data - relay state data (returnUrl, workspaceId)
    */
-  public saveRelayState(stateId: string, data: { returnUrl: string; workspaceId: string }): void {
+  public async saveRelayState(stateId: string, data: { returnUrl: string; workspaceId: string }): Promise<void> {
     this.relayStates.set(stateId, {
       ...data,
       expiresAt: Date.now() + this.TTL,
@@ -54,7 +61,7 @@ class SamlStateStore {
    * @param stateId - state identifier
    * @returns relay state data or null if not found/expired
    */
-  public getRelayState(stateId: string): { returnUrl: string; workspaceId: string } | null {
+  public async getRelayState(stateId: string): Promise<{ returnUrl: string; workspaceId: string } | null> {
     const state = this.relayStates.get(stateId);
 
     if (!state) {
@@ -87,7 +94,7 @@ class SamlStateStore {
    * @param requestId - SAML AuthnRequest ID
    * @param workspaceId - workspace ID
    */
-  public saveAuthnRequest(requestId: string, workspaceId: string): void {
+  public async saveAuthnRequest(requestId: string, workspaceId: string): Promise<void> {
     this.authnRequests.set(requestId, {
       workspaceId,
       expiresAt: Date.now() + this.TTL,
@@ -101,7 +108,7 @@ class SamlStateStore {
    * @param workspaceId - expected workspace ID
    * @returns true if request is valid and matches workspace
    */
-  public validateAndConsumeAuthnRequest(requestId: string, workspaceId: string): boolean {
+  public async validateAndConsumeAuthnRequest(requestId: string, workspaceId: string): Promise<boolean> {
     const request = this.authnRequests.get(requestId);
 
     if (!request) {
@@ -190,8 +197,3 @@ class SamlStateStore {
     }
   }
 }
-
-/**
- * Singleton instance
- */
-export default new SamlStateStore();

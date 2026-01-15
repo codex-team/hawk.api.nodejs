@@ -2,7 +2,7 @@ import express from 'express';
 import { v4 as uuid } from 'uuid';
 import { ObjectId } from 'mongodb';
 import SamlService from './service';
-import samlStore from './store';
+import { SamlStateStoreInterface } from './store/SamlStateStoreInterface';
 import { ContextFactories } from '../../types/graphql';
 import { SamlResponseData } from '../types';
 import WorkspaceModel from '../../models/workspace';
@@ -24,12 +24,20 @@ export default class SamlController {
   private factories: ContextFactories;
 
   /**
-   * SAML controller constructor used for DI
-   * @param factories - for working with models
+   * SAML state store instance
    */
-  constructor(factories: ContextFactories) {
+  private store: SamlStateStoreInterface;
+
+  /**
+   * SAML controller constructor used for DI
+   *
+   * @param factories - for working with models
+   * @param store - SAML state store instance
+   */
+  constructor(factories: ContextFactories, store: SamlStateStoreInterface) {
     this.samlService = new SamlService();
     this.factories = factories;
+    this.store = store;
   }
 
   /**
@@ -74,10 +82,20 @@ export default class SamlController {
       /**
        * 3. Save RelayState to temporary storage
        */
-      samlStore.saveRelayState(relayStateId, {
+      this.log(
+        'info',
+        '[Store] Saving RelayState:',
+        sgr(relayStateId.slice(0, 8), Effect.ForegroundGray),
+        '| Store:',
+        sgr(this.store.type, Effect.ForegroundBlue),
+        '| Workspace:',
+        sgr(workspaceId, Effect.ForegroundCyan)
+      );
+      await this.store.saveRelayState(relayStateId, {
         returnUrl,
         workspaceId,
       });
+      this.log('log', '[Store] RelayState saved:', sgr(relayStateId.slice(0, 8), Effect.ForegroundGray));
 
       /**
        * 4. Generate AuthnRequest
@@ -105,7 +123,17 @@ export default class SamlController {
       /**
        * 5. Save AuthnRequest ID for InResponseTo validation
        */
-      samlStore.saveAuthnRequest(requestId, workspaceId);
+      this.log(
+        'info',
+        '[Store] Saving AuthnRequest:',
+        sgr(requestId.slice(0, 8), Effect.ForegroundGray),
+        '| Store:',
+        sgr(this.store.type, Effect.ForegroundBlue),
+        '| Workspace:',
+        sgr(workspaceId, Effect.ForegroundCyan)
+      );
+      await this.store.saveAuthnRequest(requestId, workspaceId);
+      this.log('log', '[Store] AuthnRequest saved:', sgr(requestId.slice(0, 8), Effect.ForegroundGray));
 
       /**
        * 6. Redirect to IdP
@@ -212,10 +240,33 @@ export default class SamlController {
          * Validate InResponseTo against stored AuthnRequest
          */
         if (samlData.inResponseTo) {
-          const isValidRequest = samlStore.validateAndConsumeAuthnRequest(
+          this.log(
+            'info',
+            '[Store] Validating AuthnRequest:',
+            sgr(samlData.inResponseTo.slice(0, 8), Effect.ForegroundGray),
+            '| Store:',
+            sgr(this.store.type, Effect.ForegroundBlue),
+            '| Workspace:',
+            sgr(workspaceId, Effect.ForegroundCyan)
+          );
+          const isValidRequest = await this.store.validateAndConsumeAuthnRequest(
             samlData.inResponseTo,
             workspaceId
           );
+
+          if (isValidRequest) {
+            this.log(
+              'log',
+              '[Store] AuthnRequest validated and consumed:',
+              sgr(samlData.inResponseTo.slice(0, 8), Effect.ForegroundGray)
+            );
+          } else {
+            this.log(
+              'warn',
+              '[Store] AuthnRequest validation failed:',
+              sgr(samlData.inResponseTo.slice(0, 8), Effect.ForegroundRed)
+            );
+          }
 
           if (!isValidRequest) {
             this.log(
@@ -274,7 +325,27 @@ export default class SamlController {
        * 4. Get RelayState for return URL (before consuming)
        * Note: RelayState is consumed after first use, so we need to get it before validation
        */
-      const relayState = samlStore.getRelayState(relayStateId);
+      this.log(
+        'info',
+        '[Store] Getting RelayState:',
+        sgr(relayStateId.slice(0, 8), Effect.ForegroundGray),
+        '| Store:',
+        sgr(this.store.type, Effect.ForegroundBlue)
+      );
+      const relayState = await this.store.getRelayState(relayStateId);
+
+      if (relayState) {
+        this.log(
+          'log',
+          '[Store] RelayState retrieved and consumed:',
+          sgr(relayStateId.slice(0, 8), Effect.ForegroundGray),
+          '| Return URL:',
+          sgr(relayState.returnUrl, Effect.ForegroundGray)
+        );
+      } else {
+        this.log('warn', '[Store] RelayState not found or expired:', sgr(relayStateId.slice(0, 8), Effect.ForegroundRed));
+      }
+
       const finalReturnUrl = relayState?.returnUrl || `/workspace/${workspaceId}`;
 
       /**
