@@ -524,6 +524,6 @@ describe('SSO Integration Tests', () => {
  *   browser automation (puppeteer/playwright) is needed
  *
  * Manual Testing:
- * - See keycloak/README.md for manual testing instructions
+ * - See docs/Keycloak.md for manual testing instructions
  * - Use Keycloak admin console to view test users and SAML configuration
  */
