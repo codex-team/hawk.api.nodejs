@@ -56,7 +56,7 @@ export default class SamlController {
        */
       if (!this.isValidWorkspaceId(workspaceId)) {
         this.log('warn', 'Invalid workspace ID format:', sgr(workspaceId, Effect.ForegroundRed));
-        res.status(400).json({ error: 'Invalid workspace ID' });
+        res.status(400).json({ error: `Invalid workspace ID format: ${workspaceId}` });
 
         return;
       }
@@ -68,7 +68,7 @@ export default class SamlController {
 
       if (!workspace || !workspace.sso?.enabled) {
         this.log('warn', 'SSO not enabled for workspace:', sgr(workspaceId, Effect.ForegroundCyan));
-        res.status(400).json({ error: 'SSO is not enabled for this workspace' });
+        res.status(400).json({ error: `SSO is not enabled for workspace: ${workspaceId}` });
 
         return;
       }
@@ -153,14 +153,15 @@ export default class SamlController {
 
       res.redirect(redirectUrl.toString());
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.log(
         'error',
         'SSO initiation error for workspace:',
         sgr(workspaceId, Effect.ForegroundCyan),
         '|',
-        sgr(error instanceof Error ? error.message : 'Unknown error', Effect.ForegroundRed)
+        sgr(errorMessage, Effect.ForegroundRed)
       );
-      res.status(500).json({ error: 'Failed to initiate SSO login' });
+      res.status(500).json({ error: `Failed to initiate SSO login for workspace ${workspaceId}: ${errorMessage}` });
     }
   }
 
@@ -182,7 +183,7 @@ export default class SamlController {
        */
       if (!this.isValidWorkspaceId(workspaceId)) {
         this.log('warn', '[ACS] Invalid workspace ID format:', sgr(workspaceId, Effect.ForegroundRed));
-        res.status(400).json({ error: 'Invalid workspace ID' });
+        res.status(400).json({ error: `Invalid workspace ID format: ${workspaceId}` });
 
         return;
       }
@@ -192,7 +193,7 @@ export default class SamlController {
        */
       if (!samlResponse) {
         this.log('warn', '[ACS] Missing SAML response for workspace:', sgr(workspaceId, Effect.ForegroundCyan));
-        res.status(400).json({ error: 'SAML response is required' });
+        res.status(400).json({ error: `SAML response is required for workspace: ${workspaceId}` });
 
         return;
       }
@@ -204,7 +205,7 @@ export default class SamlController {
 
       if (!workspace || !workspace.sso?.enabled) {
         this.log('warn', '[ACS] SSO not enabled for workspace:', sgr(workspaceId, Effect.ForegroundCyan));
-        res.status(400).json({ error: 'SSO is not enabled for this workspace' });
+        res.status(400).json({ error: `SSO is not enabled for workspace: ${workspaceId}` });
 
         return;
       }
@@ -269,27 +270,29 @@ export default class SamlController {
           }
 
           if (!isValidRequest) {
+            const requestIdShort = samlData.inResponseTo.slice(0, 8);
             this.log(
               'error',
               '[ACS] InResponseTo validation failed for workspace:',
               sgr(workspaceId, Effect.ForegroundCyan),
               '| Request ID:',
-              sgr(samlData.inResponseTo.slice(0, 8), Effect.ForegroundGray)
+              sgr(requestIdShort, Effect.ForegroundGray)
             );
-            res.status(400).json({ error: 'Invalid SAML response: InResponseTo validation failed' });
+            res.status(400).json({ error: `Invalid SAML response: InResponseTo validation failed for workspace ${workspaceId}, request ID: ${requestIdShort}` });
 
             return;
           }
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         this.log(
           'error',
           '[ACS] SAML validation error for workspace:',
           sgr(workspaceId, Effect.ForegroundCyan),
           '|',
-          sgr(error instanceof Error ? error.message : 'Unknown error', Effect.ForegroundRed)
+          sgr(errorMessage, Effect.ForegroundRed)
         );
-        res.status(400).json({ error: 'Invalid SAML response' });
+        res.status(400).json({ error: `Invalid SAML response for workspace ${workspaceId}: ${errorMessage}` });
 
         return;
       }
@@ -383,26 +386,28 @@ export default class SamlController {
        * Handle specific error types
        */
       if (error instanceof Error && error.message.includes('SAML')) {
+        const errorMessage = error.message;
         this.log(
           'error',
           '[ACS] SAML processing error for workspace:',
           sgr(workspaceId, Effect.ForegroundCyan),
           '|',
-          sgr(error.message, Effect.ForegroundRed)
+          sgr(errorMessage, Effect.ForegroundRed)
         );
-        res.status(400).json({ error: 'Invalid SAML response' });
+        res.status(400).json({ error: `Invalid SAML response for workspace ${workspaceId}: ${errorMessage}` });
 
         return;
       }
 
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.log(
         'error',
         '[ACS] ACS callback error for workspace:',
         sgr(workspaceId, Effect.ForegroundCyan),
         '|',
-        sgr(error instanceof Error ? error.message : 'Unknown error', Effect.ForegroundRed)
+        sgr(errorMessage, Effect.ForegroundRed)
       );
-      res.status(500).json({ error: 'Failed to process SSO callback' });
+      res.status(500).json({ error: `Failed to process SSO callback for workspace ${workspaceId}: ${errorMessage}` });
     }
   }
 
