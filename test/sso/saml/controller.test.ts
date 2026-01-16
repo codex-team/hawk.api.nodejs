@@ -316,7 +316,7 @@ describe('SamlController', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'SSO is not enabled for this workspace',
+        error: `SSO is not enabled for workspace: ${testWorkspaceId}`,
       });
       expect(mockRes.redirect).not.toHaveBeenCalled();
     });
@@ -336,7 +336,7 @@ describe('SamlController', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'SSO is not enabled for this workspace',
+        error: `SSO is not enabled for workspace: ${testWorkspaceId}`,
       });
     });
   });
@@ -443,7 +443,7 @@ describe('SamlController', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'SSO is not enabled for this workspace',
+        error: `SSO is not enabled for workspace: ${testWorkspaceId}`,
       });
     });
 
@@ -455,22 +455,21 @@ describe('SamlController', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'SSO is not enabled for this workspace',
+        error: `SSO is not enabled for workspace: ${testWorkspaceId}`,
       });
     });
 
     it('should return 400 error when SAML validation fails', async () => {
       const workspace = createMockWorkspace();
       mockWorkspacesFactory.findById.mockResolvedValue(workspace);
-      mockSamlService.validateAndParseResponse.mockRejectedValue(
-        new Error('Invalid signature')
-      );
+      const validationError = new Error('Invalid signature');
+      mockSamlService.validateAndParseResponse.mockRejectedValue(validationError);
 
       await controller.handleAcs(mockReq as Request, mockRes as Response);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'Invalid SAML response',
+        error: `Invalid SAML response for workspace ${testWorkspaceId}: ${validationError.message}`,
       });
       expect(mockRes.redirect).not.toHaveBeenCalled();
     });
@@ -487,8 +486,9 @@ describe('SamlController', () => {
       await controller.handleAcs(mockReq as Request, mockRes as Response);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
+      const requestIdShort = testRequestId.slice(0, 8);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'Invalid SAML response: InResponseTo validation failed',
+        error: `Invalid SAML response: InResponseTo validation failed for workspace ${testWorkspaceId}, request ID: ${requestIdShort}`,
       });
     });
 
