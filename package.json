@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.2.33",
+  "version": "1.3.2",
   "main": "index.ts",
   "license": "BUSL-1.1",
   "scripts": {
@@ -23,6 +23,7 @@
     "@shelf/jest-mongodb": "^6.0.2",
     "@swc/core": "^1.3.0",
     "@types/jest": "^26.0.8",
+    "@types/xml2js": "^0.4.14",
     "eslint": "^6.7.2",
     "eslint-config-codex": "1.2.4",
     "eslint-plugin-import": "^2.19.1",
@@ -32,7 +33,8 @@
     "redis-mock": "^0.56.3",
     "ts-jest": "^26.1.4",
     "ts-node": "^10.9.1",
-    "typescript": "^4.7.4"
+    "typescript": "^4.7.4",
+    "xml2js": "^0.6.2"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.64",
@@ -41,8 +43,9 @@
     "@graphql-tools/schema": "^8.5.1",
     "@graphql-tools/utils": "^8.9.0",
     "@hawk.so/nodejs": "^3.1.1",
-    "@hawk.so/types": "^0.1.37",
+    "@hawk.so/types": "^0.4.2",
     "@n1ru4l/json-patch-plus": "^0.2.0",
+    "@node-saml/node-saml": "^5.0.1",
     "@types/amqp-connection-manager": "^2.0.4",
     "@types/debug": "^4.1.5",
     "@types/escape-html": "^1.0.0",

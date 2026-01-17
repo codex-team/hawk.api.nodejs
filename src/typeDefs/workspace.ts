@@ -136,6 +136,189 @@ export default gql`
       """
       ids: [ID!] = []
     ): [Project!]
+
+    """
+    SSO configuration (admin only, returns null for non-admin users)
+    """
+    sso: WorkspaceSsoConfig @definedOnlyForAdmins
+  }
+
+  """
+  SAML attribute mapping configuration
+  """
+  type SamlAttributeMapping {
+    """
+    Attribute name for email in SAML Assertion
+    Used to map the email attribute from the SAML response to the email attribute in the Hawk database
+    """
+    email: String!
+
+    """
+    Attribute name for user name in SAML Assertion
+    Used to map the name attribute from the SAML response to the name attribute in the Hawk database
+    """
+    name: String
+  }
+
+  """
+  SAML SSO configuration
+  """
+  type SamlConfig {
+    """
+    IdP Entity ID
+    Used to ensure that the SAML response is coming from the correct IdP
+    """
+    idpEntityId: String!
+
+    """
+    SSO URL
+    Used to redirect user to the correct IdP
+    """
+    ssoUrl: String!
+
+    """
+    X.509 certificate (masked for security)
+    Used to verify the signature of the SAML response
+    """
+    x509Cert: String!
+
+    """
+    NameID format
+    Used to specify the format of the NameID in the SAML response
+    """
+    nameIdFormat: String
+
+    """
+    Attribute mapping
+    Used to map the attributes from the SAML response to the attributes in the Hawk database
+    """
+    attributeMapping: SamlAttributeMapping!
+  }
+
+  """
+  SSO configuration (admin only)
+  """
+  type WorkspaceSsoConfig {
+    """
+    Is SSO enabled
+    Used to enable or disable SSO for the workspace
+    """
+    enabled: Boolean!
+
+    """
+    Is SSO enforced
+    Used to enforce SSO login for the workspace. If true, only SSO login is allowed.
+    """
+    enforced: Boolean!
+
+    """
+    SSO provider type
+    Used to specify the type of the SSO provider for the workspace
+    """
+    type: String!
+
+    """
+    SAML-specific configuration
+    Used to configure the SAML-specific settings for the workspace
+    """
+    saml: SamlConfig!
+  }
+
+  """
+  SAML attribute mapping input
+  """
+  input SamlAttributeMappingInput {
+    """
+    Attribute name for email in SAML Assertion
+    Used to map the email attribute from the SAML response to the email attribute in the Hawk database
+    """
+    email: String!
+
+    """
+    Attribute name for user name in SAML Assertion
+    Used to map the name attribute from the SAML response to the name attribute in the Hawk database
+    """
+    name: String
+  }
+
+  """
+  SAML SSO configuration input
+  """
+  input SamlConfigInput {
+    """
+    IdP Entity ID
+    Used to ensure that the SAML response is coming from the correct IdP
+    """
+    idpEntityId: String!
+
+    """
+    SSO URL for redirecting user to IdP
+    Used to redirect user to the correct IdP
+    """
+    ssoUrl: String!
+
+    """
+    X.509 certificate for signature verification (PEM format)
+    Used to verify the signature of the SAML response
+    """
+    x509Cert: String!
+
+    """
+    Desired NameID format
+    Used to specify the format of the NameID in the SAML response
+    """
+    nameIdFormat: String
+
+    """
+    Attribute mapping configuration
+    Used to map the attributes from the SAML response to the attributes in the Hawk database
+    """
+    attributeMapping: SamlAttributeMappingInput!
+  }
+
+  """
+  SSO configuration input
+  """
+  input WorkspaceSsoConfigInput {
+    """
+    Is SSO enabled
+    Used to enable or disable SSO for the workspace
+    """
+    enabled: Boolean!
+
+    """
+    Is SSO enforced (only SSO login allowed)
+    Used to enforce SSO login for the workspace. If true, only SSO login is allowed.
+    """
+    enforced: Boolean!
+
+    """
+    SAML-specific configuration
+    Used to configure the SAML-specific settings for the workspace
+    """
+    saml: SamlConfigInput!
+  }
+
+  """
+  Workspace preview with basic public info
+  Contains only basic fields: id, name, image
+  Used for public-facing features like SSO login page
+  """
+  type WorkspacePreview {
+    """
+    Workspace ID
+    """
+    id: ID! @renameFrom(name: "_id")
+
+    """
+    Workspace name
+    """
+    name: String!
+
+    """
+    Workspace image/logo URL
+    """
+    image: String
   }
 
   extend type Query {
@@ -144,6 +327,13 @@ export default gql`
     If ids = [] returns all user's workspaces
     """
     workspaces("Workspace(s) id(s)" ids: [ID] = []): [Workspace]
+
+    """
+    Get workspace public info by ID for SSO login page
+    Returns only id, name, image if SSO is enabled for the workspace
+    Available without authentication
+    """
+    ssoWorkspace("Workspace ID" id: ID!): WorkspacePreview @allowAnon
   }
 
   extend type Mutation {
@@ -286,5 +476,13 @@ export default gql`
       """
       workspaceId: ID!
     ): Boolean!
+
+    """
+    Update workspace SSO configuration (admin only)
+    """
+    updateWorkspaceSso(
+      workspaceId: ID!
+      config: WorkspaceSsoConfigInput!
+    ): Boolean! @requireAdmin
   }
 `;

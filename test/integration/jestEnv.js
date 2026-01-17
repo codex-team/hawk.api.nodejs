@@ -13,6 +13,14 @@ class CustomEnvironment extends NodeEnvironment {
    */
   async setup() {
     await super.setup();
+
+    /**
+     * Add performance API polyfill for MongoDB driver
+     * MongoDB driver uses performance.now() which is not available in Jest environment by default
+     */
+    const { performance } = require('perf_hooks');
+    this.global.performance = performance;
+
     const mongoClient = new mongodb.MongoClient('mongodb://mongodb:27017', { useUnifiedTopology: true });
 
     await mongoClient.connect();
