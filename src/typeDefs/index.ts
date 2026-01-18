@@ -9,6 +9,8 @@ import projectNotificationsMutations from './projectNotificationsMutations';
 import projectEventGroupingPattern from './projectEventGroupingPattern';
 import projectEventGroupingPatternMutations from './projectEventGroupingPatternMutations';
 import project from './project';
+import taskManager from './taskManager';
+import projectTaskManagerMutations from './projectTaskManagerMutations';
 import user from './user';
 import userNotifications from './userNotifications';
 import userNotificationsMutations from './userNotificationsMutations';
@@ -93,6 +95,8 @@ const typeDefinitions = [
   projectNotifications,
   projectNotificationsMutations,
   project,
+  taskManager,
+  projectTaskManagerMutations,
   user,
   userNotifications,
   userNotificationsMutations,

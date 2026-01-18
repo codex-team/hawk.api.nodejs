@@ -391,6 +391,102 @@ module.exports = {
 
       return userModel.updateLastProjectVisit(projectId);
     },
+
+    /**
+     * Disconnect Task Manager integration from project
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} projectId - project ID to disconnect Task Manager from
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Project}
+     */
+    async disconnectTaskManager(_obj, { projectId }, { user, factories }) {
+      const project = await factories.projectsFactory.findById(projectId);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id');
+      }
+
+      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+        throw new ApolloError('Unable to update demo project');
+      }
+
+      try {
+        /**
+         * Remove taskManager field from project
+         * Set updatedAt to current date
+         */
+        return await project.updateProject({
+          taskManager: null,
+        });
+      } catch (err) {
+        throw new ApolloError('Failed to disconnect Task Manager', { originalError: err });
+      }
+    },
+
+    /**
+     * Update Task Manager settings for project
+     *
+     * @param {ResolverObj} _obj
+     * @param {Object} input - Task Manager settings input
+     * @param {string} input.projectId - project ID to update
+     * @param {boolean} input.autoTaskEnabled - enable automatic task creation
+     * @param {number} input.taskThresholdTotalCount - threshold for auto task creation
+     * @param {boolean} input.assignAgent - assign agent (e.g. Copilot) to tasks
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Project}
+     */
+    async updateTaskManagerSettings(_obj, { input }, { user, factories }) {
+      const { projectId, autoTaskEnabled, taskThresholdTotalCount, assignAgent } = input;
+
+      const project = await factories.projectsFactory.findById(projectId);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id');
+      }
+
+      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+        throw new ApolloError('Unable to update demo project');
+      }
+
+      /**
+       * Check if taskManager is configured
+       */
+      if (!project.taskManager) {
+        throw new UserInputError('Task Manager is not configured for this project');
+      }
+
+      /**
+       * Validate taskThresholdTotalCount
+       */
+      if (typeof taskThresholdTotalCount !== 'number' || taskThresholdTotalCount <= 0) {
+        throw new UserInputError('taskThresholdTotalCount must be a positive integer greater than 0');
+      }
+
+      try {
+        /**
+         * Update taskManager settings
+         * Keep existing config and usage, update only settings
+         */
+        const updatedTaskManager = {
+          ...project.taskManager,
+          autoTaskEnabled,
+          taskThresholdTotalCount,
+          assignAgent,
+          updatedAt: new Date(),
+        };
+
+        return await project.updateProject({
+          taskManager: updatedTaskManager,
+        });
+      } catch (err) {
+        throw new ApolloError('Failed to update Task Manager settings', { originalError: err });
+      }
+    },
   },
   Project: {
     /**
