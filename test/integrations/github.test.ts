@@ -13,7 +13,7 @@ jest.mock('@octokit/rest', () => ({
  */
 jest.mock('jsonwebtoken');
 
-import { GitHubService } from '../../src/integrations/github/index';
+import { GitHubService } from '../../src/integrations/github/service';
 import jwt from 'jsonwebtoken';
 
 describe('GitHubService', () => {
