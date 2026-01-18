@@ -5,6 +5,7 @@ import { GitHubService } from './service';
 import { ContextFactories } from '../../types/graphql';
 import { RedisInstallStateStore } from './store/install-state.redis.store';
 import WorkspaceModel from '../../models/workspace';
+import { sgr, Effect } from '../../utils/ansi';
 
 /**
  * Create GitHub router
@@ -16,6 +17,40 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
   const router = express.Router();
   const githubService = new GitHubService();
   const stateStore = new RedisInstallStateStore();
+
+  /**
+   * Log message with GitHub Integration prefix
+   *
+   * @param level - log level ('log', 'warn', 'error', 'info')
+   * @param args - arguments to log
+   */
+  function log(level: 'log' | 'warn' | 'error' | 'info', ...args: unknown[]): void {
+    /**
+     * Disable logging in test environment
+     */
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+
+    const colors = {
+      log: Effect.ForegroundGreen,
+      warn: Effect.ForegroundYellow,
+      error: Effect.ForegroundRed,
+      info: Effect.ForegroundBlue,
+    };
+
+    let logger: typeof console.log;
+
+    if (level === 'error') {
+      logger = console.error;
+    } else if (level === 'warn') {
+      logger = console.warn;
+    } else {
+      logger = console.log;
+    }
+
+    logger(sgr('[GitHub Integration]', colors[level]), ...args);
+  }
 
   /**
    * GET /integration/github/connect?projectId=<projectId>
@@ -122,25 +157,25 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
 
       await stateStore.saveState(state, stateData);
 
-      console.log(
-        `[GitHub Integration] Created state for project ${projectId}: ${state.slice(0, 8)}...`
-      );
+      log('info', `Created state for project ${sgr(projectId, Effect.ForegroundCyan)}: ${sgr(state.slice(0, 8), Effect.ForegroundGray)}...`);
 
       /**
        * Generate GitHub installation URL with state
        */
       const installationUrl = githubService.getInstallationUrl(state);
 
-      console.log(
-        `[GitHub Integration] Redirecting to GitHub installation URL for project ${projectId}`
-      );
+      log('info', `Generated GitHub installation URL for project ${sgr(projectId, Effect.ForegroundCyan)}`);
 
       /**
-       * Redirect user to GitHub installation page
+       * Return installation URL in JSON response
+       * Frontend will handle the redirect using window.location.href
+       * This allows Authorization header to be sent correctly
        */
-      res.redirect(installationUrl);
+      res.json({
+        redirectUrl: installationUrl,
+      });
     } catch (error) {
-      console.error('[GitHub Integration] Error in /connect endpoint:', error);
+      log('error', 'Error in /connect endpoint:', error);
       next(error);
     }
   });
