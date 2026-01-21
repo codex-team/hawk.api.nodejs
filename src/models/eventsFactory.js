@@ -544,7 +544,7 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Fetch timestamps and total count of errors (or target error) for each day since
+   * Fetch timestamps and aggregated values (count or affectedUsers) for each day since
    *
    * @param {number} days - how many days we need to fetch for displaying in a chart
    * @param {number} timezoneOffset - user's local timezone offset in minutes
