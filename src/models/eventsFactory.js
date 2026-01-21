@@ -525,7 +525,7 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Get event daily chart data (affected users) from MongoDB only
+   * Get event daily chart data of affected users from MongoDB only
    *
    * @param {string} groupHash - event's group hash
    * @param {number} days - how many days to fetch
