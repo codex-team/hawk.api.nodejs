@@ -21,6 +21,47 @@ export type GitHubIssue = Pick<
 >;
 
 /**
+ * Type for GitHub Repository data
+ * Ephemeral data, not stored in database
+ */
+export type Repository = {
+  /**
+   * Repository ID
+   */
+  id: string;
+
+  /**
+   * Repository name (without owner)
+   */
+  name: string;
+
+  /**
+   * Repository full name (owner/repo)
+   */
+  fullName: string;
+
+  /**
+   * Whether repository is private
+   */
+  private: boolean;
+
+  /**
+   * Repository HTML URL
+   */
+  htmlUrl: string;
+
+  /**
+   * Last update date
+   */
+  updatedAt: Date;
+
+  /**
+   * Primary programming language
+   */
+  language: string | null;
+};
+
+/**
  * Type for GitHub Installation response data
  * Simplified version of Octokit Installation type with essential fields only
  * account.login and account.type are extracted from the full GitHub account object
@@ -65,6 +106,12 @@ export class GitHubService {
   private readonly appSlug: string;
 
   /**
+   * Default timeout for GitHub API requests (in milliseconds)
+   * Increased from default 10s to 60s to handle slow network connections
+   */
+  private static readonly DEFAULT_TIMEOUT = 60000;
+
+  /**
    * Creates an instance of GitHubService
    */
   constructor() {
@@ -74,6 +121,21 @@ export class GitHubService {
 
     this.appId = process.env.GITHUB_APP_ID;
     this.appSlug = process.env.GITHUB_APP_SLUG || 'hawk-tracker';
+  }
+
+  /**
+   * Create Octokit instance with configured timeout
+   *
+   * @param auth - Authentication token (JWT or installation access token)
+   * @returns Configured Octokit instance
+   */
+  private createOctokit(auth: string): Octokit {
+    return new Octokit({
+      auth,
+      request: {
+        timeout: GitHubService.DEFAULT_TIMEOUT,
+      },
+    });
   }
 
   /**
@@ -90,6 +152,10 @@ export class GitHubService {
    *                         - UUID: "550e8400-e29b-41d4-a716-446655440000"
    *
    * @returns {string} Installation URL with state and redirect_url parameters
+   *
+   * Note: Both Setup URL (in GitHub App settings) and redirect_url parameter can be used.
+   * The redirect_url parameter takes precedence if provided. We use redirect_url to ensure
+   * the state parameter is properly passed to our callback endpoint.
    */
   public getInstallationUrl(state: string): string {
     if (!process.env.API_URL) {
@@ -99,9 +165,15 @@ export class GitHubService {
     /**
      * Form callback URL based on API_URL environment variable
      * This allows different callback URLs for different environments (dev, staging, production)
+     * The redirect_url parameter ensures GitHub redirects to our callback with state preserved
      */
     const redirectUrl = `${process.env.API_URL}/integration/github/callback`;
 
+    /**
+     * Include both state and redirect_url parameters
+     * The redirect_url parameter ensures GitHub redirects to our callback endpoint
+     * even if Setup URL is configured differently in GitHub App settings
+     */
     return `https://github.com/apps/${this.appSlug}/installations/new?state=${encodeURIComponent(state)}&redirect_url=${encodeURIComponent(redirectUrl)}`;
   }
 
@@ -126,11 +198,9 @@ export class GitHubService {
     const token = this.createJWT();
 
     /**
-     * Create Octokit instance with JWT authentication
+     * Create Octokit instance with JWT authentication and configured timeout
      */
-    const octokit = new Octokit({
-      auth: token,
-    });
+    const octokit = this.createOctokit(token);
 
     try {
       const { data } = await octokit.rest.apps.getInstallation({
@@ -175,6 +245,87 @@ export class GitHubService {
   }
 
   /**
+   * Get list of repositories accessible to GitHub App installation
+   *
+   * @param {string} installationId - GitHub App installation ID
+   * @returns {Promise<Repository[]>} Array of repositories accessible to the installation
+   * @throws {Error} If request fails
+   */
+  public async getRepositoriesForInstallation(installationId: string): Promise<Repository[]> {
+    /**
+     * Get installation access token
+     */
+    const accessToken = await this.createInstallationToken(installationId);
+
+    /**
+     * Create Octokit instance with installation access token and configured timeout
+     */
+    const octokit = this.createOctokit(accessToken);
+
+    try {
+      /**
+       * Get installation info using JWT token (not installation access token)
+       * This is needed to check what account/organization it's installed on
+       */
+      const jwtToken = this.createJWT();
+      const jwtOctokit = this.createOctokit(jwtToken);
+
+      const installationInfo = await jwtOctokit.rest.apps.getInstallation({
+        installation_id: parseInt(installationId, 10),
+      });
+
+      /**
+       * Log installation info for debugging
+       */
+      console.log('Installation info:', {
+        id: installationInfo.data.id,
+        account: installationInfo.data.account,
+        target_type: installationInfo.data.target_type,
+        repository_selection: installationInfo.data.repository_selection,
+      });
+
+      /**
+       * Get all repositories accessible to the installation
+       * Use Octokit's paginate helper to automatically fetch all pages
+       * This ensures we get repositories from both personal accounts and organizations
+       * Use installation access token for this call
+       */
+      const repositoriesData = await octokit.paginate(
+        octokit.rest.apps.listReposAccessibleToInstallation,
+        {
+          installation_id: parseInt(installationId, 10),
+          per_page: 100,
+        }
+      );
+
+      console.log(`Total repositories fetched: ${repositoriesData.length}`);
+
+      /**
+       * Transform GitHub repository objects to our Repository type
+       * Sort by updatedAt descending (newest first)
+       */
+      const repositories = repositoriesData.map((repo) => ({
+        id: repo.id.toString(),
+        name: repo.name,
+        fullName: repo.full_name,
+        private: repo.private || false,
+        htmlUrl: repo.html_url,
+        updatedAt: repo.updated_at ? new Date(repo.updated_at) : new Date(0),
+        language: repo.language || null,
+      }));
+
+      /**
+       * Sort repositories by updatedAt descending (newest first)
+       */
+      return repositories.sort((a, b) => {
+        return b.updatedAt.getTime() - a.updatedAt.getTime();
+      });
+    } catch (error) {
+      throw new Error(`Failed to get repositories: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
    * Create a GitHub issue
    *
    * @param {string} repoFullName - Repository full name (owner/repo)
@@ -200,11 +351,9 @@ export class GitHubService {
     const accessToken = await this.createInstallationToken(installationId);
 
     /**
-     * Create Octokit instance with installation access token
+     * Create Octokit instance with installation access token and configured timeout
      */
-    const octokit = new Octokit({
-      auth: accessToken,
-    });
+    const octokit = this.createOctokit(accessToken);
 
     try {
       const { data } = await octokit.rest.issues.create({
@@ -248,11 +397,9 @@ export class GitHubService {
     const accessToken = await this.createInstallationToken(installationId);
 
     /**
-     * Create Octokit instance with installation access token
+     * Create Octokit instance with installation access token and configured timeout
      */
-    const octokit = new Octokit({
-      auth: accessToken,
-    });
+    const octokit = this.createOctokit(accessToken);
 
     try {
       /**
@@ -338,11 +485,9 @@ export class GitHubService {
     const token = this.createJWT();
 
     /**
-     * Create Octokit instance with JWT authentication
+     * Create Octokit instance with JWT authentication and configured timeout
      */
-    const octokit = new Octokit({
-      auth: token,
-    });
+    const octokit = this.createOctokit(token);
 
     try {
       /**

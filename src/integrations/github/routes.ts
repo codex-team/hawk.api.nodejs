@@ -1,3 +1,4 @@
+import '../../typeDefs/expressContext';
 import express from 'express';
 import { v4 as uuid } from 'uuid';
 import { ObjectId } from 'mongodb';
@@ -44,6 +45,105 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
     }
 
     return redirectUrl.toString();
+  }
+
+  /**
+   * Validate project access and admin permissions
+   * Performs common checks: authentication, projectId validation, project existence, workspace membership, admin rights
+   *
+   * @param req - Express request object
+   * @param res - Express response object
+   * @param projectId - project ID from query parameters
+   * @param errorMessagePrefix - prefix for admin permission error message (e.g., "connect Task Manager integration")
+   * @returns Object with project, workspace, and userId if validation passes, null otherwise (response already sent)
+   */
+  async function validateProjectAdminAccess(
+    req: express.Request,
+    res: express.Response,
+    projectId: string | undefined,
+    errorMessagePrefix: string = 'perform this action'
+  ): Promise<{ project: any; workspace: any; userId: string } | null> {
+    const userId = req.context?.user?.id;
+
+    /**
+     * Check if user is authenticated
+     */
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized. Please provide authorization token.' });
+
+      return null;
+    }
+
+    /**
+     * Validate projectId parameter
+     */
+    if (!projectId || typeof projectId !== 'string') {
+      res.status(400).json({ error: 'projectId query parameter is required' });
+
+      return null;
+    }
+
+    /**
+     * Validate projectId format (MongoDB ObjectId)
+     */
+    if (!ObjectId.isValid(projectId)) {
+      res.status(400).json({ error: `Invalid projectId format: ${projectId}` });
+
+      return null;
+    }
+
+    /**
+     * Find project by ID
+     */
+    const project = await factories.projectsFactory.findById(projectId);
+
+    if (!project) {
+      res.status(404).json({ error: `Project not found: ${projectId}` });
+
+      return null;
+    }
+
+    /**
+     * Check if project is demo project (cannot be modified)
+     */
+    if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+      res.status(400).json({ error: 'Unable to update demo project' });
+
+      return null;
+    }
+
+    /**
+     * Get workspace to check admin permissions
+     */
+    const workspace = await factories.workspacesFactory.findById(project.workspaceId.toString());
+
+    if (!workspace) {
+      res.status(404).json({ error: `Workspace not found: ${project.workspaceId.toString()}` });
+
+      return null;
+    }
+
+    /**
+     * Check if user is member of workspace
+     */
+    const member = await workspace.getMemberInfo(userId);
+
+    if (!member || WorkspaceModel.isPendingMember(member)) {
+      res.status(403).json({ error: 'You are not a member of this workspace' });
+
+      return null;
+    }
+
+    /**
+     * Check if user is admin of workspace
+     */
+    if (!member.isAdmin) {
+      res.status(403).json({ error: `Not enough permissions. Only workspace admin can ${errorMessagePrefix}.` });
+
+      return null;
+    }
+
+    return { project, workspace, userId };
   }
 
   /**
@@ -109,85 +209,18 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
   router.get('/connect', async (req, res, next) => {
     try {
       const { projectId } = req.query;
-      const userId = req.context?.user?.id;
 
       /**
-       * Check if user is authenticated
+       * Validate project access and admin permissions
        */
-      if (!userId) {
-        res.status(401).json({ error: 'Unauthorized. Please provide authorization token.' });
+      const access = await validateProjectAdminAccess(req, res, projectId as string | undefined, 'connect Task Manager integration');
 
+      if (!access) {
         return;
       }
 
-      /**
-       * Validate projectId parameter
-       */
-      if (!projectId || typeof projectId !== 'string') {
-        res.status(400).json({ error: 'projectId query parameter is required' });
-
-        return;
-      }
-
-      /**
-       * Validate projectId format (MongoDB ObjectId)
-       */
-      if (!ObjectId.isValid(projectId)) {
-        res.status(400).json({ error: `Invalid projectId format: ${projectId}` });
-
-        return;
-      }
-
-      /**
-       * Find project by ID
-       */
-      const project = await factories.projectsFactory.findById(projectId);
-
-      if (!project) {
-        res.status(404).json({ error: `Project not found: ${projectId}` });
-
-        return;
-      }
-
-      /**
-       * Check if project is demo project (cannot be modified)
-       */
-      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
-        res.status(400).json({ error: 'Unable to update demo project' });
-
-        return;
-      }
-
-      /**
-       * Get workspace to check admin permissions
-       */
-      const workspace = await factories.workspacesFactory.findById(project.workspaceId.toString());
-
-      if (!workspace) {
-        res.status(404).json({ error: `Workspace not found: ${project.workspaceId.toString()}` });
-
-        return;
-      }
-
-      /**
-       * Check if user is member of workspace
-       */
-      const member = await workspace.getMemberInfo(userId);
-
-      if (!member || WorkspaceModel.isPendingMember(member)) {
-        res.status(403).json({ error: 'You are not a member of this workspace' });
-
-        return;
-      }
-
-      /**
-       * Check if user is admin of workspace
-       */
-      if (!member.isAdmin) {
-        res.status(403).json({ error: 'Not enough permissions. Only workspace admin can connect Task Manager integration.' });
-
-        return;
-      }
+      const { project, userId } = access;
+      const validatedProjectId = project._id.toString();
 
       /**
        * Generate unique state for CSRF protection
@@ -200,21 +233,21 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
        * Data includes: projectId, userId, timestamp
        */
       const stateData = {
-        projectId,
+        projectId: validatedProjectId,
         userId,
         timestamp: Date.now(),
       };
 
       await stateStore.saveState(state, stateData);
 
-      log('info', projectId, `Created state: ${sgr(state.slice(0, 8), Effect.ForegroundGray)}...`);
+      log('info', validatedProjectId, `Created state: ${sgr(state.slice(0, 8), Effect.ForegroundGray)}...`);
 
       /**
        * Generate GitHub installation URL with state
        */
       const installationUrl = githubService.getInstallationUrl(state);
 
-      log('info', projectId, 'Generated GitHub installation URL: ' + sgr(installationUrl, Effect.ForegroundGreen));
+      log('info', validatedProjectId, 'Generated GitHub installation URL: ' + sgr(installationUrl, Effect.ForegroundGreen));
 
       /**
        * Return installation URL in JSON response
@@ -237,6 +270,11 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
   router.get('/callback', async (req, res, next) => {
     try {
       const { state, installation_id } = req.query;
+
+      /**
+       * Log callback request for debugging
+       */
+      log('info', `Callback received: state=${state}, installation_id=${installation_id}, query=${JSON.stringify(req.query)}`);
 
       /**
        * Validate required parameters
@@ -502,6 +540,160 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
       res.status(200).json({ message: 'Webhook processed successfully' });
     } catch (error) {
       log('error', 'Error in /webhook endpoint:', error);
+      next(error);
+    }
+  });
+
+  /**
+   * GET /integration/github/repositories?projectId=<projectId>
+   * Get list of repositories accessible to GitHub App installation
+   */
+  router.get('/repositories', async (req, res, next) => {
+    try {
+      const { projectId } = req.query;
+
+      /**
+       * Validate project access and admin permissions
+       */
+      const access = await validateProjectAdminAccess(req, res, projectId as string | undefined, 'access repository list');
+
+      if (!access) {
+        return;
+      }
+
+      const { project } = access;
+
+      /**
+       * Check if taskManager is configured
+       */
+      const taskManager = (project as any).taskManager;
+
+      if (!taskManager) {
+        res.status(400).json({ error: 'Task Manager is not configured for this project' });
+
+        return;
+      }
+
+      /**
+       * Extract installationId from project configuration
+       */
+      const installationId = taskManager.config.installationId;
+
+      if (!installationId) {
+        res.status(400).json({ error: 'GitHub installation ID is not configured for this project' });
+
+        return;
+      }
+
+      /**
+       * Get list of repositories from GitHub
+       */
+      try {
+        const repositories = await githubService.getRepositoriesForInstallation(installationId);
+
+        /**
+         * Log repository details for debugging
+         */
+        const repoOwners = [...new Set(repositories.map((r) => r.fullName.split('/')[0]))];
+        log('info', projectId, `Retrieved ${repositories.length} repository(ies) for installation ${installationId}`);
+        log('info', projectId, `Repository owners: ${repoOwners.join(', ')}`);
+
+        res.json({
+          repositories,
+        });
+      } catch (error) {
+        log('error', projectId, `Failed to get repositories: ${error instanceof Error ? error.message : String(error)}`);
+
+        res.status(500).json({
+          error: 'Failed to retrieve repositories from GitHub. Please try again.',
+        });
+      }
+    } catch (error) {
+      log('error', 'Error in /repositories endpoint:', error);
+      next(error);
+    }
+  });
+
+  /**
+   * PUT /integration/github/repository?projectId=<projectId>
+   * Update selected repository for GitHub App installation
+   */
+  router.put('/repository', async (req, res, next) => {
+    try {
+      const { projectId } = req.query;
+      const { repoId, repoFullName } = req.body;
+
+      /**
+       * Validate project access and admin permissions
+       */
+      const access = await validateProjectAdminAccess(req, res, projectId as string | undefined, 'update repository selection');
+
+      if (!access) {
+        return;
+      }
+
+      const { project } = access;
+      const validatedProjectId = project._id.toString();
+
+      /**
+       * Validate request body
+       */
+      if (!repoId || typeof repoId !== 'string') {
+        res.status(400).json({ error: 'repoId is required and must be a string' });
+
+        return;
+      }
+
+      if (!repoFullName || typeof repoFullName !== 'string') {
+        res.status(400).json({ error: 'repoFullName is required and must be a string' });
+
+        return;
+      }
+
+      /**
+       * Check if taskManager is configured
+       */
+      const taskManager = (project as any).taskManager;
+
+      if (!taskManager) {
+        res.status(400).json({ error: 'Task Manager is not configured for this project' });
+
+        return;
+      }
+
+      /**
+       * Update taskManager config with selected repository
+       */
+      const updatedTaskManager = {
+        ...taskManager,
+        config: {
+          ...taskManager.config,
+          repoId,
+          repoFullName,
+        },
+        updatedAt: new Date(),
+      };
+
+      try {
+        await project.updateProject({
+          taskManager: updatedTaskManager,
+        } as any);
+
+        log('info', validatedProjectId, `Updated repository selection: ${repoFullName} (${repoId})`);
+
+        res.json({
+          success: true,
+          message: 'Repository selection updated successfully',
+        });
+      } catch (error) {
+        log('error', validatedProjectId, `Failed to update repository selection: ${error instanceof Error ? error.message : String(error)}`);
+
+        res.status(500).json({
+          error: 'Failed to update repository selection. Please try again.',
+        });
+      }
+    } catch (error) {
+      log('error', 'Error in /repository endpoint:', error);
       next(error);
     }
   });

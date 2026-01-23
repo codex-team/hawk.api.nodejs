@@ -283,6 +283,11 @@ type Event {
   usersAffected: Int
 
   """
+  Task Manager item linked to this event (e.g., GitHub Issue)
+  """
+  taskManagerItem: TaskManagerItem
+
+  """
   Return graph of the error rate for the specified period
   """
   chartData(
@@ -337,9 +342,9 @@ type Subscription {
   """
   Sends new events from all user projects
   """
-  eventOccurred: Event! 
+  eventOccurred: Event!
 }
-  
+
 """
 Event information per day with these events
 """
@@ -453,7 +458,7 @@ extend type Mutation {
     Mark to set
     """
     mark: EventMark!
-  ): Boolean! 
+  ): Boolean!
 
   """
   Namespace that contains only mutations related to the events
