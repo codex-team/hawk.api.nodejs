@@ -266,28 +266,156 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
   /**
    * GET /integration/github/callback?state=<state>&installation_id=<installation_id>
    * Handle GitHub App installation callback
+   *
+   * @deprecated - now we use /oauth endpoint for both installation and OAuth callbacks
    */
-  router.get('/callback', async (req, res, next) => {
+  // router.get('/callback', async (req, res, next) => {
+  //   try {
+  //     const { state, installation_id } = req.query;
+
+  //     /**
+  //      * Log callback request for debugging
+  //      */
+  //     log('info', `Callback received: state=${state}, installation_id=${installation_id}, query=${JSON.stringify(req.query)}`);
+
+  //     /**
+  //      * Validate required parameters
+  //      */
+  //     if (!state || typeof state !== 'string') {
+  //       return res.redirect(buildGarageRedirectUrl('/project/error/settings/task-manager', {
+  //         error: 'Missing or invalid state',
+  //       }));
+  //     }
+
+  //     if (!installation_id || typeof installation_id !== 'string') {
+  //       return res.redirect(buildGarageRedirectUrl('/project/error/settings/task-manager', {
+  //         error: 'Missing or invalid installation_id parameter',
+  //       }));
+  //     }
+
+  //     /**
+  //      * Verify state (CSRF protection)
+  //      * getState() atomically gets and deletes the state, preventing reuse
+  //      */
+  //     const stateData = await stateStore.getState(state);
+
+  //     if (!stateData) {
+  //       log('warn', `Invalid or expired state: ${sgr(state.slice(0, 8), Effect.ForegroundGray)}...`);
+
+  //       return res.redirect(buildGarageRedirectUrl('/project/error/settings/task-manager', {
+  //         error: 'Invalid or expired state. Please try connecting again.',
+  //       }));
+  //     }
+
+  //     const { projectId, userId } = stateData;
+
+  //     log('info', projectId, `Processing callback initiated by user ${sgr(userId, Effect.ForegroundCyan)}`);
+
+  //     /**
+  //      * Verify project exists
+  //      */
+  //     const project = await factories.projectsFactory.findById(projectId);
+
+  //     if (!project) {
+  //       log('error', projectId, 'Project not found');
+
+  //       return res.redirect(buildGarageRedirectUrl('/project/error/settings/task-manager', {
+  //         error: `Project not found: ${projectId}`,
+  //       }));
+  //     }
+
+  //     /**
+  //      * Get installation info from GitHub
+  //      */
+  //     let installation;
+
+  //     try {
+  //       installation = await githubService.getInstallationForRepository(installation_id);
+  //       log('info', projectId, `Retrieved installation info for installation_id: ${sgr(installation_id, Effect.ForegroundCyan)}`);
+  //     } catch (error) {
+  //       log('error', projectId, `Failed to get installation info: ${error instanceof Error ? error.message : String(error)}`);
+
+  //       return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
+  //         error: 'Failed to retrieve GitHub installation information. Please try again.',
+  //       }));
+  //     }
+
+  //     /**
+  //      * For now, we save only installationId
+  //      * repoId and repoFullName will be set when creating the first issue or can be configured later
+  //      * GitHub App installation can include multiple repositories, so we don't know which one to use yet
+  //      */
+  //     const taskManagerConfig = {
+  //       type: 'github',
+  //       autoTaskEnabled: false,
+  //       taskThresholdTotalCount: DEFAULT_TASK_THRESHOLD_TOTAL_COUNT,
+  //       assignAgent: false,
+  //       connectedAt: new Date(),
+  //       updatedAt: new Date(),
+  //       config: {
+  //         installationId: installation_id,
+  //         repoId: '',
+  //         repoFullName: '',
+  //       },
+  //     };
+
+  //     let successRedirectUrl = buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
+  //       success: 'true',
+  //     });
+
+  //     /**
+  //      * Save taskManager configuration to project
+  //      */
+  //     try {
+  //       await project.updateProject(({
+  //         taskManager: taskManagerConfig,
+  //       }) as any);
+
+  //       log('info', projectId, 'Successfully connected GitHub integration. Redirecting to ' + sgr(successRedirectUrl, Effect.ForegroundGreen));
+  //     } catch (error) {
+  //       log('error', projectId, `Failed to save taskManager config: ${error instanceof Error ? error.message : String(error)}`);
+
+  //       return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
+  //         error: 'Failed to save Task Manager configuration. Please try again.',
+  //       }));
+  //     }
+
+  //     /**
+  //      * Redirect to Garage with success parameter
+  //      */
+  //     return res.redirect(successRedirectUrl);
+  //   } catch (error) {
+  //     log('error', 'Error in /callback endpoint:', error);
+  //     next(error);
+  //   }
+  // });
+
+  /**
+   * GET /integration/github/oauth?code=<code>&state=<state>&installation_id=<installation_id>
+   * Handle GitHub OAuth callback for user-to-server token
+   * Also handles GitHub App installation if installation_id is present
+   */
+  router.get('/oauth', async (req, res, next) => {
     try {
-      const { state, installation_id } = req.query;
+      const { code, state, installation_id } = req.query;
 
       /**
-       * Log callback request for debugging
+       * Log OAuth callback request for debugging
        */
-      log('info', `Callback received: state=${state}, installation_id=${installation_id}, query=${JSON.stringify(req.query)}`);
+      log('info', `OAuth callback received: state=${state}, code=${code ? 'present' : 'missing'}, installation_id=${installation_id ? 'present' : 'missing'}, query=${JSON.stringify(req.query)}`);
 
       /**
        * Validate required parameters
        */
-      if (!state || typeof state !== 'string') {
+      if (!code || typeof code !== 'string') {
         return res.redirect(buildGarageRedirectUrl('/project/error/settings/task-manager', {
-          error: 'Missing or invalid state',
+          error: 'Missing or invalid OAuth code',
         }));
       }
 
-      if (!installation_id || typeof installation_id !== 'string') {
+      if (!state || typeof state !== 'string') {
         return res.redirect(buildGarageRedirectUrl('/project/error/settings/task-manager', {
-          error: 'Missing or invalid installation_id parameter',
+          error: 'Missing or invalid state',
         }));
       }
 
@@ -307,7 +435,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
 
       const { projectId, userId } = stateData;
 
-      log('info', projectId, `Processing callback initiated by user ${sgr(userId, Effect.ForegroundCyan)}`);
+      log('info', projectId, `Processing OAuth callback initiated by user ${sgr(userId, Effect.ForegroundCyan)}`);
 
       /**
        * Verify project exists
@@ -323,67 +451,170 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
       }
 
       /**
-       * Get installation info from GitHub
+       * If installation_id is present, handle GitHub App installation first
+       * This happens when "Request user authorization (OAuth) during installation" is enabled
        */
-      let installation;
+      if (installation_id && typeof installation_id === 'string') {
+        log('info', projectId, `GitHub App installation detected (installation_id: ${installation_id}), processing installation first`);
 
-      try {
-        installation = await githubService.getInstallationForRepository(installation_id);
-        log('info', projectId, `Retrieved installation info for installation_id: ${sgr(installation_id, Effect.ForegroundCyan)}`);
-      } catch (error) {
-        log('error', projectId, `Failed to get installation info: ${error instanceof Error ? error.message : String(error)}`);
+        /**
+         * Get installation info from GitHub
+         */
+        let installation;
+
+        try {
+          installation = await githubService.getInstallationForRepository(installation_id);
+          log('info', projectId, `Retrieved installation info for installation_id: ${sgr(installation_id, Effect.ForegroundCyan)}`);
+        } catch (error) {
+          log('error', projectId, `Failed to get installation info: ${error instanceof Error ? error.message : String(error)}`);
+
+          return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
+            error: 'Failed to retrieve GitHub installation information. Please try again.',
+          }));
+        }
+
+        /**
+         * Create or update taskManager config with installation info
+         */
+        const taskManagerConfig = {
+          type: 'github' as const,
+          autoTaskEnabled: false,
+          taskThresholdTotalCount: DEFAULT_TASK_THRESHOLD_TOTAL_COUNT,
+          assignAgent: false,
+          connectedAt: new Date(),
+          updatedAt: new Date(),
+          config: {
+            installationId: installation_id,
+            repoId: '',
+            repoFullName: '',
+          },
+        };
+
+        try {
+          await project.updateProject({
+            taskManager: project.taskManager ? {
+              ...project.taskManager,
+              ...taskManagerConfig,
+              config: {
+                ...project.taskManager.config,
+                installationId: installation_id,
+              },
+            } : taskManagerConfig,
+          } as any);
+
+          log('info', projectId, 'Successfully saved GitHub App installation');
+        } catch (error) {
+          log('error', projectId, `Failed to save taskManager config: ${error instanceof Error ? error.message : String(error)}`);
+
+          return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
+            error: 'Failed to save Task Manager configuration. Please try again.',
+          }));
+        }
+
+        /**
+         * Reload project to get updated taskManager config
+         */
+        const updatedProject = await factories.projectsFactory.findById(projectId);
+
+        if (!updatedProject) {
+          log('error', projectId, 'Project not found after update');
+
+          return res.redirect(buildGarageRedirectUrl('/project/error/settings/task-manager', {
+            error: `Project not found: ${projectId}`,
+          }));
+        }
+
+        /**
+         * Use updated project for OAuth processing
+         */
+        Object.assign(project, updatedProject);
+      }
+
+      /**
+       * Verify project has taskManager config (should exist after installation or already exist)
+       */
+      if (!project.taskManager) {
+        log('error', projectId, 'Project does not have taskManager config after installation');
 
         return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
-          error: 'Failed to retrieve GitHub installation information. Please try again.',
+          error: 'GitHub App installation failed. Please try connecting again.',
         }));
       }
 
       /**
-       * For now, we save only installationId
-       * repoId and repoFullName will be set when creating the first issue or can be configured later
-       * GitHub App installation can include multiple repositories, so we don't know which one to use yet
+       * Exchange OAuth code for user-to-server token
+       * This method already validates the token by calling getAuthenticated(),
+       * so no additional validation is needed
        */
-      const taskManagerConfig = {
-        type: 'github',
-        autoTaskEnabled: false,
-        taskThresholdTotalCount: DEFAULT_TASK_THRESHOLD_TOTAL_COUNT,
-        assignAgent: false,
-        connectedAt: new Date(),
-        updatedAt: new Date(),
-        config: {
-          installationId: installation_id,
-          repoId: '',
-          repoFullName: '',
-        },
-      };
+      let tokenData;
 
-      let successRedirectUrl = buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
-        success: 'true',
-      });
-
-      /**
-       * Save taskManager configuration to project
-       */
       try {
-        await project.updateProject(({
-          taskManager: taskManagerConfig,
-        }) as any);
-
-        log('info', projectId, 'Successfully connected GitHub integration. Redirecting to ' + sgr(successRedirectUrl, Effect.ForegroundGreen));
+        tokenData = await githubService.exchangeOAuthCodeForToken(code);
+        log('info', projectId, `Successfully exchanged OAuth code for token for user ${sgr(tokenData.user.login, Effect.ForegroundCyan)}`);
       } catch (error) {
-        log('error', projectId, `Failed to save taskManager config: ${error instanceof Error ? error.message : String(error)}`);
+        log('error', projectId, `Failed to exchange OAuth code: ${error instanceof Error ? error.message : String(error)}`);
 
         return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
-          error: 'Failed to save Task Manager configuration. Please try again.',
+          error: 'Failed to exchange OAuth code for token. Please try again.',
+        }));
+      }
+
+      /**
+       * Update project with delegatedUser token
+       * Token is already validated in exchangeOAuthCodeForToken() via getAuthenticated()
+       */
+      const delegatedUser = {
+        hawkUserId: userId,
+        githubUserId: tokenData.user.id,
+        githubLogin: tokenData.user.login,
+        accessToken: tokenData.accessToken,
+        accessTokenExpiresAt: tokenData.expiresAt,
+        refreshToken: tokenData.refreshToken,
+        refreshTokenExpiresAt: tokenData.refreshTokenExpiresAt,
+        tokenCreatedAt: new Date(),
+        tokenLastValidatedAt: new Date(), // Token was validated in exchangeOAuthCodeForToken()
+        status: 'active' as const,
+      };
+
+      /**
+       * Update taskManager config with delegatedUser
+       * Preserve existing config fields
+       */
+      const updatedTaskManager = {
+        ...project.taskManager,
+        config: {
+          ...project.taskManager.config,
+          delegatedUser,
+        },
+        updatedAt: new Date(),
+      };
+
+      try {
+        await project.updateProject({
+          taskManager: updatedTaskManager,
+        } as any);
+
+        log('info', projectId, `Successfully saved delegatedUser token for user ${sgr(tokenData.user.login, Effect.ForegroundCyan)}`);
+      } catch (error) {
+        log('error', projectId, `Failed to save delegatedUser token: ${error instanceof Error ? error.message : String(error)}`);
+
+        return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
+          error: 'Failed to save OAuth token. Please try again.',
         }));
       }
 
       /**
        * Redirect to Garage with success parameter
        */
+      const successRedirectUrl = buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
+        success: 'true',
+      });
+
+      log('info', projectId, 'OAuth authorization completed successfully. Redirecting to ' + sgr(successRedirectUrl, Effect.ForegroundGreen));
+
       return res.redirect(successRedirectUrl);
     } catch (error) {
-      log('error', 'Error in /callback endpoint:', error);
+      log('error', 'Error in /oauth endpoint:', error);
       next(error);
     }
   });

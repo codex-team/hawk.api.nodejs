@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { Octokit } from '@octokit/rest';
 import type { Endpoints } from '@octokit/types';
+import { exchangeWebFlowCode, refreshToken as refreshOAuthToken } from '@octokit/oauth-methods';
 
 /**
  * Type for GitHub Issue creation parameters
@@ -101,9 +102,21 @@ export class GitHubService {
   private readonly appId: string;
 
   /**
+   * GitHub App Client ID from environment variables
+   * Required for OAuth token exchange (different from App ID)
+   */
+  private readonly clientId: string;
+
+  /**
    * GitHub App slug/name from environment variables
    */
   private readonly appSlug: string;
+
+  /**
+   * GitHub App Client Secret from environment variables
+   * Required for OAuth token exchange
+   */
+  private readonly clientSecret: string;
 
   /**
    * Default timeout for GitHub API requests (in milliseconds)
@@ -119,8 +132,18 @@ export class GitHubService {
       throw new Error('GITHUB_APP_ID environment variable is not set');
     }
 
+    if (!process.env.GITHUB_APP_CLIENT_ID) {
+      throw new Error('GITHUB_APP_CLIENT_ID environment variable is not set');
+    }
+
+    if (!process.env.GITHUB_APP_CLIENT_SECRET) {
+      throw new Error('GITHUB_APP_CLIENT_SECRET environment variable is not set');
+    }
+
     this.appId = process.env.GITHUB_APP_ID;
+    this.clientId = process.env.GITHUB_APP_CLIENT_ID;
     this.appSlug = process.env.GITHUB_APP_SLUG || 'hawk-tracker';
+    this.clientSecret = process.env.GITHUB_APP_CLIENT_SECRET;
   }
 
   /**
@@ -166,8 +189,10 @@ export class GitHubService {
      * Form callback URL based on API_URL environment variable
      * This allows different callback URLs for different environments (dev, staging, production)
      * The redirect_url parameter ensures GitHub redirects to our callback with state preserved
+     * Note: When "Request user authorization (OAuth) during installation" is enabled,
+     * GitHub redirects to /oauth with both installation_id and code parameters
      */
-    const redirectUrl = `${process.env.API_URL}/integration/github/callback`;
+    const redirectUrl = `${process.env.API_URL}/integration/github/oauth`;
 
     /**
      * Include both state and redirect_url parameters
@@ -403,13 +428,14 @@ export class GitHubService {
 
     try {
       /**
-       * Assign GitHub Copilot (github-copilot[bot]) as assignee
+       * Assign GitHub Copilot coding agent (copilot-swe-agent[bot]) as assignee
+       * According to GitHub docs: https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-a-pr
        */
       await octokit.rest.issues.addAssignees({
         owner,
         repo,
         issue_number: issueNumber,
-        assignees: ['github-copilot[bot]'],
+        assignees: ['copilot-swe-agent[bot]'],
       });
 
       return true;
@@ -500,6 +526,178 @@ export class GitHubService {
       return data.token;
     } catch (error) {
       throw new Error(`Failed to create installation token: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Exchange OAuth authorization code for user-to-server access token
+   * This token allows the GitHub App to perform actions on behalf of the user
+   *
+   * @param code - OAuth authorization code from GitHub callback
+   * @param redirectUri - Redirect URI that was used in the OAuth authorization request (must match)
+   * @returns Tokens and user info
+   * @throws If token exchange fails
+   */
+  public async exchangeOAuthCodeForToken(
+    code: string,
+    redirectUri?: string
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: Date | null;
+    refreshTokenExpiresAt: Date | null;
+    user: { id: number; login: string };
+  }> {
+    try {
+      /**
+       * Build redirect URI if not provided
+       */
+      if (!redirectUri) {
+        if (!process.env.API_URL) {
+          throw new Error('API_URL environment variable must be set to generate redirect URI');
+        }
+
+        redirectUri = `${process.env.API_URL}/integration/github/oauth`;
+      }
+
+      /**
+       * Use Octokit OAuth methods for token exchange
+       * This is the recommended way to exchange OAuth code for access token
+       */
+      const { authentication } = await exchangeWebFlowCode({
+        clientType: 'github-app',
+        clientId: this.clientId,
+        clientSecret: this.clientSecret,
+        code,
+        redirectUrl: redirectUri,
+      });
+
+
+      if (!authentication.token) {
+        throw new Error('No access token in OAuth response');
+      }
+
+      const accessToken = authentication.token;
+      /**
+       * refreshToken, expiresAt, and refreshTokenExpiresAt are only available in certain authentication types
+       * Use type guards to safely access these properties
+       */
+      const refreshToken = 'refreshToken' in authentication && authentication.refreshToken
+        ? authentication.refreshToken
+        : '';
+      const expiresAt = 'expiresAt' in authentication && authentication.expiresAt
+        ? new Date(authentication.expiresAt)
+        : null;
+      const refreshTokenExpiresAt = 'refreshTokenExpiresAt' in authentication && authentication.refreshTokenExpiresAt
+        ? new Date(authentication.refreshTokenExpiresAt)
+        : null;
+
+      /**
+       * Get user info using the access token
+       */
+      const octokit = this.createOctokit(accessToken);
+      const { data: userData } = await octokit.rest.users.getAuthenticated();
+
+      return {
+        accessToken,
+        refreshToken,
+        expiresAt,
+        refreshTokenExpiresAt,
+        user: {
+          id: userData.id,
+          login: userData.login,
+        },
+      };
+    } catch (error) {
+      throw new Error(`Failed to exchange OAuth code for token: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Validate user-to-server access token by making GET /user request
+   * Updates tokenLastValidatedAt if validation succeeds
+   *
+   * @param {string} accessToken - User-to-server access token
+   * @returns {Promise<{ valid: boolean; user?: { id: number; login: string }; status: 'active' | 'revoked' }>} Validation result
+   */
+  public async validateUserToken(accessToken: string): Promise<{ valid: boolean; user?: { id: number; login: string }; status: 'active' | 'revoked' }> {
+    try {
+      const octokit = this.createOctokit(accessToken);
+      const { data: userData } = await octokit.rest.users.getAuthenticated();
+
+      return {
+        valid: true,
+        user: {
+          id: userData.id,
+          login: userData.login,
+        },
+        status: 'active',
+      };
+    } catch (error: any) {
+      /**
+       * Check if error is 401 or 403 (token revoked/invalid)
+       */
+      if (error?.status === 401 || error?.status === 403) {
+        return {
+          valid: false,
+          status: 'revoked',
+        };
+      }
+
+      /**
+       * Other errors (network, etc.) - consider token as potentially valid
+       * but log the error
+       */
+      throw new Error(`Failed to validate user token: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Refresh user-to-server access token using refresh token
+   * Rotates refresh token if a new one is provided
+   *
+   * @param {string} refreshToken - OAuth refresh token
+   * @returns {Promise<{ accessToken: string; refreshToken: string; expiresAt: Date | null; refreshTokenExpiresAt: Date | null }>} New tokens
+   * @throws {Error} If token refresh fails
+   */
+  public async refreshUserToken(refreshToken: string): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: Date | null;
+    refreshTokenExpiresAt: Date | null;
+  }> {
+    try {
+      const { authentication } = await refreshOAuthToken({
+        clientType: 'github-app',
+        clientId: this.clientId,
+        clientSecret: this.clientSecret,
+        refreshToken,
+      });
+
+      if (!authentication.token) {
+        throw new Error('No access token in refresh response');
+      }
+
+      /**
+       * refreshToken is only available in GitHubAppAuthenticationWithRefreshToken type
+       * Check if it exists before accessing
+       */
+      const newRefreshToken = 'refreshToken' in authentication
+        ? authentication.refreshToken || refreshToken
+        : refreshToken; // Use new refresh token if provided, otherwise keep old one
+
+      return {
+        accessToken: authentication.token,
+        refreshToken: newRefreshToken,
+        expiresAt: 'expiresAt' in authentication && authentication.expiresAt
+          ? new Date(authentication.expiresAt)
+          : null,
+        refreshTokenExpiresAt: 'refreshTokenExpiresAt' in authentication && authentication.refreshTokenExpiresAt
+          ? new Date(authentication.refreshTokenExpiresAt)
+          : null,
+      };
+    } catch (error) {
+      throw new Error(`Failed to refresh user token: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

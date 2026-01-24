@@ -1,7 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
-import { ProjectDBScheme, ProjectNotificationsRuleDBScheme, ProjectEventGroupingPatternsDBScheme } from '@hawk.so/types';
+import { ProjectDBScheme, ProjectNotificationsRuleDBScheme, ProjectEventGroupingPatternsDBScheme, ProjectTaskManagerConfig } from '@hawk.so/types';
 import { v4 as uuid } from 'uuid';
 
 /**
@@ -192,6 +192,11 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * Project events grouping pattern list
    */
   public eventGroupingPatterns!: ProjectEventGroupingPatternsDBScheme[];
+
+  /**
+   * Task Manager configuration
+   */
+  public taskManager?: ProjectTaskManagerConfig;
 
   /**
    * Model's collection
