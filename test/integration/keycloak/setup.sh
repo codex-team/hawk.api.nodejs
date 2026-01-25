@@ -43,24 +43,43 @@ if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
   exit 1
 fi
 
-# Get admin token
-echo "🔑 Obtaining admin token..."
-TOKEN_RESPONSE=$(curl -s -X POST "$KEYCLOAK_URL/realms/master/protocol/openid-connect/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=$ADMIN_USER" \
-  -d "password=$ADMIN_PASSWORD" \
-  -d "grant_type=password" \
-  -d "client_id=admin-cli")
+# Additional wait for admin user to be fully initialized
+echo "⏳ Waiting for admin user to be ready..."
+sleep 3
 
-ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
+# Get admin token with retries
+echo "🔑 Obtaining admin token..."
+TOKEN_RETRIES=10
+TOKEN_RETRY_COUNT=0
+ACCESS_TOKEN=""
+
+while [ $TOKEN_RETRY_COUNT -lt $TOKEN_RETRIES ]; do
+  TOKEN_RESPONSE=$(curl -s -X POST "$KEYCLOAK_URL/realms/master/protocol/openid-connect/token" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "username=$ADMIN_USER" \
+    -d "password=$ADMIN_PASSWORD" \
+    -d "grant_type=password" \
+    -d "client_id=admin-cli")
+
+  ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
+
+  if [ -n "$ACCESS_TOKEN" ]; then
+    echo "✓ Admin token obtained"
+    break
+  fi
+
+  TOKEN_RETRY_COUNT=$((TOKEN_RETRY_COUNT + 1))
+  if [ $TOKEN_RETRY_COUNT -lt $TOKEN_RETRIES ]; then
+    echo "Retrying token request... ($TOKEN_RETRY_COUNT/$TOKEN_RETRIES)"
+    sleep 2
+  fi
+done
 
 if [ -z "$ACCESS_TOKEN" ]; then
-  echo "❌ Failed to obtain admin token"
+  echo "❌ Failed to obtain admin token after $TOKEN_RETRIES attempts"
   echo "Response: $TOKEN_RESPONSE"
   exit 1
 fi
-
-echo "✓ Admin token obtained"
 
 # Check if realm already exists
 echo "🔍 Checking if realm '$REALM_NAME' exists..."
