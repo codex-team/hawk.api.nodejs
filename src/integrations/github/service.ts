@@ -84,6 +84,7 @@ export type Installation = {
   /**
    * Installation target type
    */
+  // eslint-disable-next-line camelcase
   target_type: string;
 
   /**
@@ -96,6 +97,12 @@ export type Installation = {
  * Service for interacting with GitHub API
  */
 export class GitHubService {
+  /**
+   * Default timeout for GitHub API requests (in milliseconds)
+   * Increased from default 10s to 60s to handle slow network connections
+   */
+  private static readonly DEFAULT_TIMEOUT = 10000;
+
   /**
    * GitHub App ID from environment variables
    */
@@ -119,12 +126,6 @@ export class GitHubService {
   private readonly clientSecret: string;
 
   /**
-   * Default timeout for GitHub API requests (in milliseconds)
-   * Increased from default 10s to 60s to handle slow network connections
-   */
-  private static readonly DEFAULT_TIMEOUT = 60000;
-
-  /**
    * Creates an instance of GitHubService
    */
   constructor() {
@@ -144,21 +145,6 @@ export class GitHubService {
     this.clientId = process.env.GITHUB_APP_CLIENT_ID;
     this.appSlug = process.env.GITHUB_APP_SLUG || 'hawk-tracker';
     this.clientSecret = process.env.GITHUB_APP_CLIENT_SECRET;
-  }
-
-  /**
-   * Create Octokit instance with configured timeout
-   *
-   * @param auth - Authentication token (JWT or installation access token)
-   * @returns Configured Octokit instance
-   */
-  private createOctokit(auth: string): Octokit {
-    return new Octokit({
-      auth,
-      request: {
-        timeout: GitHubService.DEFAULT_TIMEOUT,
-      },
-    });
   }
 
   /**
@@ -229,6 +215,7 @@ export class GitHubService {
 
     try {
       const { data } = await octokit.rest.apps.getInstallation({
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         installation_id: parseInt(installationId, 10),
       });
 
@@ -261,6 +248,7 @@ export class GitHubService {
           login: accountLogin,
           type: accountType,
         },
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         target_type: data.target_type,
         permissions: data.permissions || {},
       };
@@ -300,6 +288,7 @@ export class GitHubService {
       const jwtOctokit = this.createOctokit(jwtToken);
 
       const installationInfo = await jwtOctokit.rest.apps.getInstallation({
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         installation_id: parseInt(installationId, 10),
       });
 
@@ -309,7 +298,9 @@ export class GitHubService {
       console.log('Installation info:', {
         id: installationInfo.data.id,
         account: installationInfo.data.account,
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         target_type: installationInfo.data.target_type,
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         repository_selection: installationInfo.data.repository_selection,
       });
 
@@ -322,7 +313,9 @@ export class GitHubService {
       const repositoriesData = await octokit.paginate(
         octokit.rest.apps.listReposAccessibleToInstallation,
         {
+          // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
           installation_id: parseInt(installationId, 10),
+          // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
           per_page: 100,
         }
       );
@@ -402,6 +395,7 @@ export class GitHubService {
 
       return {
         number: data.number,
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         html_url: data.html_url,
         title: data.title,
         state: data.state,
@@ -463,7 +457,17 @@ export class GitHubService {
         }
       `;
 
-      const repoInfo: any = await octokit.graphql(repoInfoQuery, {
+      type RepoInfoGraphQLResponse = {
+        repository?: {
+          id: string;
+          issue?: { id: string };
+          suggestedActors: {
+            nodes: Array<{ login: string; __typename?: string; id?: string }>;
+          };
+        };
+      };
+
+      const repoInfo = await octokit.graphql<RepoInfoGraphQLResponse>(repoInfoQuery, {
         owner,
         name: repo,
       });
@@ -484,11 +488,15 @@ export class GitHubService {
       /**
        * Find Copilot bot in suggested actors
        */
-      let copilotBot = repoInfo.repository.suggestedActors.nodes.find(
-        (node: any) => node.login === 'copilot-swe-agent'
+      type SuggestedActorNode = { login: string; __typename?: string; id?: string };
+      let copilotBot = (repoInfo?.repository?.suggestedActors?.nodes ?? []).find(
+        (node: SuggestedActorNode) => node.login === 'copilot-swe-agent'
       );
 
-      console.log('[GitHub API] Copilot bot found in suggestedActors:', copilotBot ? { login: copilotBot.login, id: copilotBot.id } : 'not found');
+      console.log('[GitHub API] Copilot bot found in suggestedActors:', copilotBot ? {
+        login: copilotBot.login,
+        id: copilotBot.id,
+      } : 'not found');
 
       /**
        * If not found in suggestedActors, try to get it directly by login
@@ -507,7 +515,11 @@ export class GitHubService {
             }
           `;
 
-          const copilotUserInfo: any = await octokit.graphql(copilotBotQuery, {
+          type CopilotUserInfoGraphQLResponse = {
+            user?: { id: string; login: string; __typename?: string };
+          };
+
+          const copilotUserInfo = await octokit.graphql<CopilotUserInfoGraphQLResponse>(copilotBotQuery, {
             login: 'copilot-swe-agent',
           });
 
@@ -528,7 +540,10 @@ export class GitHubService {
         throw new Error('Copilot coding agent (copilot-swe-agent) is not available for this repository');
       }
 
-      console.log('[GitHub API] Using Copilot bot:', { login: copilotBot.login, id: copilotBot.id });
+      console.log('[GitHub API] Using Copilot bot:', {
+        login: copilotBot.login,
+        id: copilotBot.id,
+      });
 
       /**
        * Step 2: Assign Copilot to issue via GraphQL
@@ -564,9 +579,19 @@ export class GitHubService {
         }
       `;
 
-      const response: any = await octokit.graphql(assignCopilotMutation, {
+      type AssignCopilotGraphQLResponse = {
+        addAssigneesToAssignable?: {
+          assignable?: {
+            id: string;
+            number: number;
+            assignees?: { nodes?: Array<{ login: string }> };
+          };
+        };
+      };
+
+      const response = await octokit.graphql<AssignCopilotGraphQLResponse>(assignCopilotMutation, {
         issueId,
-        assigneeIds: [copilotBot.id],
+        assigneeIds: [ copilotBot.id ],
       });
 
       console.log('[GitHub API] Assign Copilot mutation response:', JSON.stringify(response, null, 2));
@@ -577,15 +602,16 @@ export class GitHubService {
         throw new Error('Failed to assign Copilot to issue');
       }
 
+      // eslint-disable-next-line valid-jsdoc
       /**
        * Assignable is a union type (Issue | PullRequest), so we need to check which type it is
        * Both Issue and PullRequest have assignees field, so we can access it directly
-       * 
+       *
        * Note: The assignees list might not be immediately updated in the response,
        * so we check if the mutation succeeded (assignable is not null) rather than
        * verifying the assignees list directly
        */
-      const assignedLogins = assignable.assignees?.nodes?.map((n: any) => n.login) || [];
+      const assignedLogins = assignable.assignees?.nodes?.map((n: { login: string }) => n.login) || [];
 
       /**
        * Log assignees for debugging (but don't fail if Copilot is not in the list yet)
@@ -616,6 +642,192 @@ export class GitHubService {
     } catch (error) {
       throw new Error(`Failed to assign Copilot: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  /**
+   * Exchange OAuth authorization code for user-to-server access token
+   * This token allows the GitHub App to perform actions on behalf of the user
+   *
+   * @param code - OAuth authorization code from GitHub callback
+   * @param redirectUri - Redirect URI that was used in the OAuth authorization request (must match)
+   * @returns Tokens and user info
+   * @throws If token exchange fails
+   */
+  public async exchangeOAuthCodeForToken(
+    code: string,
+    redirectUri?: string
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: Date | null;
+    refreshTokenExpiresAt: Date | null;
+    user: { id: number; login: string };
+  }> {
+    try {
+      /**
+       * Build redirect URI if not provided
+       */
+      if (!redirectUri) {
+        if (!process.env.API_URL) {
+          throw new Error('API_URL environment variable must be set to generate redirect URI');
+        }
+
+        redirectUri = `${process.env.API_URL}/integration/github/oauth`;
+      }
+
+      /**
+       * Use Octokit OAuth methods for token exchange
+       * This is the recommended way to exchange OAuth code for access token
+       */
+      const { authentication } = await exchangeWebFlowCode({
+        clientType: 'github-app',
+        clientId: this.clientId,
+        clientSecret: this.clientSecret,
+        code,
+        redirectUrl: redirectUri,
+      });
+
+      if (!authentication.token) {
+        throw new Error('No access token in OAuth response');
+      }
+
+      const accessToken = authentication.token;
+      /**
+       * refreshToken, expiresAt, and refreshTokenExpiresAt are only available in certain authentication types
+       * Use type guards to safely access these properties
+       */
+      const refreshToken = 'refreshToken' in authentication && authentication.refreshToken
+        ? authentication.refreshToken
+        : '';
+      const expiresAt = 'expiresAt' in authentication && authentication.expiresAt
+        ? new Date(authentication.expiresAt)
+        : null;
+      const refreshTokenExpiresAt = 'refreshTokenExpiresAt' in authentication && authentication.refreshTokenExpiresAt
+        ? new Date(authentication.refreshTokenExpiresAt)
+        : null;
+
+      /**
+       * Get user info using the access token
+       */
+      const octokit = this.createOctokit(accessToken);
+      const { data: userData } = await octokit.rest.users.getAuthenticated();
+
+      return {
+        accessToken,
+        refreshToken,
+        expiresAt,
+        refreshTokenExpiresAt,
+        user: {
+          id: userData.id,
+          login: userData.login,
+        },
+      };
+    } catch (error) {
+      throw new Error(`Failed to exchange OAuth code for token: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Validate user-to-server access token by making GET /user request
+   * Updates tokenLastValidatedAt if validation succeeds
+   *
+   * @param accessToken - User-to-server access token
+   * @returns Validation result
+   */
+  public async validateUserToken(accessToken: string): Promise<{ valid: boolean; user?: { id: number; login: string }; status: 'active' | 'revoked' }> {
+    try {
+      const octokit = this.createOctokit(accessToken);
+      const { data: userData } = await octokit.rest.users.getAuthenticated();
+
+      return {
+        valid: true,
+        user: {
+          id: userData.id,
+          login: userData.login,
+        },
+        status: 'active',
+      };
+    } catch (error: any) {
+      /**
+       * Check if error is 401 or 403 (token revoked/invalid)
+       */
+      if (error?.status === 401 || error?.status === 403) {
+        return {
+          valid: false,
+          status: 'revoked',
+        };
+      }
+
+      /**
+       * Other errors (network, etc.) - consider token as potentially valid
+       * but log the error
+       */
+      throw new Error(`Failed to validate user token: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Refresh user-to-server access token using refresh token
+   * Rotates refresh token if a new one is provided
+   *
+   * @param refreshToken - OAuth refresh token
+   * @returns New tokens
+   * @throws If token refresh fails
+   */
+  public async refreshUserToken(refreshToken: string): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: Date | null;
+    refreshTokenExpiresAt: Date | null;
+  }> {
+    try {
+      const { authentication } = await refreshOAuthToken({
+        clientType: 'github-app',
+        clientId: this.clientId,
+        clientSecret: this.clientSecret,
+        refreshToken,
+      });
+
+      if (!authentication.token) {
+        throw new Error('No access token in refresh response');
+      }
+
+      /**
+       * refreshToken is only available in GitHubAppAuthenticationWithRefreshToken type
+       * Check if it exists before accessing
+       */
+      const newRefreshToken = 'refreshToken' in authentication
+        ? authentication.refreshToken || refreshToken
+        : refreshToken; // Use new refresh token if provided, otherwise keep old one
+
+      return {
+        accessToken: authentication.token,
+        refreshToken: newRefreshToken,
+        expiresAt: 'expiresAt' in authentication && authentication.expiresAt
+          ? new Date(authentication.expiresAt)
+          : null,
+        refreshTokenExpiresAt: 'refreshTokenExpiresAt' in authentication && authentication.refreshTokenExpiresAt
+          ? new Date(authentication.refreshTokenExpiresAt)
+          : null,
+      };
+    } catch (error) {
+      throw new Error(`Failed to refresh user token: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Create Octokit instance with configured timeout
+   *
+   * @param auth - Authentication token (JWT or installation access token)
+   * @returns Configured Octokit instance
+   */
+  private createOctokit(auth: string): Octokit {
+    return new Octokit({
+      auth,
+      request: {
+        timeout: GitHubService.DEFAULT_TIMEOUT,
+      },
+    });
   }
 
   /**
@@ -694,184 +906,13 @@ export class GitHubService {
        * Request installation access token
        */
       const { data } = await octokit.rest.apps.createInstallationAccessToken({
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         installation_id: parseInt(installationId, 10),
       });
 
       return data.token;
     } catch (error) {
       throw new Error(`Failed to create installation token: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  /**
-   * Exchange OAuth authorization code for user-to-server access token
-   * This token allows the GitHub App to perform actions on behalf of the user
-   *
-   * @param code - OAuth authorization code from GitHub callback
-   * @param redirectUri - Redirect URI that was used in the OAuth authorization request (must match)
-   * @returns Tokens and user info
-   * @throws If token exchange fails
-   */
-  public async exchangeOAuthCodeForToken(
-    code: string,
-    redirectUri?: string
-  ): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    expiresAt: Date | null;
-    refreshTokenExpiresAt: Date | null;
-    user: { id: number; login: string };
-  }> {
-    try {
-      /**
-       * Build redirect URI if not provided
-       */
-      if (!redirectUri) {
-        if (!process.env.API_URL) {
-          throw new Error('API_URL environment variable must be set to generate redirect URI');
-        }
-
-        redirectUri = `${process.env.API_URL}/integration/github/oauth`;
-      }
-
-      /**
-       * Use Octokit OAuth methods for token exchange
-       * This is the recommended way to exchange OAuth code for access token
-       */
-      const { authentication } = await exchangeWebFlowCode({
-        clientType: 'github-app',
-        clientId: this.clientId,
-        clientSecret: this.clientSecret,
-        code,
-        redirectUrl: redirectUri,
-      });
-
-
-      if (!authentication.token) {
-        throw new Error('No access token in OAuth response');
-      }
-
-      const accessToken = authentication.token;
-      /**
-       * refreshToken, expiresAt, and refreshTokenExpiresAt are only available in certain authentication types
-       * Use type guards to safely access these properties
-       */
-      const refreshToken = 'refreshToken' in authentication && authentication.refreshToken
-        ? authentication.refreshToken
-        : '';
-      const expiresAt = 'expiresAt' in authentication && authentication.expiresAt
-        ? new Date(authentication.expiresAt)
-        : null;
-      const refreshTokenExpiresAt = 'refreshTokenExpiresAt' in authentication && authentication.refreshTokenExpiresAt
-        ? new Date(authentication.refreshTokenExpiresAt)
-        : null;
-
-      /**
-       * Get user info using the access token
-       */
-      const octokit = this.createOctokit(accessToken);
-      const { data: userData } = await octokit.rest.users.getAuthenticated();
-
-      return {
-        accessToken,
-        refreshToken,
-        expiresAt,
-        refreshTokenExpiresAt,
-        user: {
-          id: userData.id,
-          login: userData.login,
-        },
-      };
-    } catch (error) {
-      throw new Error(`Failed to exchange OAuth code for token: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  /**
-   * Validate user-to-server access token by making GET /user request
-   * Updates tokenLastValidatedAt if validation succeeds
-   *
-   * @param {string} accessToken - User-to-server access token
-   * @returns {Promise<{ valid: boolean; user?: { id: number; login: string }; status: 'active' | 'revoked' }>} Validation result
-   */
-  public async validateUserToken(accessToken: string): Promise<{ valid: boolean; user?: { id: number; login: string }; status: 'active' | 'revoked' }> {
-    try {
-      const octokit = this.createOctokit(accessToken);
-      const { data: userData } = await octokit.rest.users.getAuthenticated();
-
-      return {
-        valid: true,
-        user: {
-          id: userData.id,
-          login: userData.login,
-        },
-        status: 'active',
-      };
-    } catch (error: any) {
-      /**
-       * Check if error is 401 or 403 (token revoked/invalid)
-       */
-      if (error?.status === 401 || error?.status === 403) {
-        return {
-          valid: false,
-          status: 'revoked',
-        };
-      }
-
-      /**
-       * Other errors (network, etc.) - consider token as potentially valid
-       * but log the error
-       */
-      throw new Error(`Failed to validate user token: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  /**
-   * Refresh user-to-server access token using refresh token
-   * Rotates refresh token if a new one is provided
-   *
-   * @param {string} refreshToken - OAuth refresh token
-   * @returns {Promise<{ accessToken: string; refreshToken: string; expiresAt: Date | null; refreshTokenExpiresAt: Date | null }>} New tokens
-   * @throws {Error} If token refresh fails
-   */
-  public async refreshUserToken(refreshToken: string): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    expiresAt: Date | null;
-    refreshTokenExpiresAt: Date | null;
-  }> {
-    try {
-      const { authentication } = await refreshOAuthToken({
-        clientType: 'github-app',
-        clientId: this.clientId,
-        clientSecret: this.clientSecret,
-        refreshToken,
-      });
-
-      if (!authentication.token) {
-        throw new Error('No access token in refresh response');
-      }
-
-      /**
-       * refreshToken is only available in GitHubAppAuthenticationWithRefreshToken type
-       * Check if it exists before accessing
-       */
-      const newRefreshToken = 'refreshToken' in authentication
-        ? authentication.refreshToken || refreshToken
-        : refreshToken; // Use new refresh token if provided, otherwise keep old one
-
-      return {
-        accessToken: authentication.token,
-        refreshToken: newRefreshToken,
-        expiresAt: 'expiresAt' in authentication && authentication.expiresAt
-          ? new Date(authentication.expiresAt)
-          : null,
-        refreshTokenExpiresAt: 'refreshTokenExpiresAt' in authentication && authentication.refreshTokenExpiresAt
-          ? new Date(authentication.refreshTokenExpiresAt)
-          : null,
-      };
-    } catch (error) {
-      throw new Error(`Failed to refresh user token: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }
