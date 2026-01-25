@@ -1,4 +1,6 @@
 import '../../src/env-test';
+import { GitHubService } from '../../src/integrations/github/service';
+import jwt from 'jsonwebtoken';
 
 /**
  * Mock @octokit/rest as virtual mock since module might not be installed in test environment
@@ -13,14 +15,13 @@ jest.mock('@octokit/rest', () => ({
  */
 jest.mock('jsonwebtoken');
 
-import { GitHubService } from '../../src/integrations/github/service';
-import jwt from 'jsonwebtoken';
-
 describe('GitHubService', () => {
   let githubService: GitHubService;
   const testAppId = '123456';
   const testAppSlug = 'hawk-tracker';
   const testPrivateKey = '-----BEGIN RSA PRIVATE KEY-----\nTEST_KEY\n-----END RSA PRIVATE KEY-----';
+  const testClientId = 'Iv1.client-id';
+  const testClientSecret = 'client-secret';
   const testInstallationId = '789012';
   const testApiUrl = 'https://api.example.com';
 
@@ -35,13 +36,15 @@ describe('GitHubService', () => {
         addAssignees: jest.Mock;
       };
     };
+    graphql: jest.Mock;
   };
 
-  const createMockOctokit = () => {
+  const createMockOctokit = (): typeof mockOctokit => {
     const createTokenMock = jest.fn();
     const getInstallationMock = jest.fn();
     const createIssueMock = jest.fn();
     const addAssigneesMock = jest.fn();
+    const graphqlMock = jest.fn();
 
     return {
       rest: {
@@ -54,6 +57,7 @@ describe('GitHubService', () => {
           addAssignees: addAssigneesMock,
         },
       },
+      graphql: graphqlMock,
     };
   };
 
@@ -69,6 +73,8 @@ describe('GitHubService', () => {
     process.env.GITHUB_APP_ID = testAppId;
     process.env.GITHUB_APP_SLUG = testAppSlug;
     process.env.GITHUB_PRIVATE_KEY = testPrivateKey;
+    process.env.GITHUB_APP_CLIENT_ID = testClientId;
+    process.env.GITHUB_APP_CLIENT_SECRET = testClientSecret;
     process.env.API_URL = testApiUrl;
 
     /**
@@ -79,8 +85,10 @@ describe('GitHubService', () => {
     /**
      * Get mocked Octokit constructor and set implementation
      */
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Octokit } = require('@octokit/rest');
-    (Octokit as jest.Mock).mockImplementation(() => mockOctokit);
+
+    Octokit.mockImplementation(() => mockOctokit);
 
     /**
      * Create service instance
@@ -95,6 +103,8 @@ describe('GitHubService', () => {
     Reflect.deleteProperty(process.env, 'GITHUB_APP_ID');
     Reflect.deleteProperty(process.env, 'GITHUB_APP_SLUG');
     Reflect.deleteProperty(process.env, 'GITHUB_PRIVATE_KEY');
+    Reflect.deleteProperty(process.env, 'GITHUB_APP_CLIENT_ID');
+    Reflect.deleteProperty(process.env, 'GITHUB_APP_CLIENT_SECRET');
     Reflect.deleteProperty(process.env, 'API_URL');
   });
 
@@ -105,7 +115,7 @@ describe('GitHubService', () => {
       const url = githubService.getInstallationUrl(state);
 
       expect(url).toBe(
-        `https://github.com/apps/${testAppSlug}/installations/new?state=${encodeURIComponent(state)}&redirect_url=${encodeURIComponent(`${testApiUrl}/integration/github/callback`)}`
+        `https://github.com/apps/${testAppSlug}/installations/new?state=${encodeURIComponent(state)}&redirect_url=${encodeURIComponent(`${testApiUrl}/integration/github/oauth`)}`
       );
     });
 
@@ -126,6 +136,7 @@ describe('GitHubService', () => {
     it('should get installation information for User account', async () => {
       (jwt.sign as jest.Mock).mockReturnValue(mockJwtToken);
 
+      /* eslint-disable @typescript-eslint/camelcase, camelcase, @typescript-eslint/no-explicit-any */
       mockOctokit.rest.apps.getInstallation.mockResolvedValue({
         data: {
           id: 12345,
@@ -143,6 +154,7 @@ describe('GitHubService', () => {
           },
         },
       } as any);
+      /* eslint-enable @typescript-eslint/camelcase, camelcase, @typescript-eslint/no-explicit-any */
 
       const result = await githubService.getInstallationForRepository(testInstallationId);
 
@@ -152,6 +164,7 @@ describe('GitHubService', () => {
           login: 'octocat',
           type: 'User',
         },
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         target_type: 'User',
         permissions: {
           issues: 'write',
@@ -160,6 +173,7 @@ describe('GitHubService', () => {
       });
 
       expect(mockOctokit.rest.apps.getInstallation).toHaveBeenCalledWith({
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         installation_id: parseInt(testInstallationId, 10),
       });
     });
@@ -167,6 +181,7 @@ describe('GitHubService', () => {
     it('should get installation information for Organization account', async () => {
       (jwt.sign as jest.Mock).mockReturnValue(mockJwtToken);
 
+      /* eslint-disable @typescript-eslint/camelcase, camelcase, @typescript-eslint/no-explicit-any */
       mockOctokit.rest.apps.getInstallation.mockResolvedValue({
         data: {
           id: 12345,
@@ -184,6 +199,7 @@ describe('GitHubService', () => {
           },
         },
       } as any);
+      /* eslint-enable @typescript-eslint/camelcase, camelcase, @typescript-eslint/no-explicit-any */
 
       const result = await githubService.getInstallationForRepository(testInstallationId);
 
@@ -193,6 +209,7 @@ describe('GitHubService', () => {
           login: 'my-org',
           type: 'Organization',
         },
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         target_type: 'Organization',
         permissions: {
           issues: 'write',
@@ -219,21 +236,24 @@ describe('GitHubService', () => {
     beforeEach(() => {
       (jwt.sign as jest.Mock).mockReturnValue(mockJwtToken);
 
+      /* eslint-disable @typescript-eslint/camelcase, camelcase, @typescript-eslint/no-explicit-any */
       mockOctokit.rest.apps.createInstallationAccessToken.mockResolvedValue({
         data: {
           token: mockInstallationToken,
           expires_at: '2025-01-01T00:00:00Z',
         },
       } as any);
+      /* eslint-enable @typescript-eslint/camelcase, camelcase, @typescript-eslint/no-explicit-any */
     });
 
     it('should create issue successfully', async () => {
       const issueData = {
         title: 'Test Issue',
         body: 'Test body',
-        labels: ['bug'],
+        labels: [ 'bug' ],
       };
 
+      /* eslint-disable @typescript-eslint/camelcase, camelcase, @typescript-eslint/no-explicit-any */
       mockOctokit.rest.issues.create.mockResolvedValue({
         data: {
           number: 123,
@@ -242,11 +262,13 @@ describe('GitHubService', () => {
           state: 'open',
         },
       } as any);
+      /* eslint-enable @typescript-eslint/camelcase, camelcase, @typescript-eslint/no-explicit-any */
 
       const result = await githubService.createIssue('owner/repo', testInstallationId, issueData);
 
       expect(result).toEqual({
         number: 123,
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         html_url: 'https://github.com/owner/repo/issues/123',
         title: 'Test Issue',
         state: 'open',
@@ -257,7 +279,7 @@ describe('GitHubService', () => {
         repo: 'repo',
         title: 'Test Issue',
         body: 'Test body',
-        labels: ['bug'],
+        labels: [ 'bug' ],
       });
     });
 
@@ -267,6 +289,7 @@ describe('GitHubService', () => {
         body: 'Test body',
       };
 
+      /* eslint-disable @typescript-eslint/camelcase, camelcase, @typescript-eslint/no-explicit-any */
       mockOctokit.rest.issues.create.mockResolvedValue({
         data: {
           number: 124,
@@ -275,6 +298,7 @@ describe('GitHubService', () => {
           state: 'open',
         },
       } as any);
+      /* eslint-enable @typescript-eslint/camelcase, camelcase, @typescript-eslint/no-explicit-any */
 
       const result = await githubService.createIssue('owner/repo', testInstallationId, issueData);
 
@@ -314,45 +338,64 @@ describe('GitHubService', () => {
   });
 
   describe('assignCopilot', () => {
-    const mockJwtToken = 'mock-jwt-token';
-    const mockInstallationToken = 'mock-installation-token';
-
-    beforeEach(() => {
-      (jwt.sign as jest.Mock).mockReturnValue(mockJwtToken);
-
-      mockOctokit.rest.apps.createInstallationAccessToken.mockResolvedValue({
-        data: {
-          token: mockInstallationToken,
-          expires_at: '2025-01-01T00:00:00Z',
-        },
-      } as any);
-    });
+    const mockDelegatedUserToken = 'mock-delegated-user-token';
 
     it('should assign Copilot to issue successfully', async () => {
       const issueNumber = 123;
 
-      mockOctokit.rest.issues.addAssignees.mockResolvedValue({
-        data: {},
-      } as any);
+      mockOctokit.graphql
+        .mockResolvedValueOnce({
+          repository: {
+            id: 'repo-123',
+            issue: { id: 'issue-456' },
+            suggestedActors: {
+              nodes: [
+                {
+                  login: 'copilot-swe-agent',
+                  __typename: 'Bot',
+                  id: 'bot-789',
+                },
+              ],
+            },
+          },
+        })
+        .mockResolvedValueOnce({
+          addAssigneesToAssignable: {
+            assignable: {
+              id: 'issue-456',
+              number: issueNumber,
+              assignees: { nodes: [] },
+            },
+          },
+        });
 
-      const result = await githubService.assignCopilot('owner', 'repo', issueNumber, testInstallationId);
+      await githubService.assignCopilot('owner/repo', issueNumber, mockDelegatedUserToken);
 
-      expect(result).toBe(true);
-      expect(mockOctokit.rest.issues.addAssignees).toHaveBeenCalledWith({
-        owner: 'owner',
-        repo: 'repo',
-        issue_number: issueNumber,
-        assignees: ['github-copilot[bot]'],
-      });
+      expect(mockOctokit.graphql).toHaveBeenCalledTimes(2);
     });
 
     it('should throw error if assignment fails', async () => {
       const issueNumber = 123;
 
-      mockOctokit.rest.issues.addAssignees.mockRejectedValue(new Error('Issue not found'));
+      mockOctokit.graphql
+        .mockResolvedValueOnce({
+          repository: {
+            id: 'repo-123',
+            issue: { id: 'issue-456' },
+            suggestedActors: {
+              nodes: [
+                {
+                  login: 'copilot-swe-agent',
+                  id: 'bot-789',
+                },
+              ],
+            },
+          },
+        })
+        .mockRejectedValue(new Error('Issue not found'));
 
       await expect(
-        githubService.assignCopilot('owner', 'repo', issueNumber, testInstallationId)
+        githubService.assignCopilot('owner/repo', issueNumber, mockDelegatedUserToken)
       ).rejects.toThrow('Failed to assign Copilot');
     });
   });

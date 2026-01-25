@@ -161,10 +161,8 @@ describe('UserModel SSO identities', () => {
 
 });
 
-afterAll(async done => {
+afterAll(async () => {
   await mongo.mongoClients.hawk?.close();
   await mongo.mongoClients.events?.close();
-
-  done();
 });
 
