@@ -51,7 +51,12 @@ function createMockProject(options: {
   const mockUpdateProject = jest.fn().mockImplementation(async (data) => {
     /**
      * Return updated project with new data
+     * Preserve null when explicitly passed (e.g. disconnectTaskManager sets taskManager: null)
      */
+    const nextTaskManager = data.taskManager !== undefined
+      ? data.taskManager
+      : (taskManager ?? undefined);
+
     return {
       _id: new ObjectId(projectId),
       workspaceId: new ObjectId(workspaceId),
@@ -60,7 +65,7 @@ function createMockProject(options: {
       token: 'test-token',
       notifications: [],
       eventGroupingPatterns: [],
-      taskManager: data.taskManager !== undefined ? (data.taskManager ?? undefined) : (taskManager ?? undefined),
+      taskManager: nextTaskManager,
     };
   });
 

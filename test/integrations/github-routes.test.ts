@@ -681,8 +681,8 @@ describe('GitHub Routes - /integration/github/connect', () => {
         workspaceId,
       });
       mockProject.taskManager = null;
+      mockProject.updateProject = jest.fn().mockResolvedValue(undefined);
       mockGetInstallationForRepository.mockResolvedValue({});
-      mockProject.updateProject.mockResolvedValue(undefined);
 
       const factories: ContextFactories = {
         projectsFactory: {
