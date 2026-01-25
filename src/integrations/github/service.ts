@@ -280,6 +280,10 @@ export class GitHubService {
     /**
      * Get installation access token
      */
+    if (!installationId) {
+      throw new Error('installationId is required for getting repositories');
+    }
+
     const accessToken = await this.createInstallationToken(installationId);
 
     /**
@@ -351,17 +355,17 @@ export class GitHubService {
   }
 
   /**
-   * Create a GitHub issue
+   * Create a GitHub issue using GitHub App installation token
    *
    * @param {string} repoFullName - Repository full name (owner/repo)
-   * @param {string} installationId - GitHub App installation ID
+   * @param {string | null} installationId - GitHub App installation ID
    * @param {IssueData} issueData - Issue data (title, body, labels)
    * @returns {Promise<GitHubIssue>} Created issue
    * @throws {Error} If issue creation fails
    */
   public async createIssue(
     repoFullName: string,
-    installationId: string,
+    installationId: string | null,
     issueData: IssueData
   ): Promise<GitHubIssue> {
     const [owner, repo] = repoFullName.split('/');
@@ -371,15 +375,22 @@ export class GitHubService {
     }
 
     /**
-     * Get installation access token
+     * Get installation access token (GitHub App token)
      */
+    if (!installationId) {
+      throw new Error('installationId is required for creating GitHub issues');
+    }
+
     const accessToken = await this.createInstallationToken(installationId);
 
     /**
-     * Create Octokit instance with installation access token and configured timeout
+     * Create Octokit instance with installation token and configured timeout
      */
     const octokit = this.createOctokit(accessToken);
 
+    /**
+     * Create issue via REST API using installation token
+     */
     try {
       const { data } = await octokit.rest.issues.create({
         owner,
@@ -401,44 +412,207 @@ export class GitHubService {
   }
 
   /**
-   * Assign GitHub Copilot to an issue
+   * Assign Copilot agent to a GitHub issue using user-to-server OAuth token
    *
-   * @param {string} owner - Repository owner
-   * @param {string} repo - Repository name
+   * @param {string} repoFullName - Repository full name (owner/repo)
    * @param {number} issueNumber - Issue number
-   * @param {string} installationId - GitHub App installation ID
-   * @returns {Promise<boolean>} True if assignment was successful
-   * @throws {Error} If assignment fails
+   * @param {string} delegatedUserToken - User-to-server OAuth token
+   * @returns {Promise<void>}
+   * @throws {Error} If Copilot assignment fails
    */
   public async assignCopilot(
-    owner: string,
-    repo: string,
+    repoFullName: string,
     issueNumber: number,
-    installationId: string
-  ): Promise<boolean> {
-    /**
-     * Get installation access token
-     */
-    const accessToken = await this.createInstallationToken(installationId);
+    delegatedUserToken: string
+  ): Promise<void> {
+    const [owner, repo] = repoFullName.split('/');
+
+    if (!owner || !repo) {
+      throw new Error(`Invalid repository name format: ${repoFullName}. Expected format: owner/repo`);
+    }
 
     /**
-     * Create Octokit instance with installation access token and configured timeout
+     * Create Octokit instance with user-to-server OAuth token
      */
-    const octokit = this.createOctokit(accessToken);
+    const octokit = this.createOctokit(delegatedUserToken);
 
     try {
       /**
-       * Assign GitHub Copilot coding agent (copilot-swe-agent[bot]) as assignee
-       * According to GitHub docs: https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-a-pr
+       * Step 1: Get repository ID and find Copilot bot ID
        */
-      await octokit.rest.issues.addAssignees({
+      const repoInfoQuery = `
+        query($owner: String!, $name: String!) {
+          repository(owner: $owner, name: $name) {
+            id
+            issue(number: ${issueNumber}) {
+              id
+            }
+            suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) {
+              nodes {
+                login
+                __typename
+                ... on Bot {
+                  id
+                }
+                ... on User {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const repoInfo: any = await octokit.graphql(repoInfoQuery, {
         owner,
-        repo,
-        issue_number: issueNumber,
-        assignees: ['copilot-swe-agent[bot]'],
+        name: repo,
       });
 
-      return true;
+      console.log('[GitHub API] Repository info query response:', JSON.stringify(repoInfo, null, 2));
+
+      const repositoryId = repoInfo?.repository?.id;
+      const issueId = repoInfo?.repository?.issue?.id;
+
+      if (!repositoryId) {
+        throw new Error(`Failed to get repository ID for ${repoFullName}`);
+      }
+
+      if (!issueId) {
+        throw new Error(`Failed to get issue ID for issue #${issueNumber}`);
+      }
+
+      /**
+       * Find Copilot bot in suggested actors
+       */
+      let copilotBot = repoInfo.repository.suggestedActors.nodes.find(
+        (node: any) => node.login === 'copilot-swe-agent'
+      );
+
+      console.log('[GitHub API] Copilot bot found in suggestedActors:', copilotBot ? { login: copilotBot.login, id: copilotBot.id } : 'not found');
+
+      /**
+       * If not found in suggestedActors, try to get it directly by login
+       */
+      if (!copilotBot || !copilotBot.id) {
+        console.log('[GitHub API] Trying to get Copilot bot directly by login...');
+
+        try {
+          const copilotBotQuery = `
+            query($login: String!) {
+              user(login: $login) {
+                id
+                login
+                __typename
+              }
+            }
+          `;
+
+          const copilotUserInfo: any = await octokit.graphql(copilotBotQuery, {
+            login: 'copilot-swe-agent',
+          });
+
+          console.log('[GitHub API] Direct Copilot bot query response:', JSON.stringify(copilotUserInfo, null, 2));
+
+          if (copilotUserInfo?.user?.id) {
+            copilotBot = {
+              login: copilotUserInfo.user.login,
+              id: copilotUserInfo.user.id,
+            };
+          }
+        } catch (directQueryError) {
+          console.log('[GitHub API] Failed to get Copilot bot directly:', directQueryError);
+        }
+      }
+
+      if (!copilotBot || !copilotBot.id) {
+        throw new Error('Copilot coding agent (copilot-swe-agent) is not available for this repository');
+      }
+
+      console.log('[GitHub API] Using Copilot bot:', { login: copilotBot.login, id: copilotBot.id });
+
+      /**
+       * Step 2: Assign Copilot to issue via GraphQL
+       * Note: Assignable is a union type (Issue | PullRequest), so we need to use fragments
+       */
+      const assignCopilotMutation = `
+        mutation($issueId: ID!, $assigneeIds: [ID!]!) {
+          addAssigneesToAssignable(input: {
+            assignableId: $issueId
+            assigneeIds: $assigneeIds
+          }) {
+            assignable {
+              ... on Issue {
+                id
+                number
+                assignees(first: 10) {
+                  nodes {
+                    login
+                  }
+                }
+              }
+              ... on PullRequest {
+                id
+                number
+                assignees(first: 10) {
+                  nodes {
+                    login
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const response: any = await octokit.graphql(assignCopilotMutation, {
+        issueId,
+        assigneeIds: [copilotBot.id],
+      });
+
+      console.log('[GitHub API] Assign Copilot mutation response:', JSON.stringify(response, null, 2));
+
+      const assignable = response?.addAssigneesToAssignable?.assignable;
+
+      if (!assignable) {
+        throw new Error('Failed to assign Copilot to issue');
+      }
+
+      /**
+       * Assignable is a union type (Issue | PullRequest), so we need to check which type it is
+       * Both Issue and PullRequest have assignees field, so we can access it directly
+       * 
+       * Note: The assignees list might not be immediately updated in the response,
+       * so we check if the mutation succeeded (assignable is not null) rather than
+       * verifying the assignees list directly
+       */
+      const assignedLogins = assignable.assignees?.nodes?.map((n: any) => n.login) || [];
+
+      /**
+       * Log assignees for debugging (but don't fail if Copilot is not in the list yet)
+       * GitHub API might not immediately reflect the assignment in the response
+       */
+      console.log(`[GitHub API] Issue assignees after mutation:`, assignedLogins);
+
+      /**
+       * Get issue number from assignable (works for both Issue and PullRequest)
+       */
+      const assignedNumber = assignable.number;
+
+      /**
+       * If Copilot is in the list, log success. Otherwise, just log a warning
+       * but don't throw an error, as the mutation might have succeeded even if
+       * the response doesn't show the assignee yet
+       */
+      if (assignedLogins.includes('copilot-swe-agent')) {
+        console.log(`[GitHub API] Successfully assigned Copilot to issue #${assignedNumber}`);
+      } else {
+        /**
+         * Mutation succeeded (assignable is not null), but assignees list might not be updated yet
+         * This is a known behavior of GitHub API - the mutation succeeds but the response
+         * might not immediately reflect the new assignee
+         */
+        console.log(`[GitHub API] Copilot assignment mutation completed for issue #${assignedNumber}, but assignees list not yet updated in response`);
+      }
     } catch (error) {
       throw new Error(`Failed to assign Copilot: ${error instanceof Error ? error.message : String(error)}`);
     }
