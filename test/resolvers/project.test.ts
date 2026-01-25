@@ -1,31 +1,23 @@
 import '../../src/env-test';
 import { ObjectId } from 'mongodb';
-import { ProjectDBScheme } from '@hawk.so/types';
-
-/**
- * Task Manager configuration type (matching ProjectTaskManagerConfig from @hawk.so/types)
- */
-type ProjectTaskManagerConfig = {
-  type: 'github';
-  autoTaskEnabled: boolean;
-  taskThresholdTotalCount: number;
-  assignAgent: boolean;
-  usage?: {
-    dayStartUtc: Date;
-    autoTasksCreated: number;
-  };
-  connectedAt: Date;
-  updatedAt: Date;
-  config: {
-    installationId: string;
-    repoId: string | number;
-    repoFullName: string;
-  };
-};
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const projectResolver = require('../../src/resolvers/project');
+import { ProjectDBScheme, ProjectTaskManagerConfig } from '@hawk.so/types';
 import { ResolverContextWithUser } from '../../src/types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
+// @ts-expect-error - CommonJS module, TypeScript can't infer types properly
+import projectResolverModule from '../../src/resolvers/project';
+
+/**
+ * Type assertion for CommonJS module
+ */
+const projectResolver = projectResolverModule as {
+  Mutation: {
+    disconnectTaskManager: (...args: unknown[]) => Promise<unknown>;
+    updateTaskManagerSettings: (...args: unknown[]) => Promise<unknown>;
+  };
+  Query: {
+    project: (...args: unknown[]) => Promise<unknown>;
+  };
+};
 
 // Set environment variables for test
 process.env.JWT_SECRET_ACCESS_TOKEN = 'belarus';
@@ -48,7 +40,7 @@ function createMockProject(options: {
   _id: ObjectId;
   workspaceId: ObjectId;
   updateProject: jest.Mock;
-  taskManager?: ProjectTaskManagerConfig | null;
+  taskManager?: ProjectTaskManagerConfig;
 } {
   const {
     projectId = new ObjectId().toString(),
@@ -68,7 +60,7 @@ function createMockProject(options: {
       token: 'test-token',
       notifications: [],
       eventGroupingPatterns: [],
-      taskManager: data.taskManager !== undefined ? data.taskManager : taskManager,
+      taskManager: data.taskManager !== undefined ? (data.taskManager ?? undefined) : (taskManager ?? undefined),
     };
   });
 
@@ -80,7 +72,7 @@ function createMockProject(options: {
     token: 'test-token',
     notifications: [],
     eventGroupingPatterns: [],
-    taskManager,
+    taskManager: taskManager ?? undefined,
     updateProject: mockUpdateProject,
   };
 }
@@ -137,11 +129,11 @@ describe('Project Resolver - Task Manager Mutations', () => {
       });
       const context = createMockContext(mockProject);
 
-      const result = await projectResolver.Mutation.disconnectTaskManager(
+      const result = (await projectResolver.Mutation.disconnectTaskManager(
         {},
         { projectId: mockProject._id.toString() },
         context
-      );
+      )) as { taskManager: ProjectTaskManagerConfig | null };
 
       expect(context.factories.projectsFactory.findById).toHaveBeenCalledWith(mockProject._id.toString());
       expect(mockProject.updateProject).toHaveBeenCalledWith({
@@ -201,7 +193,7 @@ describe('Project Resolver - Task Manager Mutations', () => {
           { projectId: mockProject._id.toString() },
           context
         );
-        fail('Expected ApolloError to be thrown');
+        throw new Error('Expected ApolloError to be thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(ApolloError);
         expect((error as ApolloError).message).toBe('Failed to disconnect Task Manager');
@@ -214,11 +206,11 @@ describe('Project Resolver - Task Manager Mutations', () => {
       });
       const context = createMockContext(mockProject);
 
-      const result = await projectResolver.Mutation.disconnectTaskManager(
+      const result = (await projectResolver.Mutation.disconnectTaskManager(
         {},
         { projectId: mockProject._id.toString() },
         context
-      );
+      )) as { taskManager: ProjectTaskManagerConfig | null };
 
       expect(mockProject.updateProject).toHaveBeenCalledWith({
         taskManager: null,
@@ -255,11 +247,11 @@ describe('Project Resolver - Task Manager Mutations', () => {
         assignAgent: true,
       };
 
-      const result = await projectResolver.Mutation.updateTaskManagerSettings(
+      const result = (await projectResolver.Mutation.updateTaskManagerSettings(
         {},
         { input },
         context
-      );
+      )) as { taskManager: ProjectTaskManagerConfig | null };
 
       expect(context.factories.projectsFactory.findById).toHaveBeenCalledWith(mockProject._id.toString());
       expect(mockProject.updateProject).toHaveBeenCalledWith({
@@ -472,7 +464,7 @@ describe('Project Resolver - Task Manager Mutations', () => {
           { input },
           context
         );
-        fail('Expected ApolloError to be thrown');
+        throw new Error('Expected ApolloError to be thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(ApolloError);
         expect((error as ApolloError).message).toBe('Failed to update Task Manager settings');

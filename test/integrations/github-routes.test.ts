@@ -1,28 +1,34 @@
 import '../../src/env-test';
 import { ObjectId } from 'mongodb';
 import express from 'express';
-import type { Request, Response } from 'express';
 import { createGitHubRouter } from '../../src/integrations/github/routes';
 import { ContextFactories } from '../../src/types/graphql';
-import WorkspaceModel from '../../src/models/workspace';
 
 /**
  * Mock GitHubService
  */
+const mockGetInstallationUrl = jest.fn((state: string) => {
+  return `https://github.com/apps/test-app/installations/new?state=${encodeURIComponent(state)}&redirect_url=${encodeURIComponent('http://localhost:4000/integration/github/oauth')}`;
+});
+const mockGetInstallationForRepository = jest.fn();
+const mockExchangeOAuthCodeForToken = jest.fn();
+
 jest.mock('../../src/integrations/github/service', () => ({
   GitHubService: jest.fn().mockImplementation(() => ({
-    getInstallationUrl: jest.fn((state: string) => {
-      return `https://github.com/apps/test-app/installations/new?state=${encodeURIComponent(state)}&redirect_url=${encodeURIComponent('http://localhost:4000/integration/github/callback')}`;
-    }),
+    getInstallationUrl: mockGetInstallationUrl,
+    getInstallationForRepository: mockGetInstallationForRepository,
+    exchangeOAuthCodeForToken: mockExchangeOAuthCodeForToken,
   })),
 }));
 
 /**
  * Mock install state store
  */
+const mockGetState = jest.fn();
 jest.mock('../../src/integrations/github/store/install-state.redis.store', () => ({
   RedisInstallStateStore: jest.fn().mockImplementation(() => ({
     saveState: jest.fn().mockResolvedValue(undefined),
+    getState: mockGetState,
   })),
 }));
 
@@ -99,17 +105,29 @@ function makeRequest(
       },
       json: (data: any) => {
         jsonCalled = true;
-        resolve({ status: statusCode, body: data });
+        resolve({
+          status: statusCode,
+          body: data,
+        });
       },
       setHeader: jest.fn(),
       getHeader: jest.fn(),
       end: jest.fn(),
       send: jest.fn((data?: any) => {
         if (!jsonCalled) {
-          resolve({ status: statusCode, body: data });
+          resolve({
+            status: statusCode,
+            body: data,
+          });
         }
       }),
-      redirect: jest.fn(),
+      redirect: jest.fn((redirectUrl: string) => {
+        statusCode = 302;
+        resolve({
+          status: statusCode,
+          body: redirectUrl,
+        });
+      }),
     } as any;
 
     /**
@@ -125,7 +143,10 @@ function makeRequest(
          * Wait a bit to allow async handlers to complete
          */
         setTimeout(() => {
-          resolve({ status: statusCode, body: null });
+          resolve({
+            status: statusCode,
+            body: null,
+          });
         }, 50);
       }
     });
@@ -176,12 +197,16 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetState.mockReset();
+    mockGetInstallationForRepository.mockReset();
+    mockExchangeOAuthCodeForToken.mockReset();
 
     /**
      * Setup environment variables
      */
     process.env.GITHUB_APP_ID = '123456';
     process.env.API_URL = 'http://localhost:4000';
+    process.env.GARAGE_URL = 'http://localhost:8080';
   });
 
   afterEach(() => {
@@ -193,8 +218,14 @@ describe('GitHub Routes - /integration/github/connect', () => {
     it('should return JSON with redirectUrl when user is authenticated and is admin', async () => {
       const projectId = new ObjectId().toString();
       const workspaceId = new ObjectId().toString();
-      const mockProject = createMockProject({ projectId, workspaceId });
-      const mockWorkspace = createMockWorkspace({ workspaceId, isAdmin: true });
+      const mockProject = createMockProject({
+        projectId,
+        workspaceId,
+      });
+      const mockWorkspace = createMockWorkspace({
+        workspaceId,
+        isAdmin: true,
+      });
 
       const factories: ContextFactories = {
         projectsFactory: {
@@ -330,8 +361,14 @@ describe('GitHub Routes - /integration/github/connect', () => {
     it('should return 403 when user is not admin', async () => {
       const projectId = new ObjectId().toString();
       const workspaceId = new ObjectId().toString();
-      const mockProject = createMockProject({ projectId, workspaceId });
-      const mockWorkspace = createMockWorkspace({ workspaceId, isAdmin: false });
+      const mockProject = createMockProject({
+        projectId,
+        workspaceId,
+      });
+      const mockWorkspace = createMockWorkspace({
+        workspaceId,
+        isAdmin: false,
+      });
 
       const factories: ContextFactories = {
         projectsFactory: {
@@ -358,8 +395,14 @@ describe('GitHub Routes - /integration/github/connect', () => {
     it('should return 403 when user is not a member of workspace', async () => {
       const projectId = new ObjectId().toString();
       const workspaceId = new ObjectId().toString();
-      const mockProject = createMockProject({ projectId, workspaceId });
-      const mockWorkspace = createMockWorkspace({ workspaceId, member: null });
+      const mockProject = createMockProject({
+        projectId,
+        workspaceId,
+      });
+      const mockWorkspace = createMockWorkspace({
+        workspaceId,
+        member: null,
+      });
 
       const factories: ContextFactories = {
         projectsFactory: {
@@ -381,6 +424,599 @@ describe('GitHub Routes - /integration/github/connect', () => {
       expect(response.status).toBe(403);
       expect(response.body).toHaveProperty('error');
       expect(response.body.error).toContain('not a member');
+    });
+  });
+
+  describe('GET /integration/github/oauth', () => {
+    const projectId = new ObjectId().toString();
+    const workspaceId = new ObjectId().toString();
+    const state = 'test-state-123';
+    const code = 'test-oauth-code';
+    const installationId = '12345678';
+
+    /**
+     * Helper to create mock project with taskManager
+     */
+    function createMockProjectWithTaskManager(taskManager?: any): any {
+      const mockProject = createMockProject({
+        projectId,
+        workspaceId,
+      });
+
+      return {
+        ...mockProject,
+        taskManager: taskManager || {
+          type: 'github',
+          autoTaskEnabled: false,
+          taskThresholdTotalCount: 50,
+          assignAgent: false,
+          connectedAt: new Date('2025-01-01'),
+          updatedAt: new Date('2025-01-01'),
+          config: {
+            installationId: installationId,
+            repoId: '789012',
+            repoFullName: 'owner/repo',
+          },
+        },
+        updateProject: jest.fn().mockResolvedValue(undefined),
+      };
+    }
+
+    it('should redirect with error when code is missing', async () => {
+      const factories: ContextFactories = {
+        projectsFactory: {} as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        state,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.body).toContain('http://localhost:8080/');
+      expect(response.body).toContain('error=Missing+or+invalid+OAuth+code');
+    });
+
+    it('should redirect with error when state is missing', async () => {
+      const factories: ContextFactories = {
+        projectsFactory: {} as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        code,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.body).toContain('http://localhost:8080/');
+      expect(response.body).toContain('error=Missing+or+invalid+state');
+    });
+
+    it('should redirect with error when state is invalid or expired', async () => {
+      mockGetState.mockResolvedValue(null);
+
+      const factories: ContextFactories = {
+        projectsFactory: {} as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        code,
+        state,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.body).toContain('http://localhost:8080/');
+      expect(response.body).toContain('error=Invalid+or+expired+state');
+      expect(mockGetState).toHaveBeenCalledWith(state);
+    });
+
+    it('should redirect with error when project is not found', async () => {
+      mockGetState.mockResolvedValue({
+        projectId,
+        userId,
+        timestamp: Date.now(),
+      });
+
+      const factories: ContextFactories = {
+        projectsFactory: {
+          findById: jest.fn().mockResolvedValue(null),
+        } as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        code,
+        state,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.body).toContain(`/project/${projectId}/settings/task-manager`);
+      expect(response.body).toContain('error=Project+not+found');
+    });
+
+    it('should redirect with error when installation_id is present but getInstallationForRepository fails', async () => {
+      mockGetState.mockResolvedValue({
+        projectId,
+        userId,
+        timestamp: Date.now(),
+      });
+
+      const mockProject = createMockProjectWithTaskManager();
+      mockGetInstallationForRepository.mockRejectedValue(new Error('Installation not found'));
+
+      const factories: ContextFactories = {
+        projectsFactory: {
+          findById: jest.fn().mockResolvedValue(mockProject),
+        } as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        code,
+        state,
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
+        installation_id: installationId,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.body).toContain(`/project/${projectId}/settings/task-manager`);
+      expect(response.body).toContain('error=Failed+to+retrieve+GitHub+installation+information');
+      expect(mockGetInstallationForRepository).toHaveBeenCalledWith(installationId);
+    });
+
+    it('should redirect with error when saving taskManager config fails', async () => {
+      mockGetState.mockResolvedValue({
+        projectId,
+        userId,
+        timestamp: Date.now(),
+      });
+
+      const mockProject = createMockProjectWithTaskManager();
+      mockProject.updateProject.mockRejectedValue(new Error('Database error'));
+      mockGetInstallationForRepository.mockResolvedValue({});
+
+      const factories: ContextFactories = {
+        projectsFactory: {
+          findById: jest.fn().mockResolvedValue(mockProject),
+        } as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        code,
+        state,
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
+        installation_id: installationId,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.body).toContain(`/project/${projectId}/settings/task-manager`);
+      expect(response.body).toContain('error=Failed+to+save+Task+Manager+configuration');
+    });
+
+    it('should redirect with error when project is not found after update', async () => {
+      mockGetState.mockResolvedValue({
+        projectId,
+        userId,
+        timestamp: Date.now(),
+      });
+
+      const mockProject = createMockProjectWithTaskManager();
+      mockGetInstallationForRepository.mockResolvedValue({});
+      mockProject.updateProject.mockResolvedValue(undefined);
+
+      const factories: ContextFactories = {
+        projectsFactory: {
+          findById: jest.fn()
+            .mockResolvedValueOnce(mockProject) // First call - project exists
+            .mockResolvedValueOnce(null), // Second call after update - project not found
+        } as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        code,
+        state,
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
+        installation_id: installationId,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.body).toContain(`/project/${projectId}/settings/task-manager`);
+      expect(response.body).toContain('error=Project+not+found');
+    });
+
+    it('should redirect with error when project does not have taskManager after installation', async () => {
+      mockGetState.mockResolvedValue({
+        projectId,
+        userId,
+        timestamp: Date.now(),
+      });
+
+      const mockProject = createMockProject({
+        projectId,
+        workspaceId,
+      });
+      mockProject.taskManager = null;
+      mockGetInstallationForRepository.mockResolvedValue({});
+      mockProject.updateProject.mockResolvedValue(undefined);
+
+      const factories: ContextFactories = {
+        projectsFactory: {
+          findById: jest.fn().mockResolvedValue(mockProject),
+        } as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        code,
+        state,
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
+        installation_id: installationId,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.body).toContain(`/project/${projectId}/settings/task-manager`);
+      expect(response.body).toContain('error=GitHub+App+installation+failed');
+    });
+
+    it('should redirect with error when exchangeOAuthCodeForToken fails', async () => {
+      mockGetState.mockResolvedValue({
+        projectId,
+        userId,
+        timestamp: Date.now(),
+      });
+
+      const mockProject = createMockProjectWithTaskManager();
+      mockExchangeOAuthCodeForToken.mockRejectedValue(new Error('Invalid code'));
+
+      const factories: ContextFactories = {
+        projectsFactory: {
+          findById: jest.fn().mockResolvedValue(mockProject),
+        } as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        code,
+        state,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.body).toContain(`/project/${projectId}/settings/task-manager`);
+      expect(response.body).toContain('error=Failed+to+exchange+OAuth+code+for+token');
+      expect(mockExchangeOAuthCodeForToken).toHaveBeenCalledWith(code);
+    });
+
+    it('should redirect with error when saving delegatedUser fails', async () => {
+      mockGetState.mockResolvedValue({
+        projectId,
+        userId,
+        timestamp: Date.now(),
+      });
+
+      const mockProject = createMockProjectWithTaskManager();
+      mockProject.updateProject.mockRejectedValueOnce(new Error('Database error'));
+      mockExchangeOAuthCodeForToken.mockResolvedValue({
+        user: {
+          id: 'github-user-123',
+          login: 'testuser',
+        },
+        accessToken: 'token-123',
+        expiresAt: new Date(),
+        refreshToken: 'refresh-123',
+        refreshTokenExpiresAt: new Date(),
+      });
+
+      const factories: ContextFactories = {
+        projectsFactory: {
+          findById: jest.fn().mockResolvedValue(mockProject),
+        } as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        code,
+        state,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.body).toContain(`/project/${projectId}/settings/task-manager`);
+      expect(response.body).toContain('error=Failed+to+save+OAuth+token');
+    });
+
+    /**
+     * Scenario: GitHub App is already installed, user authorizes via OAuth to get access token
+     * This happens when:
+     * 1. GitHub App was installed earlier (taskManager config already exists with installationId)
+     * 2. User clicks "Connect" again or needs to re-authorize
+     * 3. GitHub redirects back with OAuth code (but no installation_id, since installation already exists)
+     * Expected: OAuth code is exchanged for token, delegatedUser is saved to existing taskManager config
+     */
+    it('should save OAuth token when GitHub App is already installed (no installation_id in callback)', async () => {
+      mockGetState.mockResolvedValue({
+        projectId,
+        userId,
+        timestamp: Date.now(),
+      });
+
+      /**
+       * Project already has taskManager config with installationId from previous installation
+       */
+      const mockProject = createMockProjectWithTaskManager();
+      mockProject.updateProject.mockResolvedValue(undefined);
+
+      /**
+       * Mock successful OAuth token exchange
+       */
+      mockExchangeOAuthCodeForToken.mockResolvedValue({
+        user: {
+          id: 'github-user-123',
+          login: 'testuser',
+        },
+        accessToken: 'token-123',
+        expiresAt: new Date('2025-12-31'),
+        refreshToken: 'refresh-123',
+        refreshTokenExpiresAt: new Date('2026-12-31'),
+      });
+
+      const factories: ContextFactories = {
+        projectsFactory: {
+          findById: jest.fn().mockResolvedValue(mockProject),
+        } as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      /**
+       * OAuth callback without installation_id (installation already exists)
+       */
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        code,
+        state,
+      });
+
+      /**
+       * Should redirect to settings page with success
+       */
+      expect(response.status).toBe(302);
+      expect(response.body).toContain(`/project/${projectId}/settings/task-manager`);
+      expect(response.body).toContain('success=true');
+
+      /**
+       * Should exchange OAuth code for token
+       */
+      expect(mockExchangeOAuthCodeForToken).toHaveBeenCalledWith(code);
+
+      /**
+       * Should save delegatedUser to existing taskManager config
+       */
+      expect(mockProject.updateProject).toHaveBeenCalledWith(
+        expect.objectContaining({
+          taskManager: expect.objectContaining({
+            config: expect.objectContaining({
+              delegatedUser: expect.objectContaining({
+                hawkUserId: userId,
+                githubUserId: 'github-user-123',
+                githubLogin: 'testuser',
+                accessToken: 'token-123',
+              }),
+            }),
+          }),
+        })
+      );
+    });
+
+    it('should successfully complete OAuth flow with installation_id', async () => {
+      mockGetState.mockResolvedValue({
+        projectId,
+        userId,
+        timestamp: Date.now(),
+      });
+
+      const mockProject = createMockProject({
+        projectId,
+        workspaceId,
+      });
+      mockProject.taskManager = null;
+      mockProject.updateProject = jest.fn().mockResolvedValue(undefined);
+
+      mockGetInstallationForRepository.mockResolvedValue({});
+      mockExchangeOAuthCodeForToken.mockResolvedValue({
+        user: {
+          id: 'github-user-123',
+          login: 'testuser',
+        },
+        accessToken: 'token-123',
+        expiresAt: new Date('2025-12-31'),
+        refreshToken: 'refresh-123',
+        refreshTokenExpiresAt: new Date('2026-12-31'),
+      });
+
+      const factories: ContextFactories = {
+        projectsFactory: {
+          findById: jest.fn()
+            .mockResolvedValueOnce(mockProject) // First call - before installation
+            .mockResolvedValueOnce({ // Second call - after installation update
+              ...mockProject,
+              taskManager: {
+                type: 'github',
+                autoTaskEnabled: false,
+                taskThresholdTotalCount: 50,
+                assignAgent: false,
+                connectedAt: expect.any(Date),
+                updatedAt: expect.any(Date),
+                config: {
+                  installationId: installationId,
+                  repoId: '',
+                  repoFullName: '',
+                },
+              },
+            }),
+        } as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        code,
+        state,
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
+        installation_id: installationId,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.body).toContain(`/project/${projectId}/settings/task-manager`);
+      expect(response.body).toContain('success=true');
+      expect(mockGetInstallationForRepository).toHaveBeenCalledWith(installationId);
+      expect(mockExchangeOAuthCodeForToken).toHaveBeenCalledWith(code);
+      expect(mockProject.updateProject).toHaveBeenCalledTimes(2); // Once for installation, once for delegatedUser
+    });
+
+    it('should preserve existing taskManager config when updating with installation_id', async () => {
+      mockGetState.mockResolvedValue({
+        projectId,
+        userId,
+        timestamp: Date.now(),
+      });
+
+      const existingConfig = {
+        installationId: 'old-installation-id',
+        repoId: 'existing-repo-id',
+        repoFullName: 'existing/owner-repo',
+        delegatedUser: {
+          hawkUserId: userId,
+          githubUserId: 'old-github-user',
+          githubLogin: 'olduser',
+          accessToken: 'old-token',
+        },
+      };
+
+      const mockProject = createMockProjectWithTaskManager({
+        type: 'github',
+        autoTaskEnabled: true,
+        taskThresholdTotalCount: 100,
+        assignAgent: true,
+        connectedAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        config: existingConfig,
+      });
+      mockProject.updateProject = jest.fn().mockResolvedValue(undefined);
+
+      mockGetInstallationForRepository.mockResolvedValue({});
+      mockExchangeOAuthCodeForToken.mockResolvedValue({
+        user: {
+          id: 'github-user-123',
+          login: 'testuser',
+        },
+        accessToken: 'token-123',
+        expiresAt: new Date('2025-12-31'),
+        refreshToken: 'refresh-123',
+        refreshTokenExpiresAt: new Date('2026-12-31'),
+      });
+
+      const factories: ContextFactories = {
+        projectsFactory: {
+          findById: jest.fn().mockResolvedValue(mockProject),
+        } as any,
+        workspacesFactory: {} as any,
+        usersFactory: {} as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      };
+
+      setupRouter(factories);
+
+      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+        code,
+        state,
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
+        installation_id: installationId,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.body).toContain('success=true');
+
+      /**
+       * Check that first update (installation) preserves existing config
+       */
+      const firstUpdateCall = mockProject.updateProject.mock.calls[0];
+      expect(firstUpdateCall[0].taskManager.config.installationId).toBe(installationId);
+      expect(firstUpdateCall[0].taskManager.config.repoId).toBe('existing-repo-id');
+      expect(firstUpdateCall[0].taskManager.config.repoFullName).toBe('existing/owner-repo');
+      expect(firstUpdateCall[0].taskManager.config.delegatedUser).toEqual(existingConfig.delegatedUser);
     });
   });
 });

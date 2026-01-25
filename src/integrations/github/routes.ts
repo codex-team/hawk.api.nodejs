@@ -2,7 +2,7 @@ import '../../typeDefs/expressContext';
 import express from 'express';
 import { v4 as uuid } from 'uuid';
 import { ObjectId } from 'mongodb';
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { GitHubService } from './service';
 import { ProjectDBScheme } from '@hawk.so/types';
 import { ContextFactories } from '../../types/graphql';
@@ -289,13 +289,13 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
        * Validate required parameters
        */
       if (!code || typeof code !== 'string') {
-        return res.redirect(buildGarageRedirectUrl('/project/error/settings/task-manager', {
+        return res.redirect(buildGarageRedirectUrl('/', {
           error: 'Missing or invalid OAuth code',
         }));
       }
 
       if (!state || typeof state !== 'string') {
-        return res.redirect(buildGarageRedirectUrl('/project/error/settings/task-manager', {
+        return res.redirect(buildGarageRedirectUrl('/', {
           error: 'Missing or invalid state',
         }));
       }
@@ -309,7 +309,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
       if (!stateData) {
         log('warn', `Invalid or expired state: ${sgr(state.slice(0, 8), Effect.ForegroundGray)}...`);
 
-        return res.redirect(buildGarageRedirectUrl('/project/error/settings/task-manager', {
+        return res.redirect(buildGarageRedirectUrl('/', {
           error: 'Invalid or expired state. Please try connecting again.',
         }));
       }
@@ -326,7 +326,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
       if (!project) {
         log('error', projectId, 'Project not found');
 
-        return res.redirect(buildGarageRedirectUrl('/project/error/settings/task-manager', {
+        return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
           error: `Project not found: ${projectId}`,
         }));
       }
@@ -381,6 +381,9 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
                 ...project.taskManager.config,
                 // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
                 installationId: installation_id,
+                // Preserve existing repoId and repoFullName if they exist, otherwise use defaults
+                repoId: project.taskManager.config.repoId || taskManagerConfig.config.repoId,
+                repoFullName: project.taskManager.config.repoFullName || taskManagerConfig.config.repoFullName,
               },
             } : taskManagerConfig,
           } as Partial<ProjectDBScheme>);
@@ -402,7 +405,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
         if (!updatedProject) {
           log('error', projectId, 'Project not found after update');
 
-          return res.redirect(buildGarageRedirectUrl('/project/error/settings/task-manager', {
+          return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
             error: `Project not found: ${projectId}`,
           }));
         }
@@ -543,19 +546,26 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
 
       /**
        * Use timing-safe comparison to prevent timing attacks
+       * timingSafeEqual requires both arguments to be Buffer or Uint8Array of the same length
        */
       let signatureValid = false;
 
       if (signature.length === calculatedSignature.length) {
-        let match = true;
+        try {
+          const signatureBuffer = Buffer.from(signature);
+          const calculatedBuffer = Buffer.from(calculatedSignature);
 
-        for (let i = 0; i < signature.length; i++) {
-          if (signature[i] !== calculatedSignature[i]) {
-            match = false;
-          }
+          signatureValid = timingSafeEqual(
+            signatureBuffer as Uint8Array,
+            calculatedBuffer as Uint8Array
+          );
+        } catch (error) {
+          /**
+           * timingSafeEqual throws if buffers have different lengths
+           * This shouldn't happen due to the length check above, but handle it gracefully
+           */
+          signatureValid = false;
         }
-
-        signatureValid = match;
       }
 
       if (!signatureValid) {

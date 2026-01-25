@@ -435,10 +435,10 @@ export class GitHubService {
        * Step 1: Get repository ID and find Copilot bot ID
        */
       const repoInfoQuery = `
-        query($owner: String!, $name: String!) {
+        query($owner: String!, $name: String!, $issueNumber: Int!) {
           repository(owner: $owner, name: $name) {
             id
-            issue(number: ${issueNumber}) {
+            issue(number: $issueNumber) {
               id
             }
             suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) {
@@ -470,6 +470,7 @@ export class GitHubService {
       const repoInfo = await octokit.graphql<RepoInfoGraphQLResponse>(repoInfoQuery, {
         owner,
         name: repo,
+        issueNumber,
       });
 
       console.log('[GitHub API] Repository info query response:', JSON.stringify(repoInfo, null, 2));
