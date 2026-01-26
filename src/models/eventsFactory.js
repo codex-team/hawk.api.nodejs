@@ -18,6 +18,7 @@ const MAX_DB_READ_BATCH_SIZE = Number(process.env.MAX_DB_READ_BATCH_SIZE);
 const ChartType = {
   Accepted: 'accepted',
   RateLimited: 'rate-limited',
+  AffectedUsers: 'affected-users',
 };
 
 /**
@@ -524,14 +525,34 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Fetch timestamps and total count of errors (or target error) for each day since
+   * Get event daily chart data of affected users from MongoDB only
+   *
+   * @param {string} groupHash - event's group hash
+   * @param {number} days - how many days to fetch
+   * @param {number} timezoneOffset - user's local timezone offset in minutes
+   * @returns {Promise<Array>}
+   */
+  async getEventDailyAffectedUsersChart(groupHash, days, timezoneOffset = 0) {
+    const data = await this.findChartData(days, timezoneOffset, groupHash, 'affectedUsers');
+
+    return [
+      {
+        label: ChartType.AffectedUsers,
+        data,
+      },
+    ];
+  }
+
+  /**
+   * Fetch timestamps and aggregated values (count or affectedUsers) for each day since
    *
    * @param {number} days - how many days we need to fetch for displaying in a chart
    * @param {number} timezoneOffset - user's local timezone offset in minutes
    * @param {string} groupHash - event's group hash for showing only target event
+   * @param {'count'|'affectedUsers'} valueField - field to aggregate
    * @return {ProjectChartItem[]}
    */
-  async findChartData(days, timezoneOffset = 0, groupHash = '') {
+  async findChartData(days, timezoneOffset = 0, groupHash = '', valueField = 'count') {
     const today = new Date();
     const since = today.setDate(today.getDate() - days) / 1000;
 
@@ -554,13 +575,15 @@ class EventsFactory extends Factory {
       };
     }
 
+    const projection = {
+      lastRepetitionTime: 1,
+      groupingTimestamp: 1,
+      [valueField]: 1,
+    };
+
     const dailyEventsCursor = await this.getCollection(this.TYPES.DAILY_EVENTS)
       .find(options, {
-        projection: {
-          lastRepetitionTime: 1,
-          groupingTimestamp: 1,
-          count: 1,
-        },
+        projection,
       })
       .batchSize(MAX_DB_READ_BATCH_SIZE);
 
@@ -576,11 +599,13 @@ class EventsFactory extends Factory {
       const key = `groupingTimestamp:${groupingTimestamp}`;
       const current = groupedCounts[key] || 0;
 
-      if (item.count === undefined || item.count === null) {
-        console.warn(`Missing 'count' field for daily event with key ${key}. Defaulting to 0.`);
+      const value = item[valueField];
+
+      if (value === undefined || value === null) {
+        console.warn(`Missing '${valueField}' field for daily event with key ${key}. Defaulting to 0.`);
         groupedCounts[key] = current;
       } else {
-        groupedCounts[key] = current + item.count;
+        groupedCounts[key] = current + value;
       }
     }
 

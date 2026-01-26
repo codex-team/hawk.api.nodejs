@@ -91,6 +91,21 @@ module.exports = {
     },
 
     /**
+     * Return chart data for affected users of target event occured in last few days
+     *
+     * @param {string} projectId - event's project
+     * @param {string} groupHash - event's groupHash
+     * @param {number} days - how many days we need to fetch for displaying in a charts
+     * @param {number} timezoneOffset - user's local timezone offset in minutes
+     * @returns {Promise<ProjectChartItem[]>}
+     */
+    async affectedUsersChartData({ projectId, groupHash }, { days, timezoneOffset }, context) {
+      const factory = getEventsFactory(context, projectId);
+
+      return factory.getEventDailyAffectedUsersChart(groupHash, days, timezoneOffset);
+    },
+
+    /**
      * Return AI suggestion for the event
      *
      * @param {string} projectId - event's project

@@ -359,6 +359,21 @@ type Event {
     """
     timezoneOffset: Int! = 0
   ): [ChartLine!]!
+
+  """
+  Return graph of affected users dynamics for the specified period
+  """
+  affectedUsersChartData(
+    """
+    How many days we need to fetch for displaying in a chart
+    """
+    days: Int! = 0
+
+    """
+    User's local timezone offset in minutes
+    """
+    timezoneOffset: Int! = 0
+  ): [ChartLine!]!
 }
 
 """
