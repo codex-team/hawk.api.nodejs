@@ -117,6 +117,64 @@ type EventUser {
 }
 
 """
+Breadcrumb severity level
+"""
+enum BreadcrumbLevel {
+  fatal
+  error
+  warning
+  info
+  debug
+}
+
+"""
+Breadcrumb type - controls categorization and UI appearance
+"""
+enum BreadcrumbType {
+  default
+  request
+  ui
+  navigation
+  logic
+  error
+}
+
+"""
+Single breadcrumb entry - represents an event that occurred before the error
+"""
+type Breadcrumb {
+  """
+  Timestamp when the breadcrumb occurred (Unix timestamp in milliseconds)
+  """
+  timestamp: Float!
+
+  """
+  Type of breadcrumb - controls UI categorization
+  """
+  type: BreadcrumbType
+
+  """
+  Category of the event - more specific than type
+  """
+  category: String
+
+  """
+  Human-readable message describing the event
+  """
+  message: String
+
+  """
+  Severity level of the breadcrumb
+  """
+  level: BreadcrumbLevel
+
+  """
+  Arbitrary key-value data associated with the breadcrumb
+  """
+  data: JSONObject
+}
+
+"""
 Type representing Event payload
 """
 type EventPayload {
@@ -174,6 +232,11 @@ type EventPayload {
   Custom data provided by project users
   """
   addons: EncodedJSON
+
+  """
+  Breadcrumbs - chronological trail of events before the error
+  """
+  breadcrumbs: [Breadcrumb!]
 }
 
 
@@ -337,9 +400,9 @@ type Subscription {
   """
   Sends new events from all user projects
   """
-  eventOccurred: Event! 
+  eventOccurred: Event!
 }
-  
+
 """
 Event information per day with these events
 """
@@ -453,7 +516,7 @@ extend type Mutation {
     Mark to set
     """
     mark: EventMark!
-  ): Boolean! 
+  ): Boolean!
 
   """
   Namespace that contains only mutations related to the events
