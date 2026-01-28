@@ -189,6 +189,22 @@ export class GitHubService {
   }
 
   /**
+   * Delete GitHub App installation by installation ID
+   *
+   * @param {string} installationId - GitHub App installation ID
+   * @returns {Promise<void>}
+   */
+  public async deleteInstallation(installationId: string): Promise<void> {
+    const token = this.createJWT();
+    const octokit = this.createOctokit(token);
+
+    await octokit.rest.apps.deleteInstallation({
+      // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
+      installation_id: parseInt(installationId, 10),
+    });
+  }
+
+  /**
    * Get installation information
    *
    * Installation represents a GitHub App installation in a user's or organization's account.

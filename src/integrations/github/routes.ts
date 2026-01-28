@@ -208,6 +208,8 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
     logger(prefix, ...logArgs);
   }
 
+  const WEBHOOK_LOG_PREFIX = '[🍏 🍎 ✨ Webhook] ';
+
   /**
    * GET /integration/github/connect?projectId=<projectId>
    * Initiate GitHub integration connection
@@ -290,13 +292,13 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
        */
       if (!code || typeof code !== 'string') {
         return res.redirect(buildGarageRedirectUrl('/', {
-          error: 'Missing or invalid OAuth code',
+          apiError: 'Missing or invalid OAuth code',
         }));
       }
 
       if (!state || typeof state !== 'string') {
         return res.redirect(buildGarageRedirectUrl('/', {
-          error: 'Missing or invalid state',
+          apiError: 'Missing or invalid state',
         }));
       }
 
@@ -310,7 +312,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
         log('warn', `Invalid or expired state: ${sgr(state.slice(0, 8), Effect.ForegroundGray)}...`);
 
         return res.redirect(buildGarageRedirectUrl('/', {
-          error: 'Invalid or expired state. Please try connecting again.',
+          apiError: 'Invalid or expired state. Please try connecting again.',
         }));
       }
 
@@ -508,8 +510,39 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
   /**
    * POST /integration/github/webhook
    * Handle GitHub App webhook events
+   *
+   * GitHub delivers signed webhook payloads as POST requests.
+   * For non-POST methods (e.g. GET/HEAD checks), respond with 200 without signature validation.
    */
-  router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res, next) => {
+  router.all('/webhook', express.raw({ type: 'application/json' }), async (req, res, next) => {
+    log('info', `${WEBHOOK_LOG_PREFIX}/webhook route called with method ${req.method}`);
+
+    /**
+     * For non-POST methods (for example, GitHub hitting Setup URL or doing health checks),
+     * just log query parameters and respond with 200 without signature validation.
+     */
+    if (req.method !== 'POST') {
+      const { code, installation_id, setup_action, state, ...restQuery } = req.query as Record<string, unknown>;
+
+      if (code || installation_id || state || setup_action) {
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
+        log('info', `${WEBHOOK_LOG_PREFIX}Received non-POST request on /webhook with OAuth-like params`, {
+          // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
+          code,
+          installation_id,
+          setup_action,
+          state,
+          query: restQuery,
+        });
+      } else {
+        log('info', `${WEBHOOK_LOG_PREFIX}Received non-POST request on /webhook without signature (likely a health check or misconfigured URL)`, {
+          query: req.query,
+        });
+      }
+
+      return res.status(200).json({ ok: true });
+    }
+
     try {
       /**
        * Get webhook secret from environment
@@ -517,7 +550,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
       const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
 
       if (!webhookSecret) {
-        log('error', 'GITHUB_WEBHOOK_SECRET is not configured');
+        log('error', `${WEBHOOK_LOG_PREFIX}GITHUB_WEBHOOK_SECRET is not configured`);
         res.status(500).json({ error: 'Webhook secret not configured' });
 
         return;
@@ -530,7 +563,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
       const signature = req.headers['x-hub-signature-256'] as string | undefined;
 
       if (!signature) {
-        log('warn', 'Missing X-Hub-Signature-256 header');
+        log('warn', `${WEBHOOK_LOG_PREFIX}Missing X-Hub-Signature-256 header`);
 
         return res.status(401).json({ error: 'Missing signature header' });
       }
@@ -569,7 +602,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
       }
 
       if (!signatureValid) {
-        log('warn', 'Invalid webhook signature');
+        log('warn', `${WEBHOOK_LOG_PREFIX}Invalid webhook signature`);
 
         return res.status(401).json({ error: 'Invalid signature' });
       }
@@ -584,7 +617,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
       try {
         payloadData = JSON.parse(payload.toString()) as GitHubWebhookPayload;
       } catch (error) {
-        log('error', 'Failed to parse webhook payload:', error);
+        log('error', `${WEBHOOK_LOG_PREFIX}Failed to parse webhook payload:`, error);
 
         return res.status(400).json({ error: 'Invalid JSON payload' });
       }
@@ -592,7 +625,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
       const eventType = req.headers['x-github-event'] as string | undefined;
       const installationId = payloadData.installation?.id?.toString();
 
-      log('info', `Received webhook event: ${sgr(eventType || 'unknown', Effect.ForegroundCyan)}`);
+      log('info', `${WEBHOOK_LOG_PREFIX}Received webhook event: ${sgr(eventType || 'unknown', Effect.ForegroundCyan)}`);
 
       /**
        * Handle installation.deleted event
