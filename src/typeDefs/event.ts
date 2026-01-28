@@ -346,6 +346,11 @@ type Event {
   usersAffected: Int
 
   """
+  Task Manager item linked to this event (e.g., GitHub Issue)
+  """
+  taskManagerItem: TaskManagerItem
+
+  """
   Return graph of the error rate for the specified period
   """
   chartData(

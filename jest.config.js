@@ -30,6 +30,16 @@ module.exports = {
   },
 
   /**
+   * Map node: prefixed imports to mock files
+   * Jest 27 supports node: prefix for ESM imports, but CommonJS require('node:crypto')
+   * in modules like argon2.cjs still needs explicit mapping to mocks
+   */
+  moduleNameMapper: {
+    '^node:crypto$': '<rootDir>/test/__mocks__/node_crypto.js',
+    '^node:util$': '<rootDir>/test/__mocks__/node_util.js',
+  },
+
+  /**
    * Ignore folders
    */
   testPathIgnorePatterns: [

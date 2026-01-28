@@ -1,4 +1,4 @@
-const NodeEnvironment = require('jest-environment-node');
+const { TestEnvironment } = require('jest-environment-node');
 const amqp = require('amqplib');
 const mongodb = require('mongodb');
 const { installRedisMock, uninstallRedisMock } = require('./redisMock');
@@ -6,7 +6,7 @@ const { installRedisMock, uninstallRedisMock } = require('./redisMock');
 /**
  * Custom test environment for defining global connections
  */
-class CustomEnvironment extends NodeEnvironment {
+class CustomEnvironment extends TestEnvironment {
   /**
    * Setup environment
    * @return {Promise<void>}

@@ -154,6 +154,7 @@ export default class SamlController {
       res.redirect(redirectUrl.toString());
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
       this.log(
         'error',
         'SSO initiation error for workspace:',
@@ -271,6 +272,7 @@ export default class SamlController {
 
           if (!isValidRequest) {
             const requestIdShort = samlData.inResponseTo.slice(0, 8);
+
             this.log(
               'error',
               '[ACS] InResponseTo validation failed for workspace:',
@@ -285,6 +287,7 @@ export default class SamlController {
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
         this.log(
           'error',
           '[ACS] SAML validation error for workspace:',
@@ -387,6 +390,7 @@ export default class SamlController {
        */
       if (error instanceof Error && error.message.includes('SAML')) {
         const errorMessage = error.message;
+
         this.log(
           'error',
           '[ACS] SAML processing error for workspace:',
@@ -400,6 +404,7 @@ export default class SamlController {
       }
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
       this.log(
         'error',
         '[ACS] ACS callback error for workspace:',
