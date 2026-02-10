@@ -312,7 +312,12 @@ export function setupMongoMetrics(client: MongoClient): void {
         category: 'db.query',
         message: `${metadata.db}.${metadata.collectionFamily}.${metadata.commandName} ${event.duration}ms`,
         level: 'debug',
-        data: { db: metadata.db, collection: metadata.collectionFamily, command: metadata.commandName, durationMs: event.duration },
+        data: {
+          db: metadata.db,
+          collection: metadata.collectionFamily,
+          command: metadata.commandName,
+          durationMs: { value: event.duration },
+        },
       });
 
       // Clean up metadata
@@ -353,7 +358,13 @@ export function setupMongoMetrics(client: MongoClient): void {
         category: 'db.query',
         message: `${metadata.db}.${metadata.collectionFamily}.${metadata.commandName} FAILED: ${errorMsg} ${event.duration}ms`,
         level: 'error',
-        data: { db: metadata.db, collection: metadata.collectionFamily, command: metadata.commandName, durationMs: event.duration, errorCode },
+        data: {
+          db: metadata.db,
+          collection: metadata.collectionFamily,
+          command: metadata.commandName,
+          durationMs: { value: event.duration },
+          errorCode,
+        },
       });
 
       // Clean up metadata

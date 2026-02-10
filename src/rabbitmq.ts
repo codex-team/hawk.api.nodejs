@@ -138,7 +138,10 @@ export async function publish(exchange: string, route: string, message: string, 
       category: 'amqp.publish',
       message: `AMQP publish ${exchange || '(default)'}/${route}`,
       level: 'debug',
-      data: { exchange, route },
+      data: {
+        exchange: { value: exchange },
+        route: { value: route },
+      },
     });
     debug(`Message sent: ${message}`);
   } catch (err) {
@@ -147,7 +150,10 @@ export async function publish(exchange: string, route: string, message: string, 
       category: 'amqp.publish',
       message: `AMQP publish FAILED ${exchange || '(default)'}/${route}: ${(err as Error).message}`,
       level: 'error',
-      data: { exchange, route },
+      data: {
+        exchange: { value: exchange },
+        route: { value: route },
+      },
     });
     HawkCatcher.send(err as Error);
     console.log('Message was rejected:', (err as Error).stack);

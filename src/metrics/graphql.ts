@@ -81,7 +81,11 @@ export const graphqlMetricsPlugin: ApolloServerPlugin = {
 
         const hasErrors = ctx.errors && ctx.errors.length > 0;
 
-        const breadcrumbData: Record<string, string | number> = { operationName, operationType, durationMs };
+        const breadcrumbData: Record<string, string | number> = {
+          operationName,
+          operationType,
+          durationMs,
+        };
 
         if (hasErrors) {
           breadcrumbData.errors = ctx.errors!.map((e: GraphQLError) => e.message).join('; ');
