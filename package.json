@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "main": "index.ts",
   "license": "BUSL-1.1",
   "scripts": {
@@ -38,7 +38,6 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.64",
-    "@amplitude/node": "^1.10.0",
     "@graphql-tools/merge": "^8.3.1",
     "@graphql-tools/schema": "^8.5.1",
     "@graphql-tools/utils": "^8.9.0",
