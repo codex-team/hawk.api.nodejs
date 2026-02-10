@@ -522,15 +522,15 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
      * just log query parameters and respond with 200 without signature validation.
      */
     if (req.method !== 'POST') {
+      // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
       const { code, installation_id, setup_action, state, ...restQuery } = req.query as Record<string, unknown>;
 
+      // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
       if (code || installation_id || state || setup_action) {
-        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         log('info', `${WEBHOOK_LOG_PREFIX}Received non-POST request on /webhook with OAuth-like params`, {
-          // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
           code,
-          installation_id,
-          setup_action,
+          installation_id, // eslint-disable-line @typescript-eslint/camelcase, camelcase
+          setup_action, // eslint-disable-line @typescript-eslint/camelcase, camelcase
           state,
           query: restQuery,
         });

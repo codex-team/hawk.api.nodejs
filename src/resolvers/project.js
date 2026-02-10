@@ -421,7 +421,7 @@ module.exports = {
          */
         const taskManager = project.taskManager;
 
-        if (taskManager && taskManager.type === 'github' && taskManager.config?.installationId) {
+        if (taskManager && taskManager.type === 'github' && taskManager.config && taskManager.config.installationId) {
           const githubService = new GitHubService();
 
           await githubService.deleteInstallation(taskManager.config.installationId);
