@@ -82,7 +82,7 @@ export const graphqlMetricsPlugin: ApolloServerPlugin = {
 
         HawkCatcher.breadcrumbs.add({
           type: 'request',
-          category: 'gql',
+          category: 'GraphQL Operation',
           message: `${operationType} ${operationName} ${durationMs}ms${hasErrors ? ` [${ctx.errors!.length} error(s)]` : ''}`,
           level: hasErrors ? 'error' : 'debug',
           data: {

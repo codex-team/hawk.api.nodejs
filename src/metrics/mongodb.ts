@@ -309,7 +309,7 @@ export function setupMongoMetrics(client: MongoClient): void {
 
       HawkCatcher.breadcrumbs.add({
         type: 'request',
-        category: 'db.query',
+        category: 'MongoDB Operation',
         message: `${metadata.db}.${metadata.collectionFamily}.${metadata.commandName} ${event.duration}ms`,
         level: 'debug',
         data: {
@@ -355,7 +355,7 @@ export function setupMongoMetrics(client: MongoClient): void {
 
       HawkCatcher.breadcrumbs.add({
         type: 'error',
-        category: 'db.query',
+        category: 'MongoDB operation',
         message: `${metadata.db}.${metadata.collectionFamily}.${metadata.commandName} FAILED: ${errorMsg} ${event.duration}ms`,
         level: 'error',
         data: {
