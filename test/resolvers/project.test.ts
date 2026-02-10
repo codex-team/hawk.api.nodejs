@@ -4,9 +4,9 @@ import { ProjectDBScheme, ProjectTaskManagerConfig } from '@hawk.so/types';
 import { ResolverContextWithUser } from '../../src/types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
 
-jest.mock('../../src/integrations/github/service');
+jest.mock('../../src/integrations/github/service', () => require('../__mocks__/github-service'));
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { deleteInstallationMock, GitHubService } = require('../../src/integrations/github/service');
+const { deleteInstallationMock, GitHubService } = require('../__mocks__/github-service');
 
 // @ts-expect-error - CommonJS module, TypeScript can't infer types properly
 import projectResolverModule from '../../src/resolvers/project';
