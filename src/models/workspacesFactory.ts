@@ -6,7 +6,6 @@ import UserModel from './user';
 import PlansFactory from './plansFactory';
 import PlanModel from './plan';
 import { WorkspaceDBScheme } from '@hawk.so/types';
-import { Analytics, AnalyticsEventTypes } from '../utils/analytics';
 
 /**
  * Workspaces factory to work with WorkspaceModel
@@ -69,14 +68,6 @@ export default class WorkspacesFactory extends AbstractModelFactory<WorkspaceDBS
     await workspaceModel.grantAdmin(ownerModel._id.toString());
     await ownerModel.addWorkspace(workspaceModel._id.toString());
     await workspaceModel.changePlan((await this.getDefaultPlan())._id.toString());
-
-    await Analytics.logEvent({
-      /* eslint-disable-next-line camelcase */
-      event_type: AnalyticsEventTypes.WORKSPACE_CREATED,
-      /* eslint-disable-next-line camelcase */
-      user_id: ownerModel._id.toString(),
-      time: Date.now(),
-    });
 
     return workspaceModel;
   }
