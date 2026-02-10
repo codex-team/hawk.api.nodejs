@@ -18,3 +18,13 @@ export const accountingEnv = dotenv.config({ path: path.join(__dirname, './accou
 export const apiInstance = axios.create({
   baseURL: `http://api:${apiEnv.PORT}`,
 });
+
+/**
+ * Export Keycloak utilities
+ */
+export * from './utils/keycloak';
+
+/**
+ * Export Workspace utilities
+ */
+export * from './utils/workspace';

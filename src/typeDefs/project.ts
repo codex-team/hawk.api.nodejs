@@ -402,6 +402,11 @@ type Project {
   Detailed info for a specific release
   """
   releaseDetails(release: String!): ProjectReleaseDetails!
+
+  """
+  Task Manager integration configuration
+  """
+  taskManager: TaskManager
 }
 
 extend type Query {

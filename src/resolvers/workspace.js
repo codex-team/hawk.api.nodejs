@@ -33,6 +33,35 @@ module.exports = {
 
       return factories.workspacesFactory.findManyByIds(await authenticatedUser.getWorkspacesIds(ids));
     },
+
+    /**
+     * Get workspace public info by ID for SSO login page
+     * Returns only id, name, image if SSO is enabled for the workspace
+     * Available without authentication (@allowAnon)
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
+     * @param {String} id - workspace ID
+     * @param {ContextFactories} factories - factories for working with models
+     * @return {Object|null} Workspace public info or null if workspace not found or SSO not enabled
+     */
+    async ssoWorkspace(_obj, { id }, { factories }) {
+      const workspace = await factories.workspacesFactory.findById(id);
+
+      /**
+       * Check if workspace exists and has SSO enabled
+       */
+      if (!workspace || !(workspace.sso && workspace.sso.enabled)) {
+        return null;
+      }
+
+      /**
+       * Return only public fields: id, name, image
+       */
+      return {
+        _id: workspace._id,
+        name: workspace.name,
+        image: workspace.image || null,
+      };
+    },
   },
   Mutation: {
     /**
@@ -330,6 +359,62 @@ module.exports = {
     },
 
     /**
+     * Update workspace SSO configuration (admin only)
+     * Protected by @requireAdmin directive - admin check is done by directive
+     * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
+     * @param {String} workspaceId - workspace ID
+     * @param {Object} config - SSO configuration
+     * @param {ContextFactories} factories - factories for working with models
+     * @return {Promise<Boolean>}
+     */
+    async updateWorkspaceSso(_obj, { workspaceId, config }, { factories }) {
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
+
+      if (!workspace) {
+        throw new UserInputError('Workspace not found');
+      }
+
+      /**
+       * Validate configuration
+       */
+      if (config.enabled && !config.saml) {
+        throw new UserInputError('SAML configuration is required when SSO is enabled');
+      }
+
+      /**
+       * Prepare SSO configuration
+       * If enabled=false, preserve existing SSO config and only update enabled flag
+       * If enabled=true, update full SSO configuration
+       */
+      const ssoConfig = config.enabled ? {
+        enabled: config.enabled,
+        enforced: config.enforced || false,
+        type: 'saml',
+        saml: {
+          idpEntityId: config.saml.idpEntityId,
+          ssoUrl: config.saml.ssoUrl,
+          x509Cert: config.saml.x509Cert,
+          nameIdFormat: config.saml.nameIdFormat,
+          attributeMapping: {
+            email: config.saml.attributeMapping.email,
+            name: config.saml.attributeMapping.name,
+          },
+        },
+      } : workspace.sso ? {
+        ...workspace.sso,
+        enabled: false,
+      } : undefined;
+
+      /**
+       * Update SSO configuration using model method
+       * This method handles the update correctly without touching other fields
+       */
+      await workspace.setSsoConfig(ssoConfig);
+
+      return true;
+    },
+
+    /**
      * Change workspace plan for default plan mutation implementation
      *
      * @param {ResolverObj} _obj - object that contains the result returned from the resolver on the parent field
@@ -492,6 +577,28 @@ module.exports = {
       const plan = await factories.plansFactory.findById(workspace.tariffPlanId);
 
       return new PlanModel(plan);
+    },
+
+    /**
+     * SSO configuration (admin only)
+     * Protected by @definedOnlyForAdmins directive - returns null for non-admin users
+     * @param {WorkspaceDBScheme} workspace - result from resolver above (parent workspace object)
+     * @param _args - empty list of args
+     * @param {UserInContext} context - resolver context
+     * @returns {Promise<WorkspaceSsoConfig | null>}
+     */
+    async sso(workspace, _args, { factories }) {
+      /**
+       * Get workspace model to access SSO config
+       * Admin check is done by @definedOnlyForAdmins directive
+       */
+      const workspaceModel = await factories.workspacesFactory.findById(workspace._id.toString());
+
+      if (!workspaceModel) {
+        return null;
+      }
+
+      return workspaceModel.sso || null;
     },
   },
 

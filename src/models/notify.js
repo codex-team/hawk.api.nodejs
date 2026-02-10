@@ -7,8 +7,8 @@
 
 /**
  * @typedef {Object} NotificationSettingsSchema
- * @property {ObjectID|string} id - notify ID
- * @property {ObjectID|string} [userId] - user ID
+ * @property {ObjectId|string} id - notify ID
+ * @property {ObjectId|string} [userId] - user ID
  * @property {ReceiveTypes} receiveType
  * @property {string} words - filter words when action type is INCLUDING
  * @property {ProviderSettings[]} providers - notify settings
@@ -50,7 +50,7 @@ class Notify {
   }
 
   /**
-   * @return {string|ObjectID}
+   * @return {string|ObjectId}
    */
   get id() {
     return this._id;

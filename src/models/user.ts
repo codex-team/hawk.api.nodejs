@@ -1,8 +1,7 @@
 import argon2 from 'argon2';
 import crypto from 'crypto';
 import jwt, { Secret } from 'jsonwebtoken';
-import { OptionalId } from '../mongo';
-import { Collection, ObjectId } from 'mongodb';
+import { Collection, ObjectId, OptionalId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
@@ -80,7 +79,7 @@ type UserProjectsLastVisitDBScheme = Record<string, number>;
 /**
  * User model
  */
-export default class UserModel extends AbstractModel<UserDBScheme> implements UserDBScheme {
+export default class UserModel extends AbstractModel<Omit<UserDBScheme, '_id'>> implements UserDBScheme {
   /**
    * User's id
    */
@@ -143,15 +142,34 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
   public utm?: UserDBScheme['utm'];
 
   /**
+   * External identities for SSO (keyed by workspaceId)
+   */
+  public identities?: {
+    [workspaceId: string]: {
+      saml: {
+        /**
+         * NameID value from IdP (stable identifier)
+         */
+        id: string;
+
+        /**
+         * Email at the time of linking (for audit)
+         */
+        email: string;
+      };
+    };
+  };
+
+  /**
    * Model's collection
    */
-  protected collection: Collection<UserDBScheme>;
+  protected collection: Collection<Omit<UserDBScheme, '_id'>>;
 
   /**
    * Model constructor
    * @param modelData - user data
    */
-  constructor(modelData: UserDBScheme) {
+  constructor(modelData: OptionalId<UserDBScheme>) {
     /**
      * Fallback for name using email
      */
@@ -161,7 +179,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
 
     super(modelData);
 
-    this.collection = this.dbConnection.collection<UserDBScheme>('users');
+    this.collection = this.dbConnection.collection('users');
   }
 
   /**
@@ -284,8 +302,15 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
 
   /**
    * Generates JWT
+   *
+   * @param isSsoEnforced - if true, use shorter token lifetime (2 days instead of 30)
    */
-  public async generateTokensPair(): Promise<TokensPair> {
+  public async generateTokensPair(isSsoEnforced = false): Promise<TokensPair> {
+    /**
+     * Use shorter refresh token expiry for SSO users to enforce re-authentication
+     */
+    const refreshTokenExpiry = isSsoEnforced ? '2d' : '30d';
+
     const accessToken = await jwt.sign(
       {
         userId: this._id,
@@ -299,7 +324,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
         userId: this._id,
       },
       process.env.JWT_SECRET_REFRESH_TOKEN as Secret,
-      { expiresIn: '30d' }
+      { expiresIn: refreshTokenExpiry }
     );
 
     return {
@@ -374,6 +399,7 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
       if (!this.workspaces) {
         return [];
       }
+
       return Object.keys(this.workspaces);
     }
 
@@ -417,5 +443,57 @@ export default class UserModel extends AbstractModel<UserDBScheme> implements Us
         },
       },
     });
+  }
+
+  /**
+   * Link SAML identity to user for specific workspace
+   *
+   * @param workspaceId - workspace ID
+   * @param samlId - NameID value from IdP (stable identifier)
+   * @param email - user email at the time of linking
+   */
+  public async linkSamlIdentity(workspaceId: string, samlId: string, email: string): Promise<void> {
+    /**
+     * Use Record<string, any> for MongoDB dot notation keys
+     */
+    const updateData: Record<string, any> = {
+      [`identities.${workspaceId}.saml.id`]: samlId,
+      [`identities.${workspaceId}.saml.email`]: email,
+    };
+
+    await this.update(
+      { _id: new ObjectId(this._id) },
+      updateData
+    );
+
+    /**
+     * Update local state
+     */
+    if (!this.identities) {
+      this.identities = {};
+    }
+    if (!this.identities[workspaceId]) {
+      this.identities[workspaceId] = {
+        saml: {
+          id: samlId,
+          email,
+        },
+      };
+    } else {
+      this.identities[workspaceId].saml = {
+        id: samlId,
+        email,
+      };
+    }
+  }
+
+  /**
+   * Get SAML identity for workspace
+   *
+   * @param workspaceId - workspace ID
+   * @returns SAML identity or null if not found
+   */
+  public getSamlIdentity(workspaceId: string): { id: string; email: string } | null {
+    return this.identities?.[workspaceId]?.saml || null;
   }
 }

@@ -2,6 +2,7 @@ import { gql } from 'apollo-server-express';
 
 import billing from './billing';
 import event from './event';
+import eventTaskManagerItem from './eventTaskManagerItem';
 import notifications from './notifications';
 import notificationsInput from './notificationsInput';
 import projectNotifications from './projectNotifications';
@@ -9,6 +10,8 @@ import projectNotificationsMutations from './projectNotificationsMutations';
 import projectEventGroupingPattern from './projectEventGroupingPattern';
 import projectEventGroupingPatternMutations from './projectEventGroupingPatternMutations';
 import project from './project';
+import taskManager from './taskManager';
+import projectTaskManagerMutations from './projectTaskManagerMutations';
 import user from './user';
 import userNotifications from './userNotifications';
 import userNotificationsMutations from './userNotificationsMutations';
@@ -88,11 +91,14 @@ const typeDefinitions = [
   rootSchema,
   billing,
   event,
+  eventTaskManagerItem,
   notifications,
   notificationsInput,
   projectNotifications,
   projectNotificationsMutations,
   project,
+  taskManager,
+  projectTaskManagerMutations,
   user,
   userNotifications,
   userNotificationsMutations,

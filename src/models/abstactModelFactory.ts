@@ -1,10 +1,10 @@
-import { Collection, Db, ObjectID } from 'mongodb';
+import { Collection, Db, Document, ObjectId } from 'mongodb';
 import AbstractModel, { ModelConstructor } from './abstractModel';
 
 /**
  * Model Factory class
  */
-export default abstract class AbstractModelFactory<DBScheme, Model extends AbstractModel<DBScheme>> {
+export default abstract class AbstractModelFactory<DBScheme extends Document, Model extends AbstractModel<DBScheme>> {
   /**
    * Database connection to interact with
    */
@@ -17,11 +17,8 @@ export default abstract class AbstractModelFactory<DBScheme, Model extends Abstr
 
   /**
    * Collection to work with
-   * We can't use generic type for collection because of bug in TS
-   * @see {@link https://github.com/DefinitelyTyped/DefinitelyTyped/issues/39358#issuecomment-546559564}
-   * So we should override collection type in child classes
    */
-  protected abstract collection: Collection;
+  protected abstract collection: Collection<DBScheme>;
 
   /**
    * Creates factory instance
@@ -44,7 +41,12 @@ export default abstract class AbstractModelFactory<DBScheme, Model extends Abstr
       return null;
     }
 
-    return new this.Model(searchResult);
+    /**
+     * MongoDB returns WithId<DBScheme>, but Model constructor expects DBScheme.
+     * Since WithId<DBScheme> is DBScheme & { _id: ObjectId } and DBScheme already
+     * includes _id: ObjectId, they are structurally compatible.
+     */
+    return new this.Model(searchResult as DBScheme);
   }
 
   /**
@@ -53,13 +55,18 @@ export default abstract class AbstractModelFactory<DBScheme, Model extends Abstr
    */
   public async findById(id: string): Promise<Model | null> {
     const searchResult = await this.collection.findOne({
-      _id: new ObjectID(id),
-    });
+      _id: new ObjectId(id),
+    } as any);
 
     if (!searchResult) {
       return null;
     }
 
-    return new this.Model(searchResult);
+    /**
+     * MongoDB returns WithId<DBScheme>, but Model constructor expects DBScheme.
+     * Since WithId<DBScheme> is DBScheme & { _id: ObjectId } and DBScheme already
+     * includes _id: ObjectId, they are structurally compatible.
+     */
+    return new this.Model(searchResult as DBScheme);
   }
 }

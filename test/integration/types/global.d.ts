@@ -1,3 +1,4 @@
+/* eslint-disable no-var */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type { MongoClient } from 'mongodb';
 import { Channel } from 'amqplib';
@@ -6,17 +7,23 @@ import { Channel } from 'amqplib';
  * Defines global variables for using in tests
  */
 declare global {
-  namespace NodeJS {
-    interface Global {
-      /**
-       * MongoDB client instance
-       */
-      mongoClient: MongoClient;
+  /**
+   * MongoDB client instance
+   */
+  var mongoClient: MongoClient;
 
-      /**
-       * RabbitMQ client instance
-       */
-      rabbitChannel: Channel;
-    }
-  }
+  /**
+   * RabbitMQ channel instance
+   */
+  var rabbitChannel: Channel;
+
+  /**
+   * Redis client instance (mock)
+   */
+  var redisClient: unknown;
+
+  /**
+   * Performance API for MongoDB driver
+   */
+  var performance: Performance;
 }

@@ -1,7 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
-import { ProjectDBScheme, ProjectNotificationsRuleDBScheme, ProjectEventGroupingPatternsDBScheme } from '@hawk.so/types';
+import { ProjectDBScheme, ProjectNotificationsRuleDBScheme, ProjectEventGroupingPatternsDBScheme, ProjectTaskManagerConfig } from '@hawk.so/types';
 import { v4 as uuid } from 'uuid';
 
 /**
@@ -192,6 +192,11 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
    * Project events grouping pattern list
    */
   public eventGroupingPatterns!: ProjectEventGroupingPatternsDBScheme[];
+
+  /**
+   * Task Manager configuration
+   */
+  public taskManager?: ProjectTaskManagerConfig;
 
   /**
    * Model's collection
@@ -393,11 +398,11 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
         },
       },
       {
-        returnOriginal: false,
+        returnDocument: 'after',
       }
     );
 
-    return result.value?.notifications.find(doc => doc._id.toString() === payload.ruleId) || null;
+    return result?.notifications.find((doc: any) => doc._id.toString() === payload.ruleId) || null;
   }
 
   /**
@@ -417,10 +422,10 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
         },
       },
       {
-        returnOriginal: false,
+        returnDocument: 'after',
       });
 
-    return result.value?.notifications.find(doc => doc._id.toString() === ruleId) || null;
+    return result?.notifications.find((doc: any) => doc._id.toString() === ruleId) || null;
   }
 
   /**
@@ -456,18 +461,25 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
         },
       },
       {
-        returnOriginal: false,
+        returnDocument: 'after',
       }
     );
 
-    return result.value?.notifications.find(doc => doc._id.toString() === ruleId) || null;
+    return result?.notifications.find((doc) => doc._id.toString() === ruleId) || null;
   }
 
   /**
    * Updates project data in DataBase
-   * @param projectData - projectData to save
+   * Performs partial update - can update one or several properties without requiring full project object
+   *
+   * @param projectData - partial project data containing one or more properties to update.
+   *                     Only provided properties will be updated; others will remain unchanged.
+   *                     Example: `{ name: 'New Name' }` will update only the name field.
+   *                     Example: `{ taskManager: null }` will remove the taskManager field.
+   * @returns {Promise<ProjectDBScheme>} Updated project data
+   * @throws {Error} If project update fails or project not found
    */
-  public async updateProject(projectData: ProjectDBScheme): Promise<ProjectDBScheme> {
+  public async updateProject(projectData: Partial<ProjectDBScheme>): Promise<ProjectDBScheme> {
     let result;
 
     try {
@@ -476,16 +488,16 @@ export default class ProjectModel extends AbstractModel<ProjectDBScheme> impleme
         {
           $set: projectData,
         },
-        { returnOriginal: false }
+        { returnDocument: 'after' }
       );
     } catch (e) {
       throw new Error('Can\'t update project');
     }
-    if (!result.value) {
+    if (!result) {
       throw new Error('There is no project with provided id');
     }
 
-    return result.value;
+    return result;
   }
 
   /**

@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest"],
+    "noEmit": true
+  },
+  "include": [
+    "../src/**/*",
+    "./**/*"
+  ],
+  "exclude": [
+    "./integration/**/*"
+  ]
+}
+

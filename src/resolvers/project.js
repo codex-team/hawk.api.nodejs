@@ -9,6 +9,7 @@ const getEventsFactory = require('./helpers/eventsFactory').default;
 const ProjectToWorkspace = require('../models/projectToWorkspace');
 const { dateFromObjectId } = require('../utils/dates');
 const ProjectModel = require('../models/project').default;
+const { GitHubService } = require('../integrations/github/service');
 
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
@@ -394,6 +395,113 @@ module.exports = {
 
       return userModel.updateLastProjectVisit(projectId);
     },
+
+    /**
+     * Disconnect Task Manager integration from project
+     *
+     * @param {ResolverObj} _obj
+     * @param {string} projectId - project ID to disconnect Task Manager from
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Project}
+     */
+    async disconnectTaskManager(_obj, { projectId }, { user, factories }) {
+      const project = await factories.projectsFactory.findById(projectId);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id');
+      }
+
+      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+        throw new ApolloError('Unable to update demo project');
+      }
+
+      try {
+        /**
+         * If Task Manager is configured with GitHub and has installationId,
+         * try to delete GitHub App installation as part of disconnect
+         */
+        const taskManager = project.taskManager;
+
+        if (taskManager && taskManager.type === 'github' && taskManager.config?.installationId) {
+          const githubService = new GitHubService();
+
+          await githubService.deleteInstallation(taskManager.config.installationId);
+        }
+
+        /**
+         * Remove taskManager field from project
+         */
+        return await project.updateProject({
+          taskManager: null,
+        });
+      } catch (err) {
+        throw new ApolloError('Failed to disconnect Task Manager', { originalError: err });
+      }
+    },
+
+    /**
+     * Update Task Manager settings for project
+     *
+     * @param {ResolverObj} _obj
+     * @param {Object} input - Task Manager settings input
+     * @param {string} input.projectId - project ID to update
+     * @param {boolean} input.autoTaskEnabled - enable automatic task creation
+     * @param {number} input.taskThresholdTotalCount - threshold for auto task creation
+     * @param {boolean} input.assignAgent - assign agent (e.g. Copilot) to tasks
+     * @param {UserInContext} user - current authorized user {@see ../index.js}
+     * @param {ContextFactories} factories - factories for working with models
+     *
+     * @returns {Project}
+     */
+    async updateTaskManagerSettings(_obj, { input }, { user, factories }) {
+      const { projectId, autoTaskEnabled, taskThresholdTotalCount, assignAgent } = input;
+
+      const project = await factories.projectsFactory.findById(projectId);
+
+      if (!project) {
+        throw new ApolloError('There is no project with that id');
+      }
+
+      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+        throw new ApolloError('Unable to update demo project');
+      }
+
+      /**
+       * Check if taskManager is configured
+       */
+      if (!project.taskManager) {
+        throw new UserInputError('Task Manager is not configured for this project');
+      }
+
+      /**
+       * Validate taskThresholdTotalCount
+       */
+      if (typeof taskThresholdTotalCount !== 'number' || taskThresholdTotalCount <= 0) {
+        throw new UserInputError('taskThresholdTotalCount must be a positive integer greater than 0');
+      }
+
+      try {
+        /**
+         * Update taskManager settings
+         * Keep existing config and usage, update only settings
+         */
+        const updatedTaskManager = {
+          ...project.taskManager,
+          autoTaskEnabled,
+          taskThresholdTotalCount,
+          assignAgent,
+          updatedAt: new Date(),
+        };
+
+        return await project.updateProject({
+          taskManager: updatedTaskManager,
+        });
+      } catch (err) {
+        throw new ApolloError('Failed to update Task Manager settings', { originalError: err });
+      }
+    },
   },
   Project: {
     /**
@@ -578,6 +686,10 @@ module.exports = {
     async releaseDetails(project, { release }, { factories }) {
       const releasesFactory = factories.releasesFactory;
       const releaseDoc = await releasesFactory.findByProjectAndRelease(project._id, release);
+
+      if (!releaseDoc) {
+        throw new UserInputError(`Release "${release}" not found for project (id: ${project._id})`);
+      }
 
       let enrichedFiles = Array.isArray(releaseDoc.files) ? releaseDoc.files : [];
 

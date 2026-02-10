@@ -1,4 +1,4 @@
-const NodeEnvironment = require('jest-environment-node');
+const { TestEnvironment } = require('jest-environment-node');
 const amqp = require('amqplib');
 const mongodb = require('mongodb');
 const { installRedisMock, uninstallRedisMock } = require('./redisMock');
@@ -6,13 +6,21 @@ const { installRedisMock, uninstallRedisMock } = require('./redisMock');
 /**
  * Custom test environment for defining global connections
  */
-class CustomEnvironment extends NodeEnvironment {
+class CustomEnvironment extends TestEnvironment {
   /**
    * Setup environment
    * @return {Promise<void>}
    */
   async setup() {
     await super.setup();
+
+    /**
+     * Add performance API polyfill for MongoDB driver
+     * MongoDB driver uses performance.now() which is not available in Jest environment by default
+     */
+    const { performance } = require('perf_hooks');
+    this.global.performance = performance;
+
     const mongoClient = new mongodb.MongoClient('mongodb://mongodb:27017', { useUnifiedTopology: true });
 
     await mongoClient.connect();

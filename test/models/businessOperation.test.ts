@@ -60,9 +60,7 @@ describe('Business operation model', () => {
   });
 });
 
-afterAll(async done => {
+afterAll(async () => {
   await mongo.mongoClients.hawk?.close();
   await mongo.mongoClients.events?.close();
-
-  done();
 });

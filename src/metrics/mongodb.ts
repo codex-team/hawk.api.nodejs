@@ -260,6 +260,16 @@ function logCommandFailed(event: any): void {
  * @param client - MongoDB client to monitor
  */
 export function setupMongoMetrics(client: MongoClient): void {
+  /**
+   * Skip setup in test environment
+   */
+  if (
+    process.env.NODE_ENV === 'test' ||
+    process.env.NODE_ENV === 'e2e'
+  ) {
+    return;
+  }
+
   client.on('commandStarted', (event) => {
     storeCommandInfo(event);
 
@@ -317,7 +327,11 @@ export function setupMongoMetrics(client: MongoClient): void {
         .observe(duration);
 
       // Track error
-      const errorCode = event.failure?.code?.toString() || 'unknown';
+      /**
+       * MongoDB failure objects may have additional properties like 'code'
+       * that aren't part of the standard Error type
+       */
+      const errorCode = (event.failure as any)?.code?.toString() || 'unknown';
 
       mongoCommandErrors
         .labels(metadata.commandName, errorCode)

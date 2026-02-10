@@ -6,6 +6,11 @@ import { ConfirmedMemberDBScheme, MemberDBScheme, PendingMemberDBScheme, Workspa
 import crypto from 'crypto';
 
 /**
+ * Used for inserts into team collection which should not have '_id' field
+ */
+type MemberDBSchemeWithoutId = Omit<ConfirmedMemberDBScheme, '_id'> | Omit<PendingMemberDBScheme, '_id'>;
+
+/**
  * Workspace model
  */
 export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> implements WorkspaceDBScheme {
@@ -46,6 +51,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
 
   /**
    * Workspace balance
+   * @deprecated NOT USED
    */
   public balance!: number;
 
@@ -77,6 +83,11 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   public isDebug?: boolean;
 
   /**
+   * SSO configuration
+   */
+  public sso?: WorkspaceDBScheme['sso'];
+
+  /**
    * Model's collection
    */
   protected collection: Collection<WorkspaceDBScheme>;
@@ -84,7 +95,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   /**
    * Collection with information about team for workspace
    */
-  protected teamCollection: Collection<MemberDBScheme>;
+  protected teamCollection: Collection<MemberDBSchemeWithoutId>;
 
   /**
    * Creates Workspace instance
@@ -94,7 +105,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   constructor(workspaceData: WorkspaceDBScheme) {
     super(workspaceData);
     this.collection = this.dbConnection.collection<WorkspaceDBScheme>('workspaces');
-    this.teamCollection = this.dbConnection.collection<MemberDBScheme>('team:' + this._id.toString());
+    this.teamCollection = this.dbConnection.collection<MemberDBSchemeWithoutId>('team:' + this._id.toString());
   }
 
   /**
@@ -103,7 +114,7 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
   public static generateInviteHash(): string {
     return crypto
       .createHash('sha256')
-      .update(crypto.randomBytes(256))
+      .update(crypto.randomBytes(256).toString('hex'))
       .digest('hex');
   }
 
@@ -404,6 +415,25 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
       {
         $set: {
           subscriptionId: this.subscriptionId,
+        },
+      }
+    );
+  }
+
+  /**
+   * Update SSO configuration
+   * @param ssoConfig - SSO configuration to set (or undefined to remove)
+   */
+  public async setSsoConfig(ssoConfig: WorkspaceDBScheme['sso'] | undefined): Promise<void> {
+    this.sso = ssoConfig;
+
+    await this.collection.updateOne(
+      {
+        _id: new ObjectId(this._id),
+      },
+      {
+        $set: {
+          sso: this.sso,
         },
       }
     );

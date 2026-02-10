@@ -20,8 +20,8 @@ describe('Check webhook', () => {
 
   let businessOperationsCollection: Collection<BusinessOperationDBScheme>;
   let workspacesCollection: Collection<WorkspaceDBScheme>;
-  let plans: Collection<PlanDBScheme>;
-  let users: Collection<UserDBScheme>;
+  let plans: Collection<Omit<PlanDBScheme, '_id'>>;
+  let users: Collection<Omit<UserDBScheme, '_id'>>;
 
   let workspace: WorkspaceDBScheme;
   let externalUser: UserDBScheme;
@@ -33,48 +33,77 @@ describe('Check webhook', () => {
     accountsDb = await global.mongoClient.db('hawk');
 
     workspacesCollection = await accountsDb.collection<WorkspaceDBScheme>('workspaces');
-    users = await accountsDb.collection<UserDBScheme>('users');
-    plans = await accountsDb.collection<PlanDBScheme>('plans');
+    users = await accountsDb.collection<Omit<UserDBScheme, '_id'>>('users');
+    plans = await accountsDb.collection<Omit<PlanDBScheme, '_id'>>('plans');
 
     businessOperationsCollection = await accountsDb.collection<BusinessOperationDBScheme>('businessOperations');
   });
 
   beforeEach(async () => {
-    const currentPlan = (await plans.insertOne({
+    const currentPlanId = (await plans.insertOne({
       name: 'CurrentTestPlan',
       monthlyCharge: 10,
       monthlyChargeCurrency: 'USD',
       eventsLimit: 1000,
       isDefault: false,
-    })).ops[0];
+    })).insertedId;
+    const currentPlan = await plans.findOne({ _id: currentPlanId });
+    if (!currentPlan) {
+      throw new Error('Failed to create currentPlan');
+    }
 
-    workspace = (await workspacesCollection.insertOne({
+    const workspaceId = (await workspacesCollection.insertOne({
       name: 'BillingTest',
       accountId: '123',
       tariffPlanId: currentPlan._id,
-    } as WorkspaceDBScheme)).ops[0];
+    } as WorkspaceDBScheme)).insertedId;
+    const workspaceResult = await workspacesCollection.findOne({ _id: workspaceId });
+    if (!workspaceResult) {
+      throw new Error('Failed to create workspace');
+    }
+    workspace = workspaceResult as WorkspaceDBScheme;
 
-    externalUser = (await users.insertOne({
+    const externalUserId = (await users.insertOne({
       email: 'user@billing.test',
-    })).ops[0];
+    })).insertedId;
+    const externalUserResult = await users.findOne({ _id: externalUserId });
+    if (!externalUserResult) {
+      throw new Error('Failed to create externalUser');
+    }
+    externalUser = externalUserResult as UserDBScheme;
 
-    member = (await users.insertOne({
+    const memberId = (await users.insertOne({
       email: 'member@billing.test',
-    })).ops[0];
+    })).insertedId;
+    const memberResult = await users.findOne({ _id: memberId });
+    if (!memberResult) {
+      throw new Error('Failed to create member');
+    }
+    member = memberResult as UserDBScheme;
 
-    admin = (await users.insertOne({
+    const adminId = (await users.insertOne({
       email: 'admin@billing.test',
-    })).ops[0];
+    })).insertedId;
+    const adminResult = await users.findOne({ _id: adminId });
+    if (!adminResult) {
+      throw new Error('Failed to create admin');
+    }
+    admin = adminResult as UserDBScheme;
 
-    planToChange = (await plans.insertOne({
+    const planToChangeId = (await plans.insertOne({
       name: 'BasicTest',
       monthlyCharge: 20,
       monthlyChargeCurrency: 'USD',
       eventsLimit: 10000,
       isDefault: false,
-    })).ops[0];
+    })).insertedId;
+    const planToChangeResult = await plans.findOne({ _id: planToChangeId });
+    if (!planToChangeResult) {
+      throw new Error('Failed to create planToChange');
+    }
+    planToChange = planToChangeResult as PlanDBScheme;
 
-    const team = await accountsDb.collection<ConfirmedMemberDBScheme>(`team:${workspace._id.toString()}`);
+    const team = await accountsDb.collection<Omit<ConfirmedMemberDBScheme, '_id'>>(`team:${workspace._id.toString()}`);
 
     await team.insertOne({
       userId: member._id,
