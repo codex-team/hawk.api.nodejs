@@ -1,6 +1,7 @@
 import promClient from 'prom-client';
 import { MongoClient, MongoClientOptions } from 'mongodb';
 import { Effect, sgr } from '../utils/ansi';
+import HawkCatcher from '@hawk.so/nodejs';
 
 /**
  * MongoDB command duration histogram
@@ -306,6 +307,19 @@ export function setupMongoMetrics(client: MongoClient): void {
         .labels(metadata.commandName, metadata.collectionFamily, metadata.db)
         .observe(duration);
 
+      HawkCatcher.breadcrumbs.add({
+        type: 'request',
+        category: 'MongoDB Operation',
+        message: `${metadata.db}.${metadata.collectionFamily}.${metadata.commandName} ${event.duration}ms`,
+        level: 'debug',
+        data: {
+          db: metadata.db,
+          collection: metadata.collectionFamily,
+          command: metadata.commandName,
+          durationMs: { value: event.duration },
+        },
+      });
+
       // Clean up metadata
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (client as any)[metadataKey];
@@ -336,6 +350,22 @@ export function setupMongoMetrics(client: MongoClient): void {
       mongoCommandErrors
         .labels(metadata.commandName, errorCode)
         .inc();
+
+      const errorMsg = (event.failure as any)?.message || 'Unknown error';
+
+      HawkCatcher.breadcrumbs.add({
+        type: 'error',
+        category: 'MongoDB operation',
+        message: `${metadata.db}.${metadata.collectionFamily}.${metadata.commandName} FAILED: ${errorMsg} ${event.duration}ms`,
+        level: 'error',
+        data: {
+          db: metadata.db,
+          collection: metadata.collectionFamily,
+          command: metadata.commandName,
+          durationMs: { value: event.duration },
+          errorCode,
+        },
+      });
 
       // Clean up metadata
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

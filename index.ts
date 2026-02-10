@@ -8,6 +8,9 @@ if (process.env.HAWK_CATCHER_TOKEN) {
   HawkCatcher.init({
     token: process.env.HAWK_CATCHER_TOKEN,
     release: `${name}-${version}`,
+    breadcrumbs: {
+      maxBreadcrumbs: 100
+    }
   });
 }
 

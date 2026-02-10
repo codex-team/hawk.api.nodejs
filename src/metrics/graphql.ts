@@ -1,7 +1,7 @@
 import client from 'prom-client';
 import { ApolloServerPlugin, GraphQLRequestContext, GraphQLRequestListener } from 'apollo-server-plugin-base';
 import { GraphQLError } from 'graphql';
-
+import HawkCatcher from '@hawk.so/nodejs';
 /**
  * GraphQL operation duration histogram
  * Tracks GraphQL operation duration by operation name and type
@@ -71,15 +71,31 @@ export const graphqlMetricsPlugin: ApolloServerPlugin = {
       },
 
       async willSendResponse(ctx: GraphQLRequestContext): Promise<void> {
-        const duration = (Date.now() - startTime) / 1000;
+        const durationMs = Date.now() - startTime;
+        const duration = durationMs / 1000;
 
         gqlOperationDuration
           .labels(operationName, operationType)
           .observe(duration);
 
+        const hasErrors = ctx.errors && ctx.errors.length > 0;
+
+        HawkCatcher.breadcrumbs.add({
+          type: 'request',
+          category: 'GraphQL Operation',
+          message: `${operationType} ${operationName} ${durationMs}ms${hasErrors ? ` [${ctx.errors!.length} error(s)]` : ''}`,
+          level: hasErrors ? 'error' : 'debug',
+          data: {
+            operationName: { value: operationName },
+            operationType: { value: operationType },
+            durationMs: { value: durationMs },
+            ...(hasErrors && { errors: { value: ctx.errors!.map((e: GraphQLError) => e.message).join('; ') } }),
+          },
+        });
+
         // Track errors if any
-        if (ctx.errors && ctx.errors.length > 0) {
-          ctx.errors.forEach((error: GraphQLError) => {
+        if (hasErrors) {
+          ctx.errors!.forEach((error: GraphQLError) => {
             const errorType = error.extensions?.code || error.name || 'unknown';
 
             gqlOperationErrors

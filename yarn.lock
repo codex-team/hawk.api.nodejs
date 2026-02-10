@@ -494,26 +494,19 @@
   dependencies:
     tslib "^2.4.0"
 
-"@hawk.so/nodejs@^3.1.1":
-  version "3.1.2"
-  resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-3.1.2.tgz#b06229f0c8a0d8676412329511f9f2b01e492211"
-  integrity sha512-FqZtJDEc3G/VdirsEEfA4BodA3OGXCSy2188aPSeaLkLWswaKAnkaJNTGHQL59dtOeSbvipMJVgtoqihHkpGBQ==
+"@hawk.so/nodejs@^3.3.1":
+  version "3.3.1"
+  resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-3.3.1.tgz#23e304607a64cd3a91e488d481cc968fccab6dba"
+  integrity sha512-GALpgM/96As5gE3YdwVcMglTc57Dfqez3b2EciKJoq0u174gK/h+8tayEL+/65pqBy7BNni8ptCQWdgw5Zv5yA==
   dependencies:
-    "@hawk.so/types" "^0.1.15"
+    "@hawk.so/types" "^0.5.8"
     axios "^0.21.1"
     stack-trace "^0.0.10"
 
-"@hawk.so/types@^0.1.15":
-  version "0.1.18"
-  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.1.18.tgz#746537634756825f066182737429d11ea124d5c5"
-  integrity sha512-SvECLGmLb5t90OSpk3n8DCjJsUoyjrq/Z6Ioil80tVkbMXRdGjaHZpn/0w1gBqtgNWBfW2cSbsQPqmyDj1NsqQ==
-  dependencies:
-    "@types/mongodb" "^3.5.34"
-
-"@hawk.so/types@^0.5.6":
-  version "0.5.6"
-  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.5.6.tgz#1fbd06a79de32595936c817ff416471c0767bd5a"
-  integrity sha512-oPoi0Zf2GZDh0OdEd+imw9VAIJcp9zwtk3jLVBOvXcX+LbTKOt0kwkcblacQpsTFB1ljleVQ15gULnV3qbHCLw==
+"@hawk.so/types@^0.5.8":
+  version "0.5.8"
+  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.5.8.tgz#4278b489f77b5b0335a04ae8184f87c2112116d0"
+  integrity sha512-3LebU/fFWFCVBHcj8yAyZqjjam9vYo7diRi8BlMBXJ5yC1fE7M44+Zb+lzudHQnysj+ZcHZyBuA/dEpGhB7vxg==
   dependencies:
     bson "^7.0.0"
 
@@ -1373,13 +1366,6 @@
     "@types/connect" "*"
     "@types/node" "*"
 
-"@types/bson@*":
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/@types/bson/-/bson-4.2.0.tgz#a2f71e933ff54b2c3bf267b67fa221e295a33337"
-  integrity sha512-ELCPqAdroMdcuxqwMgUpifQyRoTpyYCNr1V9xKyF40VsBobsj+BbWNRvwGchMgBPGqkw655ypkjj2MEF5ywVwg==
-  dependencies:
-    bson "*"
-
 "@types/connect@*":
   version "3.4.35"
   resolved "https://registry.yarnpkg.com/@types/connect/-/connect-3.4.35.tgz#5fcf6ae445e4021d1fc2219a4873cc73a3bb2ad1"
@@ -1601,14 +1587,6 @@
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/@types/mime/-/mime-3.0.0.tgz#e9a9903894405c6a6551f1774df4e64d9804d69c"
   integrity sha512-fccbsHKqFDXClBZTDLA43zl0+TbxyIwyzIzwwhvoJvhNjOErCdeX2xJbURimv2EbSVUGav001PaCJg4mZxMl4w==
-
-"@types/mongodb@^3.5.34":
-  version "3.6.20"
-  resolved "https://registry.yarnpkg.com/@types/mongodb/-/mongodb-3.6.20.tgz#b7c5c580644f6364002b649af1c06c3c0454e1d2"
-  integrity sha512-WcdpPJCakFzcWWD9juKoZbRtQxKIMYF/JIAM4JrNHrMcnJL6/a2NWjXxW7fo9hxboxxkg+icff8d7+WIEvKgYQ==
-  dependencies:
-    "@types/bson" "*"
-    "@types/node" "*"
 
 "@types/morgan@^1.9.10":
   version "1.9.10"
@@ -2488,7 +2466,7 @@ bser@2.1.1:
   dependencies:
     node-int64 "^0.4.0"
 
-bson@*, bson@^1.1.4, bson@^6.10.4, bson@^6.7.0, bson@^7.0.0:
+bson@^1.1.4, bson@^6.10.4, bson@^6.7.0, bson@^7.0.0:
   version "6.10.4"
   resolved "https://registry.yarnpkg.com/bson/-/bson-6.10.4.tgz#d530733bb5bb16fb25c162e01a3344fab332fd2b"
   integrity sha512-WIsKqkSC0ABoBJuT1LEX+2HEvNmNKKgnTAyd0fL8qzK4SH2i9NXg+t08YtdZp/V9IZ33cxe3iV4yM0qg8lMQng==
