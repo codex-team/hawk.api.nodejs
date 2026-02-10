@@ -117,29 +117,6 @@ type EventUser {
 }
 
 """
-Breadcrumb severity level
-"""
-enum BreadcrumbLevel {
-  fatal
-  error
-  warning
-  info
-  debug
-}
-
-"""
-Breadcrumb type - controls categorization and UI appearance
-"""
-enum BreadcrumbType {
-  default
-  request
-  ui
-  navigation
-  logic
-  error
-}
-
-"""
 Single breadcrumb entry - represents an event that occurred before the error
 """
 type Breadcrumb {
@@ -149,9 +126,11 @@ type Breadcrumb {
   timestamp: Float!
 
   """
-  Type of breadcrumb - controls UI categorization
+  Type of breadcrumb - controls UI categorization.
+  Common values: default, request, ui, navigation, logic, error.
+  Accepts any string since SDK users may send custom types.
   """
-  type: BreadcrumbType
+  type: String
 
   """
   Category of the event - more specific than type
@@ -164,9 +143,11 @@ type Breadcrumb {
   message: String
 
   """
-  Severity level of the breadcrumb
+  Severity level of the breadcrumb.
+  Common values: fatal, error, warning, info, debug.
+  Accepts any string since SDK users may send custom levels.
   """
-  level: BreadcrumbLevel
+  level: String
 
   """
   Arbitrary key-value data associated with the breadcrumb
