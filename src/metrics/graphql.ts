@@ -2,7 +2,6 @@ import client from 'prom-client';
 import { ApolloServerPlugin, GraphQLRequestContext, GraphQLRequestListener } from 'apollo-server-plugin-base';
 import { GraphQLError } from 'graphql';
 import HawkCatcher from '@hawk.so/nodejs';
-
 /**
  * GraphQL operation duration histogram
  * Tracks GraphQL operation duration by operation name and type
@@ -81,22 +80,17 @@ export const graphqlMetricsPlugin: ApolloServerPlugin = {
 
         const hasErrors = ctx.errors && ctx.errors.length > 0;
 
-        const breadcrumbData: Record<string, string | number> = {
-          operationName,
-          operationType,
-          durationMs,
-        };
-
-        if (hasErrors) {
-          breadcrumbData.errors = ctx.errors!.map((e: GraphQLError) => e.message).join('; ');
-        }
-
         HawkCatcher.breadcrumbs.add({
           type: 'request',
           category: 'gql',
           message: `${operationType} ${operationName} ${durationMs}ms${hasErrors ? ` [${ctx.errors!.length} error(s)]` : ''}`,
           level: hasErrors ? 'error' : 'debug',
-          data: breadcrumbData,
+          data: {
+            operationName: { value: operationName },
+            operationType: { value: operationType },
+            durationMs: { value: durationMs },
+            ...(hasErrors && { errors: { value: ctx.errors!.map((e: GraphQLError) => e.message).join('; ') } }),
+          },
         });
 
         // Track errors if any
