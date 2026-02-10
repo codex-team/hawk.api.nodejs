@@ -4,7 +4,6 @@ import { Collection, Db, OptionalId } from 'mongodb';
 import DataLoaders from '../dataLoaders';
 import { UserDBScheme } from '@hawk.so/types';
 
-
 /**
  * Users factory to work with User Model
  */
