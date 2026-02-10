@@ -133,8 +133,22 @@ export async function setupConnections(): Promise<void> {
 export async function publish(exchange: string, route: string, message: string, options?: Options.Publish): Promise<void> {
   try {
     await channel.publish(exchange, route, Buffer.from(message), options);
+    HawkCatcher.breadcrumbs.add({
+      type: 'request',
+      category: 'amqp.publish',
+      message: `AMQP publish ${exchange || '(default)'}/${route}`,
+      level: 'debug',
+      data: { exchange, route },
+    });
     debug(`Message sent: ${message}`);
   } catch (err) {
+    HawkCatcher.breadcrumbs.add({
+      type: 'error',
+      category: 'amqp.publish',
+      message: `AMQP publish FAILED ${exchange || '(default)'}/${route}: ${(err as Error).message}`,
+      level: 'error',
+      data: { exchange, route },
+    });
     HawkCatcher.send(err as Error);
     console.log('Message was rejected:', (err as Error).stack);
   }
