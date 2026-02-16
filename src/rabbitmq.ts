@@ -28,6 +28,7 @@ export enum Queues {
   Telegram = 'notify/telegram',
   Slack = 'notify/slack',
   Loop = 'notify/loop',
+  Webhook = 'sender/webhook',
   Limiter = 'cron-tasks/limiter',
 }
 
@@ -88,6 +89,14 @@ export const WorkerPaths: Record<string, WorkerPath> = {
   Loop: {
     exchange: Exchanges.Notify,
     queue: Queues.Loop,
+  },
+
+  /**
+   * Path to webhook worker
+   */
+  Webhook: {
+    exchange: Exchanges.Empty,
+    queue: Queues.Webhook,
   },
 
   /**
