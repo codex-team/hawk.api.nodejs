@@ -36,6 +36,11 @@ export interface NotificationsChannelsDBScheme {
    * Pushes through the Hawk Desktop app
    */
   desktopPush?: NotificationsChannelSettingsDBScheme;
+
+  /**
+   * Alerts through a custom Webhook URL
+   */
+  webhook?: NotificationsChannelSettingsDBScheme;
 }
 
 /**
