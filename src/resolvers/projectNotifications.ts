@@ -102,7 +102,7 @@ function validateNotificationsRuleTresholdAndPeriod(
 /**
  * Return true if all passed channels are filled with correct endpoints
  */
-function validateNotificationsRuleChannels(channels: NotificationsChannelsDBScheme): string | null {
+async function validateNotificationsRuleChannels(channels: NotificationsChannelsDBScheme): Promise<string | null> {
   if (channels.email!.isEnabled) {
     if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(channels.email!.endpoint)) {
       return 'Invalid email endpoint passed';
@@ -127,17 +127,12 @@ function validateNotificationsRuleChannels(channels: NotificationsChannelsDBSche
     }
   }
 
-  return null;
-}
-
-/**
- * Validates webhook endpoint for SSRF safety (async DNS check)
- *
- * @param channels - notification channels to validate
- */
-async function validateWebhookChannel(channels: NotificationsChannelsDBScheme): Promise<string | null> {
   if (channels.webhook?.isEnabled && channels.webhook.endpoint) {
-    return validateWebhookEndpoint(channels.webhook.endpoint);
+    const webhookError = await validateWebhookEndpoint(channels.webhook.endpoint);
+
+    if (webhookError !== null) {
+      return webhookError;
+    }
   }
 
   return null;
@@ -166,16 +161,10 @@ export default {
         throw new ApolloError('No project with such id');
       }
 
-      const channelsValidationResult = validateNotificationsRuleChannels(input.channels);
+      const channelsValidationResult = await validateNotificationsRuleChannels(input.channels);
 
       if (channelsValidationResult !== null) {
         throw new UserInputError(channelsValidationResult);
-      }
-
-      const webhookValidationResult = await validateWebhookChannel(input.channels);
-
-      if (webhookValidationResult !== null) {
-        throw new UserInputError(webhookValidationResult);
       }
 
       if (input.whatToReceive === ReceiveTypes.SEEN_MORE) {
@@ -210,16 +199,10 @@ export default {
         throw new ApolloError('No project with such id');
       }
 
-      const channelsValidationResult = validateNotificationsRuleChannels(input.channels);
+      const channelsValidationResult = await validateNotificationsRuleChannels(input.channels);
 
       if (channelsValidationResult !== null) {
         throw new UserInputError(channelsValidationResult);
-      }
-
-      const webhookValidationResult = await validateWebhookChannel(input.channels);
-
-      if (webhookValidationResult !== null) {
-        throw new UserInputError(webhookValidationResult);
       }
 
       if (input.whatToReceive === ReceiveTypes.SEEN_MORE) {
