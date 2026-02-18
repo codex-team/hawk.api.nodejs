@@ -47,7 +47,7 @@ export default {
       { input }: ChangeUserNotificationsChannelPayload,
       { user, factories }: ResolverContextWithUser
     ): Promise<ChangeNotificationsResponse> {
-      if (input.webhook?.isEnabled) {
+      if (input.webhook?.isEnabled && input.webhook.endpoint) {
         const webhookError = await validateWebhookEndpoint(input.webhook.endpoint);
 
         if (webhookError !== null) {
