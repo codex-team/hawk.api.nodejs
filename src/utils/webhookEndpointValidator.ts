@@ -1,24 +1,5 @@
 import dns from 'dns';
-import { isPrivateIP } from './ipValidator';
-
-/**
- * Hostnames blocked regardless of DNS resolution
- */
-const BLOCKED_HOSTNAMES: RegExp[] = [
-  /^localhost$/i,
-  /\.local$/i,
-  /\.internal$/i,
-  /\.lan$/i,
-  /\.localdomain$/i,
-];
-
-/**
- * Only these ports are allowed for webhook delivery
- */
-const ALLOWED_PORTS: Record<string, number> = {
-  'http:': 80,
-  'https:': 443,
-};
+import { isPrivateIP, BLOCKED_HOSTNAMES, ALLOWED_PORTS } from './ipValidator';
 
 /**
  * Validates a webhook endpoint URL for SSRF safety.

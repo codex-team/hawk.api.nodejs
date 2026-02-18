@@ -43,3 +43,22 @@ export function isPrivateIP(ip: string): boolean {
 
   return PRIVATE_IP_PATTERNS.some((pattern) => pattern.test(bare));
 }
+
+/**
+ * Hostnames blocked regardless of DNS resolution
+ */
+export const BLOCKED_HOSTNAMES: RegExp[] = [
+  /^localhost$/i,
+  /\.local$/i,
+  /\.internal$/i,
+  /\.lan$/i,
+  /\.localdomain$/i,
+];
+
+/**
+ * Only these ports are allowed for webhook delivery
+ */
+export const ALLOWED_PORTS: Record<string, number> = {
+  'http:': 80,
+  'https:': 443,
+};
