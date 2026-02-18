@@ -2,6 +2,8 @@ import { ResolverContextWithUser } from '../types/graphql';
 import { UserNotificationsDBScheme, UserNotificationType } from '../models/user';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
 import { UserDBScheme } from '@hawk.so/types';
+import { UserInputError } from 'apollo-server-express';
+import { validateWebhookEndpoint } from '../utils/webhookEndpointValidator';
 
 /**
  * We will get this structure from the client to update Channel settings
@@ -45,6 +47,14 @@ export default {
       { input }: ChangeUserNotificationsChannelPayload,
       { user, factories }: ResolverContextWithUser
     ): Promise<ChangeNotificationsResponse> {
+      if (input.webhook?.isEnabled && input.webhook.endpoint) {
+        const webhookError = await validateWebhookEndpoint(input.webhook.endpoint);
+
+        if (webhookError !== null) {
+          throw new UserInputError(webhookError);
+        }
+      }
+
       const currentUser = await factories.usersFactory.findById(user.id);
       const currentNotifySet = currentUser?.notifications || {} as UserNotificationsDBScheme;
       const oldChannels = currentNotifySet.channels || {};

@@ -5,6 +5,7 @@ import { ProjectNotificationsRuleDBScheme } from '@hawk.so/types';
 import { ResolverContextWithUser } from '../types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
+import { validateWebhookEndpoint } from '../utils/webhookEndpointValidator';
 
 /**
  * Mutation payload for creating notifications rule from GraphQL Schema
@@ -130,6 +131,19 @@ function validateNotificationsRuleChannels(channels: NotificationsChannelsDBSche
 }
 
 /**
+ * Validates webhook endpoint for SSRF safety (async DNS check)
+ *
+ * @param channels - notification channels to validate
+ */
+async function validateWebhookChannel(channels: NotificationsChannelsDBScheme): Promise<string | null> {
+  if (channels.webhook?.isEnabled && channels.webhook.endpoint) {
+    return validateWebhookEndpoint(channels.webhook.endpoint);
+  }
+
+  return null;
+}
+
+/**
  * See all types and fields here {@see ../typeDefs/notify.graphql}
  */
 export default {
@@ -156,6 +170,12 @@ export default {
 
       if (channelsValidationResult !== null) {
         throw new UserInputError(channelsValidationResult);
+      }
+
+      const webhookValidationResult = await validateWebhookChannel(input.channels);
+
+      if (webhookValidationResult !== null) {
+        throw new UserInputError(webhookValidationResult);
       }
 
       if (input.whatToReceive === ReceiveTypes.SEEN_MORE) {
@@ -194,6 +214,12 @@ export default {
 
       if (channelsValidationResult !== null) {
         throw new UserInputError(channelsValidationResult);
+      }
+
+      const webhookValidationResult = await validateWebhookChannel(input.channels);
+
+      if (webhookValidationResult !== null) {
+        throw new UserInputError(webhookValidationResult);
       }
 
       if (input.whatToReceive === ReceiveTypes.SEEN_MORE) {
