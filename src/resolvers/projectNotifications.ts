@@ -127,7 +127,7 @@ async function validateNotificationsRuleChannels(channels: NotificationsChannels
     }
   }
 
-  if (channels.webhook?.isEnabled && channels.webhook.endpoint) {
+  if (channels.webhook?.isEnabled) {
     const webhookError = await validateWebhookEndpoint(channels.webhook.endpoint);
 
     if (webhookError !== null) {
