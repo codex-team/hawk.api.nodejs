@@ -494,10 +494,10 @@
   dependencies:
     tslib "^2.4.0"
 
-"@hawk.so/github-sdk@^1.0.3":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@hawk.so/github-sdk/-/github-sdk-1.0.3.tgz#bf6c41de71057daa9d67876d6e07447673a8f9e3"
-  integrity sha512-3+/H2O9Kn+kBwEoJb5/7QtULl9bmGOS/pDLqxAfsWR0qg3woDSnSfnQ6vAeWs/TqjfUDjyIlA2uwtOrVeiuEVw==
+"@hawk.so/github-sdk@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@hawk.so/github-sdk/-/github-sdk-1.0.4.tgz#6edef6290651ff1fe678ae09fbfc40f9ce2dd1c5"
+  integrity sha512-nt0oM7ZqK8PfcgD74B/DwaeKNjv3pkd6at9k+yQKkTDdeh2rraafbHdxVzJqAAAIjaDE2ecH6QWolWlOJZ3UdQ==
   dependencies:
     "@hawk.so/utils" "^1.0.0"
     "@octokit/oauth-methods" "^4.0.0"
