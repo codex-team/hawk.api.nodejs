@@ -13,7 +13,7 @@ const mockGetInstallationUrl = jest.fn((state: string) => {
 const mockGetInstallationForRepository = jest.fn();
 const mockExchangeOAuthCodeForToken = jest.fn();
 
-jest.mock('../../src/integrations/github/service', () => ({
+jest.mock('@hawk.so/github-sdk', () => ({
   GitHubService: jest.fn().mockImplementation(() => ({
     getInstallationUrl: mockGetInstallationUrl,
     getInstallationForRepository: mockGetInstallationForRepository,

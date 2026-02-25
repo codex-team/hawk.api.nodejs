@@ -600,6 +600,29 @@ module.exports = {
 
       return workspaceModel.sso || null;
     },
+
+    /**
+     * Returns workspace integrations (GitHub installations, etc.)
+     *
+     * @param {WorkspaceDBScheme} workspace - result from resolver above (parent workspace object)
+     * @returns {Object|null}
+     */
+    integrations(workspace) {
+      if (!workspace.integrations) {
+        return null;
+      }
+
+      return {
+        github: workspace.integrations.github
+          ? {
+            installations: (workspace.integrations.github.installations || []).map((i) => ({
+              installationId: i.installationId,
+              account: i.account,
+            })),
+          }
+          : null,
+      };
+    },
   },
 
   /**

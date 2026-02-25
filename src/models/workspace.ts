@@ -2,7 +2,7 @@ import { Collection, ObjectId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import { OptionalId } from '../mongo';
 import UserModel from './user';
-import { ConfirmedMemberDBScheme, MemberDBScheme, PendingMemberDBScheme, WorkspaceDBScheme } from '@hawk.so/types';
+import { ConfirmedMemberDBScheme, MemberDBScheme, PendingMemberDBScheme, WorkspaceDBScheme, GitHubInstallation } from '@hawk.so/types';
 import crypto from 'crypto';
 
 /**
@@ -86,6 +86,11 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
    * SSO configuration
    */
   public sso?: WorkspaceDBScheme['sso'];
+
+  /**
+   * External integrations (GitHub, etc.)
+   */
+  public integrations?: WorkspaceDBScheme['integrations'];
 
   /**
    * Model's collection
@@ -459,5 +464,68 @@ export default class WorkspaceModel extends AbstractModel<WorkspaceDBScheme> imp
     const date = new Date();
 
     return date > this.getTariffPlanDueDate();
+  }
+
+  /**
+   * Get GitHub installations for this workspace
+   */
+  public getGitHubInstallations(): GitHubInstallation[] {
+    return this.integrations?.github?.installations ?? [];
+  }
+
+  /**
+   * Add a GitHub App installation to this workspace
+   *
+   * @param installation - installation data to add
+   */
+  public async addGitHubInstallation(installation: GitHubInstallation): Promise<void> {
+    await this.collection.updateOne(
+      { _id: new ObjectId(this._id) },
+      {
+        $push: {
+          'integrations.github.installations': installation,
+        },
+      }
+    );
+
+    if (!this.integrations) {
+      this.integrations = { github: { installations: [] } };
+    }
+    if (!this.integrations.github) {
+      this.integrations.github = { installations: [] };
+    }
+
+    this.integrations.github.installations.push(installation);
+  }
+
+  /**
+   * Remove a GitHub App installation from this workspace by installationId
+   *
+   * @param installationId - GitHub installation ID to remove
+   */
+  public async removeGitHubInstallation(installationId: number): Promise<void> {
+    await this.collection.updateOne(
+      { _id: new ObjectId(this._id) },
+      {
+        $pull: {
+          'integrations.github.installations': { installationId },
+        },
+      }
+    );
+
+    if (this.integrations?.github?.installations) {
+      this.integrations.github.installations = this.integrations.github.installations.filter(
+        (i: GitHubInstallation) => i.installationId !== installationId
+      );
+    }
+  }
+
+  /**
+   * Find a GitHub installation by installationId
+   *
+   * @param installationId - GitHub installation ID to find
+   */
+  public findGitHubInstallation(installationId: number): GitHubInstallation | undefined {
+    return this.getGitHubInstallations().find((i) => i.installationId === installationId);
   }
 }

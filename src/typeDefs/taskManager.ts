@@ -34,6 +34,11 @@ export default gql`
     Repository full name (owner/repo)
     """
     repoFullName: String!
+
+    """
+    Primary programming language of the repository
+    """
+    repoLanguage: String
   }
 
   """
