@@ -4,10 +4,6 @@ import { ProjectDBScheme, ProjectTaskManagerConfig } from '@hawk.so/types';
 import { ResolverContextWithUser } from '../../src/types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
 
-jest.mock('../../src/integrations/github/service', () => require('../__mocks__/github-service'));
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-import { deleteInstallationMock, GitHubService } from '../__mocks__/github-service';
-
 // @ts-expect-error - CommonJS module, TypeScript can't infer types properly
 import projectResolverModule from '../../src/resolvers/project';
 
@@ -146,8 +142,6 @@ describe('Project Resolver - Task Manager Mutations', () => {
       )) as { taskManager: ProjectTaskManagerConfig | null };
 
       expect(context.factories.projectsFactory.findById).toHaveBeenCalledWith(mockProject._id.toString());
-      expect(GitHubService).toHaveBeenCalledTimes(1);
-      expect(deleteInstallationMock).toHaveBeenCalledWith('123456');
       expect(mockProject.updateProject).toHaveBeenCalledWith({
         taskManager: null,
       });
@@ -224,8 +218,6 @@ describe('Project Resolver - Task Manager Mutations', () => {
         context
       )) as { taskManager: ProjectTaskManagerConfig | null };
 
-      expect(GitHubService).not.toHaveBeenCalled();
-      expect(deleteInstallationMock).not.toHaveBeenCalled();
       expect(mockProject.updateProject).toHaveBeenCalledWith({
         taskManager: null,
       });

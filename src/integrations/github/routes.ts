@@ -3,12 +3,13 @@ import express from 'express';
 import { v4 as uuid } from 'uuid';
 import { ObjectId } from 'mongodb';
 import { createHmac, timingSafeEqual } from 'crypto';
-import { GitHubService } from './service';
-import { ProjectDBScheme } from '@hawk.so/types';
+import { GitHubService } from '@hawk.so/github-sdk';
+import { ProjectDBScheme, GitHubInstallation } from '@hawk.so/types';
 import { ContextFactories } from '../../types/graphql';
 import { RedisInstallStateStore } from './store/install-state.redis.store';
 import ProjectModel from '../../models/project';
 import WorkspaceModel from '../../models/workspace';
+import UserModel from '../../models/user';
 import { sgr, Effect } from '../../utils/ansi';
 import { databases } from '../../mongo';
 
@@ -26,7 +27,20 @@ const DEFAULT_TASK_THRESHOLD_TOTAL_COUNT = 50;
  */
 export function createGitHubRouter(factories: ContextFactories): express.Router {
   const router = express.Router();
-  const githubService = new GitHubService();
+
+  if (!process.env.GITHUB_APP_ID || !process.env.GITHUB_PRIVATE_KEY) {
+    throw new Error('GITHUB_APP_ID and GITHUB_PRIVATE_KEY environment variables are required');
+  }
+
+  const githubService = new GitHubService({
+    appId: process.env.GITHUB_APP_ID,
+    privateKey: process.env.GITHUB_PRIVATE_KEY,
+    appSlug: process.env.GITHUB_APP_SLUG,
+    clientId: process.env.GITHUB_APP_CLIENT_ID,
+    clientSecret: process.env.GITHUB_APP_CLIENT_SECRET,
+    apiUrl: process.env.API_URL,
+  });
+
   const stateStore = new RedisInstallStateStore();
 
   /**
@@ -153,6 +167,69 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
   }
 
   /**
+   * Validate workspace access and admin permissions
+   *
+   * @param req - Express request object
+   * @param res - Express response object
+   * @param workspaceId - workspace ID from query parameters
+   * @param errorMessagePrefix - prefix for admin permission error message
+   * @returns Object with workspace and userId if validation passes, null otherwise (response already sent)
+   */
+  async function validateWorkspaceAdminAccess(
+    req: express.Request,
+    res: express.Response,
+    workspaceId: string | undefined,
+    errorMessagePrefix = 'perform this action'
+  ): Promise<{ workspace: WorkspaceModel; userId: string } | null> {
+    const userId = req.context?.user?.id;
+
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized. Please provide authorization token.' });
+
+      return null;
+    }
+
+    if (!workspaceId || typeof workspaceId !== 'string') {
+      res.status(400).json({ error: 'workspaceId query parameter is required' });
+
+      return null;
+    }
+
+    if (!ObjectId.isValid(workspaceId)) {
+      res.status(400).json({ error: `Invalid workspaceId format: ${workspaceId}` });
+
+      return null;
+    }
+
+    const workspace = await factories.workspacesFactory.findById(workspaceId);
+
+    if (!workspace) {
+      res.status(404).json({ error: `Workspace not found: ${workspaceId}` });
+
+      return null;
+    }
+
+    const member = await workspace.getMemberInfo(userId);
+
+    if (!member || WorkspaceModel.isPendingMember(member)) {
+      res.status(403).json({ error: 'You are not a member of this workspace' });
+
+      return null;
+    }
+
+    if (!member.isAdmin) {
+      res.status(403).json({ error: `Not enough permissions. Only workspace admin can ${errorMessagePrefix}.` });
+
+      return null;
+    }
+
+    return {
+      workspace,
+      userId,
+    };
+  }
+
+  /**
    * Log message with GitHub Integration prefix
    *
    * @param level - log level ('log', 'warn', 'error', 'info')
@@ -211,58 +288,77 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
   const WEBHOOK_LOG_PREFIX = '[🍏 🍎 ✨ Webhook] ';
 
   /**
-   * GET /integration/github/connect?projectId=<projectId>
-   * Initiate GitHub integration connection
+   * GET /integration/github/connect?workspaceId=<workspaceId>&projectId=<projectId>
+   * Initiate GitHub integration connection.
+   *
+   * If workspace already has installations → returns them so frontend can show repo picker directly.
+   * If workspace has no installations → returns GitHub install URL for redirect.
    */
   router.get('/connect', async (req, res, next) => {
     try {
-      const { projectId } = req.query;
+      const { workspaceId, projectId } = req.query;
 
       /**
-       * Validate project access and admin permissions
+       * Validate projectId — connection is always initiated from a project settings page
        */
-      const access = await validateProjectAdminAccess(req, res, projectId as string | undefined, 'connect Task Manager integration');
+      if (!projectId || typeof projectId !== 'string' || !ObjectId.isValid(projectId)) {
+        res.status(400).json({ error: 'projectId query parameter is required' });
+
+        return;
+      }
+
+      /**
+       * Validate workspace access and admin permissions
+       */
+      const access = await validateWorkspaceAdminAccess(req, res, workspaceId as string | undefined, 'connect Task Manager integration');
 
       if (!access) {
         return;
       }
 
-      const { project, userId } = access;
-      const validatedProjectId = project._id.toString();
+      const { workspace, userId } = access;
+      const validatedWorkspaceId = workspace._id.toString();
 
       /**
-       * Generate unique state for CSRF protection
-       * Using UUID v4 for simplicity (alternative: JWT token)
+       * Check if workspace already has GitHub installations.
+       * If yes, return them so the frontend can show repo picker directly.
+       */
+      const existingInstallations = workspace.getGitHubInstallations();
+
+      if (existingInstallations.length > 0) {
+        log('info', `Workspace ${validatedWorkspaceId} already has ${existingInstallations.length} installation(s), returning them`);
+
+        return res.json({
+          hasInstallations: true,
+          installations: existingInstallations.map((i) => ({
+            installationId: i.installationId,
+            account: i.account,
+          })),
+        });
+      }
+
+      /**
+       * No installations — generate GitHub App install URL
        */
       const state = uuid();
 
-      /**
-       * Save state data in Redis with TTL
-       * Data includes: projectId, userId, timestamp
-       */
       const stateData = {
-        projectId: validatedProjectId,
+        workspaceId: validatedWorkspaceId,
+        projectId,
         userId,
         timestamp: Date.now(),
       };
 
       await stateStore.saveState(state, stateData);
 
-      log('info', validatedProjectId, `Created state: ${sgr(state.slice(0, 8), Effect.ForegroundGray)}...`);
+      log('info', `Created state for workspace ${validatedWorkspaceId}: ${sgr(state.slice(0, 8), Effect.ForegroundGray)}...`);
 
-      /**
-       * Generate GitHub installation URL with state
-       */
       const installationUrl = githubService.getInstallationUrl(state);
 
-      log('info', validatedProjectId, 'Generated GitHub installation URL: ' + sgr(installationUrl, Effect.ForegroundGreen));
+      log('info', `Generated GitHub installation URL: ${sgr(installationUrl, Effect.ForegroundGreen)}`);
 
-      /**
-       * Return installation URL in JSON response
-       * Frontend will handle the redirect using window.location.href
-       * This allows Authorization header to be sent correctly
-       */
       res.json({
+        hasInstallations: false,
         redirectUrl: installationUrl,
       });
     } catch (error) {
@@ -273,23 +369,25 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
 
   /**
    * GET /integration/github/oauth?code=<code>&state=<state>&installation_id=<installation_id>
-   * Handle GitHub OAuth callback for user-to-server token
-   * Also handles GitHub App installation if installation_id is present
+   * Handle GitHub OAuth callback.
+   *
+   * Called by GitHub after the user completes the GitHub App installation + OAuth authorization flow.
+   * GitHub redirects here with `code` (OAuth authorization code), `state` (CSRF token),
+   * and optionally `installation_id` (present when a new GitHub App installation was created).
+   *
+   * This endpoint:
+   * 1. If installation_id is present — saves the installation to workspace.integrations.github.installations[]
+   * 2. Exchanges the OAuth code for tokens and saves refreshToken to user.githubAuthorizations[]
+   * 3. Redirects back to Garage project settings page
    */
   router.get('/oauth', async (req, res, next) => {
     try {
       // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
       const { code, state, installation_id } = req.query;
 
-      /**
-       * Log OAuth callback request for debugging
-       */
       // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
-      log('info', `OAuth callback received: state=${state}, code=${code ? 'present' : 'missing'}, installation_id=${installation_id ? 'present' : 'missing'}, query=${JSON.stringify(req.query)}`);
+      log('info', `OAuth callback received: state=${state}, code=${code ? 'present' : 'missing'}, installation_id=${installation_id ? 'present' : 'missing'}`);
 
-      /**
-       * Validate required parameters
-       */
       if (!code || typeof code !== 'string') {
         return res.redirect(buildGarageRedirectUrl('/', {
           apiError: 'Missing or invalid OAuth code',
@@ -304,7 +402,6 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
 
       /**
        * Verify state (CSRF protection)
-       * getState() atomically gets and deletes the state, preventing reuse
        */
       const stateData = await stateStore.getState(state);
 
@@ -316,177 +413,157 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
         }));
       }
 
-      const { projectId, userId } = stateData;
+      const { workspaceId, projectId, userId } = stateData;
 
-      log('info', projectId, `Processing OAuth callback initiated by user ${sgr(userId, Effect.ForegroundCyan)}`);
+      log('info', `Processing OAuth callback for workspace ${sgr(workspaceId, Effect.ForegroundCyan)}, initiated by user ${sgr(userId, Effect.ForegroundCyan)}`);
 
       /**
-       * Verify project exists
+       * Verify workspace exists
        */
-      const project = await factories.projectsFactory.findById(projectId);
+      const workspace = await factories.workspacesFactory.findById(workspaceId);
 
-      if (!project) {
-        log('error', projectId, 'Project not found');
+      if (!workspace) {
+        log('error', `Workspace not found: ${workspaceId}`);
 
-        return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
-          error: `Project not found: ${projectId}`,
+        return res.redirect(buildGarageRedirectUrl('/', {
+          apiError: `Workspace not found: ${workspaceId}`,
         }));
       }
 
+      const redirectPath = `/project/${projectId}/settings/task-manager`;
+
       /**
-       * If installation_id is present, handle GitHub App installation first
-       * This happens when "Request user authorization (OAuth) during installation" is enabled
+       * If installation_id is present, save installation to workspace
        */
       // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
       if (installation_id && typeof installation_id === 'string') {
         // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
-        log('info', projectId, `GitHub App installation detected (installation_id: ${installation_id}), processing installation first`);
+        const installId = parseInt(installation_id, 10);
+
+        log('info', `GitHub App installation detected (installation_id: ${installation_id}), saving to workspace`);
 
         /**
-         * Get installation info from GitHub (validates installation exists)
+         * Check if this installation already exists in the workspace
          */
-        try {
-          await githubService.getInstallationForRepository(installation_id);
-          log('info', projectId, `Retrieved installation info for installation_id: ${sgr(installation_id, Effect.ForegroundCyan)}`);
-        } catch (error) {
-          log('error', projectId, `Failed to get installation info: ${error instanceof Error ? error.message : String(error)}`);
+        const existingInstallation = workspace.findGitHubInstallation(installId);
 
-          return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
-            error: 'Failed to retrieve GitHub installation information. Please try again.',
-          }));
-        }
+        if (!existingInstallation) {
+          /**
+           * Get installation metadata from GitHub
+           */
+          let installationInfo;
 
-        /**
-         * Create or update taskManager config with installation info
-         */
-        const taskManagerConfig = {
-          type: 'github' as const,
-          autoTaskEnabled: false,
-          taskThresholdTotalCount: DEFAULT_TASK_THRESHOLD_TOTAL_COUNT,
-          assignAgent: false,
-          connectedAt: new Date(),
-          updatedAt: new Date(),
-          config: {
+          try {
             // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
-            installationId: installation_id,
-            repoId: '',
-            repoFullName: '',
-          },
-        };
+            installationInfo = await githubService.getInstallationForRepository(installation_id);
+          } catch (error) {
+            log('error', `Failed to get installation info: ${error instanceof Error ? error.message : String(error)}`);
 
-        try {
-          await project.updateProject({
-            taskManager: project.taskManager ? {
-              ...project.taskManager,
-              ...taskManagerConfig,
-              config: {
-                ...project.taskManager.config,
-                // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
-                installationId: installation_id,
-                // Preserve existing repoId and repoFullName if they exist, otherwise use defaults
-                repoId: project.taskManager.config.repoId || taskManagerConfig.config.repoId,
-                repoFullName: project.taskManager.config.repoFullName || taskManagerConfig.config.repoFullName,
-              },
-            } : taskManagerConfig,
-          } as Partial<ProjectDBScheme>);
+            return res.redirect(buildGarageRedirectUrl(redirectPath, {
+              error: 'Failed to retrieve GitHub installation information. Please try again.',
+            }));
+          }
 
-          log('info', projectId, 'Successfully saved GitHub App installation');
-        } catch (error) {
-          log('error', projectId, `Failed to save taskManager config: ${error instanceof Error ? error.message : String(error)}`);
+          const newInstallation: GitHubInstallation = {
+            installationId: installId,
+            account: {
+              id: installationInfo.account?.id ?? 0,
+              login: installationInfo.account?.login ?? 'unknown',
+              type: installationInfo.target_type === 'Organization' ? 'Organization' : 'User',
+            },
+            connectedByHawkUserId: userId,
+            connectedAt: new Date(),
+            updatedAt: new Date(),
+            delegatedUser: null,
+          };
 
-          return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
-            error: 'Failed to save Task Manager configuration. Please try again.',
-          }));
+          try {
+            await workspace.addGitHubInstallation(newInstallation);
+            log('info', `Saved installation ${installId} to workspace ${workspaceId}`);
+          } catch (error) {
+            log('error', `Failed to save installation to workspace: ${error instanceof Error ? error.message : String(error)}`);
+
+            return res.redirect(buildGarageRedirectUrl(redirectPath, {
+              error: 'Failed to save installation. Please try again.',
+            }));
+          }
+        } else {
+          log('info', `Installation ${installId} already exists in workspace ${workspaceId}, skipping`);
         }
-
-        /**
-         * Reload project to get updated taskManager config
-         */
-        const updatedProject = await factories.projectsFactory.findById(projectId);
-
-        if (!updatedProject) {
-          log('error', projectId, 'Project not found after update');
-
-          return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
-            error: `Project not found: ${projectId}`,
-          }));
-        }
-
-        /**
-         * Use updated project for OAuth processing
-         */
-        Object.assign(project, updatedProject);
-      }
-
-      /**
-       * Verify project has taskManager config (should exist after installation or already exist)
-       */
-      if (!project.taskManager) {
-        log('error', projectId, 'Project does not have taskManager config after installation');
-
-        return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
-          error: 'GitHub App installation failed. Please try connecting again.',
-        }));
       }
 
       /**
        * Exchange OAuth code for user-to-server token
-       * This method already validates the token by calling getAuthenticated(),
-       * so no additional validation is needed
        */
       let tokenData;
 
       try {
         tokenData = await githubService.exchangeOAuthCodeForToken(code);
-        log('info', projectId, `Successfully exchanged OAuth code for token for user ${sgr(tokenData.user.login, Effect.ForegroundCyan)}`);
+        log('info', `Successfully exchanged OAuth code for user ${sgr(tokenData.user.login, Effect.ForegroundCyan)}`);
       } catch (error) {
-        log('error', projectId, `Failed to exchange OAuth code: ${error instanceof Error ? error.message : String(error)}`);
+        log('error', `Failed to exchange OAuth code: ${error instanceof Error ? error.message : String(error)}`);
 
-        return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
+        return res.redirect(buildGarageRedirectUrl(redirectPath, {
           error: 'Failed to exchange OAuth code for token. Please try again.',
         }));
       }
 
       /**
-       * Update project with delegatedUser token
-       * Token is already validated in exchangeOAuthCodeForToken() via getAuthenticated()
+       * Save OAuth tokens to user.githubAuthorizations[] (NOT to project)
        */
-      const delegatedUser = {
-        hawkUserId: userId,
-        githubUserId: tokenData.user.id,
-        githubLogin: tokenData.user.login,
-        accessToken: tokenData.accessToken,
-        accessTokenExpiresAt: tokenData.expiresAt,
-        refreshToken: tokenData.refreshToken,
-        refreshTokenExpiresAt: tokenData.refreshTokenExpiresAt,
-        tokenCreatedAt: new Date(),
-        tokenLastValidatedAt: new Date(), // Token was validated in exchangeOAuthCodeForToken()
-        status: 'active' as const,
-      };
-
-      /**
-       * Update taskManager config with delegatedUser
-       * Preserve existing config fields
-       */
-      const updatedTaskManager = {
-        ...project.taskManager,
-        config: {
-          ...project.taskManager.config,
-          delegatedUser,
-        },
-        updatedAt: new Date(),
-      };
-
       try {
-        await project.updateProject({
-          taskManager: updatedTaskManager,
-        } as Partial<ProjectDBScheme>);
+        const user = await factories.usersFactory.findById(userId) as UserModel | null;
 
-        log('info', projectId, `Successfully saved delegatedUser token for user ${sgr(tokenData.user.login, Effect.ForegroundCyan)}`);
+        if (!user) {
+          log('error', `User not found: ${userId}`);
+
+          return res.redirect(buildGarageRedirectUrl(redirectPath, {
+            error: 'User not found during OAuth callback.',
+          }));
+        }
+
+        await user.upsertGitHubAuthorization({
+          githubUserId: tokenData.user.id,
+          githubLogin: tokenData.user.login,
+          refreshToken: tokenData.refreshToken,
+          refreshTokenExpiresAt: tokenData.refreshTokenExpiresAt,
+          tokenCreatedAt: new Date(),
+          tokenLastValidatedAt: new Date(),
+          status: 'active',
+        });
+
+        log('info', `Saved GitHub authorization for user ${sgr(tokenData.user.login, Effect.ForegroundCyan)}`);
+
+        /**
+         * Update delegatedUser in workspace installation if we just created one
+         */
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
+        if (installation_id && typeof installation_id === 'string') {
+          // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
+          const installId = parseInt(installation_id, 10);
+
+          await databases.hawk?.collection('workspaces')!.updateOne(
+            {
+              _id: new ObjectId(workspaceId),
+              'integrations.github.installations.installationId': installId,
+            },
+            {
+              $set: {
+                'integrations.github.installations.$.delegatedUser': {
+                  hawkUserId: userId,
+                  githubUserId: tokenData.user.id,
+                  githubLogin: tokenData.user.login,
+                  status: 'active',
+                },
+                'integrations.github.installations.$.updatedAt': new Date(),
+              },
+            }
+          );
+        }
       } catch (error) {
-        log('error', projectId, `Failed to save delegatedUser token: ${error instanceof Error ? error.message : String(error)}`);
+        log('error', `Failed to save GitHub authorization: ${error instanceof Error ? error.message : String(error)}`);
 
-        return res.redirect(buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
+        return res.redirect(buildGarageRedirectUrl(redirectPath, {
           error: 'Failed to save OAuth token. Please try again.',
         }));
       }
@@ -494,11 +571,11 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
       /**
        * Redirect to Garage with success parameter
        */
-      const successRedirectUrl = buildGarageRedirectUrl(`/project/${projectId}/settings/task-manager`, {
+      const successRedirectUrl = buildGarageRedirectUrl(redirectPath, {
         success: 'true',
       });
 
-      log('info', projectId, 'OAuth authorization completed successfully. Redirecting to ' + sgr(successRedirectUrl, Effect.ForegroundGreen));
+      log('info', 'OAuth authorization completed successfully. Redirecting to ' + sgr(successRedirectUrl, Effect.ForegroundGreen));
 
       return res.redirect(successRedirectUrl);
     } catch (error) {
@@ -639,19 +716,37 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
 
         log('info', `Processing installation.deleted for installation_id: ${sgr(installationId, Effect.ForegroundCyan)}`);
 
-        /**
-         * Find all projects with this installationId
-         * Using MongoDB query directly as projectsFactory doesn't have a method for this
-         */
+        const workspacesCollection = databases.hawk?.collection('workspaces');
         const projectsCollection = databases.hawk?.collection('projects');
 
-        if (!projectsCollection) {
-          log('error', 'MongoDB projects collection is not available');
+        if (!projectsCollection || !workspacesCollection) {
+          log('error', 'MongoDB collections are not available');
 
           return res.status(500).json({ error: 'Database connection error' });
         }
 
         try {
+          const installIdNum = parseInt(installationId, 10);
+
+          /**
+           * Remove installation from all workspaces that have it
+           */
+          const workspaceResult = await workspacesCollection.updateMany(
+            {
+              'integrations.github.installations.installationId': installIdNum,
+            },
+            {
+              $pull: {
+                'integrations.github.installations': { installationId: installIdNum },
+              } as any,
+            }
+          );
+
+          log('info', `Removed installation from ${sgr(workspaceResult.modifiedCount.toString(), Effect.ForegroundCyan)} workspace(s)`);
+
+          /**
+           * Remove taskManager configuration from all projects with this installationId
+           */
           const projects = await projectsCollection
             .find({
               'taskManager.config.installationId': installationId,
@@ -660,9 +755,6 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
 
           log('info', `Found ${sgr(projects.length.toString(), Effect.ForegroundCyan)} project(s) with installation_id ${installationId}`);
 
-          /**
-           * Remove taskManager configuration from all projects
-           */
           if (projects.length > 0) {
             const projectIds = projects.map((p) => p._id.toString());
 
@@ -683,7 +775,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
             log('info', `Removed taskManager configuration from ${sgr(projects.length.toString(), Effect.ForegroundCyan)} project(s): ${projectIds.join(', ')}`);
           }
         } catch (error) {
-          log('error', `Failed to remove taskManager configurations: ${error instanceof Error ? error.message : String(error)}`);
+          log('error', `Failed to process installation.deleted: ${error instanceof Error ? error.message : String(error)}`);
 
           return res.status(500).json({ error: 'Failed to process installation.deleted event' });
         }
@@ -705,42 +797,58 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
   });
 
   /**
-   * GET /integration/github/repositories?projectId=<projectId>
-   * Get list of repositories accessible to GitHub App installation
+   * GET /integration/github/repositories?workspaceId=<workspaceId>&installationId=<installationId>
+   * Get list of repositories accessible to GitHub App installation(s) of the workspace.
+   *
+   * If workspace has a single installation, installationId is optional.
+   * If workspace has multiple installations, installationId is required.
    */
   router.get('/repositories', async (req, res, next) => {
     try {
-      const { projectId } = req.query;
+      const { workspaceId, installationId: installationIdParam } = req.query;
 
       /**
-       * Validate project access and admin permissions
+       * Validate workspace access and admin permissions
        */
-      const access = await validateProjectAdminAccess(req, res, projectId as string | undefined, 'access repository list');
+      const access = await validateWorkspaceAdminAccess(req, res, workspaceId as string | undefined, 'access repository list');
 
       if (!access) {
         return;
       }
 
-      const { project } = access;
+      const { workspace } = access;
+      const installations = workspace.getGitHubInstallations();
 
-      /**
-       * Check if taskManager is configured
-       */
-      const taskManager = project.taskManager;
-
-      if (!taskManager) {
-        res.status(400).json({ error: 'Task Manager is not configured for this project' });
+      if (installations.length === 0) {
+        res.status(400).json({ error: 'No GitHub installations found for this workspace' });
 
         return;
       }
 
       /**
-       * Extract installationId from project configuration
+       * Determine which installation to use
        */
-      const installationId = taskManager.config.installationId;
+      let installationId: string;
 
-      if (!installationId) {
-        res.status(400).json({ error: 'GitHub installation ID is not configured for this project' });
+      if (installationIdParam && typeof installationIdParam === 'string') {
+        const found = installations.find((i) => i.installationId.toString() === installationIdParam);
+
+        if (!found) {
+          res.status(404).json({ error: `Installation ${installationIdParam} not found in this workspace` });
+
+          return;
+        }
+        installationId = installationIdParam;
+      } else if (installations.length === 1) {
+        installationId = installations[0].installationId.toString();
+      } else {
+        res.status(400).json({
+          error: 'Multiple installations found. Please specify installationId.',
+          installations: installations.map((i) => ({
+            installationId: i.installationId,
+            account: i.account,
+          })),
+        });
 
         return;
       }
@@ -751,19 +859,16 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
       try {
         const repositories = await githubService.getRepositoriesForInstallation(installationId);
 
-        /**
-         * Log repository details for debugging
-         */
         const repoOwners = [ ...new Set(repositories.map((r) => r.fullName.split('/')[0])) ];
 
-        log('info', projectId, `Retrieved ${repositories.length} repository(ies) for installation ${installationId}`);
-        log('info', projectId, `Repository owners: ${repoOwners.join(', ')}`);
+        log('info', `Retrieved ${repositories.length} repository(ies) for installation ${installationId}`);
+        log('info', `Repository owners: ${repoOwners.join(', ')}`);
 
         res.json({
           repositories,
         });
       } catch (error) {
-        log('error', projectId, `Failed to get repositories: ${error instanceof Error ? error.message : String(error)}`);
+        log('error', `Failed to get repositories: ${error instanceof Error ? error.message : String(error)}`);
 
         res.status(500).json({
           error: 'Failed to retrieve repositories from GitHub. Please try again.',
@@ -777,12 +882,16 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
 
   /**
    * PUT /integration/github/repository?projectId=<projectId>
-   * Update selected repository for GitHub App installation
+   * Bind a repository to a project.
+   *
+   * Body: { installationId, repoId, repoFullName, repoLanguage? }
+   * Verifies that the installation belongs to the project's workspace.
+   * Creates or updates taskManager config in the project.
    */
   router.put('/repository', async (req, res, next) => {
     try {
       const { projectId } = req.query;
-      const { repoId, repoFullName } = req.body;
+      const { installationId, repoId, repoFullName, repoLanguage } = req.body;
 
       /**
        * Validate project access and admin permissions
@@ -793,12 +902,18 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
         return;
       }
 
-      const { project } = access;
+      const { project, workspace } = access;
       const validatedProjectId = project._id.toString();
 
       /**
        * Validate request body
        */
+      if (!installationId) {
+        res.status(400).json({ error: 'installationId is required' });
+
+        return;
+      }
+
       if (!repoId || typeof repoId !== 'string') {
         res.status(400).json({ error: 'repoId is required and must be a string' });
 
@@ -812,35 +927,47 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
       }
 
       /**
-       * Check if taskManager is configured
+       * Verify that the installation belongs to this workspace
        */
-      const taskManager = project.taskManager;
+      const installIdNum = typeof installationId === 'number'
+        ? installationId
+        : parseInt(String(installationId), 10);
 
-      if (!taskManager) {
-        res.status(400).json({ error: 'Task Manager is not configured for this project' });
+      const installation = workspace.findGitHubInstallation(installIdNum);
+
+      if (!installation) {
+        res.status(400).json({ error: `Installation ${installationId} does not belong to this workspace` });
 
         return;
       }
 
       /**
-       * Update taskManager config with selected repository
+       * Create or update taskManager config with repository binding.
+       * installationId is stored as a copy from workspace for worker optimization.
        */
-      const updatedTaskManager = {
-        ...taskManager,
+      const now = new Date();
+      const taskManagerConfig = {
+        type: 'github' as const,
+        autoTaskEnabled: project.taskManager?.autoTaskEnabled ?? false,
+        taskThresholdTotalCount: project.taskManager?.taskThresholdTotalCount ?? DEFAULT_TASK_THRESHOLD_TOTAL_COUNT,
+        assignAgent: project.taskManager?.assignAgent ?? false,
+        usage: project.taskManager?.usage,
+        connectedAt: project.taskManager?.connectedAt ?? now,
+        updatedAt: now,
         config: {
-          ...taskManager.config,
+          installationId: String(installationId),
           repoId,
           repoFullName,
+          ...(repoLanguage ? { repoLanguage } : {}),
         },
-        updatedAt: new Date(),
       };
 
       try {
         await project.updateProject({
-          taskManager: updatedTaskManager,
-        });
+          taskManager: taskManagerConfig,
+        } as Partial<ProjectDBScheme>);
 
-        log('info', validatedProjectId, `Updated repository selection: ${repoFullName} (${repoId})`);
+        log('info', validatedProjectId, `Bound repository ${repoFullName} (installation: ${installationId})`);
 
         res.json({
           success: true,
