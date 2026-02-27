@@ -270,6 +270,11 @@ type ComposePaymentResponse {
   Next payment date (recurrent start)
   """
   nextPaymentDate: DateTime!
+
+  """
+  CloudPayments public id (merchant identifier for widget)
+  """
+  cloudPaymentsPublicId: String!
 }
 
 
