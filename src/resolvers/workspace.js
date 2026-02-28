@@ -436,7 +436,7 @@ module.exports = {
 
       const defaultPlan = await factories.plansFactory.getDefaultPlan();
 
-      if (workspaceModel.tariffPlanId === defaultPlan.id) {
+      if (workspaceModel.tariffPlanId.toString() === defaultPlan._id.toString()) {
         throw new UserInputError('You already use default plan');
       }
 
