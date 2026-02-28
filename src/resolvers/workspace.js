@@ -436,6 +436,8 @@ module.exports = {
 
       const defaultPlan = await factories.plansFactory.getDefaultPlan();
 
+
+      // Prevent re-applying the free plan if workspace is already on it.
       if (workspaceModel.tariffPlanId.toString() === defaultPlan._id.toString()) {
         throw new UserInputError('You already use default plan');
       }
