@@ -505,6 +505,21 @@ extend type Mutation {
   ): Boolean!
 
   """
+  Remove event and all related data (repetitions, daily events)
+  """
+  removeEvent(
+    """
+    ID of project event is related to
+    """
+    projectId: ID!
+
+    """
+    ID of the event to remove
+    """
+    eventId: ID!
+  ): Boolean! @requireUserInWorkspace
+
+  """
   Namespace that contains only mutations related to the events
   """
   events: EventsMutations!
