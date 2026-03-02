@@ -272,7 +272,7 @@ type ComposePaymentResponse {
   nextPaymentDate: DateTime!
 
   """
-  CloudPayments public id (merchant identifier for widget)
+  CloudPayments public id (merchant identifier for payment widget)
   """
   cloudPaymentsPublicId: String!
 }
