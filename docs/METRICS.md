@@ -135,6 +135,15 @@ Labels:
 
 **Purpose**: Track transient or persistent database errors.
 
+#### hawk_dual_write_failures_total (Counter)
+
+Counter of dual-write failures to unified events/repetitions collections.
+
+Labels:
+- `type` - `events` | `repetitions`
+
+**Purpose**: Track failures when writing to unified collections (when `USE_UNIFIED_EVENTS_COLLECTIONS=true`). Used for monitoring dual-write reliability during migration.
+
 ## Testing
 
 ### Manual Testing

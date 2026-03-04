@@ -2,6 +2,7 @@ import client from 'prom-client';
 import express from 'express';
 import { gqlOperationDuration, gqlOperationErrors, gqlResolverDuration } from './graphql';
 import { mongoCommandDuration, mongoCommandErrors } from './mongodb';
+import { dualWriteFailuresTotal } from './dualWrite';
 
 /**
  * Create a Registry to register the metrics
@@ -48,6 +49,11 @@ register.registerMetric(gqlResolverDuration);
  */
 register.registerMetric(mongoCommandDuration);
 register.registerMetric(mongoCommandErrors);
+
+/**
+ * Register dual-write metrics
+ */
+register.registerMetric(dualWriteFailuresTotal);
 
 /**
  * Express middleware to track HTTP metrics

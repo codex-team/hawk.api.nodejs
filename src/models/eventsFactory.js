@@ -6,6 +6,11 @@ import ChartDataService from '../services/chartDataService';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
+const {
+  visitEventUnified,
+  toggleEventMarkUnified,
+  updateAssigneeUnified,
+} = require('../events/unified/dualWrite');
 const Event = require('../models/event');
 const { ObjectId } = require('mongodb');
 const { composeEventPayloadByRepetition } = require('../utils/merge');
@@ -836,6 +841,8 @@ class EventsFactory extends Factory {
       throw new Error(`Event not found for eventId: ${eventId}`);
     }
 
+    visitEventUnified(this.projectId.toString(), eventId, userId).catch(() => {});
+
     return result;
   }
 
@@ -861,8 +868,9 @@ class EventsFactory extends Factory {
     const markKey = `marks.${mark}`;
 
     let update;
+    const isUnset = !!(event.marks && event.marks[mark]);
 
-    if (event.marks && event.marks[mark]) {
+    if (isUnset) {
       update = {
         $unset: { [markKey]: '' },
       };
@@ -872,7 +880,11 @@ class EventsFactory extends Factory {
       };
     }
 
-    return collection.updateOne(query, update);
+    const result = await collection.updateOne(query, update);
+
+    toggleEventMarkUnified(this.projectId.toString(), eventId, mark, isUnset).catch(() => {});
+
+    return result;
   }
 
   /**
@@ -919,6 +931,8 @@ class EventsFactory extends Factory {
     if (result.updatedCount === 0) {
       throw new Error(`Event not found for eventId: ${eventId}`);
     }
+
+    updateAssigneeUnified(this.projectId.toString(), eventId, assignee).catch(() => {});
 
     return result;
   }

@@ -101,5 +101,11 @@ declare namespace NodeJS {
      * @example "my-github-app"
      */
     GITHUB_APP_SLUG?: string;
+
+    /**
+     * If true, dual-write to unified events/repetitions collections (events, repetitions with projectId)
+     * @default 'false'
+     */
+    USE_UNIFIED_EVENTS_COLLECTIONS?: string;
   }
 }
