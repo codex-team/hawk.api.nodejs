@@ -517,7 +517,7 @@ extend type Mutation {
     ID of the event to remove
     """
     eventId: ID!
-  ): Boolean! @requireUserInWorkspace
+  ): Boolean! @requireAdmin
 
   """
   Namespace that contains only mutations related to the events
