@@ -1,8 +1,33 @@
 /**
+ * State data for GitHub App installation flow
+ */
+export interface InstallStateData {
+  /**
+   * Workspace ID where the installation will be saved
+   */
+  workspaceId: string;
+
+  /**
+   * Project ID — used for redirect after OAuth callback
+   */
+  projectId: string;
+
+  /**
+   * User ID who initiated the flow
+   */
+  userId: string;
+
+  /**
+   * Timestamp when state was created
+   */
+  timestamp: number;
+}
+
+/**
  * Interface for GitHub App installation state store implementations
  *
  * Defines contract for storing temporary GitHub App installation state:
- * - Installation state: maps state ID to projectId, userId, and timestamp
+ * - Installation state: maps state ID to workspaceId, projectId, userId, and timestamp
  * Used for CSRF protection during GitHub App installation flow
  */
 export interface InstallStateStoreInterface {
@@ -18,9 +43,9 @@ export interface InstallStateStoreInterface {
    * Save installation state data
    *
    * @param stateId - unique state identifier (usually UUID)
-   * @param data - installation state data (projectId, userId, timestamp)
+   * @param data - installation state data
    */
-  saveState(stateId: string, data: { projectId: string; userId: string; timestamp: number }): Promise<void>;
+  saveState(stateId: string, data: InstallStateData): Promise<void>;
 
   /**
    * Get and consume installation state data
@@ -28,7 +53,7 @@ export interface InstallStateStoreInterface {
    * @param stateId - state identifier
    * @returns installation state data or null if not found/expired
    */
-  getState(stateId: string): Promise<{ projectId: string; userId: string; timestamp: number } | null>;
+  getState(stateId: string): Promise<InstallStateData | null>;
 
   /**
    * Stop cleanup timer (for testing)

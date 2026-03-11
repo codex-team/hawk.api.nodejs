@@ -9,7 +9,6 @@ const getEventsFactory = require('./helpers/eventsFactory').default;
 const ProjectToWorkspace = require('../models/projectToWorkspace');
 const { dateFromObjectId } = require('../utils/dates');
 const ProjectModel = require('../models/project').default;
-const { GitHubService } = require('../integrations/github/service');
 
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
@@ -416,19 +415,8 @@ module.exports = {
 
       try {
         /**
-         * If Task Manager is configured with GitHub and has installationId,
-         * try to delete GitHub App installation as part of disconnect
-         */
-        const taskManager = project.taskManager;
-
-        if (taskManager && taskManager.type === 'github' && taskManager.config && taskManager.config.installationId) {
-          const githubService = new GitHubService();
-
-          await githubService.deleteInstallation(taskManager.config.installationId);
-        }
-
-        /**
-         * Remove taskManager field from project
+         * Remove taskManager field from project.
+         * The workspace-level installation is preserved — other projects may use it.
          */
         return await project.updateProject({
           taskManager: null,
