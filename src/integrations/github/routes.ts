@@ -440,6 +440,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
         // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         const installId = parseInt(installation_id, 10);
 
+        // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
         log('info', `GitHub App installation detected (installation_id: ${installation_id}), saving to workspace`);
 
         /**
