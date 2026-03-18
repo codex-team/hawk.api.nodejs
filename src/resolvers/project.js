@@ -583,7 +583,7 @@ module.exports = {
      *
      * @return {Promise<RecentEventSchema[]>}
      */
-    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search, release }, context) {
+    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search, release, assignee }, context) {
       if (search) {
         if (search.length > MAX_SEARCH_QUERY_LENGTH) {
           search = search.slice(0, MAX_SEARCH_QUERY_LENGTH);
@@ -592,7 +592,15 @@ module.exports = {
 
       const factory = getEventsFactory(context, project._id);
 
-      const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search, release);
+      const dailyEventsPortion = await factory.findDailyEventsPortion(
+        limit,
+        nextCursor,
+        sort,
+        filters,
+        search,
+        release,
+        assignee
+      );
 
       return dailyEventsPortion;
     },
