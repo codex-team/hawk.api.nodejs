@@ -216,7 +216,8 @@ class EventsFactory extends Factory {
     sort = 'BY_DATE',
     filters = {},
     search = '',
-    release
+    release,
+    assignee
   ) {
     if (typeof search !== 'string') {
       throw new Error('Search parameter must be a string');
@@ -334,10 +335,12 @@ class EventsFactory extends Factory {
       }
       : {};
 
+    const markFilters = ['resolved', 'starred', 'ignored'];
     const matchFilter = filters
       ? Object.fromEntries(
         Object
           .entries(filters)
+          .filter(([mark]) => markFilters.includes(mark))
           .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
       )
       : {};
@@ -359,6 +362,10 @@ class EventsFactory extends Factory {
           ],
         },
       }
+      : {};
+
+    const assigneeFilter = assignee
+      ? { 'event.assignee': String(assignee) }
       : {};
 
     pipeline.push(
@@ -398,6 +405,7 @@ class EventsFactory extends Factory {
           ...matchFilter,
           ...searchFilter,
           ...releaseFilter,
+          ...assigneeFilter,
         },
       },
       { $limit: limit + 1 },
