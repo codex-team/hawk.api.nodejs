@@ -340,7 +340,7 @@ class EventsFactory extends Factory {
       ? Object.fromEntries(
         Object
           .entries(filters)
-          .filter(([mark]) => markFilters.includes(mark))
+          .filter(([ mark ]) => markFilters.includes(mark))
           .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
       )
       : {};
@@ -364,9 +364,43 @@ class EventsFactory extends Factory {
       }
       : {};
 
-    const assigneeFilter = assignee
-      ? { 'event.assignee': String(assignee) }
-      : {};
+    /**
+     * Sentinel values from garage assignee filter (not user ids)
+     */
+    const FILTER_UNASSIGNED = '__filter_unassigned__';
+    const FILTER_ANY_ASSIGNEE = '__filter_any_assignee__';
+
+    const assigneeFilter = (() => {
+      if (!assignee) {
+        return {};
+      }
+      if (assignee === FILTER_UNASSIGNED) {
+        /**
+         * Use $and so this does not collide with searchFilter’s top-level $or in $match spread
+         */
+        return {
+          $and: [
+            {
+              $or: [
+                { 'event.assignee': { $exists: false } },
+                { 'event.assignee': null },
+                { 'event.assignee': '' },
+              ],
+            },
+          ],
+        };
+      }
+      if (assignee === FILTER_ANY_ASSIGNEE) {
+        return {
+          'event.assignee': {
+            $exists: true,
+            $nin: [null, ''],
+          },
+        };
+      }
+
+      return { 'event.assignee': String(assignee) };
+    })();
 
     pipeline.push(
       /**

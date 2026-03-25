@@ -55,6 +55,38 @@ describe('Project resolver dailyEventsPortion', () => {
     );
   });
 
+  it('should pass assignee sentinel for unassigned filter to factory', async () => {
+    const findDailyEventsPortion = jest.fn().mockResolvedValue({
+      nextCursor: null,
+      dailyEvents: [],
+    });
+    (getEventsFactory as unknown as jest.Mock).mockReturnValue({
+      findDailyEventsPortion,
+    });
+
+    const project = { _id: 'project-1' };
+    const args = {
+      limit: 50,
+      nextCursor: null,
+      sort: 'BY_DATE',
+      filters: {},
+      search: '',
+      assignee: '__filter_unassigned__',
+    };
+
+    await projectResolver.Project.dailyEventsPortion(project, args, {});
+
+    expect(findDailyEventsPortion).toHaveBeenCalledWith(
+      50,
+      null,
+      'BY_DATE',
+      {},
+      '',
+      undefined,
+      '__filter_unassigned__'
+    );
+  });
+
   it('should keep old call shape when assignee is not provided', async () => {
     const findDailyEventsPortion = jest.fn().mockResolvedValue({
       nextCursor: null,
