@@ -87,7 +87,7 @@ describe('Project resolver dailyEventsPortion', () => {
     );
   });
 
-  it('should keep old call shape when assignee is not provided', async () => {
+  it('should call factory with undefined assignee when assignee argument is omitted', async () => {
     const findDailyEventsPortion = jest.fn().mockResolvedValue({
       nextCursor: null,
       dailyEvents: [],

@@ -203,10 +203,11 @@ class EventsFactory extends Factory {
    *
    * @param {Number} limit - events count limitations
    * @param {DailyEventsCursor} paginationCursor - object that contains boundary values of the last event in the previous portion
-   * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
-   * @param {EventsFilters} filters - marks by which events should be filtered
+   * @param {'BY_DATE' | 'BY_COUNT' | 'BY_AFFECTED_USERS'} sort - events sort order
+   * @param {EventsFilters} filters - marks by which events should be filtered (resolved, starred, ignored only; assignee is separate)
    * @param {String} search - Search query
-   * @param {String} release - release name
+   * @param {String|undefined} release - release name
+   * @param {String|undefined} assignee - user id or __filter_unassigned__ / __filter_any_assignee__
    *
    * @return {DaylyEventsPortionSchema}
    */

@@ -571,17 +571,19 @@ module.exports = {
     },
 
     /**
-     * Returns recent Events grouped by day
+     * Returns a paginated portion of daily-grouped events
      *
-     * @param {ProjectDBScheme} project - result of parent resolver
-     * @param {Number} limit - limit for events count
-     * @param {DailyEventsCursor} cursor - object with boundary values of the first event in the next portion
-     * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
-     * @param {EventsFilters} filters - marks by which events should be filtered
-     * @param {String} release - release name
-     * @param {String} search - search query
-     *
-     * @return {Promise<RecentEventSchema[]>}
+     * @param {ProjectDBScheme} project - parent resolver result
+     * @param {object} args - GraphQL arguments
+     * @param {number} args.limit - max rows in portion
+     * @param {object|null} args.nextCursor - pagination cursor
+     * @param {string} args.sort - BY_DATE | BY_COUNT | BY_AFFECTED_USERS (mapped in factory)
+     * @param {object} args.filters - mark filters only: resolved, starred, ignored (assignee uses args.assignee)
+     * @param {string} args.search - search query
+     * @param {string|undefined} args.release - optional release label filter
+     * @param {string|undefined} args.assignee - user id or __filter_unassigned__ / __filter_any_assignee__
+     * @param {object} context - GraphQL context
+     * @returns {Promise<object>} dailyEventsPortion payload from factory
      */
     async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search, release, assignee }, context) {
       if (search) {
