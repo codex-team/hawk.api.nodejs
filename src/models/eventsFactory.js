@@ -203,10 +203,11 @@ class EventsFactory extends Factory {
    *
    * @param {Number} limit - events count limitations
    * @param {DailyEventsCursor} paginationCursor - object that contains boundary values of the last event in the previous portion
-   * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
-   * @param {EventsFilters} filters - marks by which events should be filtered
+   * @param {'BY_DATE' | 'BY_COUNT' | 'BY_AFFECTED_USERS'} sort - events sort order
+   * @param {EventsFilters} filters - marks by which events should be filtered (resolved, starred, ignored only; assignee is separate)
    * @param {String} search - Search query
-   * @param {String} release - release name
+   * @param {String|undefined} release - release name
+   * @param {String|undefined} assignee - user id or __filter_unassigned__ / __filter_any_assignee__
    *
    * @return {DaylyEventsPortionSchema}
    */
@@ -216,7 +217,8 @@ class EventsFactory extends Factory {
     sort = 'BY_DATE',
     filters = {},
     search = '',
-    release
+    release,
+    assignee
   ) {
     if (typeof search !== 'string') {
       throw new Error('Search parameter must be a string');
@@ -334,10 +336,12 @@ class EventsFactory extends Factory {
       }
       : {};
 
+    const markFilters = ['resolved', 'starred', 'ignored'];
     const matchFilter = filters
       ? Object.fromEntries(
         Object
           .entries(filters)
+          .filter(([ mark ]) => markFilters.includes(mark))
           .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
       )
       : {};
@@ -360,6 +364,44 @@ class EventsFactory extends Factory {
         },
       }
       : {};
+
+    /**
+     * Sentinel values from garage assignee filter (not user ids)
+     */
+    const FILTER_UNASSIGNED = '__filter_unassigned__';
+    const FILTER_ANY_ASSIGNEE = '__filter_any_assignee__';
+
+    const assigneeFilter = (() => {
+      if (!assignee) {
+        return {};
+      }
+      if (assignee === FILTER_UNASSIGNED) {
+        /**
+         * Use $and so this does not collide with searchFilter’s top-level $or in $match spread
+         */
+        return {
+          $and: [
+            {
+              $or: [
+                { 'event.assignee': { $exists: false } },
+                { 'event.assignee': null },
+                { 'event.assignee': '' },
+              ],
+            },
+          ],
+        };
+      }
+      if (assignee === FILTER_ANY_ASSIGNEE) {
+        return {
+          'event.assignee': {
+            $exists: true,
+            $nin: [null, ''],
+          },
+        };
+      }
+
+      return { 'event.assignee': String(assignee) };
+    })();
 
     pipeline.push(
       /**
@@ -398,6 +440,7 @@ class EventsFactory extends Factory {
           ...matchFilter,
           ...searchFilter,
           ...releaseFilter,
+          ...assigneeFilter,
         },
       },
       { $limit: limit + 1 },
