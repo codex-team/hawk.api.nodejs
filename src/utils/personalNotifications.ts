@@ -52,4 +52,14 @@ export default async function sendNotification(user: UserDBScheme, task: SenderW
       },
     });
   }
+
+  if (user.notifications.channels.webhook?.isEnabled) {
+    await enqueue(WorkerPaths.Webhook, {
+      type: task.type,
+      payload: {
+        ...task.payload,
+        endpoint: user.notifications.channels.webhook.endpoint,
+      },
+    });
+  }
 }

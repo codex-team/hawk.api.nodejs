@@ -5,6 +5,7 @@ import { ProjectNotificationsRuleDBScheme } from '@hawk.so/types';
 import { ResolverContextWithUser } from '../types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
+import { validateWebhookEndpoint } from '../utils/webhookEndpointValidator';
 
 /**
  * Mutation payload for creating notifications rule from GraphQL Schema
@@ -101,7 +102,7 @@ function validateNotificationsRuleTresholdAndPeriod(
 /**
  * Return true if all passed channels are filled with correct endpoints
  */
-function validateNotificationsRuleChannels(channels: NotificationsChannelsDBScheme): string | null {
+async function validateNotificationsRuleChannels(channels: NotificationsChannelsDBScheme): Promise<string | null> {
   if (channels.email!.isEnabled) {
     if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(channels.email!.endpoint)) {
       return 'Invalid email endpoint passed';
@@ -123,6 +124,14 @@ function validateNotificationsRuleChannels(channels: NotificationsChannelsDBSche
   if (channels.telegram!.isEnabled) {
     if (!/^https:\/\/notify\.bot\.codex\.so\/u\/[A-Za-z0-9]+$/.test(channels.telegram!.endpoint)) {
       return 'Invalid telegram endpoint passed';
+    }
+  }
+
+  if (channels.webhook?.isEnabled) {
+    const webhookError = await validateWebhookEndpoint(channels.webhook.endpoint);
+
+    if (webhookError !== null) {
+      return webhookError;
     }
   }
 
@@ -152,7 +161,7 @@ export default {
         throw new ApolloError('No project with such id');
       }
 
-      const channelsValidationResult = validateNotificationsRuleChannels(input.channels);
+      const channelsValidationResult = await validateNotificationsRuleChannels(input.channels);
 
       if (channelsValidationResult !== null) {
         throw new UserInputError(channelsValidationResult);
@@ -190,7 +199,7 @@ export default {
         throw new ApolloError('No project with such id');
       }
 
-      const channelsValidationResult = validateNotificationsRuleChannels(input.channels);
+      const channelsValidationResult = await validateNotificationsRuleChannels(input.channels);
 
       if (channelsValidationResult !== null) {
         throw new UserInputError(channelsValidationResult);

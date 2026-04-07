@@ -86,6 +86,7 @@ export default {
       currency: string;
       checksum: string;
       nextPaymentDate: Date;
+      cloudPaymentsPublicId: string;
     }> {
       const { workspaceId, tariffPlanId, shouldSaveCard } = input;
 
@@ -178,6 +179,7 @@ debug: ${Boolean(workspace.isDebug)}`
         currency: 'RUB',
         checksum,
         nextPaymentDate,
+        cloudPaymentsPublicId: process.env.CLOUDPAYMENTS_PUBLIC_ID || '',
       };
     },
   },

@@ -28,6 +28,7 @@ export enum Queues {
   Telegram = 'notify/telegram',
   Slack = 'notify/slack',
   Loop = 'notify/loop',
+  Webhook = 'sender/webhook',
   Limiter = 'cron-tasks/limiter',
 }
 
@@ -91,6 +92,14 @@ export const WorkerPaths: Record<string, WorkerPath> = {
   },
 
   /**
+   * Path to webhook worker
+   */
+  Webhook: {
+    exchange: Exchanges.Empty,
+    queue: Queues.Webhook,
+  },
+
+  /**
    * Path to limiter worker
    */
   Limiter: {
@@ -133,8 +142,28 @@ export async function setupConnections(): Promise<void> {
 export async function publish(exchange: string, route: string, message: string, options?: Options.Publish): Promise<void> {
   try {
     await channel.publish(exchange, route, Buffer.from(message), options);
+    HawkCatcher.breadcrumbs.add({
+      type: 'request',
+      category: 'RabbitMQ Operation',
+      message: `AMQP publish ${exchange || '(default)'}/${route}`,
+      level: 'debug',
+      data: {
+        exchange: { value: exchange },
+        route: { value: route },
+      },
+    });
     debug(`Message sent: ${message}`);
   } catch (err) {
+    HawkCatcher.breadcrumbs.add({
+      type: 'error',
+      category: 'RabbitMQ Operation',
+      message: `AMQP publish FAILED ${exchange || '(default)'}/${route}: ${(err as Error).message}`,
+      level: 'error',
+      data: {
+        exchange: { value: exchange },
+        route: { value: route },
+      },
+    });
     HawkCatcher.send(err as Error);
     console.log('Message was rejected:', (err as Error).stack);
   }

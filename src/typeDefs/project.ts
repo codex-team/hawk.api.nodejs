@@ -347,6 +347,11 @@ type Project {
     Release label to filter events by payload.release
     """
     release: String
+
+    """
+    Filter by assignee: workspace user id, or sentinels __filter_unassigned__ (no assignee) / __filter_any_assignee__ (has assignee)
+    """
+    assignee: ID
   ): DailyEventsPortion
 
   """

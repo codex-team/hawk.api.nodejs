@@ -480,7 +480,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       expect(response.status).toBe(302);
       expect(response.body).toContain('http://localhost:8080/');
-      expect(response.body).toContain('error=Missing+or+invalid+OAuth+code');
+      expect(response.body).toContain('apiError=Missing+or+invalid+OAuth+code');
     });
 
     it('should redirect with error when state is missing', async () => {
@@ -501,7 +501,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       expect(response.status).toBe(302);
       expect(response.body).toContain('http://localhost:8080/');
-      expect(response.body).toContain('error=Missing+or+invalid+state');
+      expect(response.body).toContain('apiError=Missing+or+invalid+state');
     });
 
     it('should redirect with error when state is invalid or expired', async () => {
@@ -525,7 +525,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       expect(response.status).toBe(302);
       expect(response.body).toContain('http://localhost:8080/');
-      expect(response.body).toContain('error=Invalid+or+expired+state');
+      expect(response.body).toContain('apiError=Invalid+or+expired+state');
       expect(mockGetState).toHaveBeenCalledWith(state);
     });
 

@@ -50,6 +50,11 @@ export default gql`
     loop: NotificationsChannelSettings
 
     """
+    Webhook channel
+    """
+    webhook: NotificationsChannelSettings
+
+    """
     Webpush
     """
     webPush: NotificationsChannelSettings
