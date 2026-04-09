@@ -20,6 +20,54 @@ const GROUPING_TIMESTAMP_INDEX_NAME = 'groupingTimestamp';
 const GROUPING_TIMESTAMP_AND_LAST_REPETITION_TIME_AND_ID_INDEX_NAME = 'groupingTimestampAndLastRepetitionTimeAndId';
 const GROUPING_TIMESTAMP_AND_GROUP_HASH_INDEX_NAME = 'groupingTimestampAndGroupHash';
 const MAX_SEARCH_QUERY_LENGTH = 50;
+const FALLBACK_EVENT_TITLE = 'Unknown';
+
+/**
+ * Ensures each daily event has non-empty payload title
+ * and writes warning log with identifiers when fallback is used.
+ *
+ * @param {object} dailyEventsPortion - portion returned by events factory
+ * @param {string|ObjectId} projectId - project id for logs
+ * @returns {object}
+ */
+function normalizeDailyEventsPayloadTitle(dailyEventsPortion, projectId) {
+  if (!dailyEventsPortion || !Array.isArray(dailyEventsPortion.dailyEvents)) {
+    return dailyEventsPortion;
+  }
+
+  dailyEventsPortion.dailyEvents = dailyEventsPortion.dailyEvents.map((dailyEvent) => {
+    const event = dailyEvent && dailyEvent.event ? dailyEvent.event : null;
+    const payload = event && event.payload ? event.payload : null;
+    const hasValidTitle = payload &&
+      typeof payload.title === 'string' &&
+      payload.title.trim().length > 0;
+
+    if (hasValidTitle) {
+      return dailyEvent;
+    }
+
+    console.warn('🔴🔴🔴 [ProjectResolver.dailyEventsPortion] Missing event payload title. Fallback title applied.', {
+      projectId: projectId ? projectId.toString() : null,
+      dailyEventId: dailyEvent && dailyEvent.id ? dailyEvent.id.toString() : null,
+      dailyEventGroupHash: dailyEvent && dailyEvent.groupHash ? dailyEvent.groupHash.toString() : null,
+      eventOriginalId: event && event.originalEventId ? event.originalEventId.toString() : null,
+      eventId: event && event._id ? event._id.toString() : null,
+    });
+
+    return {
+      ...dailyEvent,
+      event: {
+        ...(event || {}),
+        payload: {
+          ...(payload || {}),
+          title: FALLBACK_EVENT_TITLE,
+        },
+      },
+    };
+  });
+
+  return dailyEventsPortion;
+}
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -603,6 +651,8 @@ module.exports = {
         release,
         assignee
       );
+
+      normalizeDailyEventsPayloadTitle(dailyEventsPortion, project._id);
 
       return dailyEventsPortion;
     },
