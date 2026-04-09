@@ -118,4 +118,96 @@ describe('Project resolver dailyEventsPortion', () => {
       undefined
     );
   });
+
+  it('should apply fallback title when payload title is missing and log warning', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const findDailyEventsPortion = jest.fn().mockResolvedValue({
+      nextCursor: null,
+      dailyEvents: [
+        {
+          id: 'daily-1',
+          groupHash: 'group-1',
+          event: {
+            _id: 'repetition-1',
+            originalEventId: 'event-1',
+            payload: {
+              title: null,
+            },
+          },
+        },
+      ],
+    });
+    (getEventsFactory as unknown as jest.Mock).mockReturnValue({
+      findDailyEventsPortion,
+    });
+
+    const project = { _id: 'project-1' };
+    const args = {
+      limit: 10,
+      nextCursor: null,
+      sort: 'BY_DATE',
+      filters: {},
+      search: '',
+    };
+
+    const result = await projectResolver.Project.dailyEventsPortion(project, args, {}) as {
+      dailyEvents: Array<{ event: { payload: { title: string } } }>;
+    };
+
+    expect(result.dailyEvents[0].event.payload.title).toBe('Unknown');
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[ProjectResolver.dailyEventsPortion] Missing event payload title. Fallback title applied.',
+      expect.objectContaining({
+        projectId: 'project-1',
+        dailyEventId: 'daily-1',
+        dailyEventGroupHash: 'group-1',
+        eventOriginalId: 'event-1',
+        eventId: 'repetition-1',
+      })
+    );
+
+    warnSpy.mockRestore();
+  });
+
+  it('should keep payload title when it is valid', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const findDailyEventsPortion = jest.fn().mockResolvedValue({
+      nextCursor: null,
+      dailyEvents: [
+        {
+          id: 'daily-1',
+          groupHash: 'group-1',
+          event: {
+            _id: 'repetition-1',
+            originalEventId: 'event-1',
+            payload: {
+              title: 'TypeError',
+            },
+          },
+        },
+      ],
+    });
+    (getEventsFactory as unknown as jest.Mock).mockReturnValue({
+      findDailyEventsPortion,
+    });
+
+    const project = { _id: 'project-1' };
+    const args = {
+      limit: 10,
+      nextCursor: null,
+      sort: 'BY_DATE',
+      filters: {},
+      search: '',
+    };
+
+    const result = await projectResolver.Project.dailyEventsPortion(project, args, {}) as {
+      dailyEvents: Array<{ event: { payload: { title: string } } }>;
+    };
+
+    expect(result.dailyEvents[0].event.payload.title).toBe('TypeError');
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
 });
