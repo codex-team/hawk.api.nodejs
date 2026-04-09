@@ -38,9 +38,9 @@ function normalizeDailyEventsPayloadTitle(dailyEventsPortion, projectId) {
   dailyEventsPortion.dailyEvents = dailyEventsPortion.dailyEvents.map((dailyEvent) => {
     const event = dailyEvent && dailyEvent.event ? dailyEvent.event : null;
     const payload = event && event.payload ? event.payload : null;
-    const hasValidTitle = payload
-      && typeof payload.title === 'string'
-      && payload.title.trim().length > 0;
+    const hasValidTitle = payload &&
+      typeof payload.title === 'string' &&
+      payload.title.trim().length > 0;
 
     if (hasValidTitle) {
       return dailyEvent;
@@ -68,7 +68,6 @@ function normalizeDailyEventsPayloadTitle(dailyEventsPortion, projectId) {
 
   return dailyEventsPortion;
 }
-
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
