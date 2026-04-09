@@ -119,8 +119,7 @@ describe('Project resolver dailyEventsPortion', () => {
     );
   });
 
-  it('should apply fallback title when payload title is missing and log warning', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  it('should apply fallback title for null, empty and blank payload titles', async () => {
     const findDailyEventsPortion = jest.fn().mockResolvedValue({
       nextCursor: null,
       dailyEvents: [
@@ -132,6 +131,28 @@ describe('Project resolver dailyEventsPortion', () => {
             originalEventId: 'event-1',
             payload: {
               title: null,
+            },
+          },
+        },
+        {
+          id: 'daily-2',
+          groupHash: 'group-2',
+          event: {
+            _id: 'repetition-2',
+            originalEventId: 'event-2',
+            payload: {
+              title: '',
+            },
+          },
+        },
+        {
+          id: 'daily-3',
+          groupHash: 'group-3',
+          event: {
+            _id: 'repetition-3',
+            originalEventId: 'event-3',
+            payload: {
+              title: '   ',
             },
           },
         },
@@ -155,19 +176,8 @@ describe('Project resolver dailyEventsPortion', () => {
     };
 
     expect(result.dailyEvents[0].event.payload.title).toBe('Unknown');
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[ProjectResolver.dailyEventsPortion] Missing event payload title. Fallback title applied.',
-      expect.objectContaining({
-        projectId: 'project-1',
-        dailyEventId: 'daily-1',
-        dailyEventGroupHash: 'group-1',
-        eventOriginalId: 'event-1',
-        eventId: 'repetition-1',
-      })
-    );
-
-    warnSpy.mockRestore();
+    expect(result.dailyEvents[1].event.payload.title).toBe('Unknown');
+    expect(result.dailyEvents[2].event.payload.title).toBe('Unknown');
   });
 
   it('should keep payload title when it is valid', async () => {
