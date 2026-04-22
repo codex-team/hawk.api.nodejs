@@ -20,7 +20,7 @@ function fireAndForgetAssigneeNotifications({
   assigneeId,
   whoAssignedId,
 }) {
-  void Promise.allSettled(eventIds.map(eventId => sendPersonalNotification(assigneeData, {
+  Promise.allSettled(eventIds.map(eventId => sendPersonalNotification(assigneeData, {
     type: 'assignee',
     payload: {
       assigneeId,

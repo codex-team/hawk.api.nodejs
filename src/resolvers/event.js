@@ -338,7 +338,7 @@ module.exports = {
       };
 
       if (assignee && resultWithInvalid.updatedEventIds.length > 0) {
-        void factories.usersFactory.dataLoaders.userById.load(assignee)
+        factories.usersFactory.dataLoaders.userById.load(assignee)
           .then((assigneeData) => {
             fireAndForgetAssigneeNotifications({
               assigneeData,
