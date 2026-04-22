@@ -1,7 +1,5 @@
 import '../../src/env-test';
 
-import { UserInputError } from 'apollo-server-express';
-
 jest.mock('../../src/resolvers/helpers/eventsFactory', () => ({
   __esModule: true,
   default: jest.fn(),
@@ -29,26 +27,6 @@ describe('Mutation.bulkToggleEventMarks', () => {
     (getEventsFactory as unknown as jest.Mock).mockReturnValue({
       bulkToggleEventMark,
     });
-  });
-
-  it('should throw when mark is not supported', async () => {
-    await expect(
-      eventResolvers.Mutation.bulkToggleEventMarks(
-        {},
-        { projectId: 'p1', eventIds: [ '507f1f77bcf86cd799439012' ], mark: 'some-unknown-mark' },
-        ctx
-      )
-    ).rejects.toThrow(UserInputError);
-
-    await expect(
-      eventResolvers.Mutation.bulkToggleEventMarks(
-        {},
-        { projectId: 'p1', eventIds: [ '507f1f77bcf86cd799439012' ], mark: 'some-unknown-mark' },
-        ctx
-      )
-    ).rejects.toThrow('bulkToggleEventMarks supports only resolved, ignored and starred marks');
-
-    expect(bulkToggleEventMark).not.toHaveBeenCalled();
   });
 
   it('should throw when eventIds is empty', async () => {
