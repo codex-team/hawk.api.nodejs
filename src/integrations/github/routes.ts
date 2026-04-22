@@ -11,6 +11,7 @@ import ProjectModel from '../../models/project';
 import WorkspaceModel from '../../models/workspace';
 import { sgr, Effect } from '../../utils/ansi';
 import { databases } from '../../mongo';
+import { DEMO_WORKSPACE_ID } from '../../constants/demoWorkspace';
 
 /**
  * Default task threshold for automatic task creation
@@ -108,7 +109,7 @@ export function createGitHubRouter(factories: ContextFactories): express.Router 
     /**
      * Check if project is demo project (cannot be modified)
      */
-    if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+    if (project.workspaceId.toString() === DEMO_WORKSPACE_ID) {
       res.status(400).json({ error: 'Unable to update demo project' });
 
       return null;

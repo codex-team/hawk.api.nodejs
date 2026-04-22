@@ -919,6 +919,100 @@ class EventsFactory extends Factory {
   }
 
   /**
+   * Max original event ids per bulkToggleEventMark request
+   */
+  static get BULK_TOGGLE_EVENT_MARK_MAX() {
+    return 100;
+  }
+
+  /**
+   * Bulk mark for resolved / ignored (not the same as per-event toggleEventMark).
+   * - If every found event already has the mark: remove it from all (bulk "undo").
+   * - Otherwise: set the mark on every found event that does not have it yet (never remove
+   *   from a subset when the selection is mixed).
+   * Only 'resolved' and 'ignored' are allowed for bulk.
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string} mark - 'resolved' | 'ignored'
+   * @returns {Promise<{ updatedCount: number, failedEventIds: string[] }>}
+   */
+  async bulkToggleEventMark(eventIds, mark) {
+    if (mark !== 'resolved' && mark !== 'ignored') {
+      throw new Error(`bulkToggleEventMark: mark must be resolved or ignored, got ${mark}`);
+    }
+
+    const max = EventsFactory.BULK_TOGGLE_EVENT_MARK_MAX;
+    const unique = [ ...new Set((eventIds || []).map(id => String(id))) ];
+
+    if (unique.length > max) {
+      throw new Error(`bulkToggleEventMark: at most ${max} event ids allowed`);
+    }
+
+    const failedEventIds = [];
+    const validObjectIds = [];
+
+    for (const id of unique) {
+      if (!ObjectId.isValid(id)) {
+        failedEventIds.push(id);
+      } else {
+        validObjectIds.push(new ObjectId(id));
+      }
+    }
+
+    if (validObjectIds.length === 0) {
+      return { updatedCount: 0, failedEventIds };
+    }
+
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const found = await collection.find({ _id: { $in: validObjectIds } }).toArray();
+    const foundByIdStr = new Map(found.map(doc => [ doc._id.toString(), doc ]));
+
+    for (const oid of validObjectIds) {
+      const idStr = oid.toString();
+
+      if (!foundByIdStr.has(idStr)) {
+        failedEventIds.push(idStr);
+      }
+    }
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    const markKey = `marks.${mark}`;
+    const allHaveMark = found.length > 0 && found.every(doc => doc.marks && doc.marks[mark]);
+    const ops = [];
+
+    for (const doc of found) {
+      const hasMark = doc.marks && doc.marks[mark];
+      let update;
+
+      if (allHaveMark) {
+        update = { $unset: { [markKey]: '' } };
+      } else if (!hasMark) {
+        update = { $set: { [markKey]: nowSec } };
+      } else {
+        continue;
+      }
+
+      ops.push({
+        updateOne: {
+          filter: { _id: doc._id },
+          update,
+        },
+      });
+    }
+
+    if (ops.length === 0) {
+      return { updatedCount: 0, failedEventIds };
+    }
+
+    const bulkResult = await collection.bulkWrite(ops, { ordered: false });
+
+    return {
+      updatedCount: bulkResult.modifiedCount + bulkResult.upsertedCount,
+      failedEventIds,
+    };
+  }
+
+  /**
    * Remove all project events
    *
    * @return {Promise<void>}

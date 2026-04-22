@@ -1,5 +1,6 @@
 import { ReceiveTypes } from '@hawk.so/types';
 import * as telegram from '../utils/telegram';
+import { DEMO_WORKSPACE_ID } from '../constants/demoWorkspace';
 const mongo = require('../mongo');
 const { ObjectId } = require('mongodb');
 const { ApolloError, UserInputError } = require('apollo-server-express');
@@ -253,7 +254,7 @@ module.exports = {
         throw new ApolloError('There is no project with that id');
       }
 
-      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+      if (project.workspaceId.toString() === DEMO_WORKSPACE_ID) {
         throw new ApolloError('Unable to update demo project');
       }
 
@@ -291,7 +292,7 @@ module.exports = {
         throw new ApolloError('There is no project with that id');
       }
 
-      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+      if (project.workspaceId.toString() === DEMO_WORKSPACE_ID) {
         throw new ApolloError('Unable to update demo project');
       }
 
@@ -399,7 +400,7 @@ module.exports = {
         throw new ApolloError('There is no project with that id');
       }
 
-      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+      if (project.workspaceId.toString() === DEMO_WORKSPACE_ID) {
         throw new ApolloError('Unable to remove demo project');
       }
 
@@ -458,7 +459,7 @@ module.exports = {
         throw new ApolloError('There is no project with that id');
       }
 
-      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+      if (project.workspaceId.toString() === DEMO_WORKSPACE_ID) {
         throw new ApolloError('Unable to update demo project');
       }
 
@@ -509,7 +510,7 @@ module.exports = {
         throw new ApolloError('There is no project with that id');
       }
 
-      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+      if (project.workspaceId.toString() === DEMO_WORKSPACE_ID) {
         throw new ApolloError('Unable to update demo project');
       }
 

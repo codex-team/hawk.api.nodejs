@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { ProjectDBScheme, ProjectTaskManagerConfig } from '@hawk.so/types';
 import { ResolverContextWithUser } from '../../src/types/graphql';
 import { ApolloError, UserInputError } from 'apollo-server-express';
+import { DEMO_WORKSPACE_ID } from '../../src/constants/demoWorkspace';
 
 jest.mock('../../src/integrations/github/service', () => require('../__mocks__/github-service'));
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -28,11 +29,6 @@ const projectResolver = projectResolverModule as {
 process.env.JWT_SECRET_ACCESS_TOKEN = 'belarus';
 process.env.JWT_SECRET_REFRESH_TOKEN = 'abacaba';
 process.env.JWT_SECRET_PROJECT_TOKEN = 'qwerty';
-
-/**
- * Demo workspace ID (projects in this workspace cannot be updated)
- */
-const DEMO_WORKSPACE_ID = '6213b6a01e6281087467cc7a';
 
 /**
  * Creates mock project with optional taskManager configuration

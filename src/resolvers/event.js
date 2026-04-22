@@ -1,6 +1,8 @@
 const getEventsFactory = require('./helpers/eventsFactory').default;
 const sendPersonalNotification = require('../utils/personalNotifications').default;
 const { aiService } = require('../services/ai');
+const { DEMO_WORKSPACE_ID } = require('../constants/demoWorkspace');
+const { UserInputError } = require('apollo-server-express');
 
 /**
  * See all types and fields here {@see ../typeDefs/event.graphql}
@@ -48,7 +50,7 @@ module.exports = {
        */
       const project = await factories.projectsFactory.findById(projectId);
 
-      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
+      if (project.workspaceId.toString() === DEMO_WORKSPACE_ID) {
         return [ await factories.usersFactory.findById(user.id) ];
       }
 
@@ -151,6 +153,39 @@ module.exports = {
       const result = await factory.toggleEventMark(eventId, mark);
 
       return !!result.acknowledged;
+    },
+
+    /**
+     * Bulk set resolved/ignored: always set mark on events that lack it, unless all selected
+     * already have the mark — then remove from all.
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} projectId - project id
+     * @param {string[]} eventIds - original event ids
+     * @param {string} mark - EventMark enum value
+     * @param {object} context - gql context
+     * @return {Promise<{ updatedCount: number, failedEventIds: string[] }>}
+     */
+    async bulkToggleEventMarks(_obj, { projectId, eventIds, mark }, context) {
+      if (mark !== 'resolved' && mark !== 'ignored') {
+        throw new UserInputError('bulkToggleEventMarks supports only resolved and ignored marks');
+      }
+
+      if (!eventIds || !eventIds.length) {
+        throw new UserInputError('eventIds must contain at least one id');
+      }
+
+      const factory = getEventsFactory(context, projectId);
+
+      try {
+        return await factory.bulkToggleEventMark(eventIds, mark);
+      } catch (err) {
+        if (err.message && err.message.includes('bulkToggleEventMark: at most')) {
+          throw new UserInputError(err.message);
+        }
+
+        throw err;
+      }
     },
 
     /**
