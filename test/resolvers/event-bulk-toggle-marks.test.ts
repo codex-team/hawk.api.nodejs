@@ -26,7 +26,9 @@ describe('Mutation.bulkToggleEventMarks', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getEventsFactory as unknown as jest.Mock).mockReturnValue({ bulkToggleEventMark });
+    (getEventsFactory as unknown as jest.Mock).mockReturnValue({
+      bulkToggleEventMark,
+    });
   });
 
   it('should throw when mark is not supported', async () => {
@@ -106,17 +108,4 @@ describe('Mutation.bulkToggleEventMarks', () => {
     expect(result).toEqual(payload);
   });
 
-  it('should map factory max-length error to UserInputError', async () => {
-    bulkToggleEventMark.mockRejectedValue(
-      new Error('bulkToggleEventMark: at most 100 event ids allowed')
-    );
-
-    await expect(
-      eventResolvers.Mutation.bulkToggleEventMarks(
-        {},
-        { projectId: 'p1', eventIds: [ '507f1f77bcf86cd799439011' ], mark: 'ignored' },
-        ctx
-      )
-    ).rejects.toThrow(UserInputError);
-  });
 });

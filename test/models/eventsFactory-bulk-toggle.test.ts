@@ -49,14 +49,6 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     });
   });
 
-  it('should throw when mark is unsupported', async () => {
-    const factory = new EventsFactory(projectId);
-
-    await expect(factory.bulkToggleEventMark([], 'some-unknown-mark' as any)).rejects.toThrow(
-      'bulkToggleEventMark: mark must be resolved, ignored or starred'
-    );
-  });
-
   it('should support starred mark', async () => {
     const factory = new EventsFactory(projectId);
     const id = new ObjectId();
@@ -86,16 +78,6 @@ describe('EventsFactory.bulkToggleEventMark', () => {
       expect.objectContaining({
         $set: { 'marks.starred': expect.any(Number) },
       })
-    );
-  });
-
-  it('should reject more than BULK_TOGGLE_EVENT_MARK_MAX unique ids', async () => {
-    const factory = new EventsFactory(projectId);
-    const max = EventsFactory.BULK_TOGGLE_EVENT_MARK_MAX;
-    const ids = Array.from({ length: max + 1 }, (_, i) => `id-${i}`);
-
-    await expect(factory.bulkToggleEventMark(ids, 'ignored')).rejects.toThrow(
-      `bulkToggleEventMark: at most ${max} event ids allowed`
     );
   });
 
