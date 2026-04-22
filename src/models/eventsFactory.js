@@ -883,6 +883,57 @@ class EventsFactory extends Factory {
   }
 
   /**
+   * Mark many original events as visited for passed user
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string|ObjectId} userId - id of the user who is visiting events
+   * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
+   */
+  async bulkVisitEvent(eventIds, userId) {
+    const unique = [ ...new Set((eventIds || []).map(id => String(id))) ];
+    const failedEventIds = [];
+    const validObjectIds = unique.map(id => new ObjectId(id));
+    const userIdStr = String(userId);
+
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const found = await collection.find({ _id: { $in: validObjectIds } }).toArray();
+    const foundByIdStr = new Map(found.map(doc => [doc._id.toString(), doc]));
+
+    for (const oid of validObjectIds) {
+      const idStr = oid.toString();
+
+      if (!foundByIdStr.has(idStr)) {
+        failedEventIds.push(idStr);
+      }
+    }
+
+    const docsToUpdate = found.filter((doc) => {
+      const visitedBy = Array.isArray(doc.visitedBy) ? doc.visitedBy : [];
+      return !visitedBy.some((visitedUserId) => String(visitedUserId) === userIdStr);
+    });
+    const updatedEventIds = docsToUpdate.map(doc => doc._id.toString());
+
+    if (docsToUpdate.length === 0) {
+      return {
+        updatedCount: 0,
+        updatedEventIds: [],
+        failedEventIds,
+      };
+    }
+
+    const updateManyResult = await collection.updateMany(
+      { _id: { $in: docsToUpdate.map(doc => doc._id) } },
+      { $addToSet: { visitedBy: new ObjectId(userId) } }
+    );
+
+    return {
+      updatedCount: updateManyResult.modifiedCount,
+      updatedEventIds,
+      failedEventIds,
+    };
+  }
+
+  /**
    * Mark or unmark event as Resolved, Ignored or Starred
    *
    * @param {string|ObjectId} eventId - id of the original event to mark

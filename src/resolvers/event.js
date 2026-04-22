@@ -140,6 +140,34 @@ module.exports = {
 
       return !!result.acknowledged;
     },
+    /**
+     * Mark many original events as visited for current user
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} projectId - project id
+     * @param {string[]} eventIds - original event ids
+     * @param {UserInContext} user - user context
+     * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
+     */
+    async bulkVisitEvents(_obj, { projectId, eventIds }, { user, ...context }) {
+      const { validEventIds, invalidEventIds } = parseBulkEventIds(eventIds);
+
+      if (validEventIds.length === 0) {
+        return {
+          updatedCount: 0,
+          updatedEventIds: [],
+          failedEventIds: invalidEventIds,
+        };
+      }
+
+      const factory = getEventsFactory(context, projectId);
+      const result = await factory.bulkVisitEvent(validEventIds, user.id);
+
+      return {
+        ...result,
+        failedEventIds: mergeFailedEventIds(result, invalidEventIds),
+      };
+    },
 
     /**
      * Mark event with one of the event marks

@@ -506,6 +506,26 @@ type BulkToggleEventMarksResult {
   failedEventIds: [ID!]!
 }
 
+"""
+Result of bulk marking events as viewed
+"""
+type BulkVisitEventsResult {
+  """
+  Number of events updated in the database
+  """
+  updatedCount: Int!
+
+  """
+  Original event ids actually updated in this operation
+  """
+  updatedEventIds: [ID!]!
+
+  """
+  Event ids that were not updated (invalid id or not found)
+  """
+  failedEventIds: [ID!]!
+}
+
 type EventsMutations {
   """
   Set an assignee for the selected event
@@ -544,6 +564,21 @@ extend type Mutation {
     """
     eventId: ID!
   ): Boolean!
+
+  """
+  Mark many original events as visited for current user
+  """
+  bulkVisitEvents(
+    """
+    ID of project event is related to
+    """
+    projectId: ID!
+
+    """
+    Original event ids
+    """
+    eventIds: [ID!]!
+  ): BulkVisitEventsResult! @requireUserInWorkspace
 
   """
   Mutation sets or unsets passed mark to event
