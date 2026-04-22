@@ -520,7 +520,7 @@ extend type Mutation {
   ): Boolean!
 
   """
-  Toggle the same mark on many original events at once (only resolved or ignored).
+  Toggle the same mark on many original events at once (resolved, ignored or starred).
   Same toggle semantics as toggleEventMark per event.
   """
   bulkToggleEventMarks(
@@ -535,7 +535,7 @@ extend type Mutation {
     eventIds: [ID!]!
 
     """
-    Mark (resolved or ignored only): if every selected event already has it, clear it for all;
+    Mark (resolved, ignored or starred): if every selected event already has it, clear it for all;
     otherwise set it on every selected event that does not have it yet.
     """
     mark: EventMark!

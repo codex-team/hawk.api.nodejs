@@ -29,11 +29,11 @@ describe('Mutation.bulkToggleEventMarks', () => {
     (getEventsFactory as unknown as jest.Mock).mockReturnValue({ bulkToggleEventMark });
   });
 
-  it('should throw when mark is not resolved or ignored', async () => {
+  it('should throw when mark is not supported', async () => {
     await expect(
       eventResolvers.Mutation.bulkToggleEventMarks(
         {},
-        { projectId: 'p1', eventIds: [ '507f1f77bcf86cd799439012' ], mark: 'starred' },
+        { projectId: 'p1', eventIds: [ '507f1f77bcf86cd799439012' ], mark: 'some-unknown-mark' },
         ctx
       )
     ).rejects.toThrow(UserInputError);
@@ -41,10 +41,10 @@ describe('Mutation.bulkToggleEventMarks', () => {
     await expect(
       eventResolvers.Mutation.bulkToggleEventMarks(
         {},
-        { projectId: 'p1', eventIds: [ '507f1f77bcf86cd799439012' ], mark: 'starred' },
+        { projectId: 'p1', eventIds: [ '507f1f77bcf86cd799439012' ], mark: 'some-unknown-mark' },
         ctx
       )
-    ).rejects.toThrow('bulkToggleEventMarks supports only resolved and ignored marks');
+    ).rejects.toThrow('bulkToggleEventMarks supports only resolved, ignored and starred marks');
 
     expect(bulkToggleEventMark).not.toHaveBeenCalled();
   });
@@ -80,6 +80,28 @@ describe('Mutation.bulkToggleEventMarks', () => {
     expect(bulkToggleEventMark).toHaveBeenCalledWith(
       [ '507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012' ],
       'resolved'
+    );
+    expect(result).toEqual(payload);
+  });
+
+  it('should allow starred mark for bulk toggle', async () => {
+    const payload = { updatedCount: 1, failedEventIds: [] };
+
+    bulkToggleEventMark.mockResolvedValue(payload);
+
+    const result = await eventResolvers.Mutation.bulkToggleEventMarks(
+      {},
+      {
+        projectId: 'p1',
+        eventIds: [ '507f1f77bcf86cd799439011' ],
+        mark: 'starred',
+      },
+      ctx
+    );
+
+    expect(bulkToggleEventMark).toHaveBeenCalledWith(
+      [ '507f1f77bcf86cd799439011' ],
+      'starred'
     );
     expect(result).toEqual(payload);
   });

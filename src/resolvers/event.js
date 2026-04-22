@@ -167,8 +167,8 @@ module.exports = {
      * @return {Promise<{ updatedCount: number, failedEventIds: string[] }>}
      */
     async bulkToggleEventMarks(_obj, { projectId, eventIds, mark }, context) {
-      if (mark !== 'resolved' && mark !== 'ignored') {
-        throw new UserInputError('bulkToggleEventMarks supports only resolved and ignored marks');
+      if (mark !== 'resolved' && mark !== 'ignored' && mark !== 'starred') {
+        throw new UserInputError('bulkToggleEventMarks supports only resolved, ignored and starred marks');
       }
 
       if (!eventIds || !eventIds.length) {
