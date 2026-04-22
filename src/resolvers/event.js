@@ -1,7 +1,6 @@
 const getEventsFactory = require('./helpers/eventsFactory').default;
 const sendPersonalNotification = require('../utils/personalNotifications').default;
 const { aiService } = require('../services/ai');
-const { DEMO_WORKSPACE_ID } = require('../constants/demoWorkspace');
 const { UserInputError } = require('apollo-server-express');
 
 /**
@@ -50,7 +49,7 @@ module.exports = {
        */
       const project = await factories.projectsFactory.findById(projectId);
 
-      if (project.workspaceId.toString() === DEMO_WORKSPACE_ID) {
+      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
         return [ await factories.usersFactory.findById(user.id) ];
       }
 
