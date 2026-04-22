@@ -890,22 +890,12 @@ class EventsFactory extends Factory {
    * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
    */
   async bulkVisitEvent(eventIds, userId) {
-    const unique = [ ...new Set((eventIds || []).map(id => String(id))) ];
-    const failedEventIds = [];
-    const validObjectIds = unique.map(id => new ObjectId(id));
+    const {
+      collection,
+      found,
+      failedEventIds,
+    } = await this._resolveBulkEventsByIds(eventIds);
     const userIdStr = String(userId);
-
-    const collection = this.getCollection(this.TYPES.EVENTS);
-    const found = await collection.find({ _id: { $in: validObjectIds } }).toArray();
-    const foundByIdStr = new Map(found.map(doc => [doc._id.toString(), doc]));
-
-    for (const oid of validObjectIds) {
-      const idStr = oid.toString();
-
-      if (!foundByIdStr.has(idStr)) {
-        failedEventIds.push(idStr);
-      }
-    }
 
     const docsToUpdate = found.filter((doc) => {
       const visitedBy = Array.isArray(doc.visitedBy) ? doc.visitedBy : [];
@@ -977,21 +967,11 @@ class EventsFactory extends Factory {
    * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
    */
   async bulkToggleEventMark(eventIds, mark) {
-    const unique = [ ...new Set((eventIds || []).map(id => String(id))) ];
-    const failedEventIds = [];
-    const validObjectIds = unique.map(id => new ObjectId(id));
-
-    const collection = this.getCollection(this.TYPES.EVENTS);
-    const found = await collection.find({ _id: { $in: validObjectIds } }).toArray();
-    const foundByIdStr = new Map(found.map(doc => [doc._id.toString(), doc]));
-
-    for (const oid of validObjectIds) {
-      const idStr = oid.toString();
-
-      if (!foundByIdStr.has(idStr)) {
-        failedEventIds.push(idStr);
-      }
-    }
+    const {
+      collection,
+      found,
+      failedEventIds,
+    } = await this._resolveBulkEventsByIds(eventIds);
 
     const nowSec = Math.floor(Date.now() / 1000);
     const markKey = `marks.${mark}`;
@@ -1045,21 +1025,11 @@ class EventsFactory extends Factory {
    * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
    */
   async bulkUpdateAssignee(eventIds, assignee) {
-    const unique = [ ...new Set((eventIds || []).map(id => String(id))) ];
-    const failedEventIds = [];
-    const validObjectIds = unique.map(id => new ObjectId(id));
-
-    const collection = this.getCollection(this.TYPES.EVENTS);
-    const found = await collection.find({ _id: { $in: validObjectIds } }).toArray();
-    const foundByIdStr = new Map(found.map(doc => [doc._id.toString(), doc]));
-
-    for (const oid of validObjectIds) {
-      const idStr = oid.toString();
-
-      if (!foundByIdStr.has(idStr)) {
-        failedEventIds.push(idStr);
-      }
-    }
+    const {
+      collection,
+      found,
+      failedEventIds,
+    } = await this._resolveBulkEventsByIds(eventIds);
 
     const normalizedAssignee = assignee ? String(assignee) : '';
     const docsToUpdate = found.filter(doc => String(doc.assignee || '') !== normalizedAssignee);
@@ -1131,6 +1101,29 @@ class EventsFactory extends Factory {
     }
 
     return result;
+  }
+
+  /**
+   * Resolve original events for bulk operations and collect not found ids.
+   *
+   * @param {string[]} eventIds - original event ids
+   * @returns {Promise<{ collection: any, found: any[], failedEventIds: string[] }>}
+   */
+  async _resolveBulkEventsByIds(eventIds) {
+    const unique = [ ...new Set((eventIds || []).map(id => String(id))) ];
+    const objectIds = unique.map(id => new ObjectId(id));
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const found = await collection.find({ _id: { $in: objectIds } }).toArray();
+    const foundByIdStr = new Set(found.map(doc => doc._id.toString()));
+    const failedEventIds = objectIds
+      .map(id => id.toString())
+      .filter(id => !foundByIdStr.has(id));
+
+    return {
+      collection,
+      found,
+      failedEventIds,
+    };
   }
 
   /**
