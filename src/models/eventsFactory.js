@@ -899,6 +899,7 @@ class EventsFactory extends Factory {
 
     const docsToUpdate = found.filter((doc) => {
       const visitedBy = Array.isArray(doc.visitedBy) ? doc.visitedBy : [];
+
       return !visitedBy.some((visitedUserId) => String(visitedUserId) === userIdStr);
     });
     const updatedEventIds = docsToUpdate.map(doc => doc._id.toString());

@@ -70,7 +70,7 @@ function parseBulkEventIds(eventIds) {
  * @returns {string[]}
  */
 function mergeFailedEventIds(result, invalidEventIds) {
-  return [ ...new Set([ ...(result.failedEventIds || []), ...invalidEventIds ]) ];
+  return [ ...new Set([...(result.failedEventIds || []), ...invalidEventIds]) ];
 }
 
 module.exports = {
