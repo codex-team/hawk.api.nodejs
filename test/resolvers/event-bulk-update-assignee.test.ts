@@ -92,6 +92,57 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
     );
   });
 
+  it('should validate ids on resolver level and merge invalid ids into failedEventIds', async () => {
+    bulkUpdateAssignee.mockResolvedValue({
+      updatedCount: 1,
+      updatedEventIds: [ '507f1f77bcf86cd799439011' ],
+      failedEventIds: [ '507f1f77bcf86cd799439099' ],
+    });
+
+    const result = await eventResolvers.EventsMutations.bulkUpdateAssignee(
+      {},
+      {
+        input: {
+          projectId: 'p1',
+          eventIds: [ '507f1f77bcf86cd799439011', 'invalid-id' ],
+          assignee: 'assignee-1',
+        },
+      },
+      ctx
+    );
+
+    expect(bulkUpdateAssignee).toHaveBeenCalledWith(
+      [ '507f1f77bcf86cd799439011' ],
+      'assignee-1'
+    );
+    expect(result).toEqual({
+      updatedCount: 1,
+      updatedEventIds: [ '507f1f77bcf86cd799439011' ],
+      failedEventIds: [ '507f1f77bcf86cd799439099', 'invalid-id' ],
+    });
+  });
+
+  it('should return early when all ids are invalid', async () => {
+    const result = await eventResolvers.EventsMutations.bulkUpdateAssignee(
+      {},
+      {
+        input: {
+          projectId: 'p1',
+          eventIds: [ 'bad-1', 'bad-2' ],
+          assignee: 'assignee-1',
+        },
+      },
+      ctx
+    );
+
+    expect(bulkUpdateAssignee).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      updatedCount: 0,
+      updatedEventIds: [],
+      failedEventIds: [ 'bad-1', 'bad-2' ],
+    });
+  });
+
   it('should call factory for bulk clear assignee', async () => {
     await eventResolvers.EventsMutations.bulkUpdateAssignee(
       {},

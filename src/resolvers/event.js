@@ -1,38 +1,11 @@
 const getEventsFactory = require('./helpers/eventsFactory').default;
-const sendPersonalNotification = require('../utils/personalNotifications').default;
+const {
+  fireAndForgetAssigneeNotifications,
+  parseBulkEventIds,
+  mergeFailedEventIds,
+} = require('./helpers/bulkEvents');
 const { aiService } = require('../services/ai');
 const { UserInputError } = require('apollo-server-express');
-
-/**
- * Enqueue assignee notifications in background (do not block resolver response)
- *
- * @param {object} args - notification args
- * @param {object} args.assigneeData - assigned user data
- * @param {string[]} args.eventIds - original event ids
- * @param {string} args.projectId - project id
- * @param {string} args.assigneeId - assignee id
- * @param {string} args.whoAssignedId - user id who performed assignment
- * @returns {void}
- */
-function fireAndForgetAssigneeNotifications({
-  assigneeData,
-  eventIds,
-  projectId,
-  assigneeId,
-  whoAssignedId,
-}) {
-  void Promise.allSettled(eventIds.map(eventId => sendPersonalNotification(assigneeData, {
-    type: 'assignee',
-    payload: {
-      assigneeId,
-      projectId,
-      whoAssignedId,
-      eventId,
-    },
-  }))).catch((error) => {
-    console.error('Failed to enqueue assignee notifications', error);
-  });
-}
 
 /**
  * See all types and fields here {@see ../typeDefs/event.graphql}
@@ -201,13 +174,23 @@ module.exports = {
         throw new UserInputError('bulkToggleEventMarks supports only resolved, ignored and starred marks');
       }
 
-      if (!eventIds || !eventIds.length) {
-        throw new UserInputError('eventIds must contain at least one id');
+      const { validEventIds, invalidEventIds } = parseBulkEventIds(eventIds);
+
+      if (validEventIds.length === 0) {
+        return {
+          updatedCount: 0,
+          updatedEventIds: [],
+          failedEventIds: invalidEventIds,
+        };
       }
 
       const factory = getEventsFactory(context, projectId);
+      const result = await factory.bulkToggleEventMark(validEventIds, mark);
 
-      return factory.bulkToggleEventMark(eventIds, mark);
+      return {
+        ...result,
+        failedEventIds: mergeFailedEventIds(result, invalidEventIds),
+      };
     },
 
     /**
@@ -296,11 +279,17 @@ module.exports = {
      */
     async bulkUpdateAssignee(_obj, { input }, { factories, user, ...context }) {
       const { projectId, eventIds, assignee } = input;
-      const factory = getEventsFactory(context, projectId);
+      const { validEventIds, invalidEventIds } = parseBulkEventIds(eventIds);
 
-      if (!eventIds || !eventIds.length) {
-        throw new UserInputError('eventIds must contain at least one id');
+      if (validEventIds.length === 0) {
+        return {
+          updatedCount: 0,
+          updatedEventIds: [],
+          failedEventIds: invalidEventIds,
+        };
       }
+
+      const factory = getEventsFactory(context, projectId);
 
       if (assignee) {
         const userExists = await factories.usersFactory.findById(assignee);
@@ -318,14 +307,18 @@ module.exports = {
         }
       }
 
-      const result = await factory.bulkUpdateAssignee(eventIds, assignee);
+      const result = await factory.bulkUpdateAssignee(validEventIds, assignee);
+      const resultWithInvalid = {
+        ...result,
+        failedEventIds: mergeFailedEventIds(result, invalidEventIds),
+      };
 
-      if (assignee && result.updatedEventIds.length > 0) {
+      if (assignee && resultWithInvalid.updatedEventIds.length > 0) {
         void factories.usersFactory.dataLoaders.userById.load(assignee)
           .then((assigneeData) => {
             fireAndForgetAssigneeNotifications({
               assigneeData,
-              eventIds: result.updatedEventIds,
+              eventIds: resultWithInvalid.updatedEventIds,
               projectId,
               assigneeId: assignee,
               whoAssignedId: user.id,
@@ -336,7 +329,7 @@ module.exports = {
           });
       }
 
-      return result;
+      return resultWithInvalid;
     },
   },
 };

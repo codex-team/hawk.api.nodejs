@@ -108,4 +108,51 @@ describe('Mutation.bulkToggleEventMarks', () => {
     expect(result).toEqual(payload);
   });
 
+  it('should validate ids on resolver level and merge invalid ids into failedEventIds', async () => {
+    bulkToggleEventMark.mockResolvedValue({
+      updatedCount: 1,
+      updatedEventIds: [ '507f1f77bcf86cd799439011' ],
+      failedEventIds: [ '507f1f77bcf86cd799439099' ],
+    });
+
+    const result = await eventResolvers.Mutation.bulkToggleEventMarks(
+      {},
+      {
+        projectId: 'p1',
+        eventIds: [ '507f1f77bcf86cd799439011', 'invalid-id' ],
+        mark: 'ignored',
+      },
+      ctx
+    );
+
+    expect(bulkToggleEventMark).toHaveBeenCalledWith(
+      [ '507f1f77bcf86cd799439011' ],
+      'ignored'
+    );
+    expect(result).toEqual({
+      updatedCount: 1,
+      updatedEventIds: [ '507f1f77bcf86cd799439011' ],
+      failedEventIds: [ '507f1f77bcf86cd799439099', 'invalid-id' ],
+    });
+  });
+
+  it('should return early when all ids are invalid', async () => {
+    const result = await eventResolvers.Mutation.bulkToggleEventMarks(
+      {},
+      {
+        projectId: 'p1',
+        eventIds: [ 'bad-1', 'bad-2' ],
+        mark: 'ignored',
+      },
+      ctx
+    );
+
+    expect(bulkToggleEventMark).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      updatedCount: 0,
+      updatedEventIds: [],
+      failedEventIds: [ 'bad-1', 'bad-2' ],
+    });
+  });
+
 });

@@ -43,16 +43,6 @@ describe('EventsFactory.bulkUpdateAssignee', () => {
     collectionMock.updateMany.mockResolvedValue({ modifiedCount: 0 });
   });
 
-  it('should return failed ids for invalid ObjectIds and skip updateMany', async () => {
-    const factory = new EventsFactory(projectId);
-    const result = await factory.bulkUpdateAssignee([ 'bad-id' ], 'user-1');
-
-    expect(result.updatedCount).toBe(0);
-    expect(result.updatedEventIds).toEqual([]);
-    expect(result.failedEventIds).toEqual([ 'bad-id' ]);
-    expect(collectionMock.updateMany).not.toHaveBeenCalled();
-  });
-
   it('should update only events with changed assignee', async () => {
     const factory = new EventsFactory(projectId);
     const a = new ObjectId();

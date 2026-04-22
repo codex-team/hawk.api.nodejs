@@ -107,17 +107,6 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     expect(ops).toHaveLength(1);
   });
 
-  it('should return failedEventIds for invalid ObjectIds and skip bulkWrite', async () => {
-    const factory = new EventsFactory(projectId);
-
-    const result = await factory.bulkToggleEventMark([ 'not-a-valid-id' ], 'resolved');
-
-    expect(result.updatedCount).toBe(0);
-    expect(result.updatedEventIds).toEqual([]);
-    expect(result.failedEventIds).toContain('not-a-valid-id');
-    expect(collectionMock.bulkWrite).not.toHaveBeenCalled();
-  });
-
   it('should list valid but missing document ids in failedEventIds', async () => {
     const factory = new EventsFactory(projectId);
     const missing = new ObjectId();

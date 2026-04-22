@@ -919,11 +919,7 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Bulk mark for resolved / ignored / starred (not the same as per-event toggleEventMark).
-   * - If every found event already has the mark: remove it from all (bulk "undo").
-   * - Otherwise: set the mark on every found event that does not have it yet (never remove
-   *   from a subset when the selection is mixed).
-   * Only 'resolved', 'ignored' and 'starred' are allowed for bulk.
+   * Bulk toggle mark for original events.
    *
    * @param {string[]} eventIds - original event ids
    * @param {string} mark - 'resolved' | 'ignored' | 'starred'
@@ -931,25 +927,8 @@ class EventsFactory extends Factory {
    */
   async bulkToggleEventMark(eventIds, mark) {
     const unique = [ ...new Set((eventIds || []).map(id => String(id))) ];
-
     const failedEventIds = [];
-    const validObjectIds = [];
-
-    for (const id of unique) {
-      if (!ObjectId.isValid(id)) {
-        failedEventIds.push(id);
-      } else {
-        validObjectIds.push(new ObjectId(id));
-      }
-    }
-
-    if (validObjectIds.length === 0) {
-      return {
-        updatedCount: 0,
-        updatedEventIds: [],
-        failedEventIds,
-      };
-    }
+    const validObjectIds = unique.map(id => new ObjectId(id));
 
     const collection = this.getCollection(this.TYPES.EVENTS);
     const found = await collection.find({ _id: { $in: validObjectIds } }).toArray();
@@ -1017,23 +996,7 @@ class EventsFactory extends Factory {
   async bulkUpdateAssignee(eventIds, assignee) {
     const unique = [ ...new Set((eventIds || []).map(id => String(id))) ];
     const failedEventIds = [];
-    const validObjectIds = [];
-
-    for (const id of unique) {
-      if (!ObjectId.isValid(id)) {
-        failedEventIds.push(id);
-      } else {
-        validObjectIds.push(new ObjectId(id));
-      }
-    }
-
-    if (validObjectIds.length === 0) {
-      return {
-        updatedCount: 0,
-        updatedEventIds: [],
-        failedEventIds,
-      };
-    }
+    const validObjectIds = unique.map(id => new ObjectId(id));
 
     const collection = this.getCollection(this.TYPES.EVENTS);
     const found = await collection.find({ _id: { $in: validObjectIds } }).toArray();
