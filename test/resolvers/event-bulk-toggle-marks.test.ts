@@ -15,7 +15,7 @@ const eventResolvers = require('../../src/resolvers/event') as {
       o: unknown,
       args: { projectId: string; eventIds: string[]; mark: string },
       ctx: unknown
-    ) => Promise<{ updatedCount: number; failedEventIds: string[] }>;
+    ) => Promise<{ updatedCount: number; updatedEventIds: string[]; failedEventIds: string[] }>;
   };
 };
 
@@ -62,7 +62,7 @@ describe('Mutation.bulkToggleEventMarks', () => {
   });
 
   it('should call factory with original event ids and return its result', async () => {
-    const payload = { updatedCount: 2, failedEventIds: [ 'x' ] };
+    const payload = { updatedCount: 2, updatedEventIds: [ 'a', 'b' ], failedEventIds: [ 'x' ] };
 
     bulkToggleEventMark.mockResolvedValue(payload);
 
@@ -85,7 +85,7 @@ describe('Mutation.bulkToggleEventMarks', () => {
   });
 
   it('should allow starred mark for bulk toggle', async () => {
-    const payload = { updatedCount: 1, failedEventIds: [] };
+    const payload = { updatedCount: 1, updatedEventIds: [ '507f1f77bcf86cd799439011' ], failedEventIds: [] };
 
     bulkToggleEventMark.mockResolvedValue(payload);
 

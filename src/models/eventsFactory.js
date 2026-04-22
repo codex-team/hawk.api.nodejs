@@ -934,7 +934,7 @@ class EventsFactory extends Factory {
    *
    * @param {string[]} eventIds - original event ids
    * @param {string} mark - 'resolved' | 'ignored' | 'starred'
-   * @returns {Promise<{ updatedCount: number, failedEventIds: string[] }>}
+   * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
    */
   async bulkToggleEventMark(eventIds, mark) {
     if (mark !== 'resolved' && mark !== 'ignored' && mark !== 'starred') {
@@ -962,6 +962,7 @@ class EventsFactory extends Factory {
     if (validObjectIds.length === 0) {
       return {
         updatedCount: 0,
+        updatedEventIds: [],
         failedEventIds,
       };
     }
@@ -982,6 +983,7 @@ class EventsFactory extends Factory {
     const markKey = `marks.${mark}`;
     const allHaveMark = found.length > 0 && found.every(doc => doc.marks && doc.marks[mark]);
     const ops = [];
+    const updatedEventIds = [];
 
     for (const doc of found) {
       const hasMark = doc.marks && doc.marks[mark];
@@ -1001,11 +1003,13 @@ class EventsFactory extends Factory {
           update,
         },
       });
+      updatedEventIds.push(doc._id.toString());
     }
 
     if (ops.length === 0) {
       return {
         updatedCount: 0,
+        updatedEventIds: [],
         failedEventIds,
       };
     }
@@ -1014,6 +1018,7 @@ class EventsFactory extends Factory {
 
     return {
       updatedCount: bulkResult.modifiedCount + bulkResult.upsertedCount,
+      updatedEventIds,
       failedEventIds,
     };
   }

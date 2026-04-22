@@ -462,6 +462,11 @@ type BulkToggleEventMarksResult {
   updatedCount: Int!
 
   """
+  Original event ids actually toggled in this operation
+  """
+  updatedEventIds: [ID!]!
+
+  """
   Event ids that were not updated (invalid id or not found)
   """
   failedEventIds: [ID!]!

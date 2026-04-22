@@ -78,6 +78,7 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     const result = await factory.bulkToggleEventMark([ id.toString() ], 'starred');
 
     expect(result.updatedCount).toBe(1);
+    expect(result.updatedEventIds).toEqual([ id.toString() ]);
     const ops = collectionMock.bulkWrite.mock.calls[0][0];
 
     expect(ops).toHaveLength(1);
@@ -130,6 +131,7 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     const result = await factory.bulkToggleEventMark([ 'not-a-valid-id' ], 'resolved');
 
     expect(result.updatedCount).toBe(0);
+    expect(result.updatedEventIds).toEqual([]);
     expect(result.failedEventIds).toContain('not-a-valid-id');
     expect(collectionMock.bulkWrite).not.toHaveBeenCalled();
   });
@@ -145,6 +147,7 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     const result = await factory.bulkToggleEventMark([ missing.toString() ], 'ignored');
 
     expect(result.updatedCount).toBe(0);
+    expect(result.updatedEventIds).toEqual([]);
     expect(result.failedEventIds).toContain(missing.toString());
     expect(collectionMock.bulkWrite).not.toHaveBeenCalled();
   });
@@ -169,6 +172,7 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     const result = await factory.bulkToggleEventMark([ a.toString(), b.toString() ], 'ignored');
 
     expect(result.updatedCount).toBe(1);
+    expect(result.updatedEventIds).toEqual([ b.toString() ]);
     const ops = collectionMock.bulkWrite.mock.calls[0][0];
 
     expect(ops).toHaveLength(1);
@@ -200,6 +204,7 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     const result = await factory.bulkToggleEventMark([ a.toString(), b.toString() ], 'resolved');
 
     expect(result.updatedCount).toBe(2);
+    expect(result.updatedEventIds).toEqual([ a.toString(), b.toString() ]);
     const ops = collectionMock.bulkWrite.mock.calls[0][0];
 
     expect(ops).toHaveLength(2);
@@ -227,6 +232,7 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     const result = await factory.bulkToggleEventMark([ a.toString(), b.toString() ], 'ignored');
 
     expect(result.updatedCount).toBe(1);
+    expect(result.updatedEventIds).toEqual([ b.toString() ]);
     const ops = collectionMock.bulkWrite.mock.calls[0][0];
 
     expect(ops).toHaveLength(1);
