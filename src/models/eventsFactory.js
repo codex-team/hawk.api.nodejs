@@ -960,12 +960,15 @@ class EventsFactory extends Factory {
     }
 
     if (validObjectIds.length === 0) {
-      return { updatedCount: 0, failedEventIds };
+      return {
+        updatedCount: 0,
+        failedEventIds,
+      };
     }
 
     const collection = this.getCollection(this.TYPES.EVENTS);
     const found = await collection.find({ _id: { $in: validObjectIds } }).toArray();
-    const foundByIdStr = new Map(found.map(doc => [ doc._id.toString(), doc ]));
+    const foundByIdStr = new Map(found.map(doc => [doc._id.toString(), doc]));
 
     for (const oid of validObjectIds) {
       const idStr = oid.toString();
@@ -1001,7 +1004,10 @@ class EventsFactory extends Factory {
     }
 
     if (ops.length === 0) {
-      return { updatedCount: 0, failedEventIds };
+      return {
+        updatedCount: 0,
+        failedEventIds,
+      };
     }
 
     const bulkResult = await collection.bulkWrite(ops, { ordered: false });
