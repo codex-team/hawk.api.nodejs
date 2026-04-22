@@ -49,11 +49,43 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     });
   });
 
-  it('should throw when mark is not resolved or ignored', async () => {
+  it('should throw when mark is unsupported', async () => {
     const factory = new EventsFactory(projectId);
 
-    await expect(factory.bulkToggleEventMark([], 'starred' as any)).rejects.toThrow(
-      'bulkToggleEventMark: mark must be resolved or ignored'
+    await expect(factory.bulkToggleEventMark([], 'some-unknown-mark' as any)).rejects.toThrow(
+      'bulkToggleEventMark: mark must be resolved, ignored or starred'
+    );
+  });
+
+  it('should support starred mark', async () => {
+    const factory = new EventsFactory(projectId);
+    const id = new ObjectId();
+
+    collectionMock.find.mockReturnValue({
+      toArray: () =>
+        Promise.resolve([
+          {
+            _id: id,
+            marks: {},
+          },
+        ]),
+    });
+    collectionMock.bulkWrite.mockResolvedValue({
+      modifiedCount: 1,
+      upsertedCount: 0,
+    });
+
+    const result = await factory.bulkToggleEventMark([ id.toString() ], 'starred');
+
+    expect(result.updatedCount).toBe(1);
+    expect(result.updatedEventIds).toEqual([ id.toString() ]);
+    const ops = collectionMock.bulkWrite.mock.calls[0][0];
+
+    expect(ops).toHaveLength(1);
+    expect(ops[0].updateOne.update).toEqual(
+      expect.objectContaining({
+        $set: { 'marks.starred': expect.any(Number) },
+      })
     );
   });
 
@@ -99,6 +131,7 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     const result = await factory.bulkToggleEventMark([ 'not-a-valid-id' ], 'resolved');
 
     expect(result.updatedCount).toBe(0);
+    expect(result.updatedEventIds).toEqual([]);
     expect(result.failedEventIds).toContain('not-a-valid-id');
     expect(collectionMock.bulkWrite).not.toHaveBeenCalled();
   });
@@ -114,6 +147,7 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     const result = await factory.bulkToggleEventMark([ missing.toString() ], 'ignored');
 
     expect(result.updatedCount).toBe(0);
+    expect(result.updatedEventIds).toEqual([]);
     expect(result.failedEventIds).toContain(missing.toString());
     expect(collectionMock.bulkWrite).not.toHaveBeenCalled();
   });
@@ -138,6 +172,7 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     const result = await factory.bulkToggleEventMark([ a.toString(), b.toString() ], 'ignored');
 
     expect(result.updatedCount).toBe(1);
+    expect(result.updatedEventIds).toEqual([ b.toString() ]);
     const ops = collectionMock.bulkWrite.mock.calls[0][0];
 
     expect(ops).toHaveLength(1);
@@ -169,6 +204,7 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     const result = await factory.bulkToggleEventMark([ a.toString(), b.toString() ], 'resolved');
 
     expect(result.updatedCount).toBe(2);
+    expect(result.updatedEventIds).toEqual([ a.toString(), b.toString() ]);
     const ops = collectionMock.bulkWrite.mock.calls[0][0];
 
     expect(ops).toHaveLength(2);
@@ -196,6 +232,7 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     const result = await factory.bulkToggleEventMark([ a.toString(), b.toString() ], 'ignored');
 
     expect(result.updatedCount).toBe(1);
+    expect(result.updatedEventIds).toEqual([ b.toString() ]);
     const ops = collectionMock.bulkWrite.mock.calls[0][0];
 
     expect(ops).toHaveLength(1);

@@ -926,19 +926,19 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Bulk mark for resolved / ignored (not the same as per-event toggleEventMark).
+   * Bulk mark for resolved / ignored / starred (not the same as per-event toggleEventMark).
    * - If every found event already has the mark: remove it from all (bulk "undo").
    * - Otherwise: set the mark on every found event that does not have it yet (never remove
    *   from a subset when the selection is mixed).
-   * Only 'resolved' and 'ignored' are allowed for bulk.
+   * Only 'resolved', 'ignored' and 'starred' are allowed for bulk.
    *
    * @param {string[]} eventIds - original event ids
-   * @param {string} mark - 'resolved' | 'ignored'
-   * @returns {Promise<{ updatedCount: number, failedEventIds: string[] }>}
+   * @param {string} mark - 'resolved' | 'ignored' | 'starred'
+   * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
    */
   async bulkToggleEventMark(eventIds, mark) {
-    if (mark !== 'resolved' && mark !== 'ignored') {
-      throw new Error(`bulkToggleEventMark: mark must be resolved or ignored, got ${mark}`);
+    if (mark !== 'resolved' && mark !== 'ignored' && mark !== 'starred') {
+      throw new Error(`bulkToggleEventMark: mark must be resolved, ignored or starred, got ${mark}`);
     }
 
     const max = EventsFactory.BULK_TOGGLE_EVENT_MARK_MAX;
@@ -962,6 +962,7 @@ class EventsFactory extends Factory {
     if (validObjectIds.length === 0) {
       return {
         updatedCount: 0,
+        updatedEventIds: [],
         failedEventIds,
       };
     }
@@ -982,6 +983,7 @@ class EventsFactory extends Factory {
     const markKey = `marks.${mark}`;
     const allHaveMark = found.length > 0 && found.every(doc => doc.marks && doc.marks[mark]);
     const ops = [];
+    const updatedEventIds = [];
 
     for (const doc of found) {
       const hasMark = doc.marks && doc.marks[mark];
@@ -1001,11 +1003,13 @@ class EventsFactory extends Factory {
           update,
         },
       });
+      updatedEventIds.push(doc._id.toString());
     }
 
     if (ops.length === 0) {
       return {
         updatedCount: 0,
+        updatedEventIds: [],
         failedEventIds,
       };
     }
@@ -1014,6 +1018,7 @@ class EventsFactory extends Factory {
 
     return {
       updatedCount: bulkResult.modifiedCount + bulkResult.upsertedCount,
+      updatedEventIds,
       failedEventIds,
     };
   }
