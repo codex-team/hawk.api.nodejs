@@ -20,6 +20,12 @@ function fireAndForgetAssigneeNotifications({
   assigneeId,
   whoAssignedId,
 }) {
+  if (!assigneeData) {
+    console.error('Failed to enqueue assignee notifications: assignee data is empty');
+
+    return;
+  }
+
   Promise.allSettled(eventIds.map(eventId => sendPersonalNotification(assigneeData, {
     type: 'assignee',
     payload: {
@@ -28,9 +34,17 @@ function fireAndForgetAssigneeNotifications({
       whoAssignedId,
       eventId,
     },
-  }))).catch((error) => {
-    console.error('Failed to enqueue assignee notifications', error);
-  });
+  })))
+    .then((results) => {
+      const failedResults = results.filter(result => result.status === 'rejected');
+
+      if (failedResults.length > 0) {
+        console.error('Failed to enqueue assignee notifications', failedResults);
+      }
+    })
+    .catch((error) => {
+      console.error('Failed to enqueue assignee notifications', error);
+    });
 }
 
 /**

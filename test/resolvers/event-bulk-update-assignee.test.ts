@@ -13,6 +13,7 @@ jest.mock('../../src/resolvers/helpers/eventsFactory', () => ({
 }));
 
 import getEventsFactory from '../../src/resolvers/helpers/eventsFactory';
+import sendPersonalNotification from '../../src/utils/personalNotifications';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const eventResolvers = require('../../src/resolvers/event') as {
   EventsMutations: {
@@ -89,6 +90,19 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
     expect(bulkUpdateAssignee).toHaveBeenCalledWith(
       [ '507f1f77bcf86cd799439011' ],
       'assignee-1'
+    );
+    expect(sendPersonalNotification).toHaveBeenCalledTimes(1);
+    expect(sendPersonalNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'assignee-1' }),
+      expect.objectContaining({
+        type: 'assignee',
+        payload: expect.objectContaining({
+          assigneeId: 'assignee-1',
+          projectId: 'p1',
+          whoAssignedId: 'u1',
+          eventId: '507f1f77bcf86cd799439011',
+        }),
+      })
     );
   });
 

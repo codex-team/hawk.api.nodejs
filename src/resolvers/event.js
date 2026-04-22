@@ -304,6 +304,7 @@ module.exports = {
     async bulkUpdateAssignee(_obj, { input }, { factories, user, ...context }) {
       const { projectId, eventIds, assignee } = input;
       const { validEventIds, invalidEventIds } = parseBulkEventIds(eventIds);
+      let assigneeData = null;
 
       if (validEventIds.length === 0) {
         return {
@@ -322,6 +323,8 @@ module.exports = {
           throw new UserInputError('assignee not found');
         }
 
+        assigneeData = userExists;
+
         const project = await factories.projectsFactory.findById(projectId);
         const workspace = await factories.workspacesFactory.findById(project.workspaceId);
         const assigneeExistsInWorkspace = await workspace.getMemberInfo(assignee);
@@ -338,19 +341,13 @@ module.exports = {
       };
 
       if (assignee && resultWithInvalid.updatedEventIds.length > 0) {
-        factories.usersFactory.dataLoaders.userById.load(assignee)
-          .then((assigneeData) => {
-            fireAndForgetAssigneeNotifications({
-              assigneeData,
-              eventIds: resultWithInvalid.updatedEventIds,
-              projectId,
-              assigneeId: assignee,
-              whoAssignedId: user.id,
-            });
-          })
-          .catch((error) => {
-            console.error('Failed to load assignee data for bulk notifications', error);
-          });
+        fireAndForgetAssigneeNotifications({
+          assigneeData,
+          eventIds: resultWithInvalid.updatedEventIds,
+          projectId,
+          assigneeId: assignee,
+          whoAssignedId: user.id,
+        });
       }
 
       return resultWithInvalid;
