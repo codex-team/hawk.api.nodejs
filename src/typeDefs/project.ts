@@ -123,10 +123,6 @@ input EventsFiltersInput {
   If True, includes events with ignored mark to the output
   """
   ignored: Boolean
-  """
-  Includes only events assigned to passed user id
-  """
-  assignee: ID
 }
 
 """

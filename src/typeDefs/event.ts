@@ -452,6 +452,21 @@ type RemoveAssigneeResponse {
   success: Boolean!
 }
 
+"""
+Result of bulk toggling event marks (resolve / ignore)
+"""
+type BulkToggleEventMarksResult {
+  """
+  Number of events updated in the database
+  """
+  updatedCount: Int!
+
+  """
+  Event ids that were not updated (invalid id or not found)
+  """
+  failedEventIds: [ID!]!
+}
+
 type EventsMutations {
   """
   Set an assignee for the selected event
@@ -503,6 +518,28 @@ extend type Mutation {
     """
     mark: EventMark!
   ): Boolean!
+
+  """
+  Toggle the same mark on many original events at once (only resolved or ignored).
+  Same toggle semantics as toggleEventMark per event.
+  """
+  bulkToggleEventMarks(
+    """
+    Project id
+    """
+    projectId: ID!
+
+    """
+    Original event ids (grouped event keys in Hawk)
+    """
+    eventIds: [ID!]!
+
+    """
+    Mark (resolved or ignored only): if every selected event already has it, clear it for all;
+    otherwise set it on every selected event that does not have it yet.
+    """
+    mark: EventMark!
+  ): BulkToggleEventMarksResult! @requireUserInWorkspace
 
   """
   Namespace that contains only mutations related to the events

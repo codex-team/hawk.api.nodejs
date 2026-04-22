@@ -10,6 +10,7 @@ import Validator from '../utils/validator';
 import { dateFromObjectId } from '../utils/dates';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import { publish } from '../rabbitmq';
+import { DEMO_WORKSPACE_ID } from '../constants/demoWorkspace';
 
 const { ApolloError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const crypto = require('crypto');
@@ -551,7 +552,7 @@ module.exports = {
       /**
        * Crutch for Demo Workspace
        */
-      if (workspaceData._id.toString() === '6213b6a01e6281087467cc7a') {
+      if (workspaceData._id.toString() === DEMO_WORKSPACE_ID) {
         return [
           {
             _id: user.id,

@@ -37,6 +37,10 @@ module.exports = {
   moduleNameMapper: {
     '^node:crypto$': '<rootDir>/test/__mocks__/node_crypto.js',
     '^node:util$': '<rootDir>/test/__mocks__/node_util.js',
+    /**
+     * demoWorkspace is TypeScript; CommonJS resolvers use require() without extension
+     */
+    '^.+/constants/demoWorkspace$': '<rootDir>/src/constants/demoWorkspace.ts',
   },
 
   /**
