@@ -1,7 +1,5 @@
 import '../../src/env-test';
 
-import { UserInputError } from 'apollo-server-express';
-
 jest.mock('../../src/resolvers/helpers/eventsFactory', () => ({
   __esModule: true,
   default: jest.fn(),
@@ -26,27 +24,9 @@ describe('Mutation.bulkToggleEventMarks', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getEventsFactory as unknown as jest.Mock).mockReturnValue({ bulkToggleEventMark });
-  });
-
-  it('should throw when mark is not supported', async () => {
-    await expect(
-      eventResolvers.Mutation.bulkToggleEventMarks(
-        {},
-        { projectId: 'p1', eventIds: [ '507f1f77bcf86cd799439012' ], mark: 'some-unknown-mark' },
-        ctx
-      )
-    ).rejects.toThrow(UserInputError);
-
-    await expect(
-      eventResolvers.Mutation.bulkToggleEventMarks(
-        {},
-        { projectId: 'p1', eventIds: [ '507f1f77bcf86cd799439012' ], mark: 'some-unknown-mark' },
-        ctx
-      )
-    ).rejects.toThrow('bulkToggleEventMarks supports only resolved, ignored and starred marks');
-
-    expect(bulkToggleEventMark).not.toHaveBeenCalled();
+    (getEventsFactory as unknown as jest.Mock).mockReturnValue({
+      bulkToggleEventMark,
+    });
   });
 
   it('should throw when eventIds is empty', async () => {
@@ -106,17 +86,51 @@ describe('Mutation.bulkToggleEventMarks', () => {
     expect(result).toEqual(payload);
   });
 
-  it('should map factory max-length error to UserInputError', async () => {
-    bulkToggleEventMark.mockRejectedValue(
-      new Error('bulkToggleEventMark: at most 100 event ids allowed')
+  it('should validate ids on resolver level and merge invalid ids into failedEventIds', async () => {
+    bulkToggleEventMark.mockResolvedValue({
+      updatedCount: 1,
+      updatedEventIds: [ '507f1f77bcf86cd799439011' ],
+      failedEventIds: [ '507f1f77bcf86cd799439099' ],
+    });
+
+    const result = await eventResolvers.Mutation.bulkToggleEventMarks(
+      {},
+      {
+        projectId: 'p1',
+        eventIds: [ '507f1f77bcf86cd799439011', 'invalid-id' ],
+        mark: 'ignored',
+      },
+      ctx
     );
 
-    await expect(
-      eventResolvers.Mutation.bulkToggleEventMarks(
-        {},
-        { projectId: 'p1', eventIds: [ '507f1f77bcf86cd799439011' ], mark: 'ignored' },
-        ctx
-      )
-    ).rejects.toThrow(UserInputError);
+    expect(bulkToggleEventMark).toHaveBeenCalledWith(
+      [ '507f1f77bcf86cd799439011' ],
+      'ignored'
+    );
+    expect(result).toEqual({
+      updatedCount: 1,
+      updatedEventIds: [ '507f1f77bcf86cd799439011' ],
+      failedEventIds: [ '507f1f77bcf86cd799439099', 'invalid-id' ],
+    });
   });
+
+  it('should return early when all ids are invalid', async () => {
+    const result = await eventResolvers.Mutation.bulkToggleEventMarks(
+      {},
+      {
+        projectId: 'p1',
+        eventIds: [ 'bad-1', 'bad-2' ],
+        mark: 'ignored',
+      },
+      ctx
+    );
+
+    expect(bulkToggleEventMark).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      updatedCount: 0,
+      updatedEventIds: [],
+      failedEventIds: [ 'bad-1', 'bad-2' ],
+    });
+  });
+
 });

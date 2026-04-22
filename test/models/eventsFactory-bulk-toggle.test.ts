@@ -49,14 +49,6 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     });
   });
 
-  it('should throw when mark is unsupported', async () => {
-    const factory = new EventsFactory(projectId);
-
-    await expect(factory.bulkToggleEventMark([], 'some-unknown-mark' as any)).rejects.toThrow(
-      'bulkToggleEventMark: mark must be resolved, ignored or starred'
-    );
-  });
-
   it('should support starred mark', async () => {
     const factory = new EventsFactory(projectId);
     const id = new ObjectId();
@@ -89,16 +81,6 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     );
   });
 
-  it('should reject more than BULK_TOGGLE_EVENT_MARK_MAX unique ids', async () => {
-    const factory = new EventsFactory(projectId);
-    const max = EventsFactory.BULK_TOGGLE_EVENT_MARK_MAX;
-    const ids = Array.from({ length: max + 1 }, (_, i) => `id-${i}`);
-
-    await expect(factory.bulkToggleEventMark(ids, 'ignored')).rejects.toThrow(
-      `bulkToggleEventMark: at most ${max} event ids allowed`
-    );
-  });
-
   it('should deduplicate duplicate event ids before applying', async () => {
     const factory = new EventsFactory(projectId);
     const id = new ObjectId();
@@ -123,17 +105,6 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     const ops = collectionMock.bulkWrite.mock.calls[0][0];
 
     expect(ops).toHaveLength(1);
-  });
-
-  it('should return failedEventIds for invalid ObjectIds and skip bulkWrite', async () => {
-    const factory = new EventsFactory(projectId);
-
-    const result = await factory.bulkToggleEventMark([ 'not-a-valid-id' ], 'resolved');
-
-    expect(result.updatedCount).toBe(0);
-    expect(result.updatedEventIds).toEqual([]);
-    expect(result.failedEventIds).toContain('not-a-valid-id');
-    expect(collectionMock.bulkWrite).not.toHaveBeenCalled();
   });
 
   it('should list valid but missing document ids in failedEventIds', async () => {

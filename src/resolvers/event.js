@@ -1,7 +1,10 @@
 const getEventsFactory = require('./helpers/eventsFactory').default;
-const sendPersonalNotification = require('../utils/personalNotifications').default;
+const {
+  fireAndForgetAssigneeNotifications,
+  parseBulkEventIds,
+  mergeFailedEventIds,
+} = require('./helpers/bulkEvents');
 const { aiService } = require('../services/ai');
-const { DEMO_WORKSPACE_ID } = require('../constants/demoWorkspace');
 const { UserInputError } = require('apollo-server-express');
 
 /**
@@ -50,7 +53,7 @@ module.exports = {
        */
       const project = await factories.projectsFactory.findById(projectId);
 
-      if (project.workspaceId.toString() === DEMO_WORKSPACE_ID) {
+      if (project.workspaceId.toString() === '6213b6a01e6281087467cc7a') {
         return [ await factories.usersFactory.findById(user.id) ];
       }
 
@@ -137,6 +140,34 @@ module.exports = {
 
       return !!result.acknowledged;
     },
+    /**
+     * Mark many original events as visited for current user
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} projectId - project id
+     * @param {string[]} eventIds - original event ids
+     * @param {UserInContext} user - user context
+     * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
+     */
+    async bulkVisitEvents(_obj, { projectId, eventIds }, { user, ...context }) {
+      const { validEventIds, invalidEventIds } = parseBulkEventIds(eventIds);
+
+      if (validEventIds.length === 0) {
+        return {
+          updatedCount: 0,
+          updatedEventIds: [],
+          failedEventIds: invalidEventIds,
+        };
+      }
+
+      const factory = getEventsFactory(context, projectId);
+      const result = await factory.bulkVisitEvent(validEventIds, user.id);
+
+      return {
+        ...result,
+        failedEventIds: mergeFailedEventIds(result, invalidEventIds),
+      };
+    },
 
     /**
      * Mark event with one of the event marks
@@ -164,28 +195,26 @@ module.exports = {
      * @param {string[]} eventIds - original event ids
      * @param {string} mark - EventMark enum value
      * @param {object} context - gql context
-     * @return {Promise<{ updatedCount: number, failedEventIds: string[] }>}
+     * @return {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
      */
     async bulkToggleEventMarks(_obj, { projectId, eventIds, mark }, context) {
-      if (mark !== 'resolved' && mark !== 'ignored' && mark !== 'starred') {
-        throw new UserInputError('bulkToggleEventMarks supports only resolved, ignored and starred marks');
-      }
+      const { validEventIds, invalidEventIds } = parseBulkEventIds(eventIds);
 
-      if (!eventIds || !eventIds.length) {
-        throw new UserInputError('eventIds must contain at least one id');
+      if (validEventIds.length === 0) {
+        return {
+          updatedCount: 0,
+          updatedEventIds: [],
+          failedEventIds: invalidEventIds,
+        };
       }
 
       const factory = getEventsFactory(context, projectId);
+      const result = await factory.bulkToggleEventMark(validEventIds, mark);
 
-      try {
-        return await factory.bulkToggleEventMark(eventIds, mark);
-      } catch (err) {
-        if (err.message && err.message.includes('bulkToggleEventMark: at most')) {
-          throw new UserInputError(err.message);
-        }
-
-        throw err;
-      }
+      return {
+        ...result,
+        failedEventIds: mergeFailedEventIds(result, invalidEventIds),
+      };
     },
 
     /**
@@ -231,14 +260,12 @@ module.exports = {
 
       const assigneeData = await factories.usersFactory.dataLoaders.userById.load(assignee);
 
-      await sendPersonalNotification(assigneeData, {
-        type: 'assignee',
-        payload: {
-          assigneeId: assignee,
-          projectId,
-          whoAssignedId: user.id,
-          eventId,
-        },
+      fireAndForgetAssigneeNotifications({
+        assigneeData,
+        eventIds: [ eventId ],
+        projectId,
+        assigneeId: assignee,
+        whoAssignedId: user.id,
       });
 
       return {
@@ -264,6 +291,69 @@ module.exports = {
       return {
         success: !!result.acknowledged,
       };
+    },
+
+    /**
+     * Bulk set/clear assignee for selected original events
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {BulkUpdateAssigneeInput} input - object of arguments
+     * @param factories - factories for working with models
+     * @return {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
+     */
+    async bulkUpdateAssignee(_obj, { input }, { factories, user, ...context }) {
+      const { projectId, eventIds, assignee } = input;
+      const { validEventIds, invalidEventIds } = parseBulkEventIds(eventIds);
+
+      if (validEventIds.length === 0) {
+        return {
+          updatedCount: 0,
+          updatedEventIds: [],
+          failedEventIds: invalidEventIds,
+        };
+      }
+
+      const factory = getEventsFactory(context, projectId);
+
+      if (assignee) {
+        const userExists = await factories.usersFactory.findById(assignee);
+
+        if (!userExists) {
+          throw new UserInputError('assignee not found');
+        }
+
+        const project = await factories.projectsFactory.findById(projectId);
+        const workspace = await factories.workspacesFactory.findById(project.workspaceId);
+        const assigneeExistsInWorkspace = await workspace.getMemberInfo(assignee);
+
+        if (!assigneeExistsInWorkspace) {
+          throw new UserInputError('assignee is not a workspace member');
+        }
+      }
+
+      const result = await factory.bulkUpdateAssignee(validEventIds, assignee);
+      const resultWithInvalid = {
+        ...result,
+        failedEventIds: mergeFailedEventIds(result, invalidEventIds),
+      };
+
+      if (assignee && resultWithInvalid.updatedEventIds.length > 0) {
+        factories.usersFactory.dataLoaders.userById.load(assignee)
+          .then((assigneeData) => {
+            fireAndForgetAssigneeNotifications({
+              assigneeData,
+              eventIds: resultWithInvalid.updatedEventIds,
+              projectId,
+              assigneeId: assignee,
+              whoAssignedId: user.id,
+            });
+          })
+          .catch((error) => {
+            console.error('Failed to load assignee data for bulk notifications', error);
+          });
+      }
+
+      return resultWithInvalid;
     },
   },
 };

@@ -3,7 +3,6 @@ import { ObjectId } from 'mongodb';
 import express from 'express';
 import { createGitHubRouter } from '../../src/integrations/github/routes';
 import { ContextFactories } from '../../src/types/graphql';
-import { DEMO_WORKSPACE_ID } from '../../src/constants/demoWorkspace';
 
 /**
  * Mock GitHubService
@@ -32,6 +31,8 @@ jest.mock('../../src/integrations/github/store/install-state.redis.store', () =>
     getState: mockGetState,
   })),
 }));
+
+const DEMO_WORKSPACE_ID = '6213b6a01e6281087467cc7a';
 
 function createMockProject(options: {
   projectId?: string;

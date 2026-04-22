@@ -883,6 +883,48 @@ class EventsFactory extends Factory {
   }
 
   /**
+   * Mark many original events as visited for passed user
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string|ObjectId} userId - id of the user who is visiting events
+   * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
+   */
+  async bulkVisitEvent(eventIds, userId) {
+    const {
+      collection,
+      found,
+      failedEventIds,
+    } = await this._resolveBulkEventsByIds(eventIds);
+    const userIdStr = String(userId);
+
+    const docsToUpdate = found.filter((doc) => {
+      const visitedBy = Array.isArray(doc.visitedBy) ? doc.visitedBy : [];
+
+      return !visitedBy.some((visitedUserId) => String(visitedUserId) === userIdStr);
+    });
+    const updatedEventIds = docsToUpdate.map(doc => doc._id.toString());
+
+    if (docsToUpdate.length === 0) {
+      return {
+        updatedCount: 0,
+        updatedEventIds: [],
+        failedEventIds,
+      };
+    }
+
+    const updateManyResult = await collection.updateMany(
+      { _id: { $in: docsToUpdate.map(doc => doc._id) } },
+      { $addToSet: { visitedBy: new ObjectId(userId) } }
+    );
+
+    return {
+      updatedCount: updateManyResult.modifiedCount,
+      updatedEventIds,
+      failedEventIds,
+    };
+  }
+
+  /**
    * Mark or unmark event as Resolved, Ignored or Starred
    *
    * @param {string|ObjectId} eventId - id of the original event to mark
@@ -919,65 +961,18 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Max original event ids per bulkToggleEventMark request
-   */
-  static get BULK_TOGGLE_EVENT_MARK_MAX() {
-    return 100;
-  }
-
-  /**
-   * Bulk mark for resolved / ignored / starred (not the same as per-event toggleEventMark).
-   * - If every found event already has the mark: remove it from all (bulk "undo").
-   * - Otherwise: set the mark on every found event that does not have it yet (never remove
-   *   from a subset when the selection is mixed).
-   * Only 'resolved', 'ignored' and 'starred' are allowed for bulk.
+   * Bulk toggle mark for original events.
    *
    * @param {string[]} eventIds - original event ids
    * @param {string} mark - 'resolved' | 'ignored' | 'starred'
    * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
    */
   async bulkToggleEventMark(eventIds, mark) {
-    if (mark !== 'resolved' && mark !== 'ignored' && mark !== 'starred') {
-      throw new Error(`bulkToggleEventMark: mark must be resolved, ignored or starred, got ${mark}`);
-    }
-
-    const max = EventsFactory.BULK_TOGGLE_EVENT_MARK_MAX;
-    const unique = [ ...new Set((eventIds || []).map(id => String(id))) ];
-
-    if (unique.length > max) {
-      throw new Error(`bulkToggleEventMark: at most ${max} event ids allowed`);
-    }
-
-    const failedEventIds = [];
-    const validObjectIds = [];
-
-    for (const id of unique) {
-      if (!ObjectId.isValid(id)) {
-        failedEventIds.push(id);
-      } else {
-        validObjectIds.push(new ObjectId(id));
-      }
-    }
-
-    if (validObjectIds.length === 0) {
-      return {
-        updatedCount: 0,
-        updatedEventIds: [],
-        failedEventIds,
-      };
-    }
-
-    const collection = this.getCollection(this.TYPES.EVENTS);
-    const found = await collection.find({ _id: { $in: validObjectIds } }).toArray();
-    const foundByIdStr = new Map(found.map(doc => [doc._id.toString(), doc]));
-
-    for (const oid of validObjectIds) {
-      const idStr = oid.toString();
-
-      if (!foundByIdStr.has(idStr)) {
-        failedEventIds.push(idStr);
-      }
-    }
+    const {
+      collection,
+      found,
+      failedEventIds,
+    } = await this._resolveBulkEventsByIds(eventIds);
 
     const nowSec = Math.floor(Date.now() / 1000);
     const markKey = `marks.${mark}`;
@@ -1018,6 +1013,44 @@ class EventsFactory extends Factory {
 
     return {
       updatedCount: bulkResult.modifiedCount + bulkResult.upsertedCount,
+      updatedEventIds,
+      failedEventIds,
+    };
+  }
+
+  /**
+   * Bulk set/clear assignee for many original events.
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string|null|undefined} assignee - target assignee id, null/undefined to clear
+   * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
+   */
+  async bulkUpdateAssignee(eventIds, assignee) {
+    const {
+      collection,
+      found,
+      failedEventIds,
+    } = await this._resolveBulkEventsByIds(eventIds);
+
+    const normalizedAssignee = assignee ? String(assignee) : '';
+    const docsToUpdate = found.filter(doc => String(doc.assignee || '') !== normalizedAssignee);
+    const updatedEventIds = docsToUpdate.map(doc => doc._id.toString());
+
+    if (docsToUpdate.length === 0) {
+      return {
+        updatedCount: 0,
+        updatedEventIds: [],
+        failedEventIds,
+      };
+    }
+
+    const updateManyResult = await collection.updateMany(
+      { _id: { $in: docsToUpdate.map(doc => doc._id) } },
+      { $set: { assignee: normalizedAssignee } }
+    );
+
+    return {
+      updatedCount: updateManyResult.modifiedCount,
       updatedEventIds,
       failedEventIds,
     };
@@ -1069,6 +1102,29 @@ class EventsFactory extends Factory {
     }
 
     return result;
+  }
+
+  /**
+   * Resolve original events for bulk operations and collect not found ids.
+   *
+   * @param {string[]} eventIds - original event ids
+   * @returns {Promise<{ collection: any, found: any[], failedEventIds: string[] }>}
+   */
+  async _resolveBulkEventsByIds(eventIds) {
+    const unique = [ ...new Set((eventIds || []).map(id => String(id))) ];
+    const objectIds = unique.map(id => new ObjectId(id));
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const found = await collection.find({ _id: { $in: objectIds } }).toArray();
+    const foundByIdStr = new Set(found.map(doc => doc._id.toString()));
+    const failedEventIds = objectIds
+      .map(id => id.toString())
+      .filter(id => !foundByIdStr.has(id));
+
+    return {
+      collection,
+      found,
+      failedEventIds,
+    };
   }
 
   /**
