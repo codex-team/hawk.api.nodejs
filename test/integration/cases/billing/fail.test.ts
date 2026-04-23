@@ -52,7 +52,6 @@ const tariffPlan: PlanDBScheme = {
 };
 
 const planProlongationPayload = {
-  isCardLinkOperation: false,
   userId: user._id.toString(),
   workspaceId: workspace._id.toString(),
   tariffPlanId: tariffPlan._id.toString(),
@@ -267,7 +266,6 @@ describe('Fail webhook', () => {
         ...validRequest,
         Data: JSON.stringify({
           checksum: await checksumService.generateChecksum({
-            isCardLinkOperation: false,
             userId: '',
             workspaceId: workspace._id.toString(),
             tariffPlanId: tariffPlan._id.toString(),
