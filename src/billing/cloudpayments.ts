@@ -22,8 +22,7 @@ import {
   BusinessOperationType,
   ConfirmedMemberDBScheme,
   PayloadOfWorkspacePlanPurchase,
-  PlanDBScheme,
-  PlanProlongationPayload
+  PlanDBScheme
 } from '@hawk.so/types';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
@@ -487,7 +486,7 @@ subscription id: ${body.SubscriptionId}`;
    */
   private async fail(req: express.Request, res: express.Response): Promise<void> {
     const body: FailRequest = req.body;
-    let data: PlanProlongationPayload;
+    let data: PaymentData;
 
     console.log('💎 CloudPayments /fail request', body);
 
@@ -507,10 +506,27 @@ subscription id: ${body.SubscriptionId}`;
      * @todo handle card linking and update business operation status
      */
 
-    if (!data.workspaceId || !data.userId || !data.tariffPlanId) {
-      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No workspace or user id or plan id in request body`, body);
+    if (!data.workspaceId) {
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No workspace id in request body`, body);
 
       return;
+    }
+
+    if (!data.userId) {
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No user id in request body`, body);
+
+      return;
+    }
+
+    /**
+     * In card linking mode tariff plan id is taken from workspace.
+     */
+    if (!data.isCardLinkOperation) {
+      if (!data.tariffPlanId) {
+        this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No plan id in request body`, body);
+
+        return;
+      }
     }
 
     try {
