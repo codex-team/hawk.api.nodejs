@@ -523,7 +523,7 @@ subscription id: ${body.SubscriptionId}`;
      */
     if (!data.isCardLinkOperation) {
       if (!data.tariffPlanId) {
-        this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No plan id in request body`, body);
+        this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No tariffPlanId in request body`, body);
 
         return;
       }
