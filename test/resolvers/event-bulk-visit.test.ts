@@ -17,7 +17,7 @@ const eventResolvers = require('../../src/resolvers/event') as {
   };
 };
 
-const bulkVisitEvent = jest.fn();
+const bulkVisitEvents = jest.fn();
 
 describe('Mutation.bulkVisitEvents', () => {
   const ctx = {
@@ -26,11 +26,11 @@ describe('Mutation.bulkVisitEvents', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getEventsFactory as unknown as jest.Mock).mockReturnValue({ bulkVisitEvent });
+    (getEventsFactory as unknown as jest.Mock).mockReturnValue({ bulkVisitEvents });
   });
 
   it('should call factory with valid ids only and merge invalid ids', async () => {
-    bulkVisitEvent.mockResolvedValue({
+    bulkVisitEvents.mockResolvedValue({
       updatedCount: 1,
       updatedEventIds: [ '507f1f77bcf86cd799439012' ],
       failedEventIds: [ '507f1f77bcf86cd799439099' ],
@@ -42,7 +42,7 @@ describe('Mutation.bulkVisitEvents', () => {
       ctx
     );
 
-    expect(bulkVisitEvent).toHaveBeenCalledWith(
+    expect(bulkVisitEvents).toHaveBeenCalledWith(
       [ '507f1f77bcf86cd799439012' ],
       '507f1f77bcf86cd799439011'
     );
@@ -60,7 +60,7 @@ describe('Mutation.bulkVisitEvents', () => {
       ctx
     );
 
-    expect(bulkVisitEvent).not.toHaveBeenCalled();
+    expect(bulkVisitEvents).not.toHaveBeenCalled();
     expect(result).toEqual({
       updatedCount: 0,
       updatedEventIds: [],

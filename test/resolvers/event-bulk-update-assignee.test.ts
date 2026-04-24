@@ -26,16 +26,17 @@ const eventResolvers = require('../../src/resolvers/event') as {
 };
 
 const bulkUpdateAssignee = jest.fn();
+const ASSIGNEE_ID = '507f1f77bcf86cd799439012';
 
 describe('EventsMutations.bulkUpdateAssignee', () => {
   const ctx = {
     user: { id: 'u1' },
     factories: {
       usersFactory: {
-        findById: jest.fn().mockResolvedValue({ id: 'assignee-1' }),
+        findById: jest.fn().mockResolvedValue({ id: ASSIGNEE_ID }),
         dataLoaders: {
           userById: {
-            load: jest.fn().mockResolvedValue({ id: 'assignee-1', email: 'a@a.a' }),
+            load: jest.fn().mockResolvedValue({ id: ASSIGNEE_ID, email: 'a@a.a' }),
           },
         },
       },
@@ -44,7 +45,7 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
       },
       workspacesFactory: {
         findById: jest.fn().mockResolvedValue({
-          getMemberInfo: jest.fn().mockResolvedValue({ userId: 'assignee-1' }),
+          getMemberInfo: jest.fn().mockResolvedValue({ userId: ASSIGNEE_ID }),
         }),
       },
     },
@@ -66,10 +67,28 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
     await expect(
       eventResolvers.EventsMutations.bulkUpdateAssignee(
         {},
-        { input: { projectId: 'p1', eventIds: [], assignee: 'assignee-1' } },
+        { input: { projectId: 'p1', eventIds: [], assignee: ASSIGNEE_ID } },
         ctx
       )
     ).rejects.toThrow(UserInputError);
+    expect(bulkUpdateAssignee).not.toHaveBeenCalled();
+  });
+
+  it('should throw when assignee id is invalid', async () => {
+    await expect(
+      eventResolvers.EventsMutations.bulkUpdateAssignee(
+        {},
+        {
+          input: {
+            projectId: 'p1',
+            eventIds: [ '507f1f77bcf86cd799439011' ],
+            assignee: 'not-an-object-id',
+          },
+        },
+        ctx
+      )
+    ).rejects.toThrow(UserInputError);
+
     expect(bulkUpdateAssignee).not.toHaveBeenCalled();
   });
 
@@ -80,7 +99,7 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
         input: {
           projectId: 'p1',
           eventIds: [ '507f1f77bcf86cd799439011' ],
-          assignee: 'assignee-1',
+          assignee: ASSIGNEE_ID,
         },
       },
       ctx
@@ -89,15 +108,15 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
     expect(result.updatedCount).toBe(1);
     expect(bulkUpdateAssignee).toHaveBeenCalledWith(
       [ '507f1f77bcf86cd799439011' ],
-      'assignee-1'
+      ASSIGNEE_ID
     );
     expect(sendPersonalNotification).toHaveBeenCalledTimes(1);
     expect(sendPersonalNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'assignee-1' }),
+      expect.objectContaining({ id: ASSIGNEE_ID }),
       expect.objectContaining({
         type: 'assignee',
         payload: expect.objectContaining({
-          assigneeId: 'assignee-1',
+          assigneeId: ASSIGNEE_ID,
           projectId: 'p1',
           whoAssignedId: 'u1',
           eventId: '507f1f77bcf86cd799439011',
@@ -119,7 +138,7 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
         input: {
           projectId: 'p1',
           eventIds: [ '507f1f77bcf86cd799439011', 'invalid-id' ],
-          assignee: 'assignee-1',
+          assignee: ASSIGNEE_ID,
         },
       },
       ctx
@@ -127,7 +146,7 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
 
     expect(bulkUpdateAssignee).toHaveBeenCalledWith(
       [ '507f1f77bcf86cd799439011' ],
-      'assignee-1'
+      ASSIGNEE_ID
     );
     expect(result).toEqual({
       updatedCount: 1,
@@ -143,7 +162,7 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
         input: {
           projectId: 'p1',
           eventIds: [ 'bad-1', 'bad-2' ],
-          assignee: 'assignee-1',
+          assignee: ASSIGNEE_ID,
         },
       },
       ctx

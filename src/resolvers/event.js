@@ -6,6 +6,7 @@ const {
 } = require('./helpers/bulkEvents');
 const { aiService } = require('../services/ai');
 const { UserInputError } = require('apollo-server-express');
+const { ObjectId } = require('mongodb');
 
 /**
  * See all types and fields here {@see ../typeDefs/event.graphql}
@@ -161,7 +162,7 @@ module.exports = {
       }
 
       const factory = getEventsFactory(context, projectId);
-      const result = await factory.bulkVisitEvent(validEventIds, user.id);
+      const result = await factory.bulkVisitEvents(validEventIds, user.id);
 
       return {
         ...result,
@@ -317,6 +318,10 @@ module.exports = {
       const factory = getEventsFactory(context, projectId);
 
       if (assignee) {
+        if (!ObjectId.isValid(String(assignee))) {
+          throw new UserInputError('assignee must be a valid id or null');
+        }
+
         const userExists = await factories.usersFactory.findById(assignee);
 
         if (!userExists) {
