@@ -35,7 +35,7 @@ jest.mock('../../src/mongo', () => ({
 // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any -- CJS class
 const EventsFactory = require('../../src/models/eventsFactory') as any;
 
-describe('EventsFactory.bulkVisitEvent', () => {
+describe('EventsFactory.bulkVisitEvents', () => {
   const projectId = '507f1f77bcf86cd799439011';
 
   beforeEach(() => {
@@ -57,7 +57,7 @@ describe('EventsFactory.bulkVisitEvent', () => {
     });
     collectionMock.updateMany.mockResolvedValue({ modifiedCount: 1 });
 
-    const result = await factory.bulkVisitEvent([ a.toString(), b.toString() ], userId.toString());
+    const result = await factory.bulkVisitEvents([ a.toString(), b.toString() ], userId.toString());
 
     expect(result.updatedCount).toBe(1);
     expect(result.updatedEventIds).toEqual([ b.toString() ]);
@@ -72,7 +72,7 @@ describe('EventsFactory.bulkVisitEvent', () => {
       toArray: () => Promise.resolve([]),
     });
 
-    const result = await factory.bulkVisitEvent([ missing.toString() ], new ObjectId().toString());
+    const result = await factory.bulkVisitEvents([ missing.toString() ], new ObjectId().toString());
 
     expect(result.updatedCount).toBe(0);
     expect(result.updatedEventIds).toEqual([]);

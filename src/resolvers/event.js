@@ -162,7 +162,7 @@ module.exports = {
       }
 
       const factory = getEventsFactory(context, projectId);
-      const result = await factory.bulkVisitEvent(validEventIds, user.id);
+      const result = await factory.bulkVisitEvents(validEventIds, user.id);
 
       return {
         ...result,

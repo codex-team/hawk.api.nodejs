@@ -889,7 +889,7 @@ class EventsFactory extends Factory {
    * @param {string|ObjectId} userId - id of the user who is visiting events
    * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
    */
-  async bulkVisitEvent(eventIds, userId) {
+  async bulkVisitEvents(eventIds, userId) {
     const {
       collection,
       found,
