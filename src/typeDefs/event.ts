@@ -487,7 +487,7 @@ type BulkUpdateAssigneeResponse {
 }
 
 """
-Result of bulk toggling event marks (resolve / ignore)
+Result of bulk toggling event marks (resolve / ignore / starred)
 """
 type BulkToggleEventMarksResult {
   """
