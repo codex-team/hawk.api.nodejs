@@ -602,7 +602,8 @@ extend type Mutation {
 
   """
   Toggle the same mark on many original events at once (resolved, ignored or starred).
-  Same toggle semantics as toggleEventMark per event.
+  Uses bulk semantics: if every selected event already has the mark, clear it for all;
+  otherwise set it on each selected event that does not have it yet.
   """
   bulkToggleEventMarks(
     """

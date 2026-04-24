@@ -2,6 +2,8 @@ const sendPersonalNotification = require('../../utils/personalNotifications').de
 const { UserInputError } = require('apollo-server-express');
 const { ObjectId } = require('mongodb');
 
+const ASSIGNEE_NOTIFICATIONS_CHUNK_SIZE = 25;
+
 /**
  * Enqueue assignee notifications in background (do not block resolver response)
  *
@@ -26,20 +28,40 @@ function fireAndForgetAssigneeNotifications({
     return;
   }
 
-  Promise.allSettled(eventIds.map(eventId => sendPersonalNotification(assigneeData, {
-    type: 'assignee',
-    payload: {
-      assigneeId,
-      projectId,
-      whoAssignedId,
-      eventId,
-    },
-  })))
-    .then((results) => {
-      const failedResults = results.filter(result => result.status === 'rejected');
+  Promise.resolve()
+    .then(async () => {
+      const failedResults = [];
+
+      for (let i = 0; i < eventIds.length; i += ASSIGNEE_NOTIFICATIONS_CHUNK_SIZE) {
+        const chunk = eventIds.slice(i, i + ASSIGNEE_NOTIFICATIONS_CHUNK_SIZE);
+        const results = await Promise.allSettled(chunk.map(eventId => sendPersonalNotification(assigneeData, {
+          type: 'assignee',
+          payload: {
+            assigneeId,
+            projectId,
+            whoAssignedId,
+            eventId,
+          },
+        })));
+
+        failedResults.push(...results.filter(result => result.status === 'rejected'));
+      }
 
       if (failedResults.length > 0) {
-        console.error('Failed to enqueue assignee notifications', failedResults);
+        const failedMessages = failedResults.map((result) => {
+          const reason = result && result.reason;
+
+          if (reason && typeof reason.message === 'string') {
+            return reason.message;
+          }
+
+          return String(reason || 'Unknown error');
+        });
+
+        console.error('Failed to enqueue assignee notifications', {
+          failedCount: failedResults.length,
+          errors: failedMessages,
+        });
       }
     })
     .catch((error) => {
