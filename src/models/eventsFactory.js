@@ -919,6 +919,39 @@ class EventsFactory extends Factory {
   }
 
   /**
+   * Remove a single event and all related data (repetitions, daily events)
+   *
+   * @param {string|ObjectId} eventId - id of the original event to remove
+   * @return {Promise<boolean>}
+   */
+  async removeEvent(eventId) {
+    const eventsCollection = this.getCollection(this.TYPES.EVENTS);
+
+    const event = await eventsCollection.findOne({ _id: new ObjectId(eventId) });
+
+    if (!event) {
+      throw new Error(`Event not found for eventId: ${eventId}`);
+    }
+
+    const { groupHash } = event;
+
+    // Delete original event
+    const result = await eventsCollection.deleteOne({ _id: new ObjectId(eventId) });
+
+    // Delete all repetitions with same groupHash
+    if (await this.isCollectionExists(this.TYPES.REPETITIONS)) {
+      await this.getCollection(this.TYPES.REPETITIONS).deleteMany({ groupHash });
+    }
+
+    // Delete all daily event records with same groupHash
+    if (await this.isCollectionExists(this.TYPES.DAILY_EVENTS)) {
+      await this.getCollection(this.TYPES.DAILY_EVENTS).deleteMany({ groupHash });
+    }
+
+    return result.acknowledged && result.deletedCount > 0;
+  }
+
+  /**
    * Remove all project events
    *
    * @return {Promise<void>}
