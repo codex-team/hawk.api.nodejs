@@ -166,7 +166,7 @@ module.exports = {
 
       const result = await factory.removeEvent(eventId);
 
-      return !!result.acknowledged;
+      return result;
     },
 
     /**

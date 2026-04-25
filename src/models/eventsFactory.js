@@ -879,7 +879,7 @@ class EventsFactory extends Factory {
    * Remove a single event and all related data (repetitions, daily events)
    *
    * @param {string|ObjectId} eventId - id of the original event to remove
-   * @return {Promise<DeleteResult>}
+   * @return {Promise<boolean>}
    */
   async removeEvent(eventId) {
     const eventsCollection = this.getCollection(this.TYPES.EVENTS);
@@ -905,7 +905,7 @@ class EventsFactory extends Factory {
       await this.getCollection(this.TYPES.DAILY_EVENTS).deleteMany({ groupHash });
     }
 
-    return result;
+    return result.acknowledged && result.deletedCount > 0;
   }
 
   /**
