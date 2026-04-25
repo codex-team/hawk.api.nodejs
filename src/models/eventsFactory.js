@@ -1,8 +1,8 @@
-import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 import safe from 'safe-regex';
 import { createProjectEventsByIdLoader } from '../dataLoaders';
 import RedisHelper from '../redisHelper';
 import ChartDataService from '../services/chartDataService';
+import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
@@ -929,6 +929,7 @@ class EventsFactory extends Factory {
 
     const event = await eventsCollection.findOne({ _id: new ObjectId(eventId) });
 
+    // If event is not found, throw error
     if (!event) {
       throw new Error(`Event not found for eventId: ${eventId}`);
     }
