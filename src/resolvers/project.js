@@ -20,6 +20,54 @@ const GROUPING_TIMESTAMP_INDEX_NAME = 'groupingTimestamp';
 const GROUPING_TIMESTAMP_AND_LAST_REPETITION_TIME_AND_ID_INDEX_NAME = 'groupingTimestampAndLastRepetitionTimeAndId';
 const GROUPING_TIMESTAMP_AND_GROUP_HASH_INDEX_NAME = 'groupingTimestampAndGroupHash';
 const MAX_SEARCH_QUERY_LENGTH = 50;
+const FALLBACK_EVENT_TITLE = 'Unknown';
+
+/**
+ * Ensures each daily event has non-empty payload title
+ * and writes warning log with identifiers when fallback is used.
+ *
+ * @param {object} dailyEventsPortion - portion returned by events factory
+ * @param {string|ObjectId} projectId - project id for logs
+ * @returns {object}
+ */
+function normalizeDailyEventsPayloadTitle(dailyEventsPortion, projectId) {
+  if (!dailyEventsPortion || !Array.isArray(dailyEventsPortion.dailyEvents)) {
+    return dailyEventsPortion;
+  }
+
+  dailyEventsPortion.dailyEvents = dailyEventsPortion.dailyEvents.map((dailyEvent) => {
+    const event = dailyEvent && dailyEvent.event ? dailyEvent.event : null;
+    const payload = event && event.payload ? event.payload : null;
+    const hasValidTitle = payload &&
+      typeof payload.title === 'string' &&
+      payload.title.trim().length > 0;
+
+    if (hasValidTitle) {
+      return dailyEvent;
+    }
+
+    console.warn('🔴🔴🔴 [ProjectResolver.dailyEventsPortion] Missing event payload title. Fallback title applied.', {
+      projectId: projectId ? projectId.toString() : null,
+      dailyEventId: dailyEvent && dailyEvent.id ? dailyEvent.id.toString() : null,
+      dailyEventGroupHash: dailyEvent && dailyEvent.groupHash ? dailyEvent.groupHash.toString() : null,
+      eventOriginalId: event && event.originalEventId ? event.originalEventId.toString() : null,
+      eventId: event && event._id ? event._id.toString() : null,
+    });
+
+    return {
+      ...dailyEvent,
+      event: {
+        ...(event || {}),
+        payload: {
+          ...(payload || {}),
+          title: FALLBACK_EVENT_TITLE,
+        },
+      },
+    };
+  });
+
+  return dailyEventsPortion;
+}
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -571,19 +619,21 @@ module.exports = {
     },
 
     /**
-     * Returns recent Events grouped by day
+     * Returns a paginated portion of daily-grouped events
      *
-     * @param {ProjectDBScheme} project - result of parent resolver
-     * @param {Number} limit - limit for events count
-     * @param {DailyEventsCursor} cursor - object with boundary values of the first event in the next portion
-     * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
-     * @param {EventsFilters} filters - marks by which events should be filtered
-     * @param {String} release - release name
-     * @param {String} search - search query
-     *
-     * @return {Promise<RecentEventSchema[]>}
+     * @param {ProjectDBScheme} project - parent resolver result
+     * @param {object} args - GraphQL arguments
+     * @param {number} args.limit - max rows in portion
+     * @param {object|null} args.nextCursor - pagination cursor
+     * @param {string} args.sort - BY_DATE | BY_COUNT | BY_AFFECTED_USERS (mapped in factory)
+     * @param {object} args.filters - mark filters only: resolved, starred, ignored (assignee uses args.assignee)
+     * @param {string} args.search - search query
+     * @param {string|undefined} args.release - optional release label filter
+     * @param {string|undefined} args.assignee - user id or __filter_unassigned__ / __filter_any_assignee__
+     * @param {object} context - GraphQL context
+     * @returns {Promise<object>} dailyEventsPortion payload from factory
      */
-    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search, release }, context) {
+    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search, release, assignee }, context) {
       if (search) {
         if (search.length > MAX_SEARCH_QUERY_LENGTH) {
           search = search.slice(0, MAX_SEARCH_QUERY_LENGTH);
@@ -592,7 +642,17 @@ module.exports = {
 
       const factory = getEventsFactory(context, project._id);
 
-      const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search, release);
+      const dailyEventsPortion = await factory.findDailyEventsPortion(
+        limit,
+        nextCursor,
+        sort,
+        filters,
+        search,
+        release,
+        assignee
+      );
+
+      normalizeDailyEventsPayloadTitle(dailyEventsPortion, project._id);
 
       return dailyEventsPortion;
     },
