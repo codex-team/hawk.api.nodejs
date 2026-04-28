@@ -482,9 +482,9 @@ type BulkUpdateAssigneeResponse {
 }
 
 """
-Result of bulk toggling event marks (resolve / ignore / starred)
+Response of bulk toggling event marks (resolve / ignore / starred)
 """
-type BulkToggleEventMarksResult {
+type BulkToggleEventMarksResponse {
   """
   Original event ids actually toggled in this operation
   """
@@ -497,9 +497,9 @@ type BulkToggleEventMarksResult {
 }
 
 """
-Result of bulk marking events as viewed
+Response of bulk marking events as viewed
 """
-type BulkVisitEventsResult {
+type BulkVisitEventsResponse {
   """
   Original event ids actually updated in this operation
   """
@@ -563,7 +563,7 @@ extend type Mutation {
     Original event ids
     """
     eventIds: [ID!]!
-  ): BulkVisitEventsResult! @requireUserInWorkspace
+  ): BulkVisitEventsResponse! @requireUserInWorkspace
 
   """
   Mutation sets or unsets passed mark to event
@@ -606,7 +606,7 @@ extend type Mutation {
     otherwise set it on every selected event that does not have it yet.
     """
     mark: EventMark!
-  ): BulkToggleEventMarksResult! @requireUserInWorkspace
+  ): BulkToggleEventMarksResponse! @requireUserInWorkspace
 
   """
   Namespace that contains only mutations related to the events
