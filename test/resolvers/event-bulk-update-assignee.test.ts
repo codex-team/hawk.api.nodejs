@@ -21,7 +21,7 @@ const eventResolvers = require('../../src/resolvers/event') as {
       o: unknown,
       args: { input: { projectId: string; eventIds: string[]; assignee?: string | null } },
       ctx: any
-    ) => Promise<{ updatedCount: number; updatedEventIds: string[]; failedEventIds: string[] }>;
+    ) => Promise<{ updatedEventIds: string[]; failedEventIds: string[] }>;
   };
 };
 
@@ -57,7 +57,6 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
       bulkUpdateAssignee,
     });
     bulkUpdateAssignee.mockResolvedValue({
-      updatedCount: 1,
       updatedEventIds: [ '507f1f77bcf86cd799439011' ],
       failedEventIds: [],
     });
@@ -105,7 +104,6 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
       ctx
     );
 
-    expect(result.updatedCount).toBe(1);
     expect(bulkUpdateAssignee).toHaveBeenCalledWith(
       [ '507f1f77bcf86cd799439011' ],
       ASSIGNEE_ID
@@ -127,7 +125,6 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
 
   it('should validate ids on resolver level and merge invalid ids into failedEventIds', async () => {
     bulkUpdateAssignee.mockResolvedValue({
-      updatedCount: 1,
       updatedEventIds: [ '507f1f77bcf86cd799439011' ],
       failedEventIds: [ '507f1f77bcf86cd799439099' ],
     });
@@ -149,7 +146,6 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
       ASSIGNEE_ID
     );
     expect(result).toEqual({
-      updatedCount: 1,
       updatedEventIds: [ '507f1f77bcf86cd799439011' ],
       failedEventIds: [ '507f1f77bcf86cd799439099', 'invalid-id' ],
     });
@@ -170,7 +166,6 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
 
     expect(bulkUpdateAssignee).not.toHaveBeenCalled();
     expect(result).toEqual({
-      updatedCount: 0,
       updatedEventIds: [],
       failedEventIds: [ 'bad-1', 'bad-2' ],
     });

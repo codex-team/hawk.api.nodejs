@@ -13,7 +13,7 @@ const eventResolvers = require('../../src/resolvers/event') as {
       o: unknown,
       args: { projectId: string; eventIds: string[]; mark: string },
       ctx: unknown
-    ) => Promise<{ updatedCount: number; updatedEventIds: string[]; failedEventIds: string[] }>;
+    ) => Promise<{ updatedEventIds: string[]; failedEventIds: string[] }>;
   };
 };
 
@@ -42,7 +42,7 @@ describe('Mutation.bulkToggleEventMarks', () => {
   });
 
   it('should call factory with original event ids and return its result', async () => {
-    const payload = { updatedCount: 2, updatedEventIds: [ 'a', 'b' ], failedEventIds: [ 'x' ] };
+    const payload = { updatedEventIds: [ 'a', 'b' ], failedEventIds: [ 'x' ] };
 
     bulkToggleEventMark.mockResolvedValue(payload);
 
@@ -65,7 +65,7 @@ describe('Mutation.bulkToggleEventMarks', () => {
   });
 
   it('should allow starred mark for bulk toggle', async () => {
-    const payload = { updatedCount: 1, updatedEventIds: [ '507f1f77bcf86cd799439011' ], failedEventIds: [] };
+    const payload = { updatedEventIds: [ '507f1f77bcf86cd799439011' ], failedEventIds: [] };
 
     bulkToggleEventMark.mockResolvedValue(payload);
 
@@ -88,7 +88,6 @@ describe('Mutation.bulkToggleEventMarks', () => {
 
   it('should validate ids on resolver level and merge invalid ids into failedEventIds', async () => {
     bulkToggleEventMark.mockResolvedValue({
-      updatedCount: 1,
       updatedEventIds: [ '507f1f77bcf86cd799439011' ],
       failedEventIds: [ '507f1f77bcf86cd799439099' ],
     });
@@ -108,7 +107,6 @@ describe('Mutation.bulkToggleEventMarks', () => {
       'ignored'
     );
     expect(result).toEqual({
-      updatedCount: 1,
       updatedEventIds: [ '507f1f77bcf86cd799439011' ],
       failedEventIds: [ '507f1f77bcf86cd799439099', 'invalid-id' ],
     });
@@ -127,7 +125,6 @@ describe('Mutation.bulkToggleEventMarks', () => {
 
     expect(bulkToggleEventMark).not.toHaveBeenCalled();
     expect(result).toEqual({
-      updatedCount: 0,
       updatedEventIds: [],
       failedEventIds: [ 'bad-1', 'bad-2' ],
     });

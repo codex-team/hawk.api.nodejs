@@ -1,9 +1,10 @@
 const getEventsFactory = require('./helpers/eventsFactory').default;
 const {
-  fireAndForgetAssigneeNotifications,
   parseBulkEventIds,
-  mergeFailedEventIds,
-} = require('./helpers/bulkEvents');
+  withMergedInvalidEventIds,
+  enqueueAssigneeNotification,
+  enqueueBulkAssigneeNotifications,
+} = require('./helpers/bulkEventUtils');
 const { aiService } = require('../services/ai');
 const { UserInputError } = require('apollo-server-express');
 const { ObjectId } = require('mongodb');
@@ -148,14 +149,13 @@ module.exports = {
      * @param {string} projectId - project id
      * @param {string[]} eventIds - original event ids
      * @param {UserInContext} user - user context
-     * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
+     * @returns {Promise<{ updatedEventIds: string[], failedEventIds: string[] }>}
      */
     async bulkVisitEvents(_obj, { projectId, eventIds }, { user, ...context }) {
       const { validEventIds, invalidEventIds } = parseBulkEventIds(eventIds);
 
       if (validEventIds.length === 0) {
         return {
-          updatedCount: 0,
           updatedEventIds: [],
           failedEventIds: invalidEventIds,
         };
@@ -164,10 +164,7 @@ module.exports = {
       const factory = getEventsFactory(context, projectId);
       const result = await factory.bulkVisitEvents(validEventIds, user.id);
 
-      return {
-        ...result,
-        failedEventIds: mergeFailedEventIds(result, invalidEventIds),
-      };
+      return withMergedInvalidEventIds(result, invalidEventIds);
     },
 
     /**
@@ -196,14 +193,13 @@ module.exports = {
      * @param {string[]} eventIds - original event ids
      * @param {string} mark - EventMark enum value
      * @param {object} context - gql context
-     * @return {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
+     * @return {Promise<{ updatedEventIds: string[], failedEventIds: string[] }>}
      */
     async bulkToggleEventMarks(_obj, { projectId, eventIds, mark }, context) {
       const { validEventIds, invalidEventIds } = parseBulkEventIds(eventIds);
 
       if (validEventIds.length === 0) {
         return {
-          updatedCount: 0,
           updatedEventIds: [],
           failedEventIds: invalidEventIds,
         };
@@ -212,10 +208,7 @@ module.exports = {
       const factory = getEventsFactory(context, projectId);
       const result = await factory.bulkToggleEventMark(validEventIds, mark);
 
-      return {
-        ...result,
-        failedEventIds: mergeFailedEventIds(result, invalidEventIds),
-      };
+      return withMergedInvalidEventIds(result, invalidEventIds);
     },
 
     /**
@@ -261,12 +254,12 @@ module.exports = {
 
       const assigneeData = await factories.usersFactory.dataLoaders.userById.load(assignee);
 
-      fireAndForgetAssigneeNotifications({
+      enqueueAssigneeNotification({
         assigneeData,
-        eventIds: [ eventId ],
-        projectId,
         assigneeId: assignee,
+        projectId,
         whoAssignedId: user.id,
+        eventId,
       });
 
       return {
@@ -300,7 +293,7 @@ module.exports = {
      * @param {ResolverObj} _obj - resolver context
      * @param {BulkUpdateAssigneeInput} input - object of arguments
      * @param factories - factories for working with models
-     * @return {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
+     * @return {Promise<{ updatedEventIds: string[], failedEventIds: string[] }>}
      */
     async bulkUpdateAssignee(_obj, { input }, { factories, user, ...context }) {
       const { projectId, eventIds, assignee } = input;
@@ -309,7 +302,6 @@ module.exports = {
 
       if (validEventIds.length === 0) {
         return {
-          updatedCount: 0,
           updatedEventIds: [],
           failedEventIds: invalidEventIds,
         };
@@ -340,18 +332,15 @@ module.exports = {
       }
 
       const result = await factory.bulkUpdateAssignee(validEventIds, assignee);
-      const resultWithInvalid = {
-        ...result,
-        failedEventIds: mergeFailedEventIds(result, invalidEventIds),
-      };
+      const resultWithInvalid = withMergedInvalidEventIds(result, invalidEventIds);
 
       if (assignee && resultWithInvalid.updatedEventIds.length > 0) {
-        fireAndForgetAssigneeNotifications({
+        enqueueBulkAssigneeNotifications({
           assigneeData,
-          eventIds: resultWithInvalid.updatedEventIds,
-          projectId,
           assigneeId: assignee,
+          projectId,
           whoAssignedId: user.id,
+          eventIds: resultWithInvalid.updatedEventIds,
         });
       }
 

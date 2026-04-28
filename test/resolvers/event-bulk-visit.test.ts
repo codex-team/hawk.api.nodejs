@@ -13,7 +13,7 @@ const eventResolvers = require('../../src/resolvers/event') as {
       o: unknown,
       args: { projectId: string; eventIds: string[] },
       ctx: any
-    ) => Promise<{ updatedCount: number; updatedEventIds: string[]; failedEventIds: string[] }>;
+    ) => Promise<{ updatedEventIds: string[]; failedEventIds: string[] }>;
   };
 };
 
@@ -31,7 +31,6 @@ describe('Mutation.bulkVisitEvents', () => {
 
   it('should call factory with valid ids only and merge invalid ids', async () => {
     bulkVisitEvents.mockResolvedValue({
-      updatedCount: 1,
       updatedEventIds: [ '507f1f77bcf86cd799439012' ],
       failedEventIds: [ '507f1f77bcf86cd799439099' ],
     });
@@ -47,7 +46,6 @@ describe('Mutation.bulkVisitEvents', () => {
       '507f1f77bcf86cd799439011'
     );
     expect(result).toEqual({
-      updatedCount: 1,
       updatedEventIds: [ '507f1f77bcf86cd799439012' ],
       failedEventIds: [ '507f1f77bcf86cd799439099', 'bad-id' ],
     });
@@ -62,7 +60,6 @@ describe('Mutation.bulkVisitEvents', () => {
 
     expect(bulkVisitEvents).not.toHaveBeenCalled();
     expect(result).toEqual({
-      updatedCount: 0,
       updatedEventIds: [],
       failedEventIds: [ 'bad-1', 'bad-2' ],
     });

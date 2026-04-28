@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 
 const collectionMock = {
   find: jest.fn(),
-  updateMany: jest.fn(),
+  updateOne: jest.fn(),
 };
 
 jest.mock('../../src/redisHelper', () => ({
@@ -40,7 +40,7 @@ describe('EventsFactory.bulkUpdateAssignee', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    collectionMock.updateMany.mockResolvedValue({ modifiedCount: 0 });
+    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 0 });
   });
 
   it('should update only events with changed assignee', async () => {
@@ -54,14 +54,13 @@ describe('EventsFactory.bulkUpdateAssignee', () => {
         { _id: b, assignee: '' },
       ]),
     });
-    collectionMock.updateMany.mockResolvedValue({ modifiedCount: 1 });
+    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 1 });
 
     const result = await factory.bulkUpdateAssignee([ a.toString(), b.toString() ], 'user-1');
 
-    expect(result.updatedCount).toBe(1);
     expect(result.updatedEventIds).toEqual([ b.toString() ]);
     expect(result.failedEventIds).toEqual([]);
-    expect(collectionMock.updateMany).toHaveBeenCalledTimes(1);
+    expect(collectionMock.updateOne).toHaveBeenCalledTimes(1);
   });
 
   it('should clear assignee with null value', async () => {
@@ -71,14 +70,16 @@ describe('EventsFactory.bulkUpdateAssignee', () => {
     collectionMock.find.mockReturnValue({
       toArray: () => Promise.resolve([{ _id: a, assignee: 'user-1' }]),
     });
-    collectionMock.updateMany.mockResolvedValue({ modifiedCount: 1 });
+    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 1 });
 
     const result = await factory.bulkUpdateAssignee([ a.toString() ], null);
 
-    expect(result.updatedCount).toBe(1);
     expect(result.updatedEventIds).toEqual([ a.toString() ]);
-    expect(collectionMock.updateMany).toHaveBeenCalledWith(
-      { _id: { $in: [ a ] } },
+    expect(collectionMock.updateOne).toHaveBeenCalledWith(
+      {
+        _id: a,
+        assignee: { $ne: '' },
+      },
       { $set: { assignee: '' } }
     );
   });

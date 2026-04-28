@@ -471,11 +471,6 @@ type RemoveAssigneeResponse {
 
 type BulkUpdateAssigneeResponse {
   """
-  Number of events updated in the database
-  """
-  updatedCount: Int!
-
-  """
   Original event ids actually updated in this operation
   """
   updatedEventIds: [ID!]!
@@ -491,11 +486,6 @@ Result of bulk toggling event marks (resolve / ignore / starred)
 """
 type BulkToggleEventMarksResult {
   """
-  Number of events updated in the database
-  """
-  updatedCount: Int!
-
-  """
   Original event ids actually toggled in this operation
   """
   updatedEventIds: [ID!]!
@@ -510,11 +500,6 @@ type BulkToggleEventMarksResult {
 Result of bulk marking events as viewed
 """
 type BulkVisitEventsResult {
-  """
-  Number of events updated in the database
-  """
-  updatedCount: Int!
-
   """
   Original event ids actually updated in this operation
   """
