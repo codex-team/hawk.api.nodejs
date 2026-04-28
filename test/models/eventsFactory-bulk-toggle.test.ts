@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 
 const collectionMock = {
   find: jest.fn(),
-  updateOne: jest.fn(),
+  updateMany: jest.fn(),
 };
 
 jest.mock('../../src/redisHelper', () => ({
@@ -32,7 +32,7 @@ jest.mock('../../src/mongo', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any -- CJS class
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
 const EventsFactory = require('../../src/models/eventsFactory') as any;
 
 describe('EventsFactory.bulkToggleEventMark', () => {
@@ -40,7 +40,10 @@ describe('EventsFactory.bulkToggleEventMark', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 0 });
+    collectionMock.updateMany.mockResolvedValue({
+      acknowledged: true,
+      modifiedCount: 0,
+    });
   });
 
   it('should support starred mark', async () => {
@@ -56,13 +59,22 @@ describe('EventsFactory.bulkToggleEventMark', () => {
           },
         ]),
     });
-    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 1 });
+    collectionMock.updateMany.mockResolvedValue({
+      acknowledged: true,
+      modifiedCount: 1,
+    });
 
     const result = await factory.bulkToggleEventMark([ id.toString() ], 'starred');
 
-    expect(result.updatedEventIds).toEqual([ id.toString() ]);
-    expect(collectionMock.updateOne).toHaveBeenCalledWith(
-      { _id: id },
+    expect(result).toEqual({
+      acknowledged: true,
+      modifiedCount: 1,
+    });
+    expect(collectionMock.updateMany).toHaveBeenCalledWith(
+      {
+        _id: { $in: [ id ] },
+        'marks.starred': { $exists: false },
+      },
       expect.objectContaining({
         $set: { 'marks.starred': expect.any(Number) },
       })
@@ -82,26 +94,39 @@ describe('EventsFactory.bulkToggleEventMark', () => {
           },
         ]),
     });
-    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 1 });
-
-    await factory.bulkToggleEventMark([ id.toString(), id.toString(), id.toString() ], 'ignored');
-
-    expect(collectionMock.updateOne).toHaveBeenCalledTimes(1);
-  });
-
-  it('should list valid but missing document ids in failedEventIds', async () => {
-    const factory = new EventsFactory(projectId);
-    const missing = new ObjectId();
-
-    collectionMock.find.mockReturnValue({
-      toArray: () => Promise.resolve([]),
+    collectionMock.updateMany.mockResolvedValue({
+      acknowledged: true,
+      modifiedCount: 1,
     });
 
-    const result = await factory.bulkToggleEventMark([ missing.toString() ], 'ignored');
+    await factory.bulkToggleEventMark([id.toString(), id.toString(), id.toString()], 'ignored');
 
-    expect(result.updatedEventIds).toEqual([]);
-    expect(result.failedEventIds).toContain(missing.toString());
-    expect(collectionMock.updateOne).not.toHaveBeenCalled();
+    const query = collectionMock.updateMany.mock.calls[0][0];
+
+    expect(query._id.$in).toHaveLength(1);
+  });
+
+  it('should return success shape even when nothing changed', async () => {
+    const factory = new EventsFactory(projectId);
+    const id = new ObjectId();
+
+    collectionMock.find.mockReturnValue({
+      toArray: () => Promise.resolve([ {
+        _id: id,
+        marks: { ignored: 1 },
+      } ]),
+    });
+    collectionMock.updateMany.mockResolvedValue({
+      acknowledged: true,
+      modifiedCount: 0,
+    });
+
+    const result = await factory.bulkToggleEventMark([ id.toString() ], 'ignored');
+
+    expect(result).toEqual({
+      acknowledged: true,
+      modifiedCount: 0,
+    });
   });
 
   it('should set mark only on events that do not have it when selection is mixed', async () => {
@@ -112,18 +137,28 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     collectionMock.find.mockReturnValue({
       toArray: () =>
         Promise.resolve([
-          { _id: a, marks: { ignored: 1 } },
-          { _id: b, marks: {} },
+          {
+            _id: a,
+            marks: { ignored: 1 },
+          },
+          {
+            _id: b,
+            marks: {},
+          },
         ]),
     });
-    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 1 });
+    collectionMock.updateMany.mockResolvedValue({
+      acknowledged: true,
+      modifiedCount: 1,
+    });
 
-    const result = await factory.bulkToggleEventMark([ a.toString(), b.toString() ], 'ignored');
+    await factory.bulkToggleEventMark([a.toString(), b.toString()], 'ignored');
 
-    expect(result.updatedEventIds).toEqual([ b.toString() ]);
-    expect(collectionMock.updateOne).toHaveBeenCalledTimes(1);
-    expect(collectionMock.updateOne).toHaveBeenCalledWith(
-      { _id: b },
+    expect(collectionMock.updateMany).toHaveBeenCalledWith(
+      {
+        _id: { $in: [a, b] },
+        'marks.ignored': { $exists: false },
+      },
       expect.objectContaining({
         $set: { 'marks.ignored': expect.any(Number) },
       })
@@ -138,18 +173,34 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     collectionMock.find.mockReturnValue({
       toArray: () =>
         Promise.resolve([
-          { _id: a, marks: { resolved: 1 } },
-          { _id: b, marks: { resolved: 2 } },
+          {
+            _id: a,
+            marks: { resolved: 1 },
+          },
+          {
+            _id: b,
+            marks: { resolved: 2 },
+          },
         ]),
     });
-    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 1 });
+    collectionMock.updateMany.mockResolvedValue({
+      acknowledged: true,
+      modifiedCount: 2,
+    });
 
-    const result = await factory.bulkToggleEventMark([ a.toString(), b.toString() ], 'resolved');
+    const result = await factory.bulkToggleEventMark([a.toString(), b.toString()], 'resolved');
 
-    expect(result.updatedEventIds).toEqual([ a.toString(), b.toString() ]);
-    expect(collectionMock.updateOne).toHaveBeenCalledTimes(2);
-    expect(collectionMock.updateOne).toHaveBeenNthCalledWith(1, { _id: a }, { $unset: { 'marks.resolved': '' } });
-    expect(collectionMock.updateOne).toHaveBeenNthCalledWith(2, { _id: b }, { $unset: { 'marks.resolved': '' } });
+    expect(result).toEqual({
+      acknowledged: true,
+      modifiedCount: 2,
+    });
+    expect(collectionMock.updateMany).toHaveBeenCalledWith(
+      {
+        _id: { $in: [a, b] },
+        'marks.resolved': { $exists: true },
+      },
+      { $unset: { 'marks.resolved': '' } }
+    );
   });
 
   it('should not remove mark from a subset when only some of the found events have the mark', async () => {
@@ -160,18 +211,28 @@ describe('EventsFactory.bulkToggleEventMark', () => {
     collectionMock.find.mockReturnValue({
       toArray: () =>
         Promise.resolve([
-          { _id: a, marks: { ignored: 1 } },
-          { _id: b, marks: {} },
+          {
+            _id: a,
+            marks: { ignored: 1 },
+          },
+          {
+            _id: b,
+            marks: {},
+          },
         ]),
     });
-    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 1 });
+    collectionMock.updateMany.mockResolvedValue({
+      acknowledged: true,
+      modifiedCount: 1,
+    });
 
-    const result = await factory.bulkToggleEventMark([ a.toString(), b.toString() ], 'ignored');
+    await factory.bulkToggleEventMark([a.toString(), b.toString()], 'ignored');
 
-    expect(result.updatedEventIds).toEqual([ b.toString() ]);
-    expect(collectionMock.updateOne).toHaveBeenCalledTimes(1);
-    expect(collectionMock.updateOne).toHaveBeenCalledWith(
-      { _id: b },
+    expect(collectionMock.updateMany).toHaveBeenCalledWith(
+      {
+        _id: { $in: [a, b] },
+        'marks.ignored': { $exists: false },
+      },
       expect.objectContaining({ $set: { 'marks.ignored': expect.any(Number) } })
     );
   });

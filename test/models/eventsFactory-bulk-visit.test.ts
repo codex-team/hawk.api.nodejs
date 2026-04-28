@@ -2,8 +2,7 @@ import '../../src/env-test';
 import { ObjectId } from 'mongodb';
 
 const collectionMock = {
-  find: jest.fn(),
-  updateOne: jest.fn(),
+  updateMany: jest.fn(),
 };
 
 jest.mock('../../src/redisHelper', () => ({
@@ -32,7 +31,7 @@ jest.mock('../../src/mongo', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any -- CJS class
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
 const EventsFactory = require('../../src/models/eventsFactory') as any;
 
 describe('EventsFactory.bulkVisitEvents', () => {
@@ -40,41 +39,46 @@ describe('EventsFactory.bulkVisitEvents', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 0 });
+    collectionMock.updateMany.mockResolvedValue({
+      acknowledged: true,
+      modifiedCount: 0,
+    });
   });
 
-  it('should mark only not-yet-visited events', async () => {
+  it('should use updateMany with visitedBy guard', async () => {
     const factory = new EventsFactory(projectId);
     const a = new ObjectId();
     const b = new ObjectId();
     const userId = new ObjectId();
 
-    collectionMock.find.mockReturnValue({
-      toArray: () => Promise.resolve([
-        { _id: a, visitedBy: [ userId ] },
-        { _id: b, visitedBy: [] },
-      ]),
+    collectionMock.updateMany.mockResolvedValue({
+      acknowledged: true,
+      modifiedCount: 1,
     });
-    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 1 });
 
-    const result = await factory.bulkVisitEvents([ a.toString(), b.toString() ], userId.toString());
+    const result = await factory.bulkVisitEvents([a.toString(), b.toString()], userId.toString());
 
-    expect(result.updatedEventIds).toEqual([ b.toString() ]);
-    expect(result.failedEventIds).toEqual([]);
+    expect(collectionMock.updateMany).toHaveBeenCalledWith(
+      {
+        _id: { $in: [a, b] },
+        visitedBy: { $ne: userId },
+      },
+      { $addToSet: { visitedBy: userId } }
+    );
+    expect(result).toEqual({
+      acknowledged: true,
+      modifiedCount: 1,
+    });
   });
 
-  it('should add not found ids to failedEventIds', async () => {
+  it('should deduplicate ids before updateMany', async () => {
     const factory = new EventsFactory(projectId);
-    const missing = new ObjectId();
+    const id = new ObjectId();
 
-    collectionMock.find.mockReturnValue({
-      toArray: () => Promise.resolve([]),
-    });
+    await factory.bulkVisitEvents([id.toString(), id.toString()], new ObjectId().toString());
 
-    const result = await factory.bulkVisitEvents([ missing.toString() ], new ObjectId().toString());
+    const query = collectionMock.updateMany.mock.calls[0][0];
 
-    expect(result.updatedEventIds).toEqual([]);
-    expect(result.failedEventIds).toEqual([ missing.toString() ]);
-    expect(collectionMock.updateOne).not.toHaveBeenCalled();
+    expect(query._id.$in).toHaveLength(1);
   });
 });

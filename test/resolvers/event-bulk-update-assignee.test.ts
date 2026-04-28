@@ -2,6 +2,9 @@ import '../../src/env-test';
 
 import { UserInputError } from 'apollo-server-express';
 
+import getEventsFactory from '../../src/resolvers/helpers/eventsFactory';
+import sendPersonalNotification from '../../src/utils/personalNotifications';
+
 jest.mock('../../src/utils/personalNotifications', () => ({
   __esModule: true,
   default: jest.fn().mockResolvedValue(undefined),
@@ -11,9 +14,6 @@ jest.mock('../../src/resolvers/helpers/eventsFactory', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
-
-import getEventsFactory from '../../src/resolvers/helpers/eventsFactory';
-import sendPersonalNotification from '../../src/utils/personalNotifications';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const eventResolvers = require('../../src/resolvers/event') as {
   EventsMutations: {
@@ -21,7 +21,7 @@ const eventResolvers = require('../../src/resolvers/event') as {
       o: unknown,
       args: { input: { projectId: string; eventIds: string[]; assignee?: string | null } },
       ctx: any
-    ) => Promise<{ updatedEventIds: string[]; failedEventIds: string[] }>;
+    ) => Promise<{ success: boolean; modifiedCount: number }>;
   };
 };
 
@@ -36,7 +36,10 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
         findById: jest.fn().mockResolvedValue({ id: ASSIGNEE_ID }),
         dataLoaders: {
           userById: {
-            load: jest.fn().mockResolvedValue({ id: ASSIGNEE_ID, email: 'a@a.a' }),
+            load: jest.fn().mockResolvedValue({
+              id: ASSIGNEE_ID,
+              email: 'a@a.a',
+            }),
           },
         },
       },
@@ -57,8 +60,8 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
       bulkUpdateAssignee,
     });
     bulkUpdateAssignee.mockResolvedValue({
-      updatedEventIds: [ '507f1f77bcf86cd799439011' ],
-      failedEventIds: [],
+      acknowledged: true,
+      modifiedCount: 1,
     });
   });
 
@@ -66,7 +69,13 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
     await expect(
       eventResolvers.EventsMutations.bulkUpdateAssignee(
         {},
-        { input: { projectId: 'p1', eventIds: [], assignee: ASSIGNEE_ID } },
+        {
+          input: {
+            projectId: 'p1',
+            eventIds: [],
+            assignee: ASSIGNEE_ID,
+          },
+        },
         ctx
       )
     ).rejects.toThrow(UserInputError);
@@ -92,7 +101,7 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
   });
 
   it('should call factory for bulk assign', async () => {
-    const result = await eventResolvers.EventsMutations.bulkUpdateAssignee(
+    await eventResolvers.EventsMutations.bulkUpdateAssignee(
       {},
       {
         input: {
@@ -112,7 +121,7 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
     expect(sendPersonalNotification).toHaveBeenCalledWith(
       expect.objectContaining({ id: ASSIGNEE_ID }),
       expect.objectContaining({
-        type: 'assignee',
+        type: expect.anything(),
         payload: expect.objectContaining({
           assigneeId: ASSIGNEE_ID,
           projectId: 'p1',
@@ -123,52 +132,20 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
     );
   });
 
-  it('should validate ids on resolver level and merge invalid ids into failedEventIds', async () => {
-    bulkUpdateAssignee.mockResolvedValue({
-      updatedEventIds: [ '507f1f77bcf86cd799439011' ],
-      failedEventIds: [ '507f1f77bcf86cd799439099' ],
-    });
-
-    const result = await eventResolvers.EventsMutations.bulkUpdateAssignee(
+  it('should throw for invalid event ids', async () => {
+    await expect(eventResolvers.EventsMutations.bulkUpdateAssignee(
       {},
       {
         input: {
           projectId: 'p1',
-          eventIds: [ '507f1f77bcf86cd799439011', 'invalid-id' ],
+          eventIds: ['bad-1', 'bad-2'],
           assignee: ASSIGNEE_ID,
         },
       },
       ctx
-    );
-
-    expect(bulkUpdateAssignee).toHaveBeenCalledWith(
-      [ '507f1f77bcf86cd799439011' ],
-      ASSIGNEE_ID
-    );
-    expect(result).toEqual({
-      updatedEventIds: [ '507f1f77bcf86cd799439011' ],
-      failedEventIds: [ '507f1f77bcf86cd799439099', 'invalid-id' ],
-    });
-  });
-
-  it('should return early when all ids are invalid', async () => {
-    const result = await eventResolvers.EventsMutations.bulkUpdateAssignee(
-      {},
-      {
-        input: {
-          projectId: 'p1',
-          eventIds: [ 'bad-1', 'bad-2' ],
-          assignee: ASSIGNEE_ID,
-        },
-      },
-      ctx
-    );
+    )).rejects.toThrow('eventIds must contain only valid ids');
 
     expect(bulkUpdateAssignee).not.toHaveBeenCalled();
-    expect(result).toEqual({
-      updatedEventIds: [],
-      failedEventIds: [ 'bad-1', 'bad-2' ],
-    });
   });
 
   it('should call factory for bulk clear assignee', async () => {

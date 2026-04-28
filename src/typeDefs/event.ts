@@ -471,14 +471,14 @@ type RemoveAssigneeResponse {
 
 type BulkUpdateAssigneeResponse {
   """
-  Original event ids actually updated in this operation
+  True when database accepted mutation
   """
-  updatedEventIds: [ID!]!
+  success: Boolean!
 
   """
-  Event ids that were not updated (invalid id or not found)
+  Number of original events actually modified
   """
-  failedEventIds: [ID!]!
+  modifiedCount: Int!
 }
 
 """
@@ -486,14 +486,14 @@ Response of bulk toggling event marks (resolve / ignore / starred)
 """
 type BulkToggleEventMarksResponse {
   """
-  Original event ids actually toggled in this operation
+  True when database accepted mutation
   """
-  updatedEventIds: [ID!]!
+  success: Boolean!
 
   """
-  Event ids that were not updated (invalid id or not found)
+  Number of original events actually modified
   """
-  failedEventIds: [ID!]!
+  modifiedCount: Int!
 }
 
 """
@@ -501,14 +501,14 @@ Response of bulk marking events as viewed
 """
 type BulkVisitEventsResponse {
   """
-  Original event ids actually updated in this operation
+  True when database accepted mutation
   """
-  updatedEventIds: [ID!]!
+  success: Boolean!
 
   """
-  Event ids that were not updated (invalid id or not found)
+  Number of original events actually modified
   """
-  failedEventIds: [ID!]!
+  modifiedCount: Int!
 }
 
 type EventsMutations {
