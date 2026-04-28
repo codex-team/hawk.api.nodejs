@@ -1,9 +1,7 @@
 const getEventsFactory = require('./helpers/eventsFactory').default;
 const {
   parseBulkEventIds,
-  withMergedInvalidEventIds,
   enqueueAssigneeNotification,
-  enqueueBulkAssigneeNotifications,
 } = require('./helpers/bulkEventUtils');
 const { aiService } = require('../services/ai');
 const { UserInputError } = require('apollo-server-express');
@@ -163,8 +161,12 @@ module.exports = {
 
       const factory = getEventsFactory(context, projectId);
       const result = await factory.bulkVisitEvents(validEventIds, user.id);
+      const failedEventIds = Array.from(new Set([...(result.failedEventIds || []), ...invalidEventIds]));
 
-      return withMergedInvalidEventIds(result, invalidEventIds);
+      return {
+        ...result,
+        failedEventIds,
+      };
     },
 
     /**
@@ -207,8 +209,12 @@ module.exports = {
 
       const factory = getEventsFactory(context, projectId);
       const result = await factory.bulkToggleEventMark(validEventIds, mark);
+      const failedEventIds = Array.from(new Set([...(result.failedEventIds || []), ...invalidEventIds]));
 
-      return withMergedInvalidEventIds(result, invalidEventIds);
+      return {
+        ...result,
+        failedEventIds,
+      };
     },
 
     /**
@@ -332,15 +338,20 @@ module.exports = {
       }
 
       const result = await factory.bulkUpdateAssignee(validEventIds, assignee);
-      const resultWithInvalid = withMergedInvalidEventIds(result, invalidEventIds);
+      const resultWithInvalid = {
+        ...result,
+        failedEventIds: Array.from(new Set([...(result.failedEventIds || []), ...invalidEventIds])),
+      };
 
       if (assignee && resultWithInvalid.updatedEventIds.length > 0) {
-        enqueueBulkAssigneeNotifications({
-          assigneeData,
-          assigneeId: assignee,
-          projectId,
-          whoAssignedId: user.id,
-          eventIds: resultWithInvalid.updatedEventIds,
+        resultWithInvalid.updatedEventIds.forEach((eventId) => {
+          enqueueAssigneeNotification({
+            assigneeData,
+            assigneeId: assignee,
+            projectId,
+            whoAssignedId: user.id,
+            eventId,
+          });
         });
       }
 

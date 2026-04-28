@@ -95,7 +95,7 @@ class EventsFactory extends Factory {
 
   /**
    * Creates Event instance
-   * @param {ObjectId} projectId
+   * @param {ObjectId} projectId - project id
    */
   constructor(projectId) {
     super();
@@ -948,7 +948,7 @@ class EventsFactory extends Factory {
 
     return {
       updatedEventIds,
-      failedEventIds: [ ...new Set([ ...failedEventIds, ...failedByUpdate ]) ],
+      failedEventIds: this._mergeFailedEventIds(failedEventIds, failedByUpdate),
     };
   }
 
@@ -1068,7 +1068,7 @@ class EventsFactory extends Factory {
 
     return {
       updatedEventIds,
-      failedEventIds: [ ...new Set([ ...failedEventIds, ...failedByUpdate ]) ],
+      failedEventIds: this._mergeFailedEventIds(failedEventIds, failedByUpdate),
     };
   }
 
@@ -1088,6 +1088,7 @@ class EventsFactory extends Factory {
 
     const normalizedAssignee = assignee ? String(assignee) : '';
     const docsToUpdate = found.filter(doc => String(doc.assignee || '') !== normalizedAssignee);
+
     if (docsToUpdate.length === 0) {
       return {
         updatedEventIds: [],
@@ -1132,7 +1133,7 @@ class EventsFactory extends Factory {
 
     return {
       updatedEventIds,
-      failedEventIds: [ ...new Set([ ...failedEventIds, ...failedByUpdate ]) ],
+      failedEventIds: this._mergeFailedEventIds(failedEventIds, failedByUpdate),
     };
   }
 
@@ -1205,6 +1206,23 @@ class EventsFactory extends Factory {
       found,
       failedEventIds,
     };
+  }
+
+  /**
+   * Merge two failed ids collections preserving uniqueness.
+   *
+   * @param {string[]} baseFailedEventIds - existing failed ids
+   * @param {string[]} extraFailedEventIds - failed ids collected from update results
+   * @returns {string[]}
+   */
+  _mergeFailedEventIds(baseFailedEventIds, extraFailedEventIds) {
+    const mergedFailedEventIds = new Set(baseFailedEventIds);
+
+    extraFailedEventIds.forEach((eventId) => {
+      mergedFailedEventIds.add(eventId);
+    });
+
+    return Array.from(mergedFailedEventIds);
   }
 
   /**

@@ -7,7 +7,8 @@ import { SenderWorkerTaskType } from '../../types/userNotifications/task-type';
 /**
  * Validate and normalize bulk event ids from resolver input.
  *
- * @param eventIds - raw event ids from GraphQL input
+ * @param {string[]} eventIds - raw event ids from GraphQL input
+ * @returns {object} normalized ids grouped by validity
  */
 export function parseBulkEventIds(eventIds: string[]): { validEventIds: string[]; invalidEventIds: string[] } {
   if (!eventIds || !eventIds.length) {
@@ -29,26 +30,6 @@ export function parseBulkEventIds(eventIds: string[]): { validEventIds: string[]
   return {
     validEventIds,
     invalidEventIds,
-  };
-}
-
-/**
- * Merge failed ids returned by factory with invalid ids from resolver validation.
- */
-export function mergeFailedEventIds(result: { failedEventIds?: string[] }, invalidEventIds: string[]): string[] {
-  return [ ...new Set([ ...(result.failedEventIds || []), ...invalidEventIds ]) ];
-}
-
-/**
- * Merge resolver-level invalid ids into factory-level failed ids.
- */
-export function withMergedInvalidEventIds<T extends { failedEventIds?: string[] }>(
-  result: T,
-  invalidEventIds: string[]
-): T & { failedEventIds: string[] } {
-  return {
-    ...result,
-    failedEventIds: mergeFailedEventIds(result, invalidEventIds),
   };
 }
 
@@ -74,7 +55,7 @@ export function enqueueAssigneeNotification({
     return;
   }
 
-  void sendPersonalNotification(assigneeData, {
+  sendPersonalNotification(assigneeData, {
     type: SenderWorkerTaskType.Assignee,
     payload: {
       assigneeId,
@@ -84,26 +65,5 @@ export function enqueueAssigneeNotification({
     },
   }).catch((error: unknown) => {
     console.error('Failed to enqueue assignee notification', error);
-  });
-}
-
-/**
- * Enqueue assignee notifications for all updated original events.
- */
-export function enqueueBulkAssigneeNotifications({
-  assigneeData,
-  assigneeId,
-  projectId,
-  whoAssignedId,
-  eventIds,
-}: Omit<AssigneeNotificationParams, 'eventId'> & { eventIds: string[] }): void {
-  eventIds.forEach((eventId) => {
-    enqueueAssigneeNotification({
-      assigneeData,
-      assigneeId,
-      projectId,
-      whoAssignedId,
-      eventId,
-    });
   });
 }
