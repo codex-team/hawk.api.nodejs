@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 
 const collectionMock = {
   find: jest.fn(),
-  updateMany: jest.fn(),
+  updateOne: jest.fn(),
 };
 
 jest.mock('../../src/redisHelper', () => ({
@@ -40,7 +40,7 @@ describe('EventsFactory.bulkVisitEvents', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    collectionMock.updateMany.mockResolvedValue({ modifiedCount: 0 });
+    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 0 });
   });
 
   it('should mark only not-yet-visited events', async () => {
@@ -55,11 +55,10 @@ describe('EventsFactory.bulkVisitEvents', () => {
         { _id: b, visitedBy: [] },
       ]),
     });
-    collectionMock.updateMany.mockResolvedValue({ modifiedCount: 1 });
+    collectionMock.updateOne.mockResolvedValue({ modifiedCount: 1 });
 
     const result = await factory.bulkVisitEvents([ a.toString(), b.toString() ], userId.toString());
 
-    expect(result.updatedCount).toBe(1);
     expect(result.updatedEventIds).toEqual([ b.toString() ]);
     expect(result.failedEventIds).toEqual([]);
   });
@@ -74,9 +73,8 @@ describe('EventsFactory.bulkVisitEvents', () => {
 
     const result = await factory.bulkVisitEvents([ missing.toString() ], new ObjectId().toString());
 
-    expect(result.updatedCount).toBe(0);
     expect(result.updatedEventIds).toEqual([]);
     expect(result.failedEventIds).toEqual([ missing.toString() ]);
-    expect(collectionMock.updateMany).not.toHaveBeenCalled();
+    expect(collectionMock.updateOne).not.toHaveBeenCalled();
   });
 });

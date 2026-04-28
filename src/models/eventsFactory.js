@@ -887,7 +887,7 @@ class EventsFactory extends Factory {
    *
    * @param {string[]} eventIds - original event ids
    * @param {string|ObjectId} userId - id of the user who is visiting events
-   * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
+   * @returns {Promise<{ updatedEventIds: string[], failedEventIds: string[] }>}
    */
   async bulkVisitEvents(eventIds, userId) {
     const {
@@ -902,25 +902,53 @@ class EventsFactory extends Factory {
 
       return !visitedBy.some((visitedUserId) => String(visitedUserId) === userIdStr);
     });
-    const updatedEventIds = docsToUpdate.map(doc => doc._id.toString());
 
     if (docsToUpdate.length === 0) {
       return {
-        updatedCount: 0,
         updatedEventIds: [],
         failedEventIds,
       };
     }
 
-    const updateManyResult = await collection.updateMany(
-      { _id: { $in: docsToUpdate.map(doc => doc._id) } },
-      { $addToSet: { visitedBy: new ObjectId(userId) } }
+    const userObjectId = new ObjectId(userId);
+    const settled = await Promise.allSettled(
+      docsToUpdate.map(async (doc) => {
+        const eventId = doc._id.toString();
+        const updateResult = await collection.updateOne(
+          {
+            _id: doc._id,
+            visitedBy: { $ne: userObjectId },
+          },
+          { $addToSet: { visitedBy: userObjectId } }
+        );
+
+        return {
+          eventId,
+          updated: updateResult.modifiedCount > 0,
+        };
+      })
     );
 
+    const updatedEventIds = [];
+    const failedByUpdate = [];
+
+    settled.forEach((result, index) => {
+      const fallbackEventId = docsToUpdate[index]._id.toString();
+
+      if (result.status === 'fulfilled') {
+        if (result.value.updated) {
+          updatedEventIds.push(result.value.eventId);
+        } else {
+          failedByUpdate.push(result.value.eventId);
+        }
+      } else {
+        failedByUpdate.push(fallbackEventId);
+      }
+    });
+
     return {
-      updatedCount: updateManyResult.modifiedCount,
       updatedEventIds,
-      failedEventIds,
+      failedEventIds: this._mergeFailedEventIds(failedEventIds, failedByUpdate),
     };
   }
 
@@ -965,7 +993,7 @@ class EventsFactory extends Factory {
    *
    * @param {string[]} eventIds - original event ids
    * @param {string} mark - 'resolved' | 'ignored' | 'starred'
-   * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
+   * @returns {Promise<{ updatedEventIds: string[], failedEventIds: string[] }>}
    */
   async bulkToggleEventMark(eventIds, mark) {
     const {
@@ -978,7 +1006,6 @@ class EventsFactory extends Factory {
     const markKey = `marks.${mark}`;
     const allHaveMark = found.length > 0 && found.every(doc => doc.marks && doc.marks[mark]);
     const ops = [];
-    const updatedEventIds = [];
 
     for (const doc of found) {
       const hasMark = doc.marks && doc.marks[mark];
@@ -998,23 +1025,50 @@ class EventsFactory extends Factory {
           update,
         },
       });
-      updatedEventIds.push(doc._id.toString());
     }
 
     if (ops.length === 0) {
       return {
-        updatedCount: 0,
         updatedEventIds: [],
         failedEventIds,
       };
     }
 
-    const bulkResult = await collection.bulkWrite(ops, { ordered: false });
+    const settled = await Promise.allSettled(
+      ops.map(async ({ updateOne }) => {
+        const eventId = updateOne.filter._id.toString();
+        const updateResult = await collection.updateOne(
+          updateOne.filter,
+          updateOne.update
+        );
+
+        return {
+          eventId,
+          updated: updateResult.modifiedCount > 0,
+        };
+      })
+    );
+
+    const updatedEventIds = [];
+    const failedByUpdate = [];
+
+    settled.forEach((result, index) => {
+      const fallbackEventId = ops[index].updateOne.filter._id.toString();
+
+      if (result.status === 'fulfilled') {
+        if (result.value.updated) {
+          updatedEventIds.push(result.value.eventId);
+        } else {
+          failedByUpdate.push(result.value.eventId);
+        }
+      } else {
+        failedByUpdate.push(fallbackEventId);
+      }
+    });
 
     return {
-      updatedCount: bulkResult.modifiedCount + bulkResult.upsertedCount,
       updatedEventIds,
-      failedEventIds,
+      failedEventIds: this._mergeFailedEventIds(failedEventIds, failedByUpdate),
     };
   }
 
@@ -1023,7 +1077,7 @@ class EventsFactory extends Factory {
    *
    * @param {string[]} eventIds - original event ids
    * @param {string|null|undefined} assignee - target assignee id, null/undefined to clear
-   * @returns {Promise<{ updatedCount: number, updatedEventIds: string[], failedEventIds: string[] }>}
+   * @returns {Promise<{ updatedEventIds: string[], failedEventIds: string[] }>}
    */
   async bulkUpdateAssignee(eventIds, assignee) {
     const {
@@ -1034,25 +1088,52 @@ class EventsFactory extends Factory {
 
     const normalizedAssignee = assignee ? String(assignee) : '';
     const docsToUpdate = found.filter(doc => String(doc.assignee || '') !== normalizedAssignee);
-    const updatedEventIds = docsToUpdate.map(doc => doc._id.toString());
 
     if (docsToUpdate.length === 0) {
       return {
-        updatedCount: 0,
         updatedEventIds: [],
         failedEventIds,
       };
     }
 
-    const updateManyResult = await collection.updateMany(
-      { _id: { $in: docsToUpdate.map(doc => doc._id) } },
-      { $set: { assignee: normalizedAssignee } }
+    const settled = await Promise.allSettled(
+      docsToUpdate.map(async (doc) => {
+        const eventId = doc._id.toString();
+        const updateResult = await collection.updateOne(
+          {
+            _id: doc._id,
+            assignee: { $ne: normalizedAssignee },
+          },
+          { $set: { assignee: normalizedAssignee } }
+        );
+
+        return {
+          eventId,
+          updated: updateResult.modifiedCount > 0,
+        };
+      })
     );
 
+    const updatedEventIds = [];
+    const failedByUpdate = [];
+
+    settled.forEach((result, index) => {
+      const fallbackEventId = docsToUpdate[index]._id.toString();
+
+      if (result.status === 'fulfilled') {
+        if (result.value.updated) {
+          updatedEventIds.push(result.value.eventId);
+        } else {
+          failedByUpdate.push(result.value.eventId);
+        }
+      } else {
+        failedByUpdate.push(fallbackEventId);
+      }
+    });
+
     return {
-      updatedCount: updateManyResult.modifiedCount,
       updatedEventIds,
-      failedEventIds,
+      failedEventIds: this._mergeFailedEventIds(failedEventIds, failedByUpdate),
     };
   }
 
@@ -1125,6 +1206,23 @@ class EventsFactory extends Factory {
       found,
       failedEventIds,
     };
+  }
+
+  /**
+   * Merge two failed ids collections preserving uniqueness.
+   *
+   * @param {string[]} baseFailedEventIds - existing failed ids
+   * @param {string[]} extraFailedEventIds - failed ids collected from update results
+   * @returns {string[]}
+   */
+  _mergeFailedEventIds(baseFailedEventIds, extraFailedEventIds) {
+    const mergedFailedEventIds = new Set(baseFailedEventIds);
+
+    extraFailedEventIds.forEach((eventId) => {
+      mergedFailedEventIds.add(eventId);
+    });
+
+    return Array.from(mergedFailedEventIds);
   }
 
   /**
