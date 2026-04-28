@@ -166,4 +166,25 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
       null
     );
   });
+
+  it('should not enqueue notifications when nothing changed', async () => {
+    bulkUpdateAssignee.mockResolvedValue({
+      acknowledged: true,
+      modifiedCount: 0,
+    });
+
+    await eventResolvers.EventsMutations.bulkUpdateAssignee(
+      {},
+      {
+        input: {
+          projectId: 'p1',
+          eventIds: [ '507f1f77bcf86cd799439011' ],
+          assignee: ASSIGNEE_ID,
+        },
+      },
+      ctx
+    );
+
+    expect(sendPersonalNotification).not.toHaveBeenCalled();
+  });
 });
