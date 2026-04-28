@@ -883,6 +883,27 @@ class EventsFactory extends Factory {
   }
 
   /**
+   * Mark many original events as visited for passed user
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string|ObjectId} userId - id of the user who is visiting events
+   * @returns {Promise<UpdateWriteOpResult>}
+   */
+  async bulkVisitEvents(eventIds, userId) {
+    const uniqueEventIds = [ ...new Set((eventIds || []).map(id => String(id))) ];
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const userObjectId = new ObjectId(userId);
+
+    return collection.updateMany(
+      {
+        _id: { $in: uniqueEventIds.map(id => new ObjectId(id)) },
+        visitedBy: { $ne: userObjectId },
+      },
+      { $addToSet: { visitedBy: userObjectId } }
+    );
+  }
+
+  /**
    * Mark or unmark event as Resolved, Ignored or Starred
    *
    * @param {string|ObjectId} eventId - id of the original event to mark
@@ -916,6 +937,62 @@ class EventsFactory extends Factory {
     }
 
     return collection.updateOne(query, update);
+  }
+
+  /**
+   * Bulk toggle mark for original events.
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string} mark - 'resolved' | 'ignored' | 'starred'
+   * @returns {Promise<UpdateWriteOpResult>}
+   */
+  async bulkToggleEventMark(eventIds, mark) {
+    const uniqueEventIds = [ ...new Set((eventIds || []).map(id => String(id))) ];
+    const objectIds = uniqueEventIds.map(id => new ObjectId(id));
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const found = await collection.find({ _id: { $in: objectIds } }).toArray();
+    const nowSec = Math.floor(Date.now() / 1000);
+    const markKey = `marks.${mark}`;
+    const allHaveMark = found.length > 0 && found.every(doc => doc.marks && doc.marks[mark]);
+
+    if (allHaveMark) {
+      return collection.updateMany(
+        {
+          _id: { $in: objectIds },
+          [markKey]: { $exists: true },
+        },
+        { $unset: { [markKey]: '' } }
+      );
+    }
+
+    return collection.updateMany(
+      {
+        _id: { $in: objectIds },
+        [markKey]: { $exists: false },
+      },
+      { $set: { [markKey]: nowSec } }
+    );
+  }
+
+  /**
+   * Bulk set/clear assignee for many original events.
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string|null|undefined} assignee - target assignee id, null/undefined to clear
+   * @returns {Promise<UpdateWriteOpResult>}
+   */
+  async bulkUpdateAssignee(eventIds, assignee) {
+    const uniqueEventIds = [ ...new Set((eventIds || []).map(id => String(id))) ];
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const normalizedAssignee = assignee ? String(assignee) : '';
+
+    return collection.updateMany(
+      {
+        _id: { $in: uniqueEventIds.map(id => new ObjectId(id)) },
+        assignee: { $ne: normalizedAssignee },
+      },
+      { $set: { assignee: normalizedAssignee } }
+    );
   }
 
   /**

@@ -1,6 +1,11 @@
 const getEventsFactory = require('./helpers/eventsFactory').default;
-const sendPersonalNotification = require('../utils/personalNotifications').default;
+const {
+  parseBulkEventIds,
+  enqueueAssigneeNotification,
+} = require('./helpers/bulkEventUtils');
 const { aiService } = require('../services/ai');
+const { UserInputError } = require('apollo-server-express');
+const { ObjectId } = require('mongodb');
 
 /**
  * See all types and fields here {@see ../typeDefs/event.graphql}
@@ -135,6 +140,26 @@ module.exports = {
 
       return !!result.acknowledged;
     },
+    /**
+     * Mark many original events as visited for current user
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} projectId - project id
+     * @param {string[]} eventIds - original event ids
+     * @param {UserInContext} user - user context
+     * @returns {Promise<{ success: boolean, modifiedCount: number }>}
+     */
+    async bulkVisitEvents(_obj, { projectId, eventIds }, { user, ...context }) {
+      const validEventIds = parseBulkEventIds(eventIds);
+
+      const factory = getEventsFactory(context, projectId);
+      const result = await factory.bulkVisitEvents(validEventIds, user.id);
+
+      return {
+        success: !!result.acknowledged,
+        modifiedCount: result.modifiedCount || 0,
+      };
+    },
 
     /**
      * Mark event with one of the event marks
@@ -151,6 +176,29 @@ module.exports = {
       const result = await factory.toggleEventMark(eventId, mark);
 
       return !!result.acknowledged;
+    },
+
+    /**
+     * Bulk set resolved/ignored: always set mark on events that lack it, unless all selected
+     * already have the mark — then remove from all.
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} projectId - project id
+     * @param {string[]} eventIds - original event ids
+     * @param {string} mark - EventMark enum value
+     * @param {object} context - gql context
+     * @return {Promise<{ success: boolean, modifiedCount: number }>}
+     */
+    async bulkToggleEventMarks(_obj, { projectId, eventIds, mark }, context) {
+      const validEventIds = parseBulkEventIds(eventIds);
+
+      const factory = getEventsFactory(context, projectId);
+      const result = await factory.bulkToggleEventMark(validEventIds, mark);
+
+      return {
+        success: !!result.acknowledged,
+        modifiedCount: result.modifiedCount || 0,
+      };
     },
 
     /**
@@ -196,14 +244,12 @@ module.exports = {
 
       const assigneeData = await factories.usersFactory.dataLoaders.userById.load(assignee);
 
-      await sendPersonalNotification(assigneeData, {
-        type: 'assignee',
-        payload: {
-          assigneeId: assignee,
-          projectId,
-          whoAssignedId: user.id,
-          eventId,
-        },
+      enqueueAssigneeNotification({
+        assigneeData,
+        assigneeId: assignee,
+        projectId,
+        whoAssignedId: user.id,
+        eventId,
       });
 
       return {
@@ -228,6 +274,63 @@ module.exports = {
 
       return {
         success: !!result.acknowledged,
+      };
+    },
+
+    /**
+     * Bulk set/clear assignee for selected original events
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {BulkUpdateAssigneeInput} input - object of arguments
+     * @param factories - factories for working with models
+     * @return {Promise<{ success: boolean, modifiedCount: number }>}
+     */
+    async bulkUpdateAssignee(_obj, { input }, { factories, user, ...context }) {
+      const { projectId, eventIds, assignee } = input;
+      const validEventIds = parseBulkEventIds(eventIds);
+      let assigneeData = null;
+
+      const factory = getEventsFactory(context, projectId);
+
+      if (assignee) {
+        if (!ObjectId.isValid(String(assignee))) {
+          throw new UserInputError('assignee must be a valid id or null');
+        }
+
+        const userExists = await factories.usersFactory.findById(assignee);
+
+        if (!userExists) {
+          throw new UserInputError('assignee not found');
+        }
+
+        assigneeData = userExists;
+
+        const project = await factories.projectsFactory.findById(projectId);
+        const workspace = await factories.workspacesFactory.findById(project.workspaceId);
+        const assigneeExistsInWorkspace = await workspace.getMemberInfo(assignee);
+
+        if (!assigneeExistsInWorkspace) {
+          throw new UserInputError('assignee is not a workspace member');
+        }
+      }
+
+      const result = await factory.bulkUpdateAssignee(validEventIds, assignee);
+
+      if (assignee && result.modifiedCount > 0) {
+        validEventIds.forEach((eventId) => {
+          enqueueAssigneeNotification({
+            assigneeData,
+            assigneeId: assignee,
+            projectId,
+            whoAssignedId: user.id,
+            eventId,
+          });
+        });
+      }
+
+      return {
+        success: !!result.acknowledged,
+        modifiedCount: result.modifiedCount || 0,
       };
     },
   },

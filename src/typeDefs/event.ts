@@ -445,11 +445,70 @@ input RemoveAssigneeInput {
   eventId: ID!
 }
 
+input BulkUpdateAssigneeInput {
+  """
+  ID of project event is related to
+  """
+  projectId: ID!
+
+  """
+  Original event ids to update
+  """
+  eventIds: [ID!]!
+
+  """
+  Assignee id to set. Pass null to clear assignee.
+  """
+  assignee: ID
+}
+
 type RemoveAssigneeResponse {
   """
   Response status
   """
   success: Boolean!
+}
+
+type BulkUpdateAssigneeResponse {
+  """
+  True when database accepted mutation
+  """
+  success: Boolean!
+
+  """
+  Number of original events actually modified
+  """
+  modifiedCount: Int!
+}
+
+"""
+Response of bulk toggling event marks (resolve / ignore / starred)
+"""
+type BulkToggleEventMarksResponse {
+  """
+  True when database accepted mutation
+  """
+  success: Boolean!
+
+  """
+  Number of original events actually modified
+  """
+  modifiedCount: Int!
+}
+
+"""
+Response of bulk marking events as viewed
+"""
+type BulkVisitEventsResponse {
+  """
+  True when database accepted mutation
+  """
+  success: Boolean!
+
+  """
+  Number of original events actually modified
+  """
+  modifiedCount: Int!
 }
 
 type EventsMutations {
@@ -466,6 +525,13 @@ type EventsMutations {
   removeAssignee(
     input: RemoveAssigneeInput!
   ): RemoveAssigneeResponse!  @requireUserInWorkspace
+
+  """
+  Bulk set/clear assignee on many original events
+  """
+  bulkUpdateAssignee(
+    input: BulkUpdateAssigneeInput!
+  ): BulkUpdateAssigneeResponse! @requireUserInWorkspace
 }
 
 extend type Mutation {
@@ -483,6 +549,21 @@ extend type Mutation {
     """
     eventId: ID!
   ): Boolean!
+
+  """
+  Mark many original events as visited for current user
+  """
+  bulkVisitEvents(
+    """
+    ID of project event is related to
+    """
+    projectId: ID!
+
+    """
+    Original event ids
+    """
+    eventIds: [ID!]!
+  ): BulkVisitEventsResponse! @requireUserInWorkspace
 
   """
   Mutation sets or unsets passed mark to event
@@ -503,6 +584,29 @@ extend type Mutation {
     """
     mark: EventMark!
   ): Boolean!
+
+  """
+  Toggle the same mark on many original events at once (resolved, ignored or starred).
+  Uses bulk semantics: if every selected event already has the mark, clear it for all;
+  otherwise set it on each selected event that does not have it yet.
+  """
+  bulkToggleEventMarks(
+    """
+    Project id
+    """
+    projectId: ID!
+
+    """
+    Original event ids (grouped event keys in Hawk)
+    """
+    eventIds: [ID!]!
+
+    """
+    Mark (resolved, ignored or starred): if every selected event already has it, clear it for all;
+    otherwise set it on every selected event that does not have it yet.
+    """
+    mark: EventMark!
+  ): BulkToggleEventMarksResponse! @requireUserInWorkspace
 
   """
   Namespace that contains only mutations related to the events
