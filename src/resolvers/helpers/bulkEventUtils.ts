@@ -8,29 +8,20 @@ import { SenderWorkerTaskType } from '../../types/userNotifications/task-type';
  * Validate and normalize bulk event ids from resolver input.
  *
  * @param {string[]} eventIds - raw event ids from GraphQL input
- * @returns {object} normalized ids grouped by validity
+ * @returns {string[]} unique valid event ids
  */
-export function parseBulkEventIds(eventIds: string[]): { validEventIds: string[]; invalidEventIds: string[] } {
+export function parseBulkEventIds(eventIds: string[]): string[] {
   if (!eventIds || !eventIds.length) {
     throw new UserInputError('eventIds must contain at least one id');
   }
 
   const uniqueEventIds = [ ...new Set(eventIds.map(id => String(id))) ];
-  const invalidEventIds: string[] = [];
-  const validEventIds: string[] = [];
 
-  uniqueEventIds.forEach((id) => {
-    if (ObjectId.isValid(id)) {
-      validEventIds.push(id);
-    } else {
-      invalidEventIds.push(id);
-    }
-  });
+  if (!uniqueEventIds.every((id) => ObjectId.isValid(id))) {
+    throw new UserInputError('eventIds must contain only valid ids');
+  }
 
-  return {
-    validEventIds,
-    invalidEventIds,
-  };
+  return uniqueEventIds;
 }
 
 type AssigneeNotificationParams = {

@@ -147,25 +147,17 @@ module.exports = {
      * @param {string} projectId - project id
      * @param {string[]} eventIds - original event ids
      * @param {UserInContext} user - user context
-     * @returns {Promise<{ updatedEventIds: string[], failedEventIds: string[] }>}
+     * @returns {Promise<{ success: boolean, modifiedCount: number }>}
      */
     async bulkVisitEvents(_obj, { projectId, eventIds }, { user, ...context }) {
-      const { validEventIds, invalidEventIds } = parseBulkEventIds(eventIds);
-
-      if (validEventIds.length === 0) {
-        return {
-          updatedEventIds: [],
-          failedEventIds: invalidEventIds,
-        };
-      }
+      const validEventIds = parseBulkEventIds(eventIds);
 
       const factory = getEventsFactory(context, projectId);
       const result = await factory.bulkVisitEvents(validEventIds, user.id);
-      const failedEventIds = Array.from(new Set([...(result.failedEventIds || []), ...invalidEventIds]));
 
       return {
-        ...result,
-        failedEventIds,
+        success: !!result.acknowledged,
+        modifiedCount: result.modifiedCount || 0,
       };
     },
 
@@ -195,25 +187,17 @@ module.exports = {
      * @param {string[]} eventIds - original event ids
      * @param {string} mark - EventMark enum value
      * @param {object} context - gql context
-     * @return {Promise<{ updatedEventIds: string[], failedEventIds: string[] }>}
+     * @return {Promise<{ success: boolean, modifiedCount: number }>}
      */
     async bulkToggleEventMarks(_obj, { projectId, eventIds, mark }, context) {
-      const { validEventIds, invalidEventIds } = parseBulkEventIds(eventIds);
-
-      if (validEventIds.length === 0) {
-        return {
-          updatedEventIds: [],
-          failedEventIds: invalidEventIds,
-        };
-      }
+      const validEventIds = parseBulkEventIds(eventIds);
 
       const factory = getEventsFactory(context, projectId);
       const result = await factory.bulkToggleEventMark(validEventIds, mark);
-      const failedEventIds = Array.from(new Set([...(result.failedEventIds || []), ...invalidEventIds]));
 
       return {
-        ...result,
-        failedEventIds,
+        success: !!result.acknowledged,
+        modifiedCount: result.modifiedCount || 0,
       };
     },
 
@@ -299,19 +283,12 @@ module.exports = {
      * @param {ResolverObj} _obj - resolver context
      * @param {BulkUpdateAssigneeInput} input - object of arguments
      * @param factories - factories for working with models
-     * @return {Promise<{ updatedEventIds: string[], failedEventIds: string[] }>}
+     * @return {Promise<{ success: boolean, modifiedCount: number }>}
      */
     async bulkUpdateAssignee(_obj, { input }, { factories, user, ...context }) {
       const { projectId, eventIds, assignee } = input;
-      const { validEventIds, invalidEventIds } = parseBulkEventIds(eventIds);
+      const validEventIds = parseBulkEventIds(eventIds);
       let assigneeData = null;
-
-      if (validEventIds.length === 0) {
-        return {
-          updatedEventIds: [],
-          failedEventIds: invalidEventIds,
-        };
-      }
 
       const factory = getEventsFactory(context, projectId);
 
@@ -338,13 +315,9 @@ module.exports = {
       }
 
       const result = await factory.bulkUpdateAssignee(validEventIds, assignee);
-      const resultWithInvalid = {
-        ...result,
-        failedEventIds: Array.from(new Set([...(result.failedEventIds || []), ...invalidEventIds])),
-      };
 
-      if (assignee && resultWithInvalid.updatedEventIds.length > 0) {
-        resultWithInvalid.updatedEventIds.forEach((eventId) => {
+      if (assignee && result.modifiedCount > 0) {
+        validEventIds.forEach((eventId) => {
           enqueueAssigneeNotification({
             assigneeData,
             assigneeId: assignee,
@@ -355,7 +328,10 @@ module.exports = {
         });
       }
 
-      return resultWithInvalid;
+      return {
+        success: !!result.acknowledged,
+        modifiedCount: result.modifiedCount || 0,
+      };
     },
   },
 };

@@ -1,11 +1,11 @@
 import '../../src/env-test';
 
+import getEventsFactory from '../../src/resolvers/helpers/eventsFactory';
+
 jest.mock('../../src/resolvers/helpers/eventsFactory', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
-
-import getEventsFactory from '../../src/resolvers/helpers/eventsFactory';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const eventResolvers = require('../../src/resolvers/event') as {
   Mutation: {
@@ -13,7 +13,7 @@ const eventResolvers = require('../../src/resolvers/event') as {
       o: unknown,
       args: { projectId: string; eventIds: string[] },
       ctx: any
-    ) => Promise<{ updatedEventIds: string[]; failedEventIds: string[] }>;
+    ) => Promise<{ success: boolean; modifiedCount: number }>;
   };
 };
 
@@ -29,15 +29,18 @@ describe('Mutation.bulkVisitEvents', () => {
     (getEventsFactory as unknown as jest.Mock).mockReturnValue({ bulkVisitEvents });
   });
 
-  it('should call factory with valid ids only and merge invalid ids', async () => {
+  it('should call factory and return normalized response', async () => {
     bulkVisitEvents.mockResolvedValue({
-      updatedEventIds: [ '507f1f77bcf86cd799439012' ],
-      failedEventIds: [ '507f1f77bcf86cd799439099' ],
+      acknowledged: true,
+      modifiedCount: 1,
     });
 
     const result = await eventResolvers.Mutation.bulkVisitEvents(
       {},
-      { projectId: 'p1', eventIds: [ '507f1f77bcf86cd799439012', 'bad-id' ] },
+      {
+        projectId: 'p1',
+        eventIds: [ '507f1f77bcf86cd799439012' ],
+      },
       ctx
     );
 
@@ -46,22 +49,20 @@ describe('Mutation.bulkVisitEvents', () => {
       '507f1f77bcf86cd799439011'
     );
     expect(result).toEqual({
-      updatedEventIds: [ '507f1f77bcf86cd799439012' ],
-      failedEventIds: [ '507f1f77bcf86cd799439099', 'bad-id' ],
+      success: true,
+      modifiedCount: 1,
     });
   });
 
-  it('should return early when all ids are invalid', async () => {
-    const result = await eventResolvers.Mutation.bulkVisitEvents(
+  it('should throw when ids contain invalid values', async () => {
+    await expect(eventResolvers.Mutation.bulkVisitEvents(
       {},
-      { projectId: 'p1', eventIds: [ 'bad-1', 'bad-2' ] },
+      {
+        projectId: 'p1',
+        eventIds: ['bad-1', 'bad-2'],
+      },
       ctx
-    );
-
+    )).rejects.toThrow('eventIds must contain only valid ids');
     expect(bulkVisitEvents).not.toHaveBeenCalled();
-    expect(result).toEqual({
-      updatedEventIds: [],
-      failedEventIds: [ 'bad-1', 'bad-2' ],
-    });
   });
 });
