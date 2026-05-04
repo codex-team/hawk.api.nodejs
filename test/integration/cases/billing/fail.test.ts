@@ -2,10 +2,11 @@ import { apiInstance } from '../../utils';
 import { FailCodes, FailRequest } from '../../../../src/billing/types';
 import { CardType, Currency, OperationType, ReasonCode, ReasonCodesTranscript } from '../../../../src/billing/types/enums';
 import { Collection, ObjectId, Db } from 'mongodb';
-import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, BusinessOperationType, UserDBScheme, WorkspaceDBScheme, UserNotificationType, PlanProlongationPayload } from '@hawk.so/types';
+import { BusinessOperationDBScheme, BusinessOperationStatus, PlanDBScheme, BusinessOperationType, UserDBScheme, WorkspaceDBScheme, UserNotificationType } from '@hawk.so/types';
 import { WorkerPaths } from '../../../../src/rabbitmq';
 import { PaymentFailedNotificationTask, SenderWorkerTaskType } from '../../../../src/types/personalNotifications';
 import checksumService from '../../../../src/utils/checksumService';
+import jwt, { Secret } from 'jsonwebtoken';
 import type { Global } from '@jest/types';
 
 declare var global: Global.Global;
@@ -215,6 +216,35 @@ describe('Fail webhook', () => {
       expect(message && JSON.parse(message.content.toString())).toStrictEqual(expectedLimiterTask);
       expect(apiResponse.data.code).toBe(FailCodes.SUCCESS);
     });
+
+    test('Should change business operation status to rejected for card linking payload without tariff plan id', async () => {
+      const apiResponse = await apiInstance.post('/billing/fail', {
+        ...validRequest,
+        Data: JSON.stringify({
+          checksum: await checksumService.generateChecksum({
+            isCardLinkOperation: true,
+            userId: user._id.toString(),
+            workspaceId: workspace._id.toString(),
+            nextPaymentDate: new Date().toString(),
+          }),
+          cloudPayments: {
+            recurrent: {
+              interval: 'Month',
+              period: 1,
+              amount: 100,
+              startDate: new Date().toISOString(),
+            },
+          },
+        }),
+      });
+
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+
+      expect(apiResponse.data.code).toBe(FailCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Rejected);
+    });
   });
 
   describe('With invalid request', () => {
@@ -250,6 +280,34 @@ describe('Fail webhook', () => {
       });
 
       expect(apiResponse.data.code).toBe(FailCodes.SUCCESS);
+      expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
+    });
+
+    test('Should not change business operation status for non-card-link payload without tariff plan id', async () => {
+      const invalidChecksum = jwt.sign({
+        isCardLinkOperation: false,
+        userId: user._id.toString(),
+        workspaceId: workspace._id.toString(),
+        shouldSaveCard: false,
+        nextPaymentDate: new Date().toString(),
+      }, process.env.JWT_SECRET_BILLING_CHECKSUM as Secret, { expiresIn: '30m' });
+
+      const apiResponse = await apiInstance.post('/billing/fail', {
+        ...validRequest,
+        Data: JSON.stringify({
+          checksum: invalidChecksum,
+        }),
+      });
+
+      const updatedBusinessOperation = await businessOperationsCollection.findOne({
+        transactionId: transactionId.toString(),
+      });
+      const message = await global.rabbitChannel.get(WorkerPaths.Email.queue, {
+        noAck: true,
+      });
+
+      expect(apiResponse.data.code).toBe(FailCodes.SUCCESS);
+      expect(message).toBeFalsy();
       expect(updatedBusinessOperation?.status).toBe(BusinessOperationStatus.Pending);
     });
   });
