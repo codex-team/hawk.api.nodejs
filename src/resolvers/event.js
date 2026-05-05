@@ -199,6 +199,9 @@ module.exports = {
         success: !!result.acknowledged,
         modifiedCount: result.modifiedCount || 0,
       };
+    },
+
+    /**
      * Remove event and all related data (repetitions, daily events)
      *
      * @param {ResolverObj} _obj - resolver context

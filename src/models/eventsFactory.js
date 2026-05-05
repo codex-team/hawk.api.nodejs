@@ -992,6 +992,9 @@ class EventsFactory extends Factory {
       },
       { $set: { assignee: normalizedAssignee } }
     );
+  }
+
+  /**
    * Remove a single event and all related data (repetitions, daily events)
    *
    * @param {string|ObjectId} eventId - id of the original event to remove
