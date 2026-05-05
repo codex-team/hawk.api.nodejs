@@ -199,6 +199,19 @@ module.exports = {
         success: !!result.acknowledged,
         modifiedCount: result.modifiedCount || 0,
       };
+     * Remove event and all related data (repetitions, daily events)
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} projectId - project id
+     * @param {string} eventId - event id to remove
+     * @return {Promise<boolean>}
+     */
+    async removeEvent(_obj, { projectId, eventId }, context) {
+      const factory = getEventsFactory(context, projectId);
+
+      const result = await factory.removeEvent(eventId);
+
+      return result;
     },
 
     /**

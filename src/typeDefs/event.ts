@@ -591,6 +591,11 @@ extend type Mutation {
   bulkSetEventMarks(
     """
     Project id
+  Remove event and all related data (repetitions, daily events)
+  """
+  removeEvent(
+    """
+    ID of project event is related to
     """
     projectId: ID!
 
@@ -609,6 +614,10 @@ extend type Mutation {
     """
     enabled: Boolean!
   ): BulkSetEventMarksResponse! @requireUserInWorkspace
+    ID of the event to remove
+    """
+    eventId: ID!
+  ): Boolean! @requireAdmin
 
   """
   Namespace that contains only mutations related to the events
