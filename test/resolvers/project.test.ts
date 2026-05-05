@@ -557,6 +557,7 @@ describe('Project Resolver - createProject', () => {
       if (name.startsWith('dailyEvents:')) {
         return Promise.resolve(dailyEventsCollectionMock);
       }
+      return Promise.reject(new Error(`Unexpected collection name: ${name}`));
     });
 
     const mockProject = {
