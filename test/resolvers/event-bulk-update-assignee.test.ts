@@ -100,6 +100,48 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
     expect(bulkUpdateAssignee).not.toHaveBeenCalled();
   });
 
+  it('should throw when assignee does not exist', async () => {
+    ctx.factories.usersFactory.findById.mockResolvedValueOnce(null);
+
+    await expect(
+      eventResolvers.EventsMutations.bulkUpdateAssignee(
+        {},
+        {
+          input: {
+            projectId: 'p1',
+            eventIds: [ '507f1f77bcf86cd799439011' ],
+            assignee: ASSIGNEE_ID,
+          },
+        },
+        ctx
+      )
+    ).rejects.toThrow('assignee not found');
+
+    expect(bulkUpdateAssignee).not.toHaveBeenCalled();
+  });
+
+  it('should throw when assignee is not workspace member', async () => {
+    ctx.factories.workspacesFactory.findById.mockResolvedValueOnce({
+      getMemberInfo: jest.fn().mockResolvedValue(null),
+    });
+
+    await expect(
+      eventResolvers.EventsMutations.bulkUpdateAssignee(
+        {},
+        {
+          input: {
+            projectId: 'p1',
+            eventIds: [ '507f1f77bcf86cd799439011' ],
+            assignee: ASSIGNEE_ID,
+          },
+        },
+        ctx
+      )
+    ).rejects.toThrow('assignee is not a workspace member');
+
+    expect(bulkUpdateAssignee).not.toHaveBeenCalled();
+  });
+
   it('should call factory for bulk assign', async () => {
     await eventResolvers.EventsMutations.bulkUpdateAssignee(
       {},
@@ -180,6 +222,27 @@ describe('EventsMutations.bulkUpdateAssignee', () => {
           projectId: 'p1',
           eventIds: [ '507f1f77bcf86cd799439011' ],
           assignee: ASSIGNEE_ID,
+        },
+      },
+      ctx
+    );
+
+    expect(sendPersonalNotification).not.toHaveBeenCalled();
+  });
+
+  it('should not enqueue notifications when clearing assignee', async () => {
+    bulkUpdateAssignee.mockResolvedValue({
+      acknowledged: true,
+      modifiedCount: 2,
+    });
+
+    await eventResolvers.EventsMutations.bulkUpdateAssignee(
+      {},
+      {
+        input: {
+          projectId: 'p1',
+          eventIds: [ '507f1f77bcf86cd799439011', '507f1f77bcf86cd799439013' ],
+          assignee: null,
         },
       },
       ctx

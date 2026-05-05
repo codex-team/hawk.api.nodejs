@@ -940,22 +940,21 @@ class EventsFactory extends Factory {
   }
 
   /**
-   * Bulk toggle mark for original events.
+   * Bulk set or clear mark for original events.
    *
    * @param {string[]} eventIds - original event ids
    * @param {string} mark - 'resolved' | 'ignored' | 'starred'
+   * @param {boolean} enabled - true to set mark, false to clear
    * @returns {Promise<UpdateWriteOpResult>}
    */
-  async bulkToggleEventMark(eventIds, mark) {
+  async bulkSetEventMarks(eventIds, mark, enabled) {
     const uniqueEventIds = [ ...new Set((eventIds || []).map(id => String(id))) ];
     const objectIds = uniqueEventIds.map(id => new ObjectId(id));
     const collection = this.getCollection(this.TYPES.EVENTS);
-    const found = await collection.find({ _id: { $in: objectIds } }).toArray();
     const nowSec = Math.floor(Date.now() / 1000);
     const markKey = `marks.${mark}`;
-    const allHaveMark = found.length > 0 && found.every(doc => doc.marks && doc.marks[mark]);
 
-    if (allHaveMark) {
+    if (!enabled) {
       return collection.updateMany(
         {
           _id: { $in: objectIds },

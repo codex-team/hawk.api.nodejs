@@ -9,40 +9,41 @@ jest.mock('../../src/resolvers/helpers/eventsFactory', () => ({
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const eventResolvers = require('../../src/resolvers/event') as {
   Mutation: {
-    bulkToggleEventMarks: (
+    bulkSetEventMarks: (
       o: unknown,
-      args: { projectId: string; eventIds: string[]; mark: string },
+      args: { projectId: string; eventIds: string[]; mark: string; enabled: boolean },
       ctx: unknown
     ) => Promise<{ success: boolean; modifiedCount: number }>;
   };
 };
 
-const bulkToggleEventMark = jest.fn();
+const bulkSetEventMarks = jest.fn();
 
-describe('Mutation.bulkToggleEventMarks', () => {
+describe('Mutation.bulkSetEventMarks', () => {
   const ctx = {};
 
   beforeEach(() => {
     jest.clearAllMocks();
     (getEventsFactory as unknown as jest.Mock).mockReturnValue({
-      bulkToggleEventMark,
+      bulkSetEventMarks,
     });
   });
 
   it('should throw when eventIds is empty', async () => {
     await expect(
-      eventResolvers.Mutation.bulkToggleEventMarks(
+      eventResolvers.Mutation.bulkSetEventMarks(
         {},
         {
           projectId: 'p1',
           eventIds: [],
           mark: 'ignored',
+          enabled: true,
         },
         ctx
       )
     ).rejects.toThrow('eventIds must contain at least one id');
 
-    expect(bulkToggleEventMark).not.toHaveBeenCalled();
+    expect(bulkSetEventMarks).not.toHaveBeenCalled();
   });
 
   it('should call factory with original event ids and return its result', async () => {
@@ -51,22 +52,24 @@ describe('Mutation.bulkToggleEventMarks', () => {
       modifiedCount: 2,
     };
 
-    bulkToggleEventMark.mockResolvedValue(payload);
+    bulkSetEventMarks.mockResolvedValue(payload);
 
-    const result = await eventResolvers.Mutation.bulkToggleEventMarks(
+    const result = await eventResolvers.Mutation.bulkSetEventMarks(
       {},
       {
         projectId: 'p1',
         eventIds: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
         mark: 'resolved',
+        enabled: true,
       },
       ctx
     );
 
     expect(getEventsFactory).toHaveBeenCalledWith(ctx, 'p1');
-    expect(bulkToggleEventMark).toHaveBeenCalledWith(
+    expect(bulkSetEventMarks).toHaveBeenCalledWith(
       ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
-      'resolved'
+      'resolved',
+      true
     );
     expect(result).toEqual({
       success: true,
@@ -74,27 +77,29 @@ describe('Mutation.bulkToggleEventMarks', () => {
     });
   });
 
-  it('should allow starred mark for bulk toggle', async () => {
+  it('should clear starred mark when enabled is false', async () => {
     const payload = {
       acknowledged: true,
       modifiedCount: 1,
     };
 
-    bulkToggleEventMark.mockResolvedValue(payload);
+    bulkSetEventMarks.mockResolvedValue(payload);
 
-    const result = await eventResolvers.Mutation.bulkToggleEventMarks(
+    const result = await eventResolvers.Mutation.bulkSetEventMarks(
       {},
       {
         projectId: 'p1',
         eventIds: [ '507f1f77bcf86cd799439011' ],
         mark: 'starred',
+        enabled: false,
       },
       ctx
     );
 
-    expect(bulkToggleEventMark).toHaveBeenCalledWith(
+    expect(bulkSetEventMarks).toHaveBeenCalledWith(
       [ '507f1f77bcf86cd799439011' ],
-      'starred'
+      'starred',
+      false
     );
     expect(result).toEqual({
       success: true,
@@ -103,15 +108,16 @@ describe('Mutation.bulkToggleEventMarks', () => {
   });
 
   it('should throw for invalid ids', async () => {
-    await expect(eventResolvers.Mutation.bulkToggleEventMarks(
+    await expect(eventResolvers.Mutation.bulkSetEventMarks(
       {},
       {
         projectId: 'p1',
         eventIds: ['507f1f77bcf86cd799439011', 'invalid-id'],
         mark: 'ignored',
+        enabled: true,
       },
       ctx
     )).rejects.toThrow('eventIds must contain only valid ids');
-    expect(bulkToggleEventMark).not.toHaveBeenCalled();
+    expect(bulkSetEventMarks).not.toHaveBeenCalled();
   });
 });

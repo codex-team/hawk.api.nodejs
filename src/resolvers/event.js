@@ -179,21 +179,21 @@ module.exports = {
     },
 
     /**
-     * Bulk set resolved/ignored: always set mark on events that lack it, unless all selected
-     * already have the mark — then remove from all.
+     * Bulk set or clear mark for original events.
      *
      * @param {ResolverObj} _obj - resolver context
      * @param {string} projectId - project id
      * @param {string[]} eventIds - original event ids
      * @param {string} mark - EventMark enum value
+     * @param {boolean} enabled - true to set mark, false to remove
      * @param {object} context - gql context
      * @return {Promise<{ success: boolean, modifiedCount: number }>}
      */
-    async bulkToggleEventMarks(_obj, { projectId, eventIds, mark }, context) {
+    async bulkSetEventMarks(_obj, { projectId, eventIds, mark, enabled }, context) {
       const validEventIds = parseBulkEventIds(eventIds);
 
       const factory = getEventsFactory(context, projectId);
-      const result = await factory.bulkToggleEventMark(validEventIds, mark);
+      const result = await factory.bulkSetEventMarks(validEventIds, mark, enabled);
 
       return {
         success: !!result.acknowledged,

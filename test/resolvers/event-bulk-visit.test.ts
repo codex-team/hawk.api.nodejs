@@ -29,6 +29,19 @@ describe('Mutation.bulkVisitEvents', () => {
     (getEventsFactory as unknown as jest.Mock).mockReturnValue({ bulkVisitEvents });
   });
 
+  it('should throw when eventIds is empty', async () => {
+    await expect(eventResolvers.Mutation.bulkVisitEvents(
+      {},
+      {
+        projectId: 'p1',
+        eventIds: [],
+      },
+      ctx
+    )).rejects.toThrow('eventIds must contain at least one id');
+
+    expect(bulkVisitEvents).not.toHaveBeenCalled();
+  });
+
   it('should call factory and return normalized response', async () => {
     bulkVisitEvents.mockResolvedValue({
       acknowledged: true,

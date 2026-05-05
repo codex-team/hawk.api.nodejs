@@ -484,7 +484,7 @@ type BulkUpdateAssigneeResponse {
 """
 Response of bulk toggling event marks (resolve / ignore / starred)
 """
-type BulkToggleEventMarksResponse {
+type BulkSetEventMarksResponse {
   """
   True when database accepted mutation
   """
@@ -586,11 +586,9 @@ extend type Mutation {
   ): Boolean!
 
   """
-  Toggle the same mark on many original events at once (resolved, ignored or starred).
-  Uses bulk semantics: if every selected event already has the mark, clear it for all;
-  otherwise set it on each selected event that does not have it yet.
+  Set or clear one mark on many original events at once (resolved, ignored or starred).
   """
-  bulkToggleEventMarks(
+  bulkSetEventMarks(
     """
     Project id
     """
@@ -602,11 +600,15 @@ extend type Mutation {
     eventIds: [ID!]!
 
     """
-    Mark (resolved, ignored or starred): if every selected event already has it, clear it for all;
-    otherwise set it on every selected event that does not have it yet.
+    Mark (resolved, ignored or starred) to update
     """
     mark: EventMark!
-  ): BulkToggleEventMarksResponse! @requireUserInWorkspace
+
+    """
+    True - set mark, false - remove mark
+    """
+    enabled: Boolean!
+  ): BulkSetEventMarksResponse! @requireUserInWorkspace
 
   """
   Namespace that contains only mutations related to the events

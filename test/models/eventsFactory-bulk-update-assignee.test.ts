@@ -93,4 +93,30 @@ describe('EventsFactory.bulkUpdateAssignee', () => {
       { $set: { assignee: '' } }
     );
   });
+
+  it('should clear assignee when assignee is undefined', async () => {
+    const factory = new EventsFactory(projectId);
+    const a = new ObjectId();
+
+    await factory.bulkUpdateAssignee([ a.toString() ], undefined);
+
+    expect(collectionMock.updateMany).toHaveBeenCalledWith(
+      {
+        _id: { $in: [ a ] },
+        assignee: { $ne: '' },
+      },
+      { $set: { assignee: '' } }
+    );
+  });
+
+  it('should deduplicate duplicate event ids before updateMany', async () => {
+    const factory = new EventsFactory(projectId);
+    const id = new ObjectId();
+
+    await factory.bulkUpdateAssignee([id.toString(), id.toString(), id.toString()], 'user-1');
+
+    const query = collectionMock.updateMany.mock.calls[0][0];
+
+    expect(query._id.$in).toHaveLength(1);
+  });
 });
