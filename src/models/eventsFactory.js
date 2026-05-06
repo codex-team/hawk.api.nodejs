@@ -403,6 +403,17 @@ class EventsFactory extends Factory {
       return { 'event.assignee': String(assignee) };
     })();
 
+    /** When false, $limit can move before the $lookups. */
+    const hasContentFilters =
+      escapedSearch.length > 0 ||
+      Boolean(release) ||
+      Boolean(assignee) ||
+      Object.keys(matchFilter).length > 0;
+
+    if (!hasContentFilters) {
+      pipeline.push({ $limit: limit + 1 });
+    }
+
     pipeline.push(
       /**
        * Left outer join original event on groupHash field
@@ -434,20 +445,24 @@ class EventsFactory extends Factory {
           path: '$repetition',
           preserveNullAndEmptyArrays: true,
         },
-      },
-      {
-        $match: {
-          ...matchFilter,
-          ...searchFilter,
-          ...releaseFilter,
-          ...assigneeFilter,
-        },
-      },
-      { $limit: limit + 1 },
-      {
-        $unset: 'groupHash',
       }
     );
+
+    if (hasContentFilters) {
+      pipeline.push(
+        {
+          $match: {
+            ...matchFilter,
+            ...searchFilter,
+            ...releaseFilter,
+            ...assigneeFilter,
+          },
+        },
+        { $limit: limit + 1 }
+      );
+    }
+
+    pipeline.push({ $unset: 'groupHash' });
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
     const result = await cursor.toArray();
