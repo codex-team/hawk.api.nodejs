@@ -45,33 +45,30 @@ describe('EventsFactory.bulkSetEventMarks', () => {
     });
   });
 
-  it('should set starred mark when enabled is true', async () => {
-    const factory = new EventsFactory(projectId);
-    const id = new ObjectId();
-
-    collectionMock.updateMany.mockResolvedValue({
-      acknowledged: true,
-      modifiedCount: 1,
-    });
-
-    const result = await factory.bulkSetEventMarks([ id.toString() ], 'starred', true);
-
-    expect(result).toEqual({
-      acknowledged: true,
-      modifiedCount: 1,
-    });
-    expect(collectionMock.updateMany).toHaveBeenCalledWith(
-      {
-        _id: { $in: [ id ] },
-        'marks.starred': { $exists: false },
+  it.each([
+    {
+      title: 'should set starred mark when enabled is true',
+      mark: 'starred',
+      enabled: true,
+      expectedQuery: {
+        markExists: false,
       },
-      expect.objectContaining({
+      expectedUpdate: expect.objectContaining({
         $set: { 'marks.starred': expect.any(Number) },
-      })
-    );
-  });
-
-  it('should clear mark when enabled is false', async () => {
+      }),
+      expectResult: true,
+    },
+    {
+      title: 'should clear mark when enabled is false',
+      mark: 'ignored',
+      enabled: false,
+      expectedQuery: {
+        markExists: true,
+      },
+      expectedUpdate: { $unset: { 'marks.ignored': '' } },
+      expectResult: false,
+    },
+  ])('$title', async ({ mark, enabled, expectedQuery, expectedUpdate, expectResult }) => {
     const factory = new EventsFactory(projectId);
     const id = new ObjectId();
 
@@ -80,14 +77,21 @@ describe('EventsFactory.bulkSetEventMarks', () => {
       modifiedCount: 1,
     });
 
-    await factory.bulkSetEventMarks([ id.toString() ], 'ignored', false);
+    const result = await factory.bulkSetEventMarks([ id.toString() ], mark, enabled);
+
+    if (expectResult) {
+      expect(result).toEqual({
+        acknowledged: true,
+        modifiedCount: 1,
+      });
+    }
 
     expect(collectionMock.updateMany).toHaveBeenCalledWith(
       {
         _id: { $in: [ id ] },
-        'marks.ignored': { $exists: true },
+        [`marks.${mark}`]: { $exists: expectedQuery.markExists },
       },
-      { $unset: { 'marks.ignored': '' } }
+      expectedUpdate
     );
   });
 

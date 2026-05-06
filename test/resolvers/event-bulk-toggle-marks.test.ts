@@ -29,19 +29,30 @@ describe('Mutation.bulkSetEventMarks', () => {
     });
   });
 
-  it('should throw when eventIds is empty', async () => {
+  it.each([
+    {
+      title: 'should throw when eventIds is empty',
+      eventIds: [],
+      message: 'eventIds must contain at least one id',
+    },
+    {
+      title: 'should throw for invalid ids',
+      eventIds: ['507f1f77bcf86cd799439011', 'invalid-id'],
+      message: 'eventIds must contain only valid ids',
+    },
+  ])('$title', async ({ eventIds, message }) => {
     await expect(
       eventResolvers.Mutation.bulkSetEventMarks(
         {},
         {
           projectId: 'p1',
-          eventIds: [],
+          eventIds,
           mark: 'ignored',
           enabled: true,
         },
         ctx
       )
-    ).rejects.toThrow('eventIds must contain at least one id');
+    ).rejects.toThrow(message);
 
     expect(bulkSetEventMarks).not.toHaveBeenCalled();
   });
@@ -107,17 +118,4 @@ describe('Mutation.bulkSetEventMarks', () => {
     });
   });
 
-  it('should throw for invalid ids', async () => {
-    await expect(eventResolvers.Mutation.bulkSetEventMarks(
-      {},
-      {
-        projectId: 'p1',
-        eventIds: ['507f1f77bcf86cd799439011', 'invalid-id'],
-        mark: 'ignored',
-        enabled: true,
-      },
-      ctx
-    )).rejects.toThrow('eventIds must contain only valid ids');
-    expect(bulkSetEventMarks).not.toHaveBeenCalled();
-  });
 });

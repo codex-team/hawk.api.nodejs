@@ -29,15 +29,26 @@ describe('Mutation.bulkVisitEvents', () => {
     (getEventsFactory as unknown as jest.Mock).mockReturnValue({ bulkVisitEvents });
   });
 
-  it('should throw when eventIds is empty', async () => {
+  it.each([
+    {
+      title: 'should throw when eventIds is empty',
+      eventIds: [],
+      message: 'eventIds must contain at least one id',
+    },
+    {
+      title: 'should throw when ids contain invalid values',
+      eventIds: ['bad-1', 'bad-2'],
+      message: 'eventIds must contain only valid ids',
+    },
+  ])('$title', async ({ eventIds, message }) => {
     await expect(eventResolvers.Mutation.bulkVisitEvents(
       {},
       {
         projectId: 'p1',
-        eventIds: [],
+        eventIds,
       },
       ctx
-    )).rejects.toThrow('eventIds must contain at least one id');
+    )).rejects.toThrow(message);
 
     expect(bulkVisitEvents).not.toHaveBeenCalled();
   });
@@ -67,15 +78,4 @@ describe('Mutation.bulkVisitEvents', () => {
     });
   });
 
-  it('should throw when ids contain invalid values', async () => {
-    await expect(eventResolvers.Mutation.bulkVisitEvents(
-      {},
-      {
-        projectId: 'p1',
-        eventIds: ['bad-1', 'bad-2'],
-      },
-      ctx
-    )).rejects.toThrow('eventIds must contain only valid ids');
-    expect(bulkVisitEvents).not.toHaveBeenCalled();
-  });
 });

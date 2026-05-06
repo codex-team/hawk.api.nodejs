@@ -70,35 +70,36 @@ describe('EventsFactory.bulkUpdateAssignee', () => {
     );
   });
 
-  it('should clear assignee with null value', async () => {
+  it.each([
+    {
+      title: 'should clear assignee with null value',
+      assignee: null,
+      expectResult: true,
+    },
+    {
+      title: 'should clear assignee when assignee is undefined',
+      assignee: undefined,
+      expectResult: false,
+    },
+  ])('$title', async ({ assignee, expectResult }) => {
     const factory = new EventsFactory(projectId);
     const a = new ObjectId();
 
-    collectionMock.updateMany.mockResolvedValue({
-      acknowledged: true,
-      modifiedCount: 1,
-    });
+    if (expectResult) {
+      collectionMock.updateMany.mockResolvedValue({
+        acknowledged: true,
+        modifiedCount: 1,
+      });
+    }
 
-    const result = await factory.bulkUpdateAssignee([ a.toString() ], null);
+    const result = await factory.bulkUpdateAssignee([ a.toString() ], assignee);
 
-    expect(result).toEqual({
-      acknowledged: true,
-      modifiedCount: 1,
-    });
-    expect(collectionMock.updateMany).toHaveBeenCalledWith(
-      {
-        _id: { $in: [ a ] },
-        assignee: { $ne: '' },
-      },
-      { $set: { assignee: '' } }
-    );
-  });
-
-  it('should clear assignee when assignee is undefined', async () => {
-    const factory = new EventsFactory(projectId);
-    const a = new ObjectId();
-
-    await factory.bulkUpdateAssignee([ a.toString() ], undefined);
+    if (expectResult) {
+      expect(result).toEqual({
+        acknowledged: true,
+        modifiedCount: 1,
+      });
+    }
 
     expect(collectionMock.updateMany).toHaveBeenCalledWith(
       {

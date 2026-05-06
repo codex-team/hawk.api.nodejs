@@ -13,13 +13,18 @@ describe('bulkEvents helper', () => {
     expect(result).toEqual([validA, validB]);
   });
 
-  it('should throw when eventIds is empty', () => {
-    expect(() => parseBulkEventIds([])).toThrow('eventIds must contain at least one id');
-  });
-
-  it('should throw when at least one id is invalid', () => {
-    expect(() => parseBulkEventIds(['507f1f77bcf86cd799439011', 'bad-id'])).toThrow(
-      'eventIds must contain only valid ids'
-    );
+  it.each([
+    {
+      title: 'should throw when eventIds is empty',
+      input: [],
+      message: 'eventIds must contain at least one id',
+    },
+    {
+      title: 'should throw when at least one id is invalid',
+      input: ['507f1f77bcf86cd799439011', 'bad-id'],
+      message: 'eventIds must contain only valid ids',
+    },
+  ])('$title', ({ input, message }) => {
+    expect(() => parseBulkEventIds(input)).toThrow(message);
   });
 });
