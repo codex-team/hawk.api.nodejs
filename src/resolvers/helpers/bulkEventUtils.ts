@@ -1,8 +1,8 @@
 import { UserInputError } from 'apollo-server-express';
 import { ObjectId } from 'mongodb';
 import sendPersonalNotification from '../../utils/personalNotifications';
-import type { UserDBScheme } from '@hawk.so/types';
 import { SenderWorkerTaskType } from '../../types/userNotifications/task-type';
+import type { EnqueueAssigneeNotificationParams } from '../../types/userNotifications/assignee';
 
 /**
  * Validate and normalize bulk event ids from resolver input.
@@ -24,14 +24,6 @@ export function parseBulkEventIds(eventIds: string[]): string[] {
   return uniqueEventIds;
 }
 
-type AssigneeNotificationParams = {
-  assigneeData: UserDBScheme | null;
-  assigneeId: string;
-  projectId: string;
-  whoAssignedId: string;
-  eventId: string;
-};
-
 /**
  * Enqueue one assignee notification without blocking resolver response.
  */
@@ -41,7 +33,7 @@ export function enqueueAssigneeNotification({
   projectId,
   whoAssignedId,
   eventId,
-}: AssigneeNotificationParams): void {
+}: EnqueueAssigneeNotificationParams): void {
   if (!assigneeData) {
     return;
   }
