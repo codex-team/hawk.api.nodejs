@@ -68,12 +68,19 @@ export default class DataLoaders {
    * Batching function for resolving entities from their ids
    * @param collectionName - collection name to get entities
    * @param ids - ids for resolving
+   * @param projection - optional mongo projection to limit returned fields
    */
   private async batchByIds<T extends { _id: ObjectId }>(
     collectionName: string,
-    ids: ReadonlyArray<string>
+    ids: ReadonlyArray<string>,
+    projection?: Record<string, 0 | 1>
   ): Promise<(WithId<T> | null)[]> {
-    return this.batchByField<T, '_id'>(collectionName, '_id', ids.map(id => new ObjectId(id)));
+    return this.batchByField<T, '_id'>(
+      collectionName,
+      '_id',
+      ids.map(id => new ObjectId(id)),
+      projection
+    );
   }
 
   /**
@@ -81,6 +88,7 @@ export default class DataLoaders {
    * @param collectionName - collection name to get entities
    * @param fieldName - field name to resolve
    * @param values - values for resolving
+   * @param projection - optional mongo projection to limit returned fields
    */
   private async batchByField<
     T extends Record<string, any>,
@@ -88,7 +96,8 @@ export default class DataLoaders {
   >(
     collectionName: string,
     fieldName: FieldType,
-    values: ReadonlyArray<T[FieldType]>
+    values: ReadonlyArray<T[FieldType]>,
+    projection?: Record<string, 0 | 1>
   ): Promise<(WithId<T> | null)[]> {
     type Doc = WithId<T>;
     const valuesMap = new Map<string, FieldType>();
@@ -99,9 +108,10 @@ export default class DataLoaders {
 
     const queryResult = await this.dbConnection
       .collection<T>(collectionName)
-      .find({
-        [fieldName]: { $in: Array.from(valuesMap.values()) },
-      } as any)
+      .find(
+        { [fieldName]: { $in: Array.from(valuesMap.values()) } } as any,
+        projection ? { projection } : {}
+      )
       .toArray();
 
     /**
