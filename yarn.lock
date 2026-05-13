@@ -494,10 +494,10 @@
   dependencies:
     tslib "^2.4.0"
 
-"@hawk.so/nodejs@^3.3.1":
-  version "3.3.1"
-  resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-3.3.1.tgz#23e304607a64cd3a91e488d481cc968fccab6dba"
-  integrity sha512-GALpgM/96As5gE3YdwVcMglTc57Dfqez3b2EciKJoq0u174gK/h+8tayEL+/65pqBy7BNni8ptCQWdgw5Zv5yA==
+"@hawk.so/nodejs@^3.3.2":
+  version "3.3.2"
+  resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-3.3.2.tgz#113db57546f82e5c405c43b6dc5709232827c4df"
+  integrity sha512-i8KFHjFfwmtgN///Q1oxNDTJSQEtjy5iBqDZBuSMAzpQhBBmBE2n9RNIRDaVOby8r+Z+oo3g4Sik2LlffB5AWQ==
   dependencies:
     "@hawk.so/types" "^0.5.8"
     axios "^0.21.1"
