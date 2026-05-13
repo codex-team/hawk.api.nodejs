@@ -14,6 +14,7 @@ const { GitHubService } = require('../integrations/github/service');
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
 const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
+const REPETITIONS_TIMESTAMP_INDEX_NAME = 'timestamp';
 const EVENTS_TIMESTAMP_INDEX_NAME = 'timestamp';
 const EVENTS_PAYLOAD_RELEASE_INDEX_NAME = 'payloadRelease';
 const GROUPING_TIMESTAMP_INDEX_NAME = 'groupingTimestamp';
@@ -210,6 +211,13 @@ module.exports = {
         'payload.user.id': 1,
       }, {
         name: REPETITIONS_USER_ID_INDEX_NAME,
+        sparse: true,
+      });
+
+      await projectRepetitionsEventsCollection.createIndex({
+        timestamp: 1,
+      }, {
+        name: REPETITIONS_TIMESTAMP_INDEX_NAME,
         sparse: true,
       });
 
