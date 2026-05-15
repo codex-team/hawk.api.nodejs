@@ -8,8 +8,23 @@ jest.mock('../../src/integrations/github/service', () => require('../__mocks__/g
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 import { deleteInstallationMock, GitHubService } from '../__mocks__/github-service';
 
+jest.mock('../../src/mongo', () => ({
+  databases: {
+    events: {
+      createCollection: jest.fn(),
+    },
+  },
+}));
+
+jest.mock('../../src/utils/telegram', () => ({
+  sendMessage: jest.fn(),
+}));
+
 // @ts-expect-error - CommonJS module, TypeScript can't infer types properly
 import projectResolverModule from '../../src/resolvers/project';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const mongoMock = require('../../src/mongo');
 
 /**
  * Type assertion for CommonJS module
@@ -18,6 +33,7 @@ const projectResolver = projectResolverModule as {
   Mutation: {
     disconnectTaskManager: (...args: unknown[]) => Promise<unknown>;
     updateTaskManagerSettings: (...args: unknown[]) => Promise<unknown>;
+    createProject: (...args: unknown[]) => Promise<unknown>;
   };
   Query: {
     project: (...args: unknown[]) => Promise<unknown>;
@@ -516,5 +532,73 @@ describe('Project Resolver - Task Manager Mutations', () => {
       expect(updateCall.taskManager.type).toBe('github');
       expect(updateCall.taskManager.connectedAt).toEqual(mockTaskManagerConfig.connectedAt);
     });
+  });
+});
+
+describe('Project Resolver - createProject', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should create a timestamp index on the repetitions collection', async () => {
+    const projectId = new ObjectId();
+
+    const eventsCollectionMock = { createIndex: jest.fn().mockResolvedValue(undefined) };
+    const repetitionsCollectionMock = { createIndex: jest.fn().mockResolvedValue(undefined) };
+    const dailyEventsCollectionMock = { createIndex: jest.fn().mockResolvedValue(undefined) };
+
+    mongoMock.databases.events.createCollection.mockImplementation((name: string) => {
+      if (name.startsWith('events:')) {
+        return Promise.resolve(eventsCollectionMock);
+      }
+      if (name.startsWith('repetitions:')) {
+        return Promise.resolve(repetitionsCollectionMock);
+      }
+      if (name.startsWith('dailyEvents:')) {
+        return Promise.resolve(dailyEventsCollectionMock);
+      }
+      return Promise.reject(new Error(`Unexpected collection name: ${name}`));
+    });
+
+    const mockProject = {
+      _id: projectId,
+      createNotificationsRule: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const mockProjectsFactory = {
+      create: jest.fn().mockResolvedValue(mockProject),
+      findById: jest.fn().mockResolvedValue(mockProject),
+    };
+
+    const mockWorkspacesFactory = {
+      findById: jest.fn().mockResolvedValue({ _id: new ObjectId(), name: 'Test Workspace' }),
+    };
+
+    const mockUsersFactory = {
+      findById: jest.fn().mockResolvedValue({ email: 'test@example.com' }),
+    };
+
+    const context = {
+      user: { id: new ObjectId().toString() },
+      factories: {
+        workspacesFactory: mockWorkspacesFactory as any,
+        projectsFactory: mockProjectsFactory as any,
+        usersFactory: mockUsersFactory as any,
+        plansFactory: {} as any,
+        businessOperationsFactory: {} as any,
+        releasesFactory: {} as any,
+      },
+    };
+
+    await projectResolver.Mutation.createProject(
+      {},
+      { workspaceId: new ObjectId().toString(), name: 'Test Project', image: '' },
+      context
+    );
+
+    expect(repetitionsCollectionMock.createIndex).toHaveBeenCalledWith(
+      { timestamp: 1 },
+      { name: 'timestamp', sparse: true }
+    );
   });
 });
