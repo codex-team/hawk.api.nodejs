@@ -403,9 +403,14 @@ class EventsFactory extends Factory {
       return { 'event.assignee': String(assignee) };
     })();
 
-    /** When false, $limit can move before the $lookups. */
+    /**
+     * These filters match joined event.* fields, so their $match must run
+     * after the lookups. With none set, $limit can move before the lookups
+     * and skip joining rows we'd drop anyway (~8.8s).
+     * Trim search to match searchFilter's own condition.
+     */
     const hasContentFilters =
-      escapedSearch.length > 0 ||
+      search.trim().length > 0 ||
       Boolean(release) ||
       Boolean(assignee) ||
       Object.keys(matchFilter).length > 0;
