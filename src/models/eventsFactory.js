@@ -403,6 +403,22 @@ class EventsFactory extends Factory {
       return { 'event.assignee': String(assignee) };
     })();
 
+    /**
+     * These filters match joined event.* fields, so their $match must run
+     * after the lookups. With none set, $limit can move before the lookups
+     * and skip joining rows we'd drop anyway (~8.8s).
+     * Trim search to match searchFilter's own condition.
+     */
+    const hasContentFilters =
+      search.trim().length > 0 ||
+      Boolean(release) ||
+      Boolean(assignee) ||
+      Object.keys(matchFilter).length > 0;
+
+    if (!hasContentFilters) {
+      pipeline.push({ $limit: limit + 1 });
+    }
+
     pipeline.push(
       /**
        * Left outer join original event on groupHash field
@@ -434,20 +450,24 @@ class EventsFactory extends Factory {
           path: '$repetition',
           preserveNullAndEmptyArrays: true,
         },
-      },
-      {
-        $match: {
-          ...matchFilter,
-          ...searchFilter,
-          ...releaseFilter,
-          ...assigneeFilter,
-        },
-      },
-      { $limit: limit + 1 },
-      {
-        $unset: 'groupHash',
       }
     );
+
+    if (hasContentFilters) {
+      pipeline.push(
+        {
+          $match: {
+            ...matchFilter,
+            ...searchFilter,
+            ...releaseFilter,
+            ...assigneeFilter,
+          },
+        },
+        { $limit: limit + 1 }
+      );
+    }
+
+    pipeline.push({ $unset: 'groupHash' });
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
     const result = await cursor.toArray();
