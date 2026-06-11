@@ -42,6 +42,7 @@ import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import PlanModel from '../models/plan';
 import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
+import PromoCodeService from '../utils/promoCodeService';
 
 const PENNY_MULTIPLIER = 100;
 
@@ -141,7 +142,7 @@ export default class CloudPaymentsWebhooks {
 
     let workspace: WorkspaceModel;
     let member: ConfirmedMemberDBScheme;
-    let plan: PlanDBScheme;
+    let plan: PlanModel;
     let planId: string;
 
     const { workspaceId, userId, tariffPlanId } = data;
@@ -161,11 +162,36 @@ export default class CloudPaymentsWebhooks {
 
     const recurrentPaymentSettings = data.cloudPayments?.recurrent;
 
+    if (data.promoCodeValue && !data.isCardLinkOperation) {
+      try {
+        const promoCodeService = new PromoCodeService(context.factories);
+        const promoPricing = await promoCodeService.getPricingForPlan(data.promoCodeValue, data.userId, data.workspaceId, plan);
+
+        if (
+          promoPricing.promoCode._id.toString() !== data.promoCodeId ||
+          promoPricing.finalAmount !== data.finalAmount ||
+          promoPricing.originalAmount !== data.originalAmount ||
+          promoPricing.discountAmount !== data.discountAmount
+        ) {
+          this.sendError(res, CheckCodes.WRONG_AMOUNT, '[Billing / Check] Promo code payment data does not match current promo calculation', body);
+
+          return;
+        }
+      } catch (e) {
+        const error = e as Error;
+
+        this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Promo code is invalid: ${error.toString()}`, body);
+
+        return;
+      }
+    }
+
     /**
      * The amount will be considered correct if it is equal to the cost of the tariff plan.
      * Also, the cost will be correct if it is a payment to activate the subscription.
      */
-    const isRightAmount = +body.Amount === plan.monthlyCharge || recurrentPaymentSettings?.startDate;
+    const expectedAmount = data.finalAmount ?? plan.monthlyCharge;
+    const isRightAmount = +body.Amount === expectedAmount || (!data.finalAmount && recurrentPaymentSettings?.startDate);
 
     if (!isRightAmount) {
       this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
@@ -294,6 +320,23 @@ export default class CloudPaymentsWebhooks {
 
       if (subscriptionId) {
         await workspace.setSubscriptionId(subscriptionId);
+      }
+
+      if (data.promoCodeValue && !data.isCardLinkOperation && data.benefitType) {
+        const promoCodeService = new PromoCodeService(req.context.factories);
+        const promoCode = await promoCodeService.getValidPromoCode(data.promoCodeValue, data.userId, data.workspaceId);
+
+        await promoCodeService.createUsage({
+          promoCode,
+          userId: data.userId,
+          workspaceId: workspace._id,
+          planId: tariffPlan._id,
+          benefitType: data.benefitType,
+          originalAmount: data.originalAmount,
+          finalAmount: data.finalAmount,
+          discountAmount: data.discountAmount,
+          utm: data.promoUtm,
+        });
       }
     } catch (e) {
       const error = e as Error;
@@ -442,7 +485,7 @@ plan monthly charge: ${data.cloudPayments?.recurrent.amount} ${body.Currency}`
          */
         const userEmail = body.IssuerBankCountry === RUSSIA_ISO_CODE ? user.email : undefined;
 
-        await this.sendReceipt(workspace, tariffPlan, userEmail);
+        await this.sendReceipt(workspace, tariffPlan, userEmail, data.finalAmount ?? tariffPlan.monthlyCharge);
 
         let messageText = '';
 
@@ -826,8 +869,9 @@ status: ${body.Status}`
    * @param workspace - workspace for which payment is made
    * @param tariff - paid tariff plan
    * @param userMail - user email address
+   * @param amount - actual paid amount
    */
-  private async sendReceipt(workspace: WorkspaceModel, tariff: PlanModel, userMail?: string): Promise<void> {
+  private async sendReceipt(workspace: WorkspaceModel, tariff: PlanModel, userMail?: string, amount = tariff.monthlyCharge): Promise<void> {
     /**
      * A general tax that applies to all commercial activities
      * involving the production and distribution of goods and the provision of services
@@ -836,9 +880,9 @@ status: ${body.Status}`
     const VALUE_ADDED_TAX = 0;
 
     const item: CustomerReceiptItem = {
-      amount: tariff.monthlyCharge,
+      amount,
       label: `${tariff.name} tariff plan`,
-      price: tariff.monthlyCharge,
+      price: amount,
       vat: VALUE_ADDED_TAX,
       quantity: 1,
     };

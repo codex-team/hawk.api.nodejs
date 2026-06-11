@@ -235,6 +235,122 @@ input ComposePaymentInput {
   Whether card should be saved for future recurrent payments
   """
   shouldSaveCard: Boolean
+
+  """
+  Promo code value entered by user
+  """
+  promoCode: String
+
+  """
+  UTM parameters captured when promo code was applied
+  """
+  promoUtm: PromoCodeUtmInput
+}
+
+"""
+Input for promo code preview/apply
+"""
+input PreviewPromoCodeInput {
+  """
+  Workspace id for which promo code is applied
+  """
+  workspaceId: ID!
+
+  """
+  Promo code value entered by user
+  """
+  value: String!
+
+  """
+  UTM parameters captured when promo code was applied
+  """
+  utm: PromoCodeUtmInput
+}
+
+"""
+UTM data stored with promo usage
+"""
+input PromoCodeUtmInput {
+  source: String
+  medium: String
+  campaign: String
+  content: String
+  term: String
+}
+
+"""
+Promo code benefit type
+"""
+enum PromoCodeBenefitType {
+  grant_plan
+  percent_discount
+  amount_discount
+  fixed_price
+}
+
+"""
+Calculated promo code price for a tariff plan
+"""
+type PromoCodePlanPrice {
+  """
+  Plan id
+  """
+  planId: ID!
+
+  """
+  Whether promo code can be applied to this plan
+  """
+  isApplicable: Boolean!
+
+  """
+  Plan price before promo
+  """
+  originalAmount: Int!
+
+  """
+  Plan price after promo
+  """
+  finalAmount: Int!
+
+  """
+  Actual discount amount in money
+  """
+  discountAmount: Int!
+}
+
+"""
+Promo code preview response
+"""
+type PreviewPromoCodeResponse {
+  """
+  Normalized promo code value
+  """
+  value: String!
+
+  """
+  Benefit type
+  """
+  benefitType: PromoCodeBenefitType!
+
+  """
+  True if grant_plan promo was applied immediately
+  """
+  applied: Boolean!
+
+  """
+  Discount percent for percent promos
+  """
+  percent: Int
+
+  """
+  Discount or fixed price amount
+  """
+  amount: Int
+
+  """
+  Calculated prices for visible plans
+  """
+  plans: [PromoCodePlanPrice!]!
 }
 
 """
@@ -275,6 +391,26 @@ type ComposePaymentResponse {
   CloudPayments public id (merchant identifier for payment widget)
   """
   cloudPaymentsPublicId: String!
+
+  """
+  Applied promo code value
+  """
+  promoCode: String
+
+  """
+  Plan price before promo
+  """
+  originalAmount: Int
+
+  """
+  Plan price after promo
+  """
+  finalAmount: Int
+
+  """
+  Actual discount amount in money
+  """
+  discountAmount: Int
 }
 
 
@@ -326,6 +462,11 @@ type PayWithCardResponse {
 }
 
 extend type Mutation {
+  """
+  Previews promo code discounts or applies grant_plan promo immediately
+  """
+  previewPromoCode(input: PreviewPromoCodeInput!): PreviewPromoCodeResponse!
+
   """
   Remove card
   """

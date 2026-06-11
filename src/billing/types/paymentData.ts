@@ -57,6 +57,40 @@ export interface PaymentData {
    */
   shouldSaveCard: boolean;
   /**
+   * Applied promo code id
+   */
+  promoCodeId?: string;
+  /**
+   * Applied promo code value
+   */
+  promoCodeValue?: string;
+  /**
+   * Promo benefit type
+   */
+  benefitType?: 'grant_plan' | 'percent_discount' | 'amount_discount' | 'fixed_price';
+  /**
+   * Plan price before promo
+   */
+  originalAmount?: number;
+  /**
+   * Final price after promo
+   */
+  finalAmount?: number;
+  /**
+   * Actual discount amount
+   */
+  discountAmount?: number;
+  /**
+   * UTM parameters captured when promo was applied
+   */
+  promoUtm?: {
+    source?: string;
+    medium?: string;
+    campaign?: string;
+    content?: string;
+    term?: string;
+  };
+  /**
    * True if this is card linking operation – charging minimal amount of money to validate card info
    */
   isCardLinkOperation: boolean;

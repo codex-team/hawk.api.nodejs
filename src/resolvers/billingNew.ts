@@ -12,6 +12,8 @@ import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
+import PromoCodeService, { PromoCodeError, PromoCodeErrorCode, PromoCodePreviewResult } from '../utils/promoCodeService';
+import { publish } from '../rabbitmq';
 
 /**
  * The amount we will debit to confirm the subscription.
@@ -27,7 +29,45 @@ interface ComposePaymentArgs {
     workspaceId: string;
     tariffPlanId: string;
     shouldSaveCard?: boolean;
+    promoCode?: string;
+    promoUtm?: {
+      source?: string;
+      medium?: string;
+      campaign?: string;
+      content?: string;
+      term?: string;
+    };
   };
+}
+
+/**
+ * Input data for promo code preview/apply mutation.
+ */
+interface PreviewPromoCodeArgs {
+  input: {
+    workspaceId: string;
+    value: string;
+    utm?: {
+      source?: string;
+      medium?: string;
+      campaign?: string;
+      content?: string;
+      term?: string;
+    };
+  };
+}
+
+/**
+ * Converts internal promo errors to public GraphQL errors.
+ *
+ * @param error - error to convert
+ */
+function throwPromoCodeGraphQLError(error: unknown): never {
+  if (error instanceof PromoCodeError) {
+    throw new UserInputError(error.code);
+  }
+
+  throw new UserInputError(PromoCodeErrorCode.ApplyFailed);
 }
 
 /**
@@ -87,8 +127,12 @@ export default {
       checksum: string;
       nextPaymentDate: Date;
       cloudPaymentsPublicId: string;
+      promoCode?: string;
+      originalAmount?: number;
+      finalAmount?: number;
+      discountAmount?: number;
     }> {
-      const { workspaceId, tariffPlanId, shouldSaveCard } = input;
+      const { workspaceId, tariffPlanId, shouldSaveCard, promoCode, promoUtm } = input;
 
       if (!workspaceId || !tariffPlanId || !user?.id) {
         throw new UserInputError('No workspaceId, tariffPlanId or user id provided');
@@ -126,6 +170,29 @@ export default {
         isCardLinkOperation = true;
       }
 
+      let paymentAmount = plan.monthlyCharge;
+      let promoPaymentData;
+
+      if (promoCode && !isCardLinkOperation) {
+        try {
+          const promoCodeService = new PromoCodeService(factories);
+          const pricing = await promoCodeService.getPricingForPlan(promoCode, user.id, workspace._id.toString(), plan);
+
+          paymentAmount = pricing.finalAmount;
+          promoPaymentData = {
+            promoCodeId: pricing.promoCode._id.toString(),
+            promoCodeValue: pricing.promoCode.value,
+            benefitType: pricing.benefitType,
+            originalAmount: pricing.originalAmount,
+            finalAmount: pricing.finalAmount,
+            discountAmount: pricing.discountAmount,
+            promoUtm,
+          };
+        } catch (error) {
+          throwPromoCodeGraphQLError(error);
+        }
+      }
+
       // Calculate next payment date
       const lastChargeDate = workspace.lastChargeDate ? new Date(workspace.lastChargeDate) : now;
       const nextPaymentDate = isCardLinkOperation ? new Date(lastChargeDate) : new Date(now);
@@ -149,6 +216,7 @@ export default {
           tariffPlanId: plan._id.toString(),
           shouldSaveCard: Boolean(shouldSaveCard),
           nextPaymentDate: nextPaymentDate.toISOString(),
+          ...promoPaymentData,
         };
 
       const checksum = await checksumService.generateChecksum(checksumData);
@@ -160,7 +228,7 @@ export default {
         .sendMessage(`👀 [Billing / Compose payment]
 
 card link operation: ${isCardLinkOperation}
-amount: ${+plan.monthlyCharge} RUB
+amount: ${+paymentAmount} RUB
 last charge date: ${workspace.lastChargeDate?.toISOString()}
 next payment date: ${nextPaymentDate.toISOString()}
 workspace id: ${workspace._id.toString()}
@@ -173,13 +241,17 @@ debug: ${Boolean(workspace.isDebug)}`
         plan: {
           id: plan._id.toString(),
           name: plan.name,
-          monthlyCharge: plan.monthlyCharge,
+          monthlyCharge: paymentAmount,
         },
         isCardLinkOperation,
         currency: 'RUB',
         checksum,
         nextPaymentDate,
         cloudPaymentsPublicId: process.env.CLOUDPAYMENTS_PUBLIC_ID || '',
+        promoCode: promoPaymentData?.promoCodeValue,
+        originalAmount: promoPaymentData?.originalAmount,
+        finalAmount: promoPaymentData?.finalAmount,
+        discountAmount: promoPaymentData?.discountAmount,
       };
     },
   },
@@ -253,6 +325,59 @@ debug: ${Boolean(workspace.isDebug)}`
 
   Mutation: {
     /**
+     * Preview discount promo or immediately apply grant_plan promo.
+     *
+     * @param _obj - parent object
+     * @param input - promo code input
+     * @param user - current authorized user
+     * @param factories - factories for working with models
+     */
+    async previewPromoCode(
+      _obj: undefined,
+      { input }: PreviewPromoCodeArgs,
+      { user, factories }: ResolverContextWithUser
+    ): Promise<PromoCodePreviewResult & { applied: boolean }> {
+      const workspace = await factories.workspacesFactory.findById(input.workspaceId);
+
+      if (!workspace) {
+        throw new UserInputError(PromoCodeErrorCode.Invalid);
+      }
+
+      const member = await workspace.getMemberInfo(user.id);
+
+      if (!member || !('isAdmin' in member) || !member.isAdmin) {
+        throw new UserInputError(PromoCodeErrorCode.Invalid);
+      }
+
+      const promoCodeService = new PromoCodeService(factories);
+
+      try {
+        const preview = await promoCodeService.preview(input.value, user.id, input.workspaceId);
+
+        if (preview.benefitType !== 'grant_plan') {
+          return {
+            ...preview,
+            applied: false,
+          };
+        }
+
+        await promoCodeService.applyGrantPlan(input.value, user.id, workspace, input.utm);
+
+        await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
+          type: 'unblock-workspace',
+          workspaceId: workspace._id.toString(),
+        }));
+
+        return {
+          ...preview,
+          applied: true,
+        };
+      } catch (error) {
+        throwPromoCodeGraphQLError(error);
+      }
+    },
+
+    /**
      * Mutation for processing payment via saved card
      *
      * @param _obj - parent object
@@ -277,6 +402,8 @@ debug: ${Boolean(workspace.isDebug)}`
       if (!workspace || !member || !plan || !fullUserInfo) {
         throw new UserInputError('Wrong checksum data');
       }
+
+      const planPaymentAmount = paymentData.finalAmount ?? plan.monthlyCharge;
 
       const token = fullUserInfo.bankCards?.find(card => card.id === args.input.cardId)?.token;
 
@@ -307,11 +434,11 @@ debug: ${Boolean(workspace.isDebug)}`
          */
         if (!isTariffPlanExpired) {
           jsonData.cloudPayments.recurrent.startDate = dueDate.toDateString();
-          jsonData.cloudPayments.recurrent.amount = plan.monthlyCharge;
+          jsonData.cloudPayments.recurrent.amount = planPaymentAmount;
         }
       }
 
-      let amount = plan.monthlyCharge;
+      let amount = planPaymentAmount;
 
       const isPaymentForCurrentTariffPlan = workspace.tariffPlanId.toString() === plan._id.toString();
 
