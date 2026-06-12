@@ -183,6 +183,15 @@ function isPlanApplicable(benefit: PromoCodeBenefit, plan: PlanModel): boolean {
 }
 
 /**
+ * Returns whether discount promo can affect plan price.
+ *
+ * @param plan - tariff plan
+ */
+function isDiscountablePlan(plan: PlanModel): boolean {
+  return plan.monthlyCharge > 0 && isPlanAvailable(plan);
+}
+
+/**
  * Calculates discounted price for one plan.
  *
  * @param benefit - promo benefit
@@ -190,7 +199,9 @@ function isPlanApplicable(benefit: PromoCodeBenefit, plan: PlanModel): boolean {
  */
 export function calculatePromoCodePlanPrice(benefit: PromoCodeBenefit, plan: PlanModel): PromoCodePlanPrice {
   const originalAmount = plan.monthlyCharge;
-  const isApplicable = benefit.type !== 'grant_plan' && isPlanAvailable(plan) && isPlanApplicable(benefit, plan);
+  const isApplicable = benefit.type !== 'grant_plan' &&
+    isDiscountablePlan(plan) &&
+    isPlanApplicable(benefit, plan);
 
   if (!isApplicable) {
     return {
@@ -208,6 +219,16 @@ export function calculatePromoCodePlanPrice(benefit: PromoCodeBenefit, plan: Pla
       const discountAmount = Math.floor(originalAmount * benefit.percent / 100);
       const finalAmount = Math.max(originalAmount - discountAmount, minFinalPrice);
 
+      if (finalAmount >= originalAmount) {
+        return {
+          planId: plan._id.toString(),
+          isApplicable: false,
+          originalAmount,
+          finalAmount: originalAmount,
+          discountAmount: 0,
+        };
+      }
+
       return {
         planId: plan._id.toString(),
         isApplicable: true,
@@ -221,6 +242,16 @@ export function calculatePromoCodePlanPrice(benefit: PromoCodeBenefit, plan: Pla
       const minFinalPrice = benefit.minFinalPrice ?? DEFAULT_MIN_FINAL_PRICE;
       const finalAmount = Math.max(originalAmount - benefit.amount, minFinalPrice);
 
+      if (finalAmount >= originalAmount) {
+        return {
+          planId: plan._id.toString(),
+          isApplicable: false,
+          originalAmount,
+          finalAmount: originalAmount,
+          discountAmount: 0,
+        };
+      }
+
       return {
         planId: plan._id.toString(),
         isApplicable: true,
@@ -231,12 +262,22 @@ export function calculatePromoCodePlanPrice(benefit: PromoCodeBenefit, plan: Pla
     }
 
     case 'fixed_price':
+      if (benefit.amount >= originalAmount) {
+        return {
+          planId: plan._id.toString(),
+          isApplicable: false,
+          originalAmount,
+          finalAmount: originalAmount,
+          discountAmount: 0,
+        };
+      }
+
       return {
         planId: plan._id.toString(),
         isApplicable: true,
         originalAmount,
         finalAmount: benefit.amount,
-        discountAmount: Math.max(originalAmount - benefit.amount, 0),
+        discountAmount: originalAmount - benefit.amount,
       };
 
     default:

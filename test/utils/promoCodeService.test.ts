@@ -122,6 +122,35 @@ describe('PromoCodeService', () => {
     });
   });
 
+  it('does not apply discount promos to free plan', () => {
+    const plan = createPlan({ monthlyCharge: 0 });
+    const price = calculatePromoCodePlanPrice({
+      type: 'percent_discount',
+      percent: 20,
+    } as any, plan);
+
+    expect(price).toMatchObject({
+      isApplicable: false,
+      originalAmount: 0,
+      finalAmount: 0,
+      discountAmount: 0,
+    });
+  });
+
+  it('does not apply fixed price promo when it is not cheaper than plan price', () => {
+    const plan = createPlan({ monthlyCharge: 100 });
+    const price = calculatePromoCodePlanPrice({
+      type: 'fixed_price',
+      amount: 100,
+    } as any, plan);
+
+    expect(price).toMatchObject({
+      isApplicable: false,
+      finalAmount: 100,
+      discountAmount: 0,
+    });
+  });
+
   it('returns preview for percent discount promo', async () => {
     const plan = createPlan({ monthlyCharge: 1000 });
     const promoCode = createPromoCode({
