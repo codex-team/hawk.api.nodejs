@@ -1,13 +1,13 @@
 import { ObjectId } from 'mongodb';
 import {
   PromoCodeBenefit,
-  PromoCodeBenefitType,
-  PromoCodeUsageDBScheme
+  PromoCodeBenefitType
 } from '@hawk.so/types';
 import PlanModel from '../models/plan';
 import PromoCodeModel from '../models/promoCode';
 import WorkspaceModel from '../models/workspace';
 import { ContextFactories } from '../types/graphql';
+import type { Utm } from '@hawk.so/types';
 
 const PROMO_CODE_REGEXP = /^[A-Z0-9_-]+$/;
 const DEFAULT_MIN_FINAL_PRICE = 1;
@@ -135,7 +135,7 @@ export interface PromoCodePreviewResult {
 /**
  * UTM data stored with promo code usage.
  */
-export type PromoCodeUtm = PromoCodeUsageDBScheme['utm'];
+export type PromoCodeUtm = Utm;
 
 /**
  * Normalizes promo code value before DB lookup.
@@ -475,7 +475,7 @@ export default class PromoCodeService {
         finalAmount: params.finalAmount,
         discountAmount: params.discountAmount,
         appliedAt: new Date(),
-        utm: params.utm,
+        ...(params.utm && Object.keys(params.utm).length > 0 ? { utm: params.utm } : {}),
       });
     } catch (error) {
       if ((error as { code?: number }).code === 11000) {

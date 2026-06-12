@@ -14,6 +14,8 @@ import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
 import PromoCodeService, { PromoCodeError, PromoCodeErrorCode, PromoCodePreviewResult } from '../utils/promoCodeService';
 import { publish } from '../rabbitmq';
+import type { Utm } from '@hawk.so/types';
+import { validateUtmParams } from '../utils/utm/utm';
 
 /**
  * The amount we will debit to confirm the subscription.
@@ -30,13 +32,7 @@ interface ComposePaymentArgs {
     tariffPlanId: string;
     shouldSaveCard?: boolean;
     promoCode?: string;
-    promoUtm?: {
-      source?: string;
-      medium?: string;
-      campaign?: string;
-      content?: string;
-      term?: string;
-    };
+    promoUtm?: Utm;
   };
 }
 
@@ -47,13 +43,7 @@ interface PreviewPromoCodeArgs {
   input: {
     workspaceId: string;
     value: string;
-    utm?: {
-      source?: string;
-      medium?: string;
-      campaign?: string;
-      content?: string;
-      term?: string;
-    };
+    utm?: Utm;
   };
 }
 
@@ -132,7 +122,8 @@ export default {
       finalAmount?: number;
       discountAmount?: number;
     }> {
-      const { workspaceId, tariffPlanId, shouldSaveCard, promoCode, promoUtm } = input;
+      const { workspaceId, tariffPlanId, shouldSaveCard, promoCode } = input;
+      const promoUtm = validateUtmParams(input.promoUtm);
 
       if (!workspaceId || !tariffPlanId || !user?.id) {
         throw new UserInputError('No workspaceId, tariffPlanId or user id provided');
@@ -186,7 +177,7 @@ export default {
             originalAmount: pricing.originalAmount,
             finalAmount: pricing.finalAmount,
             discountAmount: pricing.discountAmount,
-            promoUtm,
+            ...(promoUtm && Object.keys(promoUtm).length > 0 ? { promoUtm } : {}),
           };
         } catch (error) {
           throwPromoCodeGraphQLError(error);
@@ -361,7 +352,7 @@ debug: ${Boolean(workspace.isDebug)}`
           };
         }
 
-        await promoCodeService.applyGrantPlan(input.value, user.id, workspace, input.utm);
+        await promoCodeService.applyGrantPlan(input.value, user.id, workspace, validateUtmParams(input.utm));
 
         await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
           type: 'unblock-workspace',

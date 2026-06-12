@@ -1,3 +1,5 @@
+import type { Utm } from '@hawk.so/types';
+
 /**
  * Data for setting up recurring payments
  */
@@ -83,13 +85,7 @@ export interface PaymentData {
   /**
    * UTM parameters captured when promo was applied
    */
-  promoUtm?: {
-    source?: string;
-    medium?: string;
-    campaign?: string;
-    content?: string;
-    term?: string;
-  };
+  promoUtm?: Utm;
   /**
    * True if this is card linking operation – charging minimal amount of money to validate card info
    */

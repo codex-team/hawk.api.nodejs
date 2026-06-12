@@ -1,4 +1,5 @@
 import jwt, { Secret } from 'jsonwebtoken';
+import type { Utm } from '@hawk.so/types';
 
 export type ChecksumData = PlanPurchaseChecksumData | CardLinkChecksumData;
 
@@ -50,13 +51,7 @@ interface PlanPurchaseChecksumData {
   /**
    * UTM parameters captured when promo was applied
    */
-  promoUtm?: {
-    source?: string;
-    medium?: string;
-    campaign?: string;
-    content?: string;
-    term?: string;
-  };
+  promoUtm?: Utm;
 }
 
 interface CardLinkChecksumData {
