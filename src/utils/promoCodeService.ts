@@ -8,6 +8,7 @@ import PromoCodeModel from '../models/promoCode';
 import WorkspaceModel from '../models/workspace';
 import { ContextFactories } from '../types/graphql';
 import type { Utm } from '@hawk.so/types';
+import type { PaymentPromoData } from '../billing/types/paymentData';
 
 const PROMO_CODE_REGEXP = /^[A-Z0-9_-]+$/;
 const DEFAULT_MIN_FINAL_PRICE = 1;
@@ -328,6 +329,23 @@ function validateBenefitStructure(benefit: PromoCodeBenefit): void {
 }
 
 /**
+ * Builds promo payload stored in payment checksum.
+ *
+ * @param pricing - validated promo pricing
+ * @param utm - optional UTM data
+ */
+export function buildPaymentPromoData(pricing: PromoCodePricingResult, utm?: Utm): PaymentPromoData {
+  return {
+    id: pricing.promoCode._id.toString(),
+    benefitType: pricing.benefitType as PaymentPromoData['benefitType'],
+    originalAmount: pricing.originalAmount,
+    finalAmount: pricing.finalAmount,
+    discountAmount: pricing.discountAmount,
+    ...(utm && Object.keys(utm).length > 0 ? { utm } : {}),
+  };
+}
+
+/**
  * Service with promo code validation and usage helpers.
  */
 export default class PromoCodeService {
@@ -365,14 +383,84 @@ export default class PromoCodeService {
       throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code not found');
     }
 
+    await this.validateLoadedPromoCode(promoCode, userId, workspaceId);
+
+    return promoCode;
+  }
+
+  /**
+   * Validates loaded promo code against limits and expiry.
+   *
+   * @param promoCode - promo code model
+   * @param userId - user id
+   * @param workspaceId - workspace id
+   */
+  private async validateLoadedPromoCode(
+    promoCode: PromoCodeModel,
+    userId: string,
+    workspaceId: string
+  ): Promise<void> {
     if (promoCode.expiresAt && new Date() > new Date(promoCode.expiresAt)) {
       throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code expired');
     }
 
     validateBenefitStructure(promoCode.benefit);
     await this.validateUsageLimits(promoCode, userId, new ObjectId(workspaceId));
+  }
 
-    return promoCode;
+  /**
+   * Validates promo code by id for one selected plan and returns final price.
+   *
+   * @param promoCodeId - promo code id
+   * @param userId - user id
+   * @param workspaceId - workspace id
+   * @param plan - selected plan
+   */
+  public async getPricingForPromoCodeId(
+    promoCodeId: string,
+    userId: string,
+    workspaceId: string,
+    plan: PlanModel
+  ): Promise<PromoCodePricingResult> {
+    if (!ObjectId.isValid(promoCodeId)) {
+      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code id is invalid');
+    }
+
+    const promoCode = await this.factories.promoCodesFactory.findOne({ _id: new ObjectId(promoCodeId) });
+
+    if (!promoCode) {
+      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code not found');
+    }
+
+    await this.validateLoadedPromoCode(promoCode, userId, workspaceId);
+
+    return this.buildPricingResult(promoCode, plan);
+  }
+
+  /**
+   * Builds pricing result for validated promo code and plan.
+   *
+   * @param promoCode - promo code model
+   * @param plan - selected plan
+   */
+  private buildPricingResult(promoCode: PromoCodeModel, plan: PlanModel): PromoCodePricingResult {
+    if (promoCode.benefit.type === 'grant_plan') {
+      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Grant plan promo cannot be used in payment');
+    }
+
+    const price = calculatePromoCodePlanPrice(promoCode.benefit, plan);
+
+    if (!price.isApplicable) {
+      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code is not applicable to selected plan');
+    }
+
+    return {
+      promoCode,
+      benefitType: promoCode.benefit.type,
+      originalAmount: price.originalAmount,
+      finalAmount: price.finalAmount,
+      discountAmount: price.discountAmount,
+    };
   }
 
   /**
@@ -422,23 +510,7 @@ export default class PromoCodeService {
   public async getPricingForPlan(value: string, userId: string, workspaceId: string, plan: PlanModel): Promise<PromoCodePricingResult> {
     const promoCode = await this.getValidPromoCode(value, userId, workspaceId);
 
-    if (promoCode.benefit.type === 'grant_plan') {
-      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Grant plan promo cannot be used in payment');
-    }
-
-    const price = calculatePromoCodePlanPrice(promoCode.benefit, plan);
-
-    if (!price.isApplicable) {
-      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code is not applicable to selected plan');
-    }
-
-    return {
-      promoCode,
-      benefitType: promoCode.benefit.type,
-      originalAmount: price.originalAmount,
-      finalAmount: price.finalAmount,
-      discountAmount: price.discountAmount,
-    };
+    return this.buildPricingResult(promoCode, plan);
   }
 
   /**

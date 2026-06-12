@@ -162,16 +162,21 @@ export default class CloudPaymentsWebhooks {
 
     const recurrentPaymentSettings = data.cloudPayments?.recurrent;
 
-    if (data.promoCodeValue && !data.isCardLinkOperation) {
+    if (data.promo && !data.isCardLinkOperation) {
       try {
         const promoCodeService = new PromoCodeService(context.factories);
-        const promoPricing = await promoCodeService.getPricingForPlan(data.promoCodeValue, data.userId, data.workspaceId, plan);
+        const promoPricing = await promoCodeService.getPricingForPromoCodeId(
+          data.promo.id,
+          data.userId,
+          data.workspaceId,
+          plan
+        );
 
         if (
-          promoPricing.promoCode._id.toString() !== data.promoCodeId ||
-          promoPricing.finalAmount !== data.finalAmount ||
-          promoPricing.originalAmount !== data.originalAmount ||
-          promoPricing.discountAmount !== data.discountAmount
+          promoPricing.benefitType !== data.promo.benefitType ||
+          promoPricing.finalAmount !== data.promo.finalAmount ||
+          promoPricing.originalAmount !== data.promo.originalAmount ||
+          promoPricing.discountAmount !== data.promo.discountAmount
         ) {
           this.sendError(res, CheckCodes.WRONG_AMOUNT, '[Billing / Check] Promo code payment data does not match current promo calculation', body);
 
@@ -190,8 +195,8 @@ export default class CloudPaymentsWebhooks {
      * The amount will be considered correct if it is equal to the cost of the tariff plan.
      * Also, the cost will be correct if it is a payment to activate the subscription.
      */
-    const expectedAmount = data.finalAmount ?? plan.monthlyCharge;
-    const isRightAmount = +body.Amount === expectedAmount || (!data.finalAmount && recurrentPaymentSettings?.startDate);
+    const expectedAmount = data.promo?.finalAmount ?? plan.monthlyCharge;
+    const isRightAmount = +body.Amount === expectedAmount || (!data.promo?.finalAmount && recurrentPaymentSettings?.startDate);
 
     if (!isRightAmount) {
       this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
@@ -322,20 +327,25 @@ export default class CloudPaymentsWebhooks {
         await workspace.setSubscriptionId(subscriptionId);
       }
 
-      if (data.promoCodeValue && !data.isCardLinkOperation && data.benefitType) {
+      if (data.promo && !data.isCardLinkOperation) {
         const promoCodeService = new PromoCodeService(req.context.factories);
-        const promoCode = await promoCodeService.getValidPromoCode(data.promoCodeValue, data.userId, data.workspaceId);
+        const promoPricing = await promoCodeService.getPricingForPromoCodeId(
+          data.promo.id,
+          data.userId,
+          data.workspaceId,
+          tariffPlan
+        );
 
         await promoCodeService.createUsage({
-          promoCode,
+          promoCode: promoPricing.promoCode,
           userId: data.userId,
           workspaceId: workspace._id,
           planId: tariffPlan._id,
-          benefitType: data.benefitType,
-          originalAmount: data.originalAmount,
-          finalAmount: data.finalAmount,
-          discountAmount: data.discountAmount,
-          utm: data.promoUtm,
+          benefitType: data.promo.benefitType,
+          originalAmount: data.promo.originalAmount,
+          finalAmount: data.promo.finalAmount,
+          discountAmount: data.promo.discountAmount,
+          utm: data.promo.utm,
         });
       }
     } catch (e) {
@@ -485,7 +495,7 @@ plan monthly charge: ${data.cloudPayments?.recurrent.amount} ${body.Currency}`
          */
         const userEmail = body.IssuerBankCountry === RUSSIA_ISO_CODE ? user.email : undefined;
 
-        await this.sendReceipt(workspace, tariffPlan, userEmail, data.finalAmount ?? tariffPlan.monthlyCharge);
+        await this.sendReceipt(workspace, tariffPlan, userEmail, data.promo?.finalAmount ?? tariffPlan.monthlyCharge);
 
         let messageText = '';
 

@@ -37,6 +37,41 @@ interface CloudPaymentsSettings {
   recurrent: RecurrentPaymentSettings;
 }
 
+/**
+ * Promo data attached to payment request
+ */
+export interface PaymentPromoData {
+  /**
+   * Applied promo code id
+   */
+  id: string;
+
+  /**
+   * Promo benefit type
+   */
+  benefitType: 'percent_discount' | 'amount_discount' | 'fixed_price';
+
+  /**
+   * Plan price before promo
+   */
+  originalAmount: number;
+
+  /**
+   * Final price after promo
+   */
+  finalAmount: number;
+
+  /**
+   * Actual discount amount
+   */
+  discountAmount: number;
+
+  /**
+   * UTM parameters captured when promo was applied
+   */
+  utm?: Utm;
+}
+
 export interface PaymentData {
   /**
    * Data for Cloudpayments needs
@@ -59,33 +94,9 @@ export interface PaymentData {
    */
   shouldSaveCard: boolean;
   /**
-   * Applied promo code id
+   * Applied promo code data
    */
-  promoCodeId?: string;
-  /**
-   * Applied promo code value
-   */
-  promoCodeValue?: string;
-  /**
-   * Promo benefit type
-   */
-  benefitType?: 'grant_plan' | 'percent_discount' | 'amount_discount' | 'fixed_price';
-  /**
-   * Plan price before promo
-   */
-  originalAmount?: number;
-  /**
-   * Final price after promo
-   */
-  finalAmount?: number;
-  /**
-   * Actual discount amount
-   */
-  discountAmount?: number;
-  /**
-   * UTM parameters captured when promo was applied
-   */
-  promoUtm?: Utm;
+  promo?: PaymentPromoData;
   /**
    * True if this is card linking operation – charging minimal amount of money to validate card info
    */

@@ -12,7 +12,7 @@ import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
-import PromoCodeService, { PromoCodeError, PromoCodeErrorCode, PromoCodePreviewResult } from '../utils/promoCodeService';
+import PromoCodeService, { PromoCodeError, PromoCodeErrorCode, PromoCodePreviewResult, buildPaymentPromoData } from '../utils/promoCodeService';
 import { publish } from '../rabbitmq';
 import type { Utm } from '@hawk.so/types';
 import { validateUtmParams } from '../utils/utm/utm';
@@ -117,10 +117,13 @@ export default {
       checksum: string;
       nextPaymentDate: Date;
       cloudPaymentsPublicId: string;
-      promoCode?: string;
-      originalAmount?: number;
-      finalAmount?: number;
-      discountAmount?: number;
+      promo?: {
+        id: string;
+        benefitType: 'percent_discount' | 'amount_discount' | 'fixed_price';
+        originalAmount: number;
+        finalAmount: number;
+        discountAmount: number;
+      };
     }> {
       const { workspaceId, tariffPlanId, shouldSaveCard, promoCode } = input;
       const promoUtm = validateUtmParams(input.promoUtm);
@@ -162,7 +165,7 @@ export default {
       }
 
       let paymentAmount = plan.monthlyCharge;
-      let promoPaymentData;
+      let paymentPromo;
 
       if (promoCode && !isCardLinkOperation) {
         try {
@@ -170,15 +173,7 @@ export default {
           const pricing = await promoCodeService.getPricingForPlan(promoCode, user.id, workspace._id.toString(), plan);
 
           paymentAmount = pricing.finalAmount;
-          promoPaymentData = {
-            promoCodeId: pricing.promoCode._id.toString(),
-            promoCodeValue: pricing.promoCode.value,
-            benefitType: pricing.benefitType,
-            originalAmount: pricing.originalAmount,
-            finalAmount: pricing.finalAmount,
-            discountAmount: pricing.discountAmount,
-            ...(promoUtm && Object.keys(promoUtm).length > 0 ? { promoUtm } : {}),
-          };
+          paymentPromo = buildPaymentPromoData(pricing, promoUtm);
         } catch (error) {
           throwPromoCodeGraphQLError(error);
         }
@@ -207,7 +202,7 @@ export default {
           tariffPlanId: plan._id.toString(),
           shouldSaveCard: Boolean(shouldSaveCard),
           nextPaymentDate: nextPaymentDate.toISOString(),
-          ...promoPaymentData,
+          ...(paymentPromo ? { promo: paymentPromo } : {}),
         };
 
       const checksum = await checksumService.generateChecksum(checksumData);
@@ -239,10 +234,7 @@ debug: ${Boolean(workspace.isDebug)}`
         checksum,
         nextPaymentDate,
         cloudPaymentsPublicId: process.env.CLOUDPAYMENTS_PUBLIC_ID || '',
-        promoCode: promoPaymentData?.promoCodeValue,
-        originalAmount: promoPaymentData?.originalAmount,
-        finalAmount: promoPaymentData?.finalAmount,
-        discountAmount: promoPaymentData?.discountAmount,
+        promo: paymentPromo,
       };
     },
   },
@@ -394,7 +386,7 @@ debug: ${Boolean(workspace.isDebug)}`
         throw new UserInputError('Wrong checksum data');
       }
 
-      const planPaymentAmount = paymentData.finalAmount ?? plan.monthlyCharge;
+      const planPaymentAmount = paymentData.promo?.finalAmount ?? plan.monthlyCharge;
 
       const token = fullUserInfo.bankCards?.find(card => card.id === args.input.cardId)?.token;
 
