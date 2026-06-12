@@ -10,7 +10,7 @@ import isE2E from '../utils/isE2E';
 import { dateFromObjectId } from '../utils/dates';
 import * as telegram from '../utils/telegram';
 import { MongoError } from 'mongodb';
-import type { Utm } from '@hawk.so/types';
+import type { Utm, UserDBScheme } from '@hawk.so/types';
 import { validateUtmParams } from '../utils/utm/utm';
 
 /**

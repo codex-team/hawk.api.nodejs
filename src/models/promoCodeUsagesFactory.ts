@@ -47,7 +47,10 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
   public async findByPromoCodeAndUser(promoCodeId: ObjectId, userId: string): Promise<PromoCodeUsageModel | null> {
     await this.ensureIndexesOnce();
 
-    const usage = await this.collection.findOne({ promoCodeId, userId });
+    const usage = await this.collection.findOne({
+      promoCodeId,
+      userId,
+    });
 
     if (!usage) {
       return null;
@@ -65,7 +68,10 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
   public async findByPromoCodeAndWorkspace(promoCodeId: ObjectId, workspaceId: ObjectId): Promise<PromoCodeUsageModel | null> {
     await this.ensureIndexesOnce();
 
-    const usage = await this.collection.findOne({ promoCodeId, workspaceId });
+    const usage = await this.collection.findOne({
+      promoCodeId,
+      workspaceId,
+    });
 
     if (!usage) {
       return null;
@@ -96,13 +102,21 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
    * Creates indexes required by promo usage limits.
    */
   private async ensureIndexesOnce(): Promise<void> {
-    this.indexesPromise ??= Promise.all([
-      this.collection.createIndex({ promoCodeId: 1 }),
-      this.collection.createIndex({ promoCodeId: 1, userId: 1 }, { unique: true }),
-      this.collection.createIndex({ promoCodeId: 1, workspaceId: 1 }, { unique: true }),
-      this.collection.createIndex({ workspaceId: 1 }),
-      this.collection.createIndex({ userId: 1 }),
-    ]).then(() => undefined);
+    if (!this.indexesPromise) {
+      this.indexesPromise = Promise.all([
+        this.collection.createIndex({ promoCodeId: 1 }),
+        this.collection.createIndex({
+          promoCodeId: 1,
+          userId: 1,
+        }, { unique: true }),
+        this.collection.createIndex({
+          promoCodeId: 1,
+          workspaceId: 1,
+        }, { unique: true }),
+        this.collection.createIndex({ workspaceId: 1 }),
+        this.collection.createIndex({ userId: 1 }),
+      ]).then(() => undefined);
+    }
 
     await this.indexesPromise;
   }

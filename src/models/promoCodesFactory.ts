@@ -48,7 +48,9 @@ export default class PromoCodesFactory extends AbstractModelFactory<PromoCodeDBS
    * Creates indexes required by promo codes lookups.
    */
   private async ensureIndexesOnce(): Promise<void> {
-    this.indexesPromise ??= this.collection.createIndex({ value: 1 }, { unique: true }).then(() => undefined);
+    if (!this.indexesPromise) {
+      this.indexesPromise = this.collection.createIndex({ value: 1 }, { unique: true }).then(() => undefined);
+    }
 
     await this.indexesPromise;
   }
