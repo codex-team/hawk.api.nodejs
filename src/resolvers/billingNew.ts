@@ -318,7 +318,14 @@ debug: ${Boolean(workspace.isDebug)}`
 
   Mutation: {
     /**
-     * Preview discount promo or immediately apply grant_plan promo.
+     * Validates promo code for workspace and returns calculated prices.
+     *
+     * Preview here means a dry-run for discount promos: server recalculates prices
+     * for all visible plans and returns them without creating promo usage.
+     * For grant_plan promo preview becomes apply: workspace plan is changed immediately,
+     * usage is stored, and response contains applied: true.
+     *
+     * Access check is handled by @requireAdmin on GraphQL schema.
      *
      * @param _obj - parent object
      * @param input - promo code input
@@ -333,12 +340,6 @@ debug: ${Boolean(workspace.isDebug)}`
       const workspace = await factories.workspacesFactory.findById(input.workspaceId);
 
       if (!workspace) {
-        throw new UserInputError(PromoCodeErrorCode.Invalid);
-      }
-
-      const member = await workspace.getMemberInfo(user.id);
-
-      if (!member || !('isAdmin' in member) || !member.isAdmin) {
         throw new UserInputError(PromoCodeErrorCode.Invalid);
       }
 

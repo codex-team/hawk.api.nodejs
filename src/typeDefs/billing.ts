@@ -467,9 +467,10 @@ type PayWithCardResponse {
 
 extend type Mutation {
   """
-  Previews promo code discounts or applies grant_plan promo immediately
+  Validates promo code for workspace admin and returns calculated prices,
+  or immediately applies grant_plan promo
   """
-  previewPromoCode(input: PreviewPromoCodeInput!): PreviewPromoCodeResponse!
+  previewPromoCode(input: PreviewPromoCodeInput!): PreviewPromoCodeResponse! @requireAdmin
 
   """
   Remove card
