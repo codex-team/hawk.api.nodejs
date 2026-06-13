@@ -1,8 +1,22 @@
 import '../../src/env-test';
+
+jest.mock('../../src/rabbitmq', () => ({
+  publish: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../../src/utils/telegram', () => ({
+  sendMessage: jest.fn().mockResolvedValue(undefined),
+  TelegramBotURLs: { Money: 'money-url' },
+}));
+
 import { ObjectId } from 'mongodb';
 import { PlanDBScheme, WorkspaceDBScheme } from '@hawk.so/types';
+import { UserInputError } from 'apollo-server-express';
 import billingNewResolver from '../../src/resolvers/billingNew';
 import { ResolverContextWithUser } from '../../src/types/graphql';
+import checksumService from '../../src/utils/checksumService';
+import { publish } from '../../src/rabbitmq';
+import { PromoCodeErrorCode } from '../../src/services/promoCodeService';
 
 // Set environment variables for test
 process.env.JWT_SECRET_BILLING_CHECKSUM = 'checksum_secret';
@@ -96,6 +110,100 @@ function createComposePaymentTestSetup(options: {
     mockContext,
     mockWorkspacesFactory,
     mockPlansFactory,
+  };
+}
+
+/**
+ * Attaches promo code factories to resolver context.
+ */
+function withPromoFactories(
+  context: ResolverContextWithUser,
+  promoCode: Record<string, unknown> | null,
+  options: {
+    totalUses?: number;
+    userUsage?: unknown;
+    workspaceUsage?: unknown;
+  } = {}
+): void {
+  context.factories.promoCodesFactory = {
+    findByValue: jest.fn().mockResolvedValue(promoCode),
+    findOne: jest.fn().mockResolvedValue(promoCode),
+  } as any;
+  context.factories.promoCodeUsagesFactory = {
+    countByPromoCodeId: jest.fn().mockResolvedValue(options.totalUses ?? 0),
+    findByPromoCodeAndUser: jest.fn().mockResolvedValue(options.userUsage ?? null),
+    findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(options.workspaceUsage ?? null),
+    create: jest.fn().mockResolvedValue({}),
+  } as any;
+}
+
+/**
+ * Creates test data and mocks for previewPromoCode tests.
+ */
+function createPreviewPromoCodeTestSetup(options: {
+  promoCode: Record<string, unknown> | null;
+  grantPlan?: PlanDBScheme;
+}): {
+  userId: string;
+  workspaceId: string;
+  mockContext: ResolverContextWithUser;
+  workspaceMock: Record<string, unknown>;
+} {
+  const userId = new ObjectId().toString();
+  const workspaceId = new ObjectId().toString();
+  const planId = new ObjectId().toString();
+
+  const workspaceMock = {
+    _id: new ObjectId(workspaceId),
+    name: 'Test Workspace',
+    tariffPlanId: new ObjectId(planId),
+    getMemberInfo: jest.fn().mockResolvedValue({ isAdmin: true }),
+    updatePlanHistory: jest.fn().mockResolvedValue(true),
+    updateLastChargeDate: jest.fn().mockResolvedValue(true),
+    changePlan: jest.fn().mockResolvedValue(1),
+  };
+
+  const defaultPlan: PlanDBScheme = {
+    _id: new ObjectId(planId),
+    name: 'Basic',
+    monthlyCharge: 1000,
+    monthlyChargeCurrency: 'RUB',
+    eventsLimit: 1000,
+    isDefault: false,
+    isHidden: false,
+  };
+
+  const grantPlan = options.grantPlan || defaultPlan;
+
+  const mockContext: ResolverContextWithUser = {
+    user: {
+      id: userId,
+      accessTokenExpired: false,
+    },
+    factories: {
+      workspacesFactory: {
+        findById: jest.fn().mockResolvedValue(workspaceMock),
+      } as any,
+      plansFactory: {
+        findAll: jest.fn().mockResolvedValue([defaultPlan]),
+        findById: jest.fn().mockResolvedValue(grantPlan),
+      } as any,
+      usersFactory: {} as any,
+      projectsFactory: {} as any,
+      businessOperationsFactory: {} as any,
+      releasesFactory: {} as any,
+      promoCodesFactory: {} as any,
+      promoCodeUsagesFactory: {} as any,
+    },
+  };
+
+  withPromoFactories(mockContext, options.promoCode);
+
+  return {
+    userId,
+    workspaceId,
+    mockContext,
+    workspaceMock,
   };
 }
 
@@ -200,6 +308,261 @@ describe('GraphQLBillingNew', () => {
       const nextPaymentDateStr = result.nextPaymentDate.toISOString().split('T')[0];
 
       expect(nextPaymentDateStr).toBe(oneMonthFromNowStr);
+    });
+
+    it('should apply valid promo code and store promo id in checksum', async () => {
+      const promoCodeId = new ObjectId();
+      const { mockContext, planId, workspaceId } = createComposePaymentTestSetup({
+        isTariffPlanExpired: true,
+        isBlocked: false,
+        planMonthlyCharge: 1000,
+      });
+
+      withPromoFactories(mockContext, {
+        _id: promoCodeId,
+        value: 'SAVE25',
+        benefit: {
+          type: 'percent_discount',
+          percent: 25,
+        },
+      });
+
+      const result = await billingNewResolver.Query.composePayment(
+        undefined,
+        {
+          input: {
+            workspaceId,
+            tariffPlanId: planId,
+            shouldSaveCard: false,
+            promoCode: ' save25 ',
+          },
+        },
+        mockContext
+      );
+
+      expect(result.plan.monthlyCharge).toBe(750);
+      expect(result.promo).toMatchObject({
+        id: promoCodeId.toString(),
+        benefitType: 'percent_discount',
+        originalAmount: 1000,
+        finalAmount: 750,
+        discountAmount: 250,
+      });
+
+      const checksumData = checksumService.parseAndVerifyChecksum(result.checksum);
+
+      expect(checksumData).toMatchObject({
+        promo: { id: promoCodeId.toString() },
+      });
+    });
+
+    it('should reject invalid promo code', async () => {
+      const { mockContext, planId, workspaceId } = createComposePaymentTestSetup({
+        isTariffPlanExpired: true,
+        isBlocked: false,
+      });
+
+      withPromoFactories(mockContext, null);
+
+      await expect(
+        billingNewResolver.Query.composePayment(
+          undefined,
+          {
+            input: {
+              workspaceId,
+              tariffPlanId: planId,
+              promoCode: 'missing',
+            },
+          },
+          mockContext
+        )
+      ).rejects.toMatchObject({
+        message: PromoCodeErrorCode.Invalid,
+      });
+    });
+
+    it('should ignore promo code for card link operation', async () => {
+      const { mockContext, planId, workspaceId } = createComposePaymentTestSetup({
+        isTariffPlanExpired: false,
+        isBlocked: false,
+        lastChargeDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        planMonthlyCharge: 1000,
+      });
+
+      withPromoFactories(mockContext, {
+        _id: new ObjectId(),
+        value: 'SAVE25',
+        benefit: {
+          type: 'percent_discount',
+          percent: 25,
+        },
+      });
+
+      const result = await billingNewResolver.Query.composePayment(
+        undefined,
+        {
+          input: {
+            workspaceId,
+            tariffPlanId: planId,
+            promoCode: 'save25',
+          },
+        },
+        mockContext
+      );
+
+      expect(result.isCardLinkOperation).toBe(true);
+      expect(result.plan.monthlyCharge).toBe(1000);
+      expect(result.promo).toBeUndefined();
+    });
+  });
+
+  describe('previewPromoCode', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should return discount preview without applying grant plan side effects', async () => {
+      const promoCodeId = new ObjectId();
+      const { mockContext, workspaceId, workspaceMock } = createPreviewPromoCodeTestSetup({
+        promoCode: {
+          _id: promoCodeId,
+          value: 'SAVE25',
+          benefit: {
+            type: 'percent_discount',
+            percent: 25,
+          },
+        },
+      });
+
+      const result = await billingNewResolver.Mutation.previewPromoCode(
+        undefined,
+        {
+          input: {
+            workspaceId,
+            value: 'save25',
+          },
+        },
+        mockContext
+      );
+
+      expect(result).toMatchObject({
+        applied: false,
+        benefitType: 'percent_discount',
+        percent: 25,
+        plans: [{
+          isApplicable: true,
+          originalAmount: 1000,
+          finalAmount: 750,
+          discountAmount: 250,
+        }],
+      });
+      expect(workspaceMock.changePlan).not.toHaveBeenCalled();
+      expect(publish).not.toHaveBeenCalled();
+    });
+
+    it('should apply grant_plan promo and publish workspace unblock', async () => {
+      const promoCodeId = new ObjectId();
+      const grantPlanId = new ObjectId();
+      const { mockContext, workspaceId, workspaceMock } = createPreviewPromoCodeTestSetup({
+        promoCode: {
+          _id: promoCodeId,
+          value: 'GRANT',
+          benefit: {
+            type: 'grant_plan',
+            planId: grantPlanId,
+          },
+        },
+        grantPlan: {
+          _id: grantPlanId,
+          name: 'Pro',
+          monthlyCharge: 2000,
+          monthlyChargeCurrency: 'RUB',
+          eventsLimit: 5000,
+          isDefault: false,
+          isHidden: false,
+        },
+      });
+
+      const result = await billingNewResolver.Mutation.previewPromoCode(
+        undefined,
+        {
+          input: {
+            workspaceId,
+            value: 'grant',
+          },
+        },
+        mockContext
+      );
+
+      expect(result).toMatchObject({
+        applied: true,
+        benefitType: 'grant_plan',
+        plans: [],
+      });
+      expect(workspaceMock.changePlan).toHaveBeenCalledWith(grantPlanId);
+      expect(publish).toHaveBeenCalledWith(
+        'cron-tasks',
+        'cron-tasks/limiter',
+        JSON.stringify({
+          type: 'unblock-workspace',
+          workspaceId,
+        })
+      );
+    });
+
+    it('should reject unknown workspace', async () => {
+      const mockContext: ResolverContextWithUser = {
+        user: {
+          id: new ObjectId().toString(),
+          accessTokenExpired: false,
+        },
+        factories: {
+          workspacesFactory: {
+            findById: jest.fn().mockResolvedValue(null),
+          } as any,
+          plansFactory: {} as any,
+          usersFactory: {} as any,
+          projectsFactory: {} as any,
+          businessOperationsFactory: {} as any,
+          releasesFactory: {} as any,
+          promoCodesFactory: {} as any,
+          promoCodeUsagesFactory: {} as any,
+        },
+      };
+
+      await expect(
+        billingNewResolver.Mutation.previewPromoCode(
+          undefined,
+          {
+            input: {
+              workspaceId: new ObjectId().toString(),
+              value: 'promo',
+            },
+          },
+          mockContext
+        )
+      ).rejects.toBeInstanceOf(UserInputError);
+    });
+
+    it('should map promo validation errors to public codes', async () => {
+      const { mockContext, workspaceId } = createPreviewPromoCodeTestSetup({
+        promoCode: null,
+      });
+
+      await expect(
+        billingNewResolver.Mutation.previewPromoCode(
+          undefined,
+          {
+            input: {
+              workspaceId,
+              value: 'missing',
+            },
+          },
+          mockContext
+        )
+      ).rejects.toMatchObject({
+        message: PromoCodeErrorCode.Invalid,
+      });
     });
   });
 })
