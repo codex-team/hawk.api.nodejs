@@ -5,6 +5,7 @@ import {
 } from '@hawk.so/types';
 import PlanModel from '../models/plan';
 import PromoCodeModel from '../models/promoCode';
+import PromoCodeUsageModel from '../models/promoCodeUsage';
 import WorkspaceModel from '../models/workspace';
 import { ContextFactories } from '../types/graphql';
 import type { Utm } from '@hawk.so/types';
@@ -498,10 +499,13 @@ export default class PromoCodeService {
     try {
       const now = new Date();
 
-      await workspace.updatePlanHistory(workspace.tariffPlanId.toString(), now, userId);
-      await workspace.updateLastChargeDate(now);
-      await workspace.changePlan(plan._id);
-      await this.createUsage({
+      /**
+       * Reserve usage before granting the plan.
+       *
+       * This makes promo usage a precondition for the benefit: if limits are exhausted
+       * or the insert fails, workspace state is not changed.
+       */
+      const usage = await this.createUsage({
         promoCode,
         userId,
         workspaceId: workspace._id,
@@ -509,6 +513,20 @@ export default class PromoCodeService {
         benefitType: promoCode.benefit.type,
         utm,
       });
+
+      try {
+        await workspace.updatePlanHistory(workspace.tariffPlanId.toString(), now, userId);
+        await workspace.updateLastChargeDate(now);
+        await workspace.changePlan(plan._id);
+      } catch (error) {
+        try {
+          await this.factories.promoCodeUsagesFactory.deleteById(usage._id);
+        } catch (rollbackError) {
+          console.error('Failed to rollback promo usage after grant_plan apply failure', rollbackError);
+        }
+
+        throw error;
+      }
 
       return plan;
     } catch (error) {
@@ -521,9 +539,13 @@ export default class PromoCodeService {
   }
 
   /**
-   * Creates usage after successful payment.
+   * Creates usage after successful payment or before immediate grant_plan apply.
+   *
+   * Unique indexes on promoCodeId + userId/workspaceId make this method the durable
+   * reservation point. Callers should grant the promo benefit only after it succeeds.
    *
    * @param params - usage creation params
+   * @returns created promo usage
    */
   public async createUsage(params: {
     promoCode: PromoCodeModel;
@@ -535,11 +557,11 @@ export default class PromoCodeService {
     finalAmount?: number;
     discountAmount?: number;
     utm?: PromoCodeUtm;
-  }): Promise<void> {
+  }): Promise<PromoCodeUsageModel> {
     await this.validateUsageLimits(params.promoCode, params.userId, params.workspaceId);
 
     try {
-      await this.factories.promoCodeUsagesFactory.create({
+      return await this.factories.promoCodeUsagesFactory.create({
         promoCodeId: params.promoCode._id,
         userId: params.userId,
         workspaceId: params.workspaceId,

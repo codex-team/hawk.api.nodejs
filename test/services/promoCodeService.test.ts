@@ -48,7 +48,8 @@ function createService(promoCode: any, options: {
       countByPromoCodeId: jest.fn().mockResolvedValue(options.totalUses ?? 0),
       findByPromoCodeAndUser: jest.fn().mockResolvedValue(options.userUsage ?? null),
       findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(options.workspaceUsage ?? null),
-      create: jest.fn().mockResolvedValue({}),
+      create: jest.fn().mockResolvedValue({ _id: new ObjectId() }),
+      deleteById: jest.fn().mockResolvedValue(undefined),
     },
     plansFactory: {
       findAll: jest.fn().mockResolvedValue(options.plans || [plan]),
@@ -254,6 +255,83 @@ describe('PromoCodeService', () => {
         service.getPricingForPlan('promo', new ObjectId().toString(), new ObjectId().toString(), plan),
         PromoCodeErrorCode.Invalid
       );
+    });
+  });
+
+  describe('applyGrantPlan()', () => {
+    it('should not change workspace plan when usage reservation fails', async () => {
+      const planId = new ObjectId();
+      const promoCode = createPromoCode({
+        type: 'grant_plan',
+        planId,
+      });
+      const workspace = {
+        _id: new ObjectId(),
+        tariffPlanId: new ObjectId(),
+        updatePlanHistory: jest.fn().mockResolvedValue(true),
+        updateLastChargeDate: jest.fn().mockResolvedValue(true),
+        changePlan: jest.fn().mockResolvedValue(1),
+      };
+      const service = new PromoCodeService({
+        promoCodesFactory: {
+          findByValue: jest.fn().mockResolvedValue(promoCode),
+        },
+        promoCodeUsagesFactory: {
+          countByPromoCodeId: jest.fn().mockResolvedValue(0),
+          findByPromoCodeAndUser: jest.fn().mockResolvedValue(null),
+          findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockRejectedValue({ code: 11000 }),
+        },
+        plansFactory: {
+          findById: jest.fn().mockResolvedValue(createPlan({ _id: planId })),
+        },
+      } as any);
+
+      await expectPromoError(
+        service.applyGrantPlan('grant', new ObjectId().toString(), workspace as any),
+        PromoCodeErrorCode.LimitExceeded
+      );
+
+      expect(workspace.changePlan).not.toHaveBeenCalled();
+    });
+
+    it('should rollback reserved usage when workspace plan change fails', async () => {
+      const planId = new ObjectId();
+      const usageId = new ObjectId();
+      const deleteById = jest.fn().mockResolvedValue(undefined);
+      const promoCode = createPromoCode({
+        type: 'grant_plan',
+        planId,
+      });
+      const workspace = {
+        _id: new ObjectId(),
+        tariffPlanId: new ObjectId(),
+        updatePlanHistory: jest.fn().mockResolvedValue(true),
+        updateLastChargeDate: jest.fn().mockResolvedValue(true),
+        changePlan: jest.fn().mockRejectedValue(new Error('change failed')),
+      };
+      const service = new PromoCodeService({
+        promoCodesFactory: {
+          findByValue: jest.fn().mockResolvedValue(promoCode),
+        },
+        promoCodeUsagesFactory: {
+          countByPromoCodeId: jest.fn().mockResolvedValue(0),
+          findByPromoCodeAndUser: jest.fn().mockResolvedValue(null),
+          findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue({ _id: usageId }),
+          deleteById,
+        },
+        plansFactory: {
+          findById: jest.fn().mockResolvedValue(createPlan({ _id: planId })),
+        },
+      } as any);
+
+      await expectPromoError(
+        service.applyGrantPlan('grant', new ObjectId().toString(), workspace as any),
+        PromoCodeErrorCode.ApplyFailed
+      );
+
+      expect(deleteById).toHaveBeenCalledWith(usageId);
     });
   });
 

@@ -99,27 +99,38 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
   }
 
   /**
+   * Deletes usage by id.
+   *
+   * Used only as compensation when promo benefit application fails after usage reservation.
+   *
+   * @param usageId - promo usage id
+   */
+  public async deleteById(usageId: ObjectId): Promise<void> {
+    await this.collection.deleteOne({
+      _id: usageId,
+    });
+  }
+
+  /**
    * Ensures promo usage indexes exist before queries.
    *
    * MongoDB createIndex is idempotent: after API restart it reuses an existing index
    * with the same keys/options and does not throw if the index is already present.
    */
   private async ensureIndexesOnce(): Promise<void> {
-    if (!this.indexesPromise) {
-      this.indexesPromise = Promise.all([
-        this.collection.createIndex({ promoCodeId: 1 }),
-        this.collection.createIndex({
-          promoCodeId: 1,
-          userId: 1,
-        }, { unique: true }),
-        this.collection.createIndex({
-          promoCodeId: 1,
-          workspaceId: 1,
-        }, { unique: true }),
-        this.collection.createIndex({ workspaceId: 1 }),
-        this.collection.createIndex({ userId: 1 }),
-      ]).then(() => undefined);
-    }
+    this.indexesPromise ??= Promise.all([
+      this.collection.createIndex({ promoCodeId: 1 }),
+      this.collection.createIndex({
+        promoCodeId: 1,
+        userId: 1,
+      }, { unique: true }),
+      this.collection.createIndex({
+        promoCodeId: 1,
+        workspaceId: 1,
+      }, { unique: true }),
+      this.collection.createIndex({ workspaceId: 1 }),
+      this.collection.createIndex({ userId: 1 }),
+    ]).then(() => undefined);
 
     await this.indexesPromise;
   }

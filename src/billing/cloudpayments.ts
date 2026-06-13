@@ -163,6 +163,13 @@ export default class CloudPaymentsWebhooks {
     const recurrentPaymentSettings = data.cloudPayments?.recurrent;
     let promoPricing;
 
+    /**
+     * Record promo usage before applying paid benefits.
+     *
+     * /pay runs after CloudPayments has accepted the charge, but workspace plan
+     * must not be changed if promo usage cannot be stored. Otherwise a transient
+     * DB/limit error would grant a discounted plan without consuming the promo.
+     */
     if (data.promo && !data.isCardLinkOperation) {
       try {
         const promoCodeService = new PromoCodeService(context.factories);
@@ -301,6 +308,36 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
+    if (data.promo && !data.isCardLinkOperation) {
+      try {
+        const promoCodeService = new PromoCodeService(req.context.factories);
+        const promoPricing = await promoCodeService.getPricingForPromoCodeId(
+          data.promo.id,
+          data.userId,
+          data.workspaceId,
+          tariffPlan
+        );
+
+        await promoCodeService.createUsage({
+          promoCode: promoPricing.promoCode,
+          userId: data.userId,
+          workspaceId: workspace._id,
+          planId: tariffPlan._id,
+          benefitType: promoPricing.benefitType,
+          originalAmount: promoPricing.originalAmount,
+          finalAmount: promoPricing.finalAmount,
+          discountAmount: promoPricing.discountAmount,
+          utm: data.promo.utm,
+        });
+      } catch (e) {
+        const error = e as Error;
+
+        this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Failed to record promo usage: ${error.toString()}`, body);
+
+        return;
+      }
+    }
+
     try {
       await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
 
@@ -332,34 +369,6 @@ export default class CloudPaymentsWebhooks {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${error.toString()}`, body);
 
       return;
-    }
-
-    if (data.promo && !data.isCardLinkOperation) {
-      try {
-        const promoCodeService = new PromoCodeService(req.context.factories);
-        const promoPricing = await promoCodeService.getPricingForPromoCodeId(
-          data.promo.id,
-          data.userId,
-          data.workspaceId,
-          tariffPlan
-        );
-
-        await promoCodeService.createUsage({
-          promoCode: promoPricing.promoCode,
-          userId: data.userId,
-          workspaceId: workspace._id,
-          planId: tariffPlan._id,
-          benefitType: promoPricing.benefitType,
-          originalAmount: promoPricing.originalAmount,
-          finalAmount: promoPricing.finalAmount,
-          discountAmount: promoPricing.discountAmount,
-          utm: data.promo.utm,
-        });
-      } catch (e) {
-        const error = e as Error;
-
-        console.error(`[Billing / Pay] Failed to record promo usage: ${error.toString()}`, body);
-      }
     }
 
     // let accountId = workspace.accountId;
@@ -824,10 +833,29 @@ status: ${body.Status}`
      */
     if (body.Data) {
       const parsedData = JSON.parse(body.Data || '{}') as WebhookData;
+      const checksumData = checksumService.parseAndVerifyChecksum(parsedData.checksum);
+
+      /**
+       * Treat checksum as the source of truth for billing intent.
+       *
+       * Widget Data is client-controlled, so it must not override signed fields like
+       * workspaceId, tariffPlanId, userId, shouldSaveCard, or promo id. Only
+       * CloudPayments recurrent settings are accepted from Data because they are
+       * validated separately against server-side pricing in /check.
+       */
+      if ('isCardLinkOperation' in checksumData) {
+        return {
+          ...checksumData,
+          tariffPlanId: '',
+          shouldSaveCard: false,
+          ...(parsedData.cloudPayments ? { cloudPayments: parsedData.cloudPayments } : {}),
+        };
+      }
 
       return {
-        ...checksumService.parseAndVerifyChecksum(parsedData.checksum),
-        ...parsedData,
+        ...checksumData,
+        ...(parsedData.cloudPayments ? { cloudPayments: parsedData.cloudPayments } : {}),
+        isCardLinkOperation: false,
       };
     }
 
