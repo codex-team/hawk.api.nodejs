@@ -63,6 +63,63 @@ function throwPromoCodeGraphQLError(error: unknown): never {
 }
 
 /**
+ * Sends task to limiter worker to unblock workspace after plan became valid again.
+ * Same mechanism is used after successful payment or manual plan change.
+ *
+ * @param workspaceId - workspace id to unblock
+ */
+async function notifyLimiterToUnblockWorkspace(workspaceId: string): Promise<void> {
+  await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
+    type: 'unblock-workspace',
+    workspaceId,
+  }));
+}
+
+/**
+ * Validates promo code and either returns discount preview or applies grant_plan promo.
+ *
+ * Discount promos: returns recalculated plan prices with applied: false, no side effects.
+ * Grant plan promo: applies plan immediately, stores usage, then unblocks workspace in limiter.
+ * Unblock is not caused by preview itself — it runs only after grant_plan apply,
+ * because workspace received a valid plan the same way as after paid plan change.
+ *
+ * @param promoCodeService - promo code service instance
+ * @param input - promo code mutation input
+ * @param userId - current user id
+ * @param workspace - workspace model
+ * @returns promo preview or apply result
+ */
+async function previewOrApplyPromoCode(
+  promoCodeService: PromoCodeService,
+  input: PreviewPromoCodeArgs['input'],
+  userId: string,
+  workspace: WorkspaceModel
+): Promise<PromoCodePreviewResult & { applied: boolean }> {
+  const promoPreview = await promoCodeService.preview(input.value, userId, input.workspaceId);
+
+  if (promoPreview.benefitType !== 'grant_plan') {
+    return {
+      ...promoPreview,
+      applied: false,
+    };
+  }
+
+  await promoCodeService.applyGrantPlan(
+    input.value,
+    userId,
+    workspace,
+    validateUtmParams(input.utm)
+  );
+
+  await notifyLimiterToUnblockWorkspace(workspace._id.toString());
+
+  return {
+    ...promoPreview,
+    applied: true,
+  };
+}
+
+/**
  * Data for processing payment with saved card
  */
 interface PayWithCardArgs {
@@ -346,26 +403,7 @@ debug: ${Boolean(workspace.isDebug)}`
       const promoCodeService = new PromoCodeService(factories);
 
       try {
-        const preview = await promoCodeService.preview(input.value, user.id, input.workspaceId);
-
-        if (preview.benefitType !== 'grant_plan') {
-          return {
-            ...preview,
-            applied: false,
-          };
-        }
-
-        await promoCodeService.applyGrantPlan(input.value, user.id, workspace, validateUtmParams(input.utm));
-
-        await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
-          type: 'unblock-workspace',
-          workspaceId: workspace._id.toString(),
-        }));
-
-        return {
-          ...preview,
-          applied: true,
-        };
+        return await previewOrApplyPromoCode(promoCodeService, input, user.id, workspace);
       } catch (error) {
         throwPromoCodeGraphQLError(error);
       }
