@@ -326,8 +326,16 @@ export default class CloudPaymentsWebhooks {
       if (subscriptionId) {
         await workspace.setSubscriptionId(subscriptionId);
       }
+    } catch (e) {
+      const error = e as Error;
 
-      if (data.promo && !data.isCardLinkOperation) {
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${error.toString()}`, body);
+
+      return;
+    }
+
+    if (data.promo && !data.isCardLinkOperation) {
+      try {
         const promoCodeService = new PromoCodeService(req.context.factories);
         const promoPricing = await promoCodeService.getPricingForPromoCodeId(
           data.promo.id,
@@ -347,13 +355,11 @@ export default class CloudPaymentsWebhooks {
           discountAmount: promoPricing.discountAmount,
           utm: data.promo.utm,
         });
+      } catch (e) {
+        const error = e as Error;
+
+        console.error(`[Billing / Pay] Failed to record promo usage: ${error.toString()}`, body);
       }
-    } catch (e) {
-      const error = e as Error;
-
-      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${error.toString()}`, body);
-
-      return;
     }
 
     // let accountId = workspace.accountId;
