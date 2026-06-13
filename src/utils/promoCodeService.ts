@@ -303,24 +303,28 @@ function validateBenefitStructure(benefit: PromoCodeBenefit): void {
       if (!benefit.planId) {
         throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Grant plan id is missing');
       }
+
       return;
 
     case 'percent_discount':
       if (typeof benefit.percent !== 'number' || benefit.percent <= 0 || benefit.percent > 100) {
         throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Percent discount is invalid');
       }
+
       return;
 
     case 'amount_discount':
       if (typeof benefit.amount !== 'number' || benefit.amount <= 0) {
         throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Amount discount is invalid');
       }
+
       return;
 
     case 'fixed_price':
       if (typeof benefit.amount !== 'number' || benefit.amount < DEFAULT_MIN_FINAL_PRICE) {
         throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Fixed price is invalid');
       }
+
       return;
 
     default:
@@ -333,6 +337,7 @@ function validateBenefitStructure(benefit: PromoCodeBenefit): void {
  *
  * @param pricing - validated promo pricing
  * @param utm - optional UTM data
+ * @returns promo data for payment checksum
  */
 export function buildPaymentPromoData(pricing: PromoCodePricingResult, utm?: Utm): PaymentPromoData {
   return {
@@ -389,26 +394,6 @@ export default class PromoCodeService {
   }
 
   /**
-   * Validates loaded promo code against limits and expiry.
-   *
-   * @param promoCode - promo code model
-   * @param userId - user id
-   * @param workspaceId - workspace id
-   */
-  private async validateLoadedPromoCode(
-    promoCode: PromoCodeModel,
-    userId: string,
-    workspaceId: string
-  ): Promise<void> {
-    if (promoCode.expiresAt && new Date() > new Date(promoCode.expiresAt)) {
-      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code expired');
-    }
-
-    validateBenefitStructure(promoCode.benefit);
-    await this.validateUsageLimits(promoCode, userId, new ObjectId(workspaceId));
-  }
-
-  /**
    * Validates promo code by id for one selected plan and returns final price.
    *
    * @param promoCodeId - promo code id
@@ -435,32 +420,6 @@ export default class PromoCodeService {
     await this.validateLoadedPromoCode(promoCode, userId, workspaceId);
 
     return this.buildPricingResult(promoCode, plan);
-  }
-
-  /**
-   * Builds pricing result for validated promo code and plan.
-   *
-   * @param promoCode - promo code model
-   * @param plan - selected plan
-   */
-  private buildPricingResult(promoCode: PromoCodeModel, plan: PlanModel): PromoCodePricingResult {
-    if (promoCode.benefit.type === 'grant_plan') {
-      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Grant plan promo cannot be used in payment');
-    }
-
-    const price = calculatePromoCodePlanPrice(promoCode.benefit, plan);
-
-    if (!price.isApplicable) {
-      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code is not applicable to selected plan');
-    }
-
-    return {
-      promoCode,
-      benefitType: promoCode.benefit.type,
-      originalAmount: price.originalAmount,
-      finalAmount: price.finalAmount,
-      discountAmount: price.discountAmount,
-    };
   }
 
   /**
@@ -597,6 +556,53 @@ export default class PromoCodeService {
 
       throw error;
     }
+  }
+
+  /**
+   * Validates loaded promo code against limits and expiry.
+   *
+   * @param promoCode - promo code model
+   * @param userId - user id
+   * @param workspaceId - workspace id
+   */
+  private async validateLoadedPromoCode(
+    promoCode: PromoCodeModel,
+    userId: string,
+    workspaceId: string
+  ): Promise<void> {
+    if (promoCode.expiresAt && new Date() > new Date(promoCode.expiresAt)) {
+      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code expired');
+    }
+
+    validateBenefitStructure(promoCode.benefit);
+    await this.validateUsageLimits(promoCode, userId, new ObjectId(workspaceId));
+  }
+
+  /**
+   * Builds pricing result for validated promo code and plan.
+   *
+   * @param promoCode - promo code model
+   * @param plan - selected plan
+   * @returns validated promo pricing for selected plan
+   */
+  private buildPricingResult(promoCode: PromoCodeModel, plan: PlanModel): PromoCodePricingResult {
+    if (promoCode.benefit.type === 'grant_plan') {
+      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Grant plan promo cannot be used in payment');
+    }
+
+    const price = calculatePromoCodePlanPrice(promoCode.benefit, plan);
+
+    if (!price.isApplicable) {
+      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code is not applicable to selected plan');
+    }
+
+    return {
+      promoCode,
+      benefitType: promoCode.benefit.type,
+      originalAmount: price.originalAmount,
+      finalAmount: price.finalAmount,
+      discountAmount: price.discountAmount,
+    };
   }
 
   /**

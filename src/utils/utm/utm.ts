@@ -9,6 +9,7 @@ const VALID_UTM_KEYS = ['source', 'medium', 'campaign', 'content', 'term'] as co
  * Checks that passed key is supported UTM field.
  *
  * @param key - UTM object key
+ * @returns whether key is a valid UTM field
  */
 function isValidUtmKey(key: string): key is keyof Utm {
   return (VALID_UTM_KEYS as readonly string[]).includes(key);
@@ -30,7 +31,7 @@ const MAX_UTM_VALUE_LENGTH = 50;
  * @param {Object} utm - UTM parameters to validate
  * @returns {Object} - filtered valid UTM parameters
  */
-export function validateUtmParams(utm: any): Utm | undefined {
+export function validateUtmParams(utm: unknown): Utm | undefined {
   if (!utm || typeof utm !== 'object' || Array.isArray(utm)) {
     return undefined;
   }
