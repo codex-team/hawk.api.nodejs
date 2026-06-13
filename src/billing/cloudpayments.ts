@@ -161,27 +161,18 @@ export default class CloudPaymentsWebhooks {
     }
 
     const recurrentPaymentSettings = data.cloudPayments?.recurrent;
+    let promoPricing;
 
     if (data.promo && !data.isCardLinkOperation) {
       try {
         const promoCodeService = new PromoCodeService(context.factories);
-        const promoPricing = await promoCodeService.getPricingForPromoCodeId(
+
+        promoPricing = await promoCodeService.getPricingForPromoCodeId(
           data.promo.id,
           data.userId,
           data.workspaceId,
           plan
         );
-
-        if (
-          promoPricing.benefitType !== data.promo.benefitType ||
-          promoPricing.finalAmount !== data.promo.finalAmount ||
-          promoPricing.originalAmount !== data.promo.originalAmount ||
-          promoPricing.discountAmount !== data.promo.discountAmount
-        ) {
-          this.sendError(res, CheckCodes.WRONG_AMOUNT, '[Billing / Check] Promo code payment data does not match current promo calculation', body);
-
-          return;
-        }
       } catch (e) {
         const error = e as Error;
 
@@ -195,8 +186,8 @@ export default class CloudPaymentsWebhooks {
      * The amount will be considered correct if it is equal to the cost of the tariff plan.
      * Also, the cost will be correct if it is a payment to activate the subscription.
      */
-    const expectedAmount = data.promo?.finalAmount ?? plan.monthlyCharge;
-    const isRightAmount = +body.Amount === expectedAmount || (!data.promo?.finalAmount && recurrentPaymentSettings?.startDate);
+    const expectedAmount = promoPricing?.finalAmount ?? plan.monthlyCharge;
+    const isRightAmount = +body.Amount === expectedAmount || (!data.promo && recurrentPaymentSettings?.startDate);
 
     if (!isRightAmount) {
       this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
@@ -341,10 +332,10 @@ export default class CloudPaymentsWebhooks {
           userId: data.userId,
           workspaceId: workspace._id,
           planId: tariffPlan._id,
-          benefitType: data.promo.benefitType,
-          originalAmount: data.promo.originalAmount,
-          finalAmount: data.promo.finalAmount,
-          discountAmount: data.promo.discountAmount,
+          benefitType: promoPricing.benefitType,
+          originalAmount: promoPricing.originalAmount,
+          finalAmount: promoPricing.finalAmount,
+          discountAmount: promoPricing.discountAmount,
           utm: data.promo.utm,
         });
       }

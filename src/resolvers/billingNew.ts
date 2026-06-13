@@ -5,7 +5,9 @@ import UserModel from '../models/user';
 import {
   BusinessOperationPayloadType,
   PayloadOfDepositByUser,
-  PayloadOfWorkspacePlanPurchase
+  PayloadOfWorkspacePlanPurchase,
+  PromoCodeBenefitType,
+  Utm
 } from '@hawk.so/types';
 import checksumService from '../utils/checksumService';
 import { UserInputError } from 'apollo-server-express';
@@ -15,7 +17,6 @@ import { TelegramBotURLs } from '../utils/telegram';
 import PromoCodeService, { PromoCodeError, PromoCodeErrorCode, PromoCodePreviewResult, buildPaymentPromoData } from '../utils/promoCodeService';
 import { publish } from '../rabbitmq';
 import type { PaymentPromoData } from '../billing/types/paymentData';
-import type { Utm } from '@hawk.so/types';
 import { validateUtmParams } from '../utils/utm/utm';
 
 /**
@@ -118,7 +119,13 @@ export default {
       checksum: string;
       nextPaymentDate: Date;
       cloudPaymentsPublicId: string;
-      promo?: PaymentPromoData;
+      promo?: {
+        id: string;
+        benefitType: PromoCodeBenefitType;
+        originalAmount: number;
+        finalAmount: number;
+        discountAmount: number;
+      };
     }> {
       const { workspaceId, tariffPlanId, shouldSaveCard, promoCode } = input;
       const promoUtm = validateUtmParams(input.promoUtm);
@@ -160,7 +167,8 @@ export default {
       }
 
       let paymentAmount = plan.monthlyCharge;
-      let paymentPromo;
+      let paymentPromoChecksum: PaymentPromoData | undefined;
+      let composePaymentPromo;
 
       if (promoCode && !isCardLinkOperation) {
         try {
@@ -168,7 +176,14 @@ export default {
           const pricing = await promoCodeService.getPricingForPlan(promoCode, user.id, workspace._id.toString(), plan);
 
           paymentAmount = pricing.finalAmount;
-          paymentPromo = buildPaymentPromoData(pricing, promoUtm);
+          paymentPromoChecksum = buildPaymentPromoData(pricing.promoCode._id.toString(), promoUtm);
+          composePaymentPromo = {
+            id: pricing.promoCode._id.toString(),
+            benefitType: pricing.benefitType,
+            originalAmount: pricing.originalAmount,
+            finalAmount: pricing.finalAmount,
+            discountAmount: pricing.discountAmount,
+          };
         } catch (error) {
           throwPromoCodeGraphQLError(error);
         }
@@ -197,7 +212,7 @@ export default {
           tariffPlanId: plan._id.toString(),
           shouldSaveCard: Boolean(shouldSaveCard),
           nextPaymentDate: nextPaymentDate.toISOString(),
-          ...(paymentPromo ? { promo: paymentPromo } : {}),
+          ...(paymentPromoChecksum ? { promo: paymentPromoChecksum } : {}),
         };
 
       const checksum = await checksumService.generateChecksum(checksumData);
@@ -229,7 +244,7 @@ debug: ${Boolean(workspace.isDebug)}`
         checksum,
         nextPaymentDate,
         cloudPaymentsPublicId: process.env.CLOUDPAYMENTS_PUBLIC_ID || '',
-        promo: paymentPromo,
+        promo: composePaymentPromo,
       };
     },
   },

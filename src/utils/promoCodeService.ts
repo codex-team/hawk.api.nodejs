@@ -8,7 +8,7 @@ import PromoCodeModel from '../models/promoCode';
 import WorkspaceModel from '../models/workspace';
 import { ContextFactories } from '../types/graphql';
 import type { Utm } from '@hawk.so/types';
-import type { PaymentPromoData, PaymentPromoBenefitType } from '../billing/types/paymentData';
+import type { PaymentPromoData } from '../billing/types/paymentData';
 
 const PROMO_CODE_REGEXP = /^[A-Z0-9_-]+$/;
 const DEFAULT_MIN_FINAL_PRICE = 1;
@@ -333,19 +333,15 @@ function validateBenefitStructure(benefit: PromoCodeBenefit): void {
 }
 
 /**
- * Builds promo payload stored in payment checksum.
+ * Builds promo reference stored in payment checksum.
  *
- * @param pricing - validated promo pricing
+ * @param promoCodeId - applied promo code id
  * @param utm - optional UTM data
- * @returns promo data for payment checksum
+ * @returns promo reference for payment checksum
  */
-export function buildPaymentPromoData(pricing: PromoCodePricingResult, utm?: Utm): PaymentPromoData {
+export function buildPaymentPromoData(promoCodeId: string, utm?: Utm): PaymentPromoData {
   return {
-    id: pricing.promoCode._id.toString(),
-    benefitType: pricing.benefitType as PaymentPromoBenefitType,
-    originalAmount: pricing.originalAmount,
-    finalAmount: pricing.finalAmount,
-    discountAmount: pricing.discountAmount,
+    id: promoCodeId,
     ...(utm && Object.keys(utm).length > 0 ? { utm } : {}),
   };
 }

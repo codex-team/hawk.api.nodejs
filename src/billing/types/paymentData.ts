@@ -1,9 +1,4 @@
-import type { PromoCodeBenefitType, Utm } from '@hawk.so/types';
-
-/**
- * Promo benefit types that can be applied during payment.
- */
-export type PaymentPromoBenefitType = Exclude<PromoCodeBenefitType, 'grant_plan'>;
+import type { Utm } from '@hawk.so/types';
 
 /**
  * Data for setting up recurring payments
@@ -43,33 +38,14 @@ interface CloudPaymentsSettings {
 }
 
 /**
- * Promo data attached to payment request
+ * Promo reference attached to payment request.
+ * Amounts are resolved on the server by promo id during check/pay.
  */
 export interface PaymentPromoData {
   /**
    * Applied promo code id
    */
   id: string;
-
-  /**
-   * Promo benefit type
-   */
-  benefitType: PaymentPromoBenefitType;
-
-  /**
-   * Plan price before promo
-   */
-  originalAmount: number;
-
-  /**
-   * Final price after promo
-   */
-  finalAmount: number;
-
-  /**
-   * Actual discount amount
-   */
-  discountAmount: number;
 
   /**
    * UTM parameters captured when promo was applied
@@ -99,7 +75,7 @@ export interface PaymentData {
    */
   shouldSaveCard: boolean;
   /**
-   * Applied promo code data
+   * Applied promo code reference
    */
   promo?: PaymentPromoData;
   /**
