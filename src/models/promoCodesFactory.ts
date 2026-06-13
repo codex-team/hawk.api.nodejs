@@ -45,7 +45,10 @@ export default class PromoCodesFactory extends AbstractModelFactory<PromoCodeDBS
   }
 
   /**
-   * Creates indexes required by promo codes lookups.
+   * Ensures promo code indexes exist before queries.
+   *
+   * MongoDB createIndex is idempotent: after API restart it reuses an existing index
+   * with the same keys/options and does not throw if the index is already present.
    */
   private async ensureIndexesOnce(): Promise<void> {
     if (!this.indexesPromise) {

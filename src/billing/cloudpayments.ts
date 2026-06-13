@@ -183,8 +183,17 @@ export default class CloudPaymentsWebhooks {
     }
 
     /**
-     * The amount will be considered correct if it is equal to the cost of the tariff plan.
-     * Also, the cost will be correct if it is a payment to activate the subscription.
+     * Validates payment amount from CloudPayments against expected charge.
+     *
+     * expectedAmount:
+     * - with promo: final price recalculated on the server by promo id
+     * - without promo: full selected plan monthly charge
+     *
+     * isRightAmount is true when:
+     * 1) body.Amount equals expectedAmount — regular one-time payment (with or without promo)
+     * 2) no promo and recurrent.startDate is set — subscription is created with a deferred first charge;
+     *    current payment can be a card-link/auth amount (for example 1 RUB) while recurrent.amount
+     *    stores the real plan price for future charges
      */
     const expectedAmount = promoPricing?.finalAmount ?? plan.monthlyCharge;
     const isRightAmount = +body.Amount === expectedAmount || (!data.promo && recurrentPaymentSettings?.startDate);
@@ -486,7 +495,7 @@ plan monthly charge: ${data.cloudPayments?.recurrent.amount} ${body.Currency}`
          */
         const userEmail = body.IssuerBankCountry === RUSSIA_ISO_CODE ? user.email : undefined;
 
-        await this.sendReceipt(workspace, tariffPlan, userEmail, data.promo?.finalAmount ?? tariffPlan.monthlyCharge);
+        await this.sendReceipt(workspace, tariffPlan, userEmail, +body.Amount);
 
         let messageText = '';
 
