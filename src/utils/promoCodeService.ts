@@ -157,11 +157,11 @@ function isAllowedPromoValue(value: string): boolean {
 }
 
 /**
- * Returns whether plan is available for purchase/apply.
+ * Returns whether plan is available for purchase (not hidden).
  *
  * @param plan - tariff plan
  */
-function isPlanAvailable(plan: PlanModel): boolean {
+function isPlanAvailableForPurchase(plan: PlanModel): boolean {
   return plan.isHidden !== true;
 }
 
@@ -189,7 +189,7 @@ function isPlanApplicable(benefit: PromoCodeBenefit, plan: PlanModel): boolean {
  * @param plan - tariff plan
  */
 function isDiscountablePlan(plan: PlanModel): boolean {
-  return plan.monthlyCharge > 0 && isPlanAvailable(plan);
+  return plan.monthlyCharge > 0 && isPlanAvailableForPurchase(plan);
 }
 
 /**
@@ -432,7 +432,7 @@ export default class PromoCodeService {
     if (benefit.type === 'grant_plan') {
       const plan = await this.factories.plansFactory.findById(benefit.planId.toString());
 
-      if (!plan || !isPlanAvailable(plan)) {
+      if (!plan || !isPlanAvailableForPurchase(plan)) {
         throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Grant plan is unavailable');
       }
 
@@ -485,7 +485,7 @@ export default class PromoCodeService {
 
     const plan = await this.factories.plansFactory.findById(promoCode.benefit.planId.toString());
 
-    if (!plan || !isPlanAvailable(plan)) {
+    if (!plan || !isPlanAvailableForPurchase(plan)) {
       throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Grant plan is unavailable');
     }
 

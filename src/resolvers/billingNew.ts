@@ -435,7 +435,22 @@ debug: ${Boolean(workspace.isDebug)}`
         throw new UserInputError('Wrong checksum data');
       }
 
-      const planPaymentAmount = paymentData.promo?.finalAmount ?? plan.monthlyCharge;
+      let planPaymentAmount = plan.monthlyCharge;
+
+      if (paymentData.promo?.id) {
+        try {
+          const pricing = await new PromoCodeService(factories).getPricingForPromoCodeId(
+            paymentData.promo.id,
+            user.id,
+            paymentData.workspaceId,
+            plan
+          );
+
+          planPaymentAmount = pricing.finalAmount;
+        } catch (error) {
+          throwPromoCodeGraphQLError(error);
+        }
+      }
 
       const token = fullUserInfo.bankCards?.find(card => card.id === args.input.cardId)?.token;
 
