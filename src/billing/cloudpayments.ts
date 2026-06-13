@@ -42,7 +42,7 @@ import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import PlanModel from '../models/plan';
 import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
-import PromoCodeService from '../utils/promoCodeService';
+import PromoCodeService from '../services/promoCodeService';
 
 const PENNY_MULTIPLIER = 100;
 

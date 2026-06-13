@@ -421,6 +421,12 @@ export default class PromoCodeService {
   /**
    * Builds preview prices for visible plans.
    *
+   * Must run on the API: promo terms and limits live in the database and are re-checked
+   * on composePayment/check/pay. The frontend only sends promo id in the payment checksum;
+   * preview is the user-facing step that validates the code and returns prices to display.
+   * Pure price math is in {@link calculatePromoCodePlanPrice}; this method adds DB lookup,
+   * expiry/usage limits, and grant_plan availability checks.
+   *
    * @param value - raw promo code value
    * @param userId - user id
    * @param workspaceId - workspace id

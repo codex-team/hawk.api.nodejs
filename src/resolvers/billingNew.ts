@@ -14,7 +14,7 @@ import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
-import PromoCodeService, { PromoCodeError, PromoCodeErrorCode, PromoCodePreviewResult, buildPaymentPromoData } from '../utils/promoCodeService';
+import PromoCodeService, { PromoCodeError, PromoCodeErrorCode, PromoCodePreviewResult, buildPaymentPromoData } from '../services/promoCodeService';
 import { publish } from '../rabbitmq';
 import type { PaymentPromoData } from '../billing/types/paymentData';
 import { validateUtmParams } from '../utils/utm/utm';
