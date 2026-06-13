@@ -1,4 +1,9 @@
-import type { Utm } from '@hawk.so/types';
+import type { PromoCodeBenefitType, Utm } from '@hawk.so/types';
+
+/**
+ * Promo benefit types that can be applied during payment.
+ */
+export type PaymentPromoBenefitType = Exclude<PromoCodeBenefitType, 'grant_plan'>;
 
 /**
  * Data for setting up recurring payments
@@ -49,7 +54,7 @@ export interface PaymentPromoData {
   /**
    * Promo benefit type
    */
-  benefitType: 'percent_discount' | 'amount_discount' | 'fixed_price';
+  benefitType: PaymentPromoBenefitType;
 
   /**
    * Plan price before promo

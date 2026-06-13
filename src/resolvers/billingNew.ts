@@ -14,6 +14,7 @@ import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
 import PromoCodeService, { PromoCodeError, PromoCodeErrorCode, PromoCodePreviewResult, buildPaymentPromoData } from '../utils/promoCodeService';
 import { publish } from '../rabbitmq';
+import type { PaymentPromoData } from '../billing/types/paymentData';
 import type { Utm } from '@hawk.so/types';
 import { validateUtmParams } from '../utils/utm/utm';
 
@@ -117,13 +118,7 @@ export default {
       checksum: string;
       nextPaymentDate: Date;
       cloudPaymentsPublicId: string;
-      promo?: {
-        id: string;
-        benefitType: 'percent_discount' | 'amount_discount' | 'fixed_price';
-        originalAmount: number;
-        finalAmount: number;
-        discountAmount: number;
-      };
+      promo?: PaymentPromoData;
     }> {
       const { workspaceId, tariffPlanId, shouldSaveCard, promoCode } = input;
       const promoUtm = validateUtmParams(input.promoUtm);
