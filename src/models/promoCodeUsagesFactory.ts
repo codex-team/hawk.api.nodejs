@@ -118,19 +118,21 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
    * with the same keys/options and does not throw if the index is already present.
    */
   private async ensureIndexesOnce(): Promise<void> {
-    this.indexesPromise ??= Promise.all([
-      this.collection.createIndex({ promoCodeId: 1 }),
-      this.collection.createIndex({
-        promoCodeId: 1,
-        userId: 1,
-      }, { unique: true }),
-      this.collection.createIndex({
-        promoCodeId: 1,
-        workspaceId: 1,
-      }, { unique: true }),
-      this.collection.createIndex({ workspaceId: 1 }),
-      this.collection.createIndex({ userId: 1 }),
-    ]).then(() => undefined);
+    if (!this.indexesPromise) {
+      this.indexesPromise = Promise.all([
+        this.collection.createIndex({ promoCodeId: 1 }),
+        this.collection.createIndex({
+          promoCodeId: 1,
+          userId: 1,
+        }, { unique: true }),
+        this.collection.createIndex({
+          promoCodeId: 1,
+          workspaceId: 1,
+        }, { unique: true }),
+        this.collection.createIndex({ workspaceId: 1 }),
+        this.collection.createIndex({ userId: 1 }),
+      ]).then(() => undefined);
+    }
 
     await this.indexesPromise;
   }

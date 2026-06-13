@@ -35,13 +35,7 @@ export default class PromoCodesFactory extends AbstractModelFactory<PromoCodeDBS
   public async findByValue(value: string): Promise<PromoCodeModel | null> {
     await this.ensureIndexesOnce();
 
-    const promoCode = await this.collection.findOne({ value });
-
-    if (!promoCode) {
-      return null;
-    }
-
-    return new PromoCodeModel(promoCode);
+    return this.findOne({ value });
   }
 
   /**

@@ -143,6 +143,7 @@ export type PromoCodeUtm = Utm;
  * Normalizes promo code value before DB lookup.
  *
  * @param value - raw promo code value
+ * @returns normalized promo code value
  */
 export function normalizePromoCodeValue(value: string): string {
   return value.trim().toUpperCase();
@@ -152,6 +153,7 @@ export function normalizePromoCodeValue(value: string): string {
  * Checks if promo value format is allowed.
  *
  * @param value - normalized promo code value
+ * @returns whether value has allowed promo code format
  */
 function isAllowedPromoValue(value: string): boolean {
   return Boolean(value) && PROMO_CODE_REGEXP.test(value);
@@ -161,6 +163,7 @@ function isAllowedPromoValue(value: string): boolean {
  * Returns whether plan is available for purchase (not hidden).
  *
  * @param plan - tariff plan
+ * @returns whether plan can be selected for paid purchase or grant_plan promo
  */
 function isPlanAvailableForPurchase(plan: PlanModel): boolean {
   return plan.isHidden !== true;
@@ -171,6 +174,7 @@ function isPlanAvailableForPurchase(plan: PlanModel): boolean {
  *
  * @param benefit - promo benefit
  * @param plan - selected plan
+ * @returns whether benefit can be applied to the selected plan
  */
 function isPlanApplicable(benefit: PromoCodeBenefit, plan: PlanModel): boolean {
   if (benefit.type === 'grant_plan') {
@@ -188,6 +192,7 @@ function isPlanApplicable(benefit: PromoCodeBenefit, plan: PlanModel): boolean {
  * Returns whether discount promo can affect plan price.
  *
  * @param plan - tariff plan
+ * @returns whether plan is paid and available for purchase
  */
 function isDiscountablePlan(plan: PlanModel): boolean {
   return plan.monthlyCharge > 0 && isPlanAvailableForPurchase(plan);
@@ -198,6 +203,7 @@ function isDiscountablePlan(plan: PlanModel): boolean {
  *
  * @param benefit - promo benefit
  * @param plan - selected plan
+ * @returns calculated promo price for selected plan
  */
 export function calculatePromoCodePlanPrice(benefit: PromoCodeBenefit, plan: PlanModel): PromoCodePlanPrice {
   const originalAmount = plan.monthlyCharge;
