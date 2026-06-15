@@ -259,7 +259,7 @@ describe('PromoCodeService', () => {
   });
 
   describe('applyGrantPlan()', () => {
-    it('should not change workspace plan when usage reservation fails', async () => {
+    it('should grant plan even when usage recording fails', async () => {
       const planId = new ObjectId();
       const promoCode = createPromoCode({
         type: 'grant_plan',
@@ -272,6 +272,8 @@ describe('PromoCodeService', () => {
         updateLastChargeDate: jest.fn().mockResolvedValue(true),
         changePlan: jest.fn().mockResolvedValue(1),
       };
+      const createUsage = jest.fn().mockRejectedValue({ code: 11000 });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
       const service = new PromoCodeService({
         promoCodesFactory: {
           findByValue: jest.fn().mockResolvedValue(promoCode),
@@ -280,25 +282,29 @@ describe('PromoCodeService', () => {
           countByPromoCodeId: jest.fn().mockResolvedValue(0),
           findByPromoCodeAndUser: jest.fn().mockResolvedValue(null),
           findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(null),
-          create: jest.fn().mockRejectedValue({ code: 11000 }),
+          create: createUsage,
         },
         plansFactory: {
           findById: jest.fn().mockResolvedValue(createPlan({ _id: planId })),
         },
       } as any);
 
-      await expectPromoError(
-        service.applyGrantPlan('grant', new ObjectId().toString(), workspace as any),
-        PromoCodeErrorCode.LimitExceeded
+      const plan = await service.applyGrantPlan('grant', new ObjectId().toString(), workspace as any);
+
+      expect(plan._id).toEqual(planId);
+      expect(workspace.changePlan).toHaveBeenCalledWith(planId);
+      expect(createUsage).toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[PromoCode] Failed to record promo usage after grant_plan apply',
+        expect.anything()
       );
 
-      expect(workspace.changePlan).not.toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
     });
 
-    it('should rollback reserved usage when workspace plan change fails', async () => {
+    it('should not record promo usage when workspace plan change fails', async () => {
       const planId = new ObjectId();
-      const usageId = new ObjectId();
-      const deleteById = jest.fn().mockResolvedValue(undefined);
+      const createUsage = jest.fn().mockResolvedValue({ _id: new ObjectId() });
       const promoCode = createPromoCode({
         type: 'grant_plan',
         planId,
@@ -318,8 +324,7 @@ describe('PromoCodeService', () => {
           countByPromoCodeId: jest.fn().mockResolvedValue(0),
           findByPromoCodeAndUser: jest.fn().mockResolvedValue(null),
           findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(null),
-          create: jest.fn().mockResolvedValue({ _id: usageId }),
-          deleteById,
+          create: createUsage,
         },
         plansFactory: {
           findById: jest.fn().mockResolvedValue(createPlan({ _id: planId })),
@@ -331,7 +336,7 @@ describe('PromoCodeService', () => {
         PromoCodeErrorCode.ApplyFailed
       );
 
-      expect(deleteById).toHaveBeenCalledWith(usageId);
+      expect(createUsage).not.toHaveBeenCalled();
     });
   });
 
@@ -363,6 +368,39 @@ describe('PromoCodeService', () => {
         }),
         PromoCodeErrorCode.LimitExceeded
       );
+    });
+
+    it('should reject second createUsage when insert returns duplicate key', async () => {
+      const promoCode = createPromoCode({
+        type: 'fixed_price',
+        amount: 100,
+      });
+      const create = jest.fn()
+        .mockResolvedValueOnce({ _id: new ObjectId() })
+        .mockRejectedValueOnce({ code: 11000 });
+      const service = new PromoCodeService({
+        promoCodeUsagesFactory: {
+          countByPromoCodeId: jest.fn().mockResolvedValue(0),
+          findByPromoCodeAndUser: jest.fn().mockResolvedValue(null),
+          findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(null),
+          create,
+        },
+      } as any);
+      const usageParams = {
+        promoCode,
+        userId: new ObjectId().toString(),
+        workspaceId: new ObjectId(),
+        planId: new ObjectId(),
+        benefitType: 'fixed_price' as const,
+        originalAmount: 1000,
+        finalAmount: 100,
+        discountAmount: 900,
+      };
+
+      await service.createUsage(usageParams);
+
+      await expectPromoError(service.createUsage(usageParams), PromoCodeErrorCode.LimitExceeded);
+      expect(create).toHaveBeenCalledTimes(2);
     });
   });
 });

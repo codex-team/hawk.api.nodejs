@@ -10,6 +10,7 @@ import WorkspaceModel from '../models/workspace';
 import { ContextFactories } from '../types/graphql';
 import type { Utm } from '@hawk.so/types';
 import type { PaymentPromoData } from '../billing/types/paymentData';
+import { sanitizeUtmParams } from '../utils/utm/utm';
 
 const PROMO_CODE_REGEXP = /^[A-Z0-9_-]+$/;
 const DEFAULT_MIN_FINAL_PRICE = 1;
@@ -347,9 +348,11 @@ function validateBenefitStructure(benefit: PromoCodeBenefit): void {
  * @returns promo reference for payment checksum
  */
 export function buildPaymentPromoData(promoCodeId: string, utm?: Utm): PaymentPromoData {
+  const sanitizedUtm = sanitizeUtmParams(utm);
+
   return {
     id: promoCodeId,
-    ...(utm && Object.keys(utm).length > 0 ? { utm } : {}),
+    ...(sanitizedUtm ? { utm: sanitizedUtm } : {}),
   };
 }
 
@@ -502,39 +505,12 @@ export default class PromoCodeService {
       throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Grant plan is unavailable');
     }
 
+    const now = new Date();
+
     try {
-      const now = new Date();
-
-      /**
-       * Reserve usage before granting the plan.
-       *
-       * This makes promo usage a precondition for the benefit: if limits are exhausted
-       * or the insert fails, workspace state is not changed.
-       */
-      const usage = await this.createUsage({
-        promoCode,
-        userId,
-        workspaceId: workspace._id,
-        planId: plan._id,
-        benefitType: promoCode.benefit.type,
-        utm,
-      });
-
-      try {
-        await workspace.updatePlanHistory(workspace.tariffPlanId.toString(), now, userId);
-        await workspace.updateLastChargeDate(now);
-        await workspace.changePlan(plan._id);
-      } catch (error) {
-        try {
-          await this.factories.promoCodeUsagesFactory.deleteById(usage._id);
-        } catch (rollbackError) {
-          console.error('Failed to rollback promo usage after grant_plan apply failure', rollbackError);
-        }
-
-        throw error;
-      }
-
-      return plan;
+      await workspace.updatePlanHistory(workspace.tariffPlanId.toString(), now, userId);
+      await workspace.updateLastChargeDate(now);
+      await workspace.changePlan(plan._id);
     } catch (error) {
       if (error instanceof PromoCodeError) {
         throw error;
@@ -542,13 +518,28 @@ export default class PromoCodeService {
 
       throw new PromoCodeError(PromoCodeErrorCode.ApplyFailed, 'Grant plan apply failed');
     }
+
+    try {
+      await this.createUsage({
+        promoCode,
+        userId,
+        workspaceId: workspace._id,
+        planId: plan._id,
+        benefitType: promoCode.benefit.type,
+        utm,
+      });
+    } catch (error) {
+      console.error('[PromoCode] Failed to record promo usage after grant_plan apply', error);
+    }
+
+    return plan;
   }
 
   /**
    * Creates usage after successful payment or before immediate grant_plan apply.
    *
-   * Unique indexes on promoCodeId + userId/workspaceId make this method the durable
-   * reservation point. Callers should grant the promo benefit only after it succeeds.
+   * Unique indexes on promoCodeId + userId/workspaceId enforce one usage per user/workspace.
+   * Usage is recorded after plan change in CloudPayments /pay and grant_plan apply.
    *
    * @param params - usage creation params
    * @returns created promo usage
@@ -566,6 +557,8 @@ export default class PromoCodeService {
   }): Promise<PromoCodeUsageModel> {
     await this.validateUsageLimits(params.promoCode, params.userId, params.workspaceId);
 
+    const utm = sanitizeUtmParams(params.utm);
+
     try {
       return await this.factories.promoCodeUsagesFactory.create({
         promoCodeId: params.promoCode._id,
@@ -577,7 +570,7 @@ export default class PromoCodeService {
         finalAmount: params.finalAmount,
         discountAmount: params.discountAmount,
         appliedAt: new Date(),
-        ...(params.utm && Object.keys(params.utm).length > 0 ? { utm: params.utm } : {}),
+        ...(utm ? { utm } : {}),
       });
     } catch (error) {
       if ((error as { code?: number }).code === 11000) {

@@ -9,6 +9,13 @@ jest.mock('../../src/utils/telegram', () => ({
   TelegramBotURLs: { Money: 'money-url' },
 }));
 
+jest.mock('../../src/utils/cloudPaymentsApi', () => ({
+  __esModule: true,
+  default: {
+    payByToken: jest.fn(),
+  },
+}));
+
 import { ObjectId } from 'mongodb';
 import { PlanDBScheme, WorkspaceDBScheme } from '@hawk.so/types';
 import { UserInputError } from 'apollo-server-express';
@@ -17,6 +24,7 @@ import { ResolverContextWithUser } from '../../src/types/graphql';
 import checksumService from '../../src/utils/checksumService';
 import { publish } from '../../src/rabbitmq';
 import { PromoCodeErrorCode } from '../../src/services/promoCodeService';
+import cloudPaymentsApi from '../../src/utils/cloudPaymentsApi';
 
 // Set environment variables for test
 process.env.JWT_SECRET_BILLING_CHECKSUM = 'checksum_secret';
@@ -235,6 +243,12 @@ describe('GraphQLBillingNew', () => {
 
       expect(result.isCardLinkOperation).toBe(false);
 
+      const checksumData = checksumService.parseAndVerifyChecksum(result.checksum);
+
+      if ('tariffPlanId' in checksumData) {
+        expect(checksumData.promo).toBeUndefined();
+      }
+
       // Check that nextPaymentDate is one month from now
       const oneMonthFromNow = new Date();
 
@@ -340,7 +354,8 @@ describe('GraphQLBillingNew', () => {
         mockContext
       );
 
-      expect(result.plan.monthlyCharge).toBe(750);
+      expect(result.plan.monthlyCharge).toBe(1000);
+      expect(result.chargeAmount).toBe(750);
       expect(result.promo).toMatchObject({
         id: promoCodeId.toString(),
         benefitType: 'percent_discount',
@@ -412,6 +427,7 @@ describe('GraphQLBillingNew', () => {
 
       expect(result.isCardLinkOperation).toBe(true);
       expect(result.plan.monthlyCharge).toBe(1000);
+      expect(result.chargeAmount).toBe(1);
       expect(result.promo).toBeUndefined();
     });
   });
@@ -563,6 +579,122 @@ describe('GraphQLBillingNew', () => {
       ).rejects.toMatchObject({
         message: PromoCodeErrorCode.Invalid,
       });
+    });
+  });
+
+  describe('payWithCard', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should charge discounted amount and set full recurrent amount from checksum promo id', async () => {
+      const promoCodeId = new ObjectId();
+      const userId = new ObjectId().toString();
+      const workspaceId = new ObjectId().toString();
+      const cardId = 'card-1';
+      const newPlanId = new ObjectId();
+      const plan: PlanDBScheme = {
+        _id: newPlanId,
+        name: 'Test Plan',
+        monthlyCharge: 1000,
+        monthlyChargeCurrency: 'RUB',
+        eventsLimit: 1000,
+        isDefault: false,
+        isHidden: false,
+      };
+      const checksum = await checksumService.generateChecksum({
+        workspaceId,
+        userId,
+        tariffPlanId: newPlanId.toString(),
+        shouldSaveCard: false,
+        nextPaymentDate: new Date().toISOString(),
+        promo: {
+          id: promoCodeId.toString(),
+        },
+      });
+      const dueDate = new Date();
+      dueDate.setMonth(dueDate.getMonth() + 1);
+
+      const mockContext: ResolverContextWithUser = {
+        user: {
+          id: userId,
+          accessTokenExpired: false,
+        },
+        factories: {
+          workspacesFactory: {
+            findById: jest.fn().mockResolvedValue({
+              _id: new ObjectId(workspaceId),
+              tariffPlanId: new ObjectId(),
+              isDebug: false,
+              getMemberInfo: jest.fn().mockResolvedValue({ isAdmin: true }),
+              isTariffPlanExpired: jest.fn().mockReturnValue(true),
+              getTariffPlanDueDate: jest.fn().mockReturnValue(dueDate),
+            }),
+          } as any,
+          plansFactory: {
+            findById: jest.fn().mockResolvedValue(plan),
+          } as any,
+          usersFactory: {
+            findById: jest.fn().mockResolvedValue({
+              bankCards: [{
+                id: cardId,
+                token: 'token-1',
+              }],
+            }),
+          } as any,
+          projectsFactory: {} as any,
+          businessOperationsFactory: {
+            getBusinessOperationByTransactionId: jest.fn().mockResolvedValue({ _id: new ObjectId() }),
+          } as any,
+          releasesFactory: {} as any,
+          promoCodesFactory: {
+            findOne: jest.fn().mockResolvedValue({
+              _id: promoCodeId,
+              value: 'SAVE25',
+              benefit: {
+                type: 'percent_discount',
+                percent: 25,
+              },
+            }),
+          } as any,
+          promoCodeUsagesFactory: {
+            countByPromoCodeId: jest.fn().mockResolvedValue(0),
+            findByPromoCodeAndUser: jest.fn().mockResolvedValue(null),
+            findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(null),
+          } as any,
+        },
+      };
+
+      (cloudPaymentsApi.payByToken as jest.Mock).mockResolvedValue({
+        Model: {
+          TransactionId: 999,
+        },
+      });
+
+      await billingNewResolver.Mutation.payWithCard(
+        undefined,
+        {
+          input: {
+            checksum,
+            cardId,
+            isRecurrent: true,
+          },
+        },
+        mockContext
+      );
+
+      expect(cloudPaymentsApi.payByToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Amount: 750,
+          JsonData: expect.objectContaining({
+            cloudPayments: expect.objectContaining({
+              recurrent: expect.objectContaining({
+                amount: 1000,
+              }),
+            }),
+          }),
+        })
+      );
     });
   });
 })

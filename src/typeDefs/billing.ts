@@ -49,7 +49,7 @@ type ComposePaymentPlanInfo {
   name: String!
 
   """
-  Monthly charge for plan
+  Monthly charge for plan (full tariff price)
   """
   monthlyCharge: Int!
 }
@@ -385,6 +385,11 @@ type ComposePaymentResponse {
   Selected plan info
   """
   plan: ComposePaymentPlanInfo!
+
+  """
+  Amount to charge for this payment (may differ from plan.monthlyCharge when promo is applied)
+  """
+  chargeAmount: Int!
 
   """
   True if only card linking validation payment is expected

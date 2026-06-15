@@ -62,3 +62,18 @@ export function validateUtmParams(utm: unknown): Utm | undefined {
 
   return result;
 }
+
+/**
+ * Returns sanitized UTM params ready for storage, or undefined when nothing valid remains.
+ *
+ * @param utm - raw UTM parameters
+ */
+export function sanitizeUtmParams(utm: unknown): Utm | undefined {
+  const validated = validateUtmParams(utm);
+
+  if (!validated || Object.keys(validated).length === 0) {
+    return undefined;
+  }
+
+  return validated;
+}

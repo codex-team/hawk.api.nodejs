@@ -17,7 +17,7 @@ import { TelegramBotURLs } from '../utils/telegram';
 import PromoCodeService, { PromoCodeError, PromoCodeErrorCode, PromoCodePreviewResult, buildPaymentPromoData } from '../services/promoCodeService';
 import { publish } from '../rabbitmq';
 import type { PaymentPromoData } from '../billing/types/paymentData';
-import { validateUtmParams } from '../utils/utm/utm';
+import { sanitizeUtmParams } from '../utils/utm/utm';
 
 /**
  * The amount we will debit to confirm the subscription.
@@ -108,7 +108,7 @@ async function previewOrApplyPromoCode(
     input.value,
     userId,
     workspace,
-    validateUtmParams(input.utm)
+    sanitizeUtmParams(input.utm)
   );
 
   await notifyLimiterToUnblockWorkspace(workspace._id.toString());
@@ -171,6 +171,7 @@ export default {
     ): Promise<{
       invoiceId: string;
       plan: { id: string; name: string; monthlyCharge: number };
+      chargeAmount: number;
       isCardLinkOperation: boolean;
       currency: string;
       checksum: string;
@@ -185,7 +186,7 @@ export default {
       };
     }> {
       const { workspaceId, tariffPlanId, shouldSaveCard, promoCode } = input;
-      const promoUtm = validateUtmParams(input.promoUtm);
+      const promoUtm = sanitizeUtmParams(input.promoUtm);
 
       if (!workspaceId || !tariffPlanId || !user?.id) {
         throw new UserInputError('No workspaceId, tariffPlanId or user id provided');
@@ -294,8 +295,9 @@ debug: ${Boolean(workspace.isDebug)}`
         plan: {
           id: plan._id.toString(),
           name: plan.name,
-          monthlyCharge: paymentAmount,
+          monthlyCharge: plan.monthlyCharge,
         },
+        chargeAmount: isCardLinkOperation ? AMOUNT_FOR_CARD_VALIDATION : paymentAmount,
         isCardLinkOperation,
         currency: 'RUB',
         checksum,
@@ -472,6 +474,7 @@ debug: ${Boolean(workspace.isDebug)}`
           recurrent: {
             interval,
             period: 1,
+            amount: plan.monthlyCharge,
           },
         };
 
@@ -481,7 +484,6 @@ debug: ${Boolean(workspace.isDebug)}`
          */
         if (!isTariffPlanExpired) {
           jsonData.cloudPayments.recurrent.startDate = dueDate.toDateString();
-          jsonData.cloudPayments.recurrent.amount = planPaymentAmount;
         }
       }
 

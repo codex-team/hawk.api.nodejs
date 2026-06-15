@@ -164,11 +164,10 @@ export default class CloudPaymentsWebhooks {
     let promoPricing;
 
     /**
-     * Record promo usage before applying paid benefits.
+     * Revalidate promo before accepting payment.
      *
-     * /pay runs after CloudPayments has accepted the charge, but workspace plan
-     * must not be changed if promo usage cannot be stored. Otherwise a transient
-     * DB/limit error would grant a discounted plan without consuming the promo.
+     * Amount check uses server-side pricing; usage is recorded later in /pay
+     * after workspace plan is updated successfully.
      */
     if (data.promo && !data.isCardLinkOperation) {
       try {
@@ -207,6 +206,21 @@ export default class CloudPaymentsWebhooks {
 
     if (!isRightAmount) {
       this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
+
+      return;
+    }
+
+    if (
+      data.promo &&
+      recurrentPaymentSettings?.amount !== undefined &&
+      +recurrentPaymentSettings.amount !== plan.monthlyCharge
+    ) {
+      this.sendError(
+        res,
+        CheckCodes.WRONG_AMOUNT,
+        '[Billing / Check] Recurrent amount must equal full plan price when promo is applied',
+        body
+      );
 
       return;
     }
@@ -308,36 +322,6 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    if (data.promo && !data.isCardLinkOperation) {
-      try {
-        const promoCodeService = new PromoCodeService(req.context.factories);
-        const promoPricing = await promoCodeService.getPricingForPromoCodeId(
-          data.promo.id,
-          data.userId,
-          data.workspaceId,
-          tariffPlan
-        );
-
-        await promoCodeService.createUsage({
-          promoCode: promoPricing.promoCode,
-          userId: data.userId,
-          workspaceId: workspace._id,
-          planId: tariffPlan._id,
-          benefitType: promoPricing.benefitType,
-          originalAmount: promoPricing.originalAmount,
-          finalAmount: promoPricing.finalAmount,
-          discountAmount: promoPricing.discountAmount,
-          utm: data.promo.utm,
-        });
-      } catch (e) {
-        const error = e as Error;
-
-        this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Failed to record promo usage: ${error.toString()}`, body);
-
-        return;
-      }
-    }
-
     try {
       await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
 
@@ -369,6 +353,32 @@ export default class CloudPaymentsWebhooks {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${error.toString()}`, body);
 
       return;
+    }
+
+    if (data.promo && !data.isCardLinkOperation) {
+      try {
+        const promoCodeService = new PromoCodeService(req.context.factories);
+        const promoPricing = await promoCodeService.getPricingForPromoCodeId(
+          data.promo.id,
+          data.userId,
+          data.workspaceId,
+          tariffPlan
+        );
+
+        await promoCodeService.createUsage({
+          promoCode: promoPricing.promoCode,
+          userId: data.userId,
+          workspaceId: workspace._id,
+          planId: tariffPlan._id,
+          benefitType: promoPricing.benefitType,
+          originalAmount: promoPricing.originalAmount,
+          finalAmount: promoPricing.finalAmount,
+          discountAmount: promoPricing.discountAmount,
+          utm: data.promo.utm,
+        });
+      } catch (error) {
+        console.error('[Billing / Pay] Failed to record promo usage after plan change', error);
+      }
     }
 
     // let accountId = workspace.accountId;
