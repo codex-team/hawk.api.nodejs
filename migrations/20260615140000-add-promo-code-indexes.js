@@ -19,11 +19,11 @@ module.exports = {
     const promoCodes = db.collection('promoCodes');
     const promoCodeUsages = db.collection('promoCodeUsages');
 
-    await promoCodes.dropIndex({ value: 1 });
-    await promoCodeUsages.dropIndex({ promoCodeId: 1 });
-    await promoCodeUsages.dropIndex({ promoCodeId: 1, userId: 1 });
-    await promoCodeUsages.dropIndex({ promoCodeId: 1, workspaceId: 1 });
-    await promoCodeUsages.dropIndex({ workspaceId: 1 });
-    await promoCodeUsages.dropIndex({ userId: 1 });
+    await promoCodes.dropIndex('value_1');
+    await promoCodeUsages.dropIndex('promoCodeId_1');
+    await promoCodeUsages.dropIndex('promoCodeId_1_userId_1');
+    await promoCodeUsages.dropIndex('promoCodeId_1_workspaceId_1');
+    await promoCodeUsages.dropIndex('workspaceId_1');
+    await promoCodeUsages.dropIndex('userId_1');
   },
 };

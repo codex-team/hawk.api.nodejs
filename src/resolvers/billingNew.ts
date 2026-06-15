@@ -216,6 +216,8 @@ export default {
 
       const checksum = await checksumService.generateChecksum(checksumData);
 
+      const loggedAmount = isCardLinkOperation ? AMOUNT_FOR_CARD_VALIDATION : paymentAmount;
+
       /**
        * Send info to Telegram (non-blocking)
        */
@@ -223,7 +225,7 @@ export default {
         .sendMessage(`👀 [Billing / Compose payment]
 
 card link operation: ${isCardLinkOperation}
-amount: ${+paymentAmount} RUB
+amount: ${+loggedAmount} RUB
 last charge date: ${workspace.lastChargeDate?.toISOString()}
 next payment date: ${nextPaymentDate.toISOString()}
 workspace id: ${workspace._id.toString()}
