@@ -13,11 +13,6 @@ export default class PromoCodesFactory extends AbstractModelFactory<PromoCodeDBS
   protected collection: Collection<PromoCodeDBScheme>;
 
   /**
-   * Index creation promise.
-   */
-  private indexesPromise?: Promise<void>;
-
-  /**
    * Creates promo codes factory instance.
    *
    * @param dbConnection - connection to DataBase
@@ -33,22 +28,6 @@ export default class PromoCodesFactory extends AbstractModelFactory<PromoCodeDBS
    * @param value - normalized promo code value
    */
   public async findByValue(value: string): Promise<PromoCodeModel | null> {
-    await this.ensureIndexesOnce();
-
     return this.findOne({ value });
-  }
-
-  /**
-   * Ensures promo code indexes exist before queries.
-   *
-   * MongoDB createIndex is idempotent: after API restart it reuses an existing index
-   * with the same keys/options and does not throw if the index is already present.
-   */
-  private async ensureIndexesOnce(): Promise<void> {
-    if (!this.indexesPromise) {
-      this.indexesPromise = this.collection.createIndex({ value: 1 }, { unique: true }).then(() => undefined);
-    }
-
-    await this.indexesPromise;
   }
 }

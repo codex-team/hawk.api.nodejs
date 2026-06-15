@@ -13,11 +13,6 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
   protected collection: Collection<PromoCodeUsageDBScheme>;
 
   /**
-   * Index creation promise.
-   */
-  private indexesPromise?: Promise<void>;
-
-  /**
    * Creates promo code usages factory instance.
    *
    * @param dbConnection - connection to DataBase
@@ -33,8 +28,6 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
    * @param promoCodeId - promo code id
    */
   public async countByPromoCodeId(promoCodeId: ObjectId): Promise<number> {
-    await this.ensureIndexesOnce();
-
     return this.collection.countDocuments({ promoCodeId });
   }
 
@@ -45,8 +38,6 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
    * @param userId - user id
    */
   public async findByPromoCodeAndUser(promoCodeId: ObjectId, userId: string): Promise<PromoCodeUsageModel | null> {
-    await this.ensureIndexesOnce();
-
     const usage = await this.collection.findOne({
       promoCodeId,
       userId,
@@ -66,8 +57,6 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
    * @param workspaceId - workspace id
    */
   public async findByPromoCodeAndWorkspace(promoCodeId: ObjectId, workspaceId: ObjectId): Promise<PromoCodeUsageModel | null> {
-    await this.ensureIndexesOnce();
-
     const usage = await this.collection.findOne({
       promoCodeId,
       workspaceId,
@@ -86,8 +75,6 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
    * @param usageData - promo code usage data
    */
   public async create(usageData: Omit<PromoCodeUsageDBScheme, '_id'>): Promise<PromoCodeUsageModel> {
-    await this.ensureIndexesOnce();
-
     const usage = {
       _id: new ObjectId(),
       ...usageData,
@@ -109,31 +96,5 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
     await this.collection.deleteOne({
       _id: usageId,
     });
-  }
-
-  /**
-   * Ensures promo usage indexes exist before queries.
-   *
-   * MongoDB createIndex is idempotent: after API restart it reuses an existing index
-   * with the same keys/options and does not throw if the index is already present.
-   */
-  private async ensureIndexesOnce(): Promise<void> {
-    if (!this.indexesPromise) {
-      this.indexesPromise = Promise.all([
-        this.collection.createIndex({ promoCodeId: 1 }),
-        this.collection.createIndex({
-          promoCodeId: 1,
-          userId: 1,
-        }, { unique: true }),
-        this.collection.createIndex({
-          promoCodeId: 1,
-          workspaceId: 1,
-        }, { unique: true }),
-        this.collection.createIndex({ workspaceId: 1 }),
-        this.collection.createIndex({ userId: 1 }),
-      ]).then(() => undefined);
-    }
-
-    await this.indexesPromise;
   }
 }
