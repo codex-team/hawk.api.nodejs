@@ -145,9 +145,9 @@ function withPromoFactories(
 }
 
 /**
- * Creates test data and mocks for applyPromoCode tests.
+ * Creates test data and mocks for verifyPromoCode tests.
  */
-function createApplyPromoCodeTestSetup(options: {
+function createVerifyPromoCodeTestSetup(options: {
   promoCode: Record<string, unknown> | null;
   grantPlan?: PlanDBScheme;
 }): {
@@ -431,14 +431,14 @@ describe('GraphQLBillingNew', () => {
     });
   });
 
-  describe('applyPromoCode', () => {
+  describe('verifyPromoCode', () => {
     beforeEach(() => {
       jest.clearAllMocks();
     });
 
     it('should return benefit data without side effects', async () => {
       const promoCodeId = new ObjectId();
-      const { mockContext, workspaceId, workspaceMock } = createApplyPromoCodeTestSetup({
+      const { mockContext, workspaceId, workspaceMock } = createVerifyPromoCodeTestSetup({
         promoCode: {
           _id: promoCodeId,
           value: 'SAVE25',
@@ -449,7 +449,7 @@ describe('GraphQLBillingNew', () => {
         },
       });
 
-      const result = await billingNewResolver.Mutation.applyPromoCode(
+      const result = await billingNewResolver.Mutation.verifyPromoCode(
         undefined,
         {
           input: {
@@ -471,7 +471,7 @@ describe('GraphQLBillingNew', () => {
     it('should reject unsupported grant_plan promo', async () => {
       const promoCodeId = new ObjectId();
       const grantPlanId = new ObjectId();
-      const { mockContext, workspaceId } = createApplyPromoCodeTestSetup({
+      const { mockContext, workspaceId } = createVerifyPromoCodeTestSetup({
         promoCode: {
           _id: promoCodeId,
           value: 'GRANT',
@@ -492,7 +492,7 @@ describe('GraphQLBillingNew', () => {
       });
 
       await expect(
-        billingNewResolver.Mutation.applyPromoCode(
+        billingNewResolver.Mutation.verifyPromoCode(
           undefined,
           {
             input: {
@@ -526,7 +526,7 @@ describe('GraphQLBillingNew', () => {
       };
 
       await expect(
-        billingNewResolver.Mutation.applyPromoCode(
+        billingNewResolver.Mutation.verifyPromoCode(
           undefined,
           {
             input: {
@@ -540,12 +540,12 @@ describe('GraphQLBillingNew', () => {
     });
 
     it('should map promo validation errors to public codes', async () => {
-      const { mockContext, workspaceId } = createApplyPromoCodeTestSetup({
+      const { mockContext, workspaceId } = createVerifyPromoCodeTestSetup({
         promoCode: null,
       });
 
       await expect(
-        billingNewResolver.Mutation.applyPromoCode(
+        billingNewResolver.Mutation.verifyPromoCode(
           undefined,
           {
             input: {

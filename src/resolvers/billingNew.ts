@@ -14,7 +14,7 @@ import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
-import PromoCodeService, { PromoCodeApplyResult, PromoCodeError, PromoCodeErrorCode, buildPaymentPromoData } from '../services/promoCodeService';
+import PromoCodeService, { PromoCodeVerifyResult, PromoCodeError, PromoCodeErrorCode, buildPaymentPromoData } from '../services/promoCodeService';
 import type { PaymentPromoData } from '../billing/types/paymentData';
 import { sanitizeUtmParams } from '../utils/utm/utm';
 
@@ -38,9 +38,9 @@ interface ComposePaymentArgs {
 }
 
 /**
- * Input data for promo code apply mutation.
+ * Input data for promo code verification mutation.
  */
-interface ApplyPromoCodeArgs {
+interface VerifyPromoCodeArgs {
   input: {
     workspaceId: string;
     value: string;
@@ -57,7 +57,7 @@ function throwPromoCodeGraphQLError(error: unknown): never {
     throw new UserInputError(error.code);
   }
 
-  throw new UserInputError(PromoCodeErrorCode.ApplyFailed);
+  throw new UserInputError(PromoCodeErrorCode.VerifyFailed);
 }
 
 /**
@@ -318,7 +318,7 @@ debug: ${Boolean(workspace.isDebug)}`
 
   Mutation: {
     /**
-     * Validates promo code for workspace and returns benefit data for client-side pricing.
+     * Verifies promo code for workspace and returns benefit data for client-side pricing.
      *
      * Access check is handled by @requireAdmin on GraphQL schema.
      *
@@ -327,11 +327,11 @@ debug: ${Boolean(workspace.isDebug)}`
      * @param user - current authorized user
      * @param factories - factories for working with models
      */
-    async applyPromoCode(
+    async verifyPromoCode(
       _obj: undefined,
-      { input }: ApplyPromoCodeArgs,
+      { input }: VerifyPromoCodeArgs,
       { user, factories }: ResolverContextWithUser
-    ): Promise<PromoCodeApplyResult> {
+    ): Promise<PromoCodeVerifyResult> {
       const workspace = await factories.workspacesFactory.findById(input.workspaceId);
 
       if (!workspace) {
@@ -341,7 +341,7 @@ debug: ${Boolean(workspace.isDebug)}`
       const promoCodeService = new PromoCodeService(factories);
 
       try {
-        return await promoCodeService.applyPromoCode(input.value, user.id, input.workspaceId);
+        return await promoCodeService.verifyPromoCode(input.value, user.id, input.workspaceId);
       } catch (error) {
         throwPromoCodeGraphQLError(error);
       }

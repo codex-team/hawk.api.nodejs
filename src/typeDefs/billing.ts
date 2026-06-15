@@ -248,9 +248,9 @@ input ComposePaymentInput {
 }
 
 """
-Input for promo code apply
+Input for promo code verification
 """
-input ApplyPromoCodeInput {
+input VerifyPromoCodeInput {
   """
   Workspace id for which promo code is applied
   """
@@ -273,9 +273,9 @@ enum PromoCodeBenefitType {
 }
 
 """
-Validated promo code data for client-side price calculation
+Verified promo code data for client-side price calculation
 """
-type ApplyPromoCodeResponse {
+type VerifyPromoCodeResponse {
   """
   Normalized promo code value
   """
@@ -437,9 +437,9 @@ type PayWithCardResponse {
 
 extend type Mutation {
   """
-  Validates promo code for workspace admin and returns benefit data
+  Verifies promo code for workspace admin and returns benefit data
   """
-  applyPromoCode(input: ApplyPromoCodeInput!): ApplyPromoCodeResponse! @requireAdmin
+  verifyPromoCode(input: VerifyPromoCodeInput!): VerifyPromoCodeResponse! @requireAdmin
 
   """
   Remove card

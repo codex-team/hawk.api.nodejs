@@ -20,7 +20,7 @@ const DEFAULT_MIN_FINAL_PRICE = 1;
 export enum PromoCodeErrorCode {
   Invalid = 'PROMO_CODE_INVALID',
   LimitExceeded = 'PROMO_CODE_LIMIT_EXCEEDED',
-  ApplyFailed = 'PROMO_CODE_APPLY_FAILED',
+  VerifyFailed = 'PROMO_CODE_VERIFY_FAILED',
 }
 
 /**
@@ -75,9 +75,9 @@ export interface PromoCodePricingResult {
 }
 
 /**
- * Validated promo code data returned after apply.
+ * Validated promo code data returned after verification.
  */
-export interface PromoCodeApplyResult {
+export interface PromoCodeVerifyResult {
   /**
    * Normalized promo value.
    */
@@ -268,17 +268,17 @@ export default class PromoCodeService {
   }
 
   /**
-   * Validates promo code and returns benefit data for client-side price calculation.
+   * Verifies promo code and returns benefit data for client-side price calculation.
    *
    * @param value - raw promo code value
    * @param userId - user id
    * @param workspaceId - workspace id
    */
-  public async applyPromoCode(value: string, userId: string, workspaceId: string): Promise<PromoCodeApplyResult> {
+  public async verifyPromoCode(value: string, userId: string, workspaceId: string): Promise<PromoCodeVerifyResult> {
     const promoCode = await this.getValidPromoCode(value, userId, workspaceId);
     const benefit = promoCode.benefit;
 
-    const result: PromoCodeApplyResult = {
+    const result: PromoCodeVerifyResult = {
       value: promoCode.value,
       benefitType: benefit.type,
     };

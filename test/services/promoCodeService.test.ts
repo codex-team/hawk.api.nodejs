@@ -143,7 +143,7 @@ describe('PromoCodeService', () => {
     });
   });
 
-  describe('applyPromoCode()', () => {
+  describe('verifyPromoCode()', () => {
     it('should return benefit data for percent discount promo', async () => {
       const plan = createPlan({ monthlyCharge: 1000 });
       const promoCode = createPromoCode({
@@ -152,7 +152,7 @@ describe('PromoCodeService', () => {
       });
       const service = createService(promoCode, { plan });
 
-      const result = await service.applyPromoCode(' promo ', new ObjectId().toString(), new ObjectId().toString());
+      const result = await service.verifyPromoCode(' promo ', new ObjectId().toString(), new ObjectId().toString());
 
       expect(result).toMatchObject({
         value: 'PROMO',
@@ -165,7 +165,7 @@ describe('PromoCodeService', () => {
     it('should reject unknown promo code', async () => {
       const service = createService(null);
 
-      await expectPromoError(service.applyPromoCode('missing', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
+      await expectPromoError(service.verifyPromoCode('missing', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
     });
 
     it('should reject expired promo code', async () => {
@@ -177,7 +177,7 @@ describe('PromoCodeService', () => {
       });
       const service = createService(promoCode);
 
-      await expectPromoError(service.applyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
+      await expectPromoError(service.verifyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
     });
 
     it('should reject total usage limit', async () => {
@@ -189,7 +189,7 @@ describe('PromoCodeService', () => {
       });
       const service = createService(promoCode, { totalUses: 1 });
 
-      await expectPromoError(service.applyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.LimitExceeded);
+      await expectPromoError(service.verifyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.LimitExceeded);
     });
 
     it('should reject user usage limit', async () => {
@@ -199,7 +199,7 @@ describe('PromoCodeService', () => {
       });
       const service = createService(promoCode, { userUsage: {} });
 
-      await expectPromoError(service.applyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.LimitExceeded);
+      await expectPromoError(service.verifyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.LimitExceeded);
     });
 
     it('should reject workspace usage limit', async () => {
@@ -209,7 +209,7 @@ describe('PromoCodeService', () => {
       });
       const service = createService(promoCode, { workspaceUsage: {} });
 
-      await expectPromoError(service.applyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.LimitExceeded);
+      await expectPromoError(service.verifyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.LimitExceeded);
     });
 
     it('should reject invalid benefit structure', async () => {
@@ -219,7 +219,7 @@ describe('PromoCodeService', () => {
       });
       const service = createService(promoCode);
 
-      await expectPromoError(service.applyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
+      await expectPromoError(service.verifyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
     });
   });
 
