@@ -12,10 +12,10 @@ const typeDefs = `
   ${requireAdminDirectiveTypeDefs}
 
   type Query {
-    previewPromoCode(input: PreviewPromoCodeInput!): String! @requireAdmin
+    applyPromoCode(input: ApplyPromoCodeInput!): String! @requireAdmin
   }
 
-  input PreviewPromoCodeInput {
+  input ApplyPromoCodeInput {
     workspaceId: ID!
     value: String!
   }
@@ -23,7 +23,7 @@ const typeDefs = `
 
 const resolvers = {
   Query: {
-    previewPromoCode: (): string => 'ok',
+    applyPromoCode: (): string => 'ok',
   },
 };
 
@@ -65,8 +65,8 @@ describe('requireAdmin directive', () => {
     const result = await graphql({
       schema,
       source: `
-        query PreviewPromoCode($input: PreviewPromoCodeInput!) {
-          previewPromoCode(input: $input)
+        query ApplyPromoCode($input: ApplyPromoCodeInput!) {
+          applyPromoCode(input: $input)
         }
       `,
       variableValues: {
@@ -79,7 +79,7 @@ describe('requireAdmin directive', () => {
     });
 
     expect(result.errors).toBeUndefined();
-    expect(result.data?.previewPromoCode).toBe('ok');
+    expect(result.data?.applyPromoCode).toBe('ok');
   });
 
   it('should reject mutation when user is not workspace admin via input.workspaceId', async () => {
@@ -88,8 +88,8 @@ describe('requireAdmin directive', () => {
     const result = await graphql({
       schema,
       source: `
-        query PreviewPromoCode($input: PreviewPromoCodeInput!) {
-          previewPromoCode(input: $input)
+        query ApplyPromoCode($input: ApplyPromoCodeInput!) {
+          applyPromoCode(input: $input)
         }
       `,
       variableValues: {

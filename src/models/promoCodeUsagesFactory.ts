@@ -84,17 +84,4 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
 
     return new PromoCodeUsageModel(usage);
   }
-
-  /**
-   * Deletes usage by id.
-   *
-   * Used only as compensation when promo benefit application fails after usage reservation.
-   *
-   * @param usageId - promo usage id
-   */
-  public async deleteById(usageId: ObjectId): Promise<void> {
-    await this.collection.deleteOne({
-      _id: usageId,
-    });
-  }
 }

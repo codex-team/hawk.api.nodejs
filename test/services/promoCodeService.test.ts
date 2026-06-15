@@ -1,10 +1,10 @@
 import { ObjectId } from 'mongodb';
 import PromoCodeService, {
-  calculatePromoCodePlanPrice,
   normalizePromoCodeValue,
   PromoCodeError,
   PromoCodeErrorCode
 } from '../../src/services/promoCodeService';
+import { calculatePromoCodePlanPrice } from '../../src/utils/promoCodePricing';
 
 function createPlan(overrides: Record<string, unknown> = {}) {
   return {
@@ -49,7 +49,6 @@ function createService(promoCode: any, options: {
       findByPromoCodeAndUser: jest.fn().mockResolvedValue(options.userUsage ?? null),
       findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(options.workspaceUsage ?? null),
       create: jest.fn().mockResolvedValue({ _id: new ObjectId() }),
-      deleteById: jest.fn().mockResolvedValue(undefined),
     },
     plansFactory: {
       findAll: jest.fn().mockResolvedValue(options.plans || [plan]),
@@ -86,18 +85,6 @@ describe('PromoCodeService', () => {
         finalAmount: 200,
         discountAmount: 800,
       });
-    });
-
-    it('should apply amount discount with min final price cap', () => {
-      const plan = createPlan({ monthlyCharge: 1000 });
-      const price = calculatePromoCodePlanPrice({
-        type: 'amount_discount',
-        amount: 1200,
-        minFinalPrice: 150,
-      } as any, plan);
-
-      expect(price.finalAmount).toBe(150);
-      expect(price.discountAmount).toBe(850);
     });
 
     it('should apply fixed price promo', () => {
@@ -156,8 +143,8 @@ describe('PromoCodeService', () => {
     });
   });
 
-  describe('preview()', () => {
-    it('should return preview for percent discount promo', async () => {
+  describe('applyPromoCode()', () => {
+    it('should return benefit data for percent discount promo', async () => {
       const plan = createPlan({ monthlyCharge: 1000 });
       const promoCode = createPromoCode({
         type: 'percent_discount',
@@ -165,25 +152,20 @@ describe('PromoCodeService', () => {
       });
       const service = createService(promoCode, { plan });
 
-      const preview = await service.preview(' promo ', new ObjectId().toString(), new ObjectId().toString());
+      const result = await service.applyPromoCode(' promo ', new ObjectId().toString(), new ObjectId().toString());
 
-      expect(preview).toMatchObject({
+      expect(result).toMatchObject({
         value: 'PROMO',
         benefitType: 'percent_discount',
         percent: 25,
-        plans: [{
-          isApplicable: true,
-          originalAmount: 1000,
-          finalAmount: 750,
-          discountAmount: 250,
-        }],
       });
+      expect(result.applicablePlanIds).toBeUndefined();
     });
 
     it('should reject unknown promo code', async () => {
       const service = createService(null);
 
-      await expectPromoError(service.preview('missing', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
+      await expectPromoError(service.applyPromoCode('missing', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
     });
 
     it('should reject expired promo code', async () => {
@@ -195,7 +177,7 @@ describe('PromoCodeService', () => {
       });
       const service = createService(promoCode);
 
-      await expectPromoError(service.preview('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
+      await expectPromoError(service.applyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
     });
 
     it('should reject total usage limit', async () => {
@@ -207,7 +189,7 @@ describe('PromoCodeService', () => {
       });
       const service = createService(promoCode, { totalUses: 1 });
 
-      await expectPromoError(service.preview('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.LimitExceeded);
+      await expectPromoError(service.applyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.LimitExceeded);
     });
 
     it('should reject user usage limit', async () => {
@@ -217,7 +199,7 @@ describe('PromoCodeService', () => {
       });
       const service = createService(promoCode, { userUsage: {} });
 
-      await expectPromoError(service.preview('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.LimitExceeded);
+      await expectPromoError(service.applyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.LimitExceeded);
     });
 
     it('should reject workspace usage limit', async () => {
@@ -227,7 +209,7 @@ describe('PromoCodeService', () => {
       });
       const service = createService(promoCode, { workspaceUsage: {} });
 
-      await expectPromoError(service.preview('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.LimitExceeded);
+      await expectPromoError(service.applyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.LimitExceeded);
     });
 
     it('should reject invalid benefit structure', async () => {
@@ -237,17 +219,16 @@ describe('PromoCodeService', () => {
       });
       const service = createService(promoCode);
 
-      await expectPromoError(service.preview('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
+      await expectPromoError(service.applyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
     });
   });
 
   describe('getPricingForPlan()', () => {
-    it('should reject selected plan when promo is not applicable', async () => {
+    it('should reject unsupported amount_discount promo', async () => {
       const plan = createPlan({ monthlyCharge: 1000 });
       const promoCode = createPromoCode({
         type: 'amount_discount',
         amount: 100,
-        applicablePlanIds: [new ObjectId()],
       });
       const service = createService(promoCode);
 
@@ -256,87 +237,34 @@ describe('PromoCodeService', () => {
         PromoCodeErrorCode.Invalid
       );
     });
-  });
 
-  describe('applyGrantPlan()', () => {
-    it('should grant plan even when usage recording fails', async () => {
-      const planId = new ObjectId();
+    it('should reject unsupported grant_plan promo', async () => {
+      const plan = createPlan({ monthlyCharge: 1000 });
       const promoCode = createPromoCode({
         type: 'grant_plan',
-        planId,
+        planId: new ObjectId(),
       });
-      const workspace = {
-        _id: new ObjectId(),
-        tariffPlanId: new ObjectId(),
-        updatePlanHistory: jest.fn().mockResolvedValue(true),
-        updateLastChargeDate: jest.fn().mockResolvedValue(true),
-        changePlan: jest.fn().mockResolvedValue(1),
-      };
-      const createUsage = jest.fn().mockRejectedValue({ code: 11000 });
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
-      const service = new PromoCodeService({
-        promoCodesFactory: {
-          findByValue: jest.fn().mockResolvedValue(promoCode),
-        },
-        promoCodeUsagesFactory: {
-          countByPromoCodeId: jest.fn().mockResolvedValue(0),
-          findByPromoCodeAndUser: jest.fn().mockResolvedValue(null),
-          findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(null),
-          create: createUsage,
-        },
-        plansFactory: {
-          findById: jest.fn().mockResolvedValue(createPlan({ _id: planId })),
-        },
-      } as any);
-
-      const plan = await service.applyGrantPlan('grant', new ObjectId().toString(), workspace as any);
-
-      expect(plan._id).toEqual(planId);
-      expect(workspace.changePlan).toHaveBeenCalledWith(planId);
-      expect(createUsage).toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[PromoCode] Failed to record promo usage after grant_plan apply',
-        expect.anything()
-      );
-
-      consoleErrorSpy.mockRestore();
-    });
-
-    it('should not record promo usage when workspace plan change fails', async () => {
-      const planId = new ObjectId();
-      const createUsage = jest.fn().mockResolvedValue({ _id: new ObjectId() });
-      const promoCode = createPromoCode({
-        type: 'grant_plan',
-        planId,
-      });
-      const workspace = {
-        _id: new ObjectId(),
-        tariffPlanId: new ObjectId(),
-        updatePlanHistory: jest.fn().mockResolvedValue(true),
-        updateLastChargeDate: jest.fn().mockResolvedValue(true),
-        changePlan: jest.fn().mockRejectedValue(new Error('change failed')),
-      };
-      const service = new PromoCodeService({
-        promoCodesFactory: {
-          findByValue: jest.fn().mockResolvedValue(promoCode),
-        },
-        promoCodeUsagesFactory: {
-          countByPromoCodeId: jest.fn().mockResolvedValue(0),
-          findByPromoCodeAndUser: jest.fn().mockResolvedValue(null),
-          findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(null),
-          create: createUsage,
-        },
-        plansFactory: {
-          findById: jest.fn().mockResolvedValue(createPlan({ _id: planId })),
-        },
-      } as any);
+      const service = createService(promoCode);
 
       await expectPromoError(
-        service.applyGrantPlan('grant', new ObjectId().toString(), workspace as any),
-        PromoCodeErrorCode.ApplyFailed
+        service.getPricingForPlan('promo', new ObjectId().toString(), new ObjectId().toString(), plan),
+        PromoCodeErrorCode.Invalid
       );
+    });
 
-      expect(createUsage).not.toHaveBeenCalled();
+    it('should reject selected plan when promo is not applicable', async () => {
+      const plan = createPlan({ monthlyCharge: 1000 });
+      const promoCode = createPromoCode({
+        type: 'percent_discount',
+        percent: 10,
+        applicablePlanIds: [new ObjectId()],
+      });
+      const service = createService(promoCode);
+
+      await expectPromoError(
+        service.getPricingForPlan('promo', new ObjectId().toString(), new ObjectId().toString(), plan),
+        PromoCodeErrorCode.Invalid
+      );
     });
   });
 

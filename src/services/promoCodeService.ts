@@ -1,15 +1,14 @@
 import { ObjectId } from 'mongodb';
-import {
-  PromoCodeBenefit,
-  PromoCodeBenefitType
-} from '@hawk.so/types';
+import { PromoCodeBenefitType } from '@hawk.so/types';
 import PlanModel from '../models/plan';
 import PromoCodeModel from '../models/promoCode';
 import PromoCodeUsageModel from '../models/promoCodeUsage';
-import WorkspaceModel from '../models/workspace';
 import { ContextFactories } from '../types/graphql';
 import type { Utm } from '@hawk.so/types';
 import type { PaymentPromoData } from '../billing/types/paymentData';
+import {
+  calculatePromoCodePlanPrice
+} from '../utils/promoCodePricing';
 import { sanitizeUtmParams } from '../utils/utm/utm';
 
 const PROMO_CODE_REGEXP = /^[A-Z0-9_-]+$/;
@@ -46,36 +45,6 @@ export class PromoCodeError extends Error {
 }
 
 /**
- * Price calculated for a plan after promo preview.
- */
-export interface PromoCodePlanPrice {
-  /**
-   * Plan id.
-   */
-  planId: string;
-
-  /**
-   * Whether promo code can be applied to this plan.
-   */
-  isApplicable: boolean;
-
-  /**
-   * Plan price before promo.
-   */
-  originalAmount: number;
-
-  /**
-   * Plan price after promo.
-   */
-  finalAmount: number;
-
-  /**
-   * Actual discount in money.
-   */
-  discountAmount: number;
-}
-
-/**
  * Validated promo data for one selected plan.
  */
 export interface PromoCodePricingResult {
@@ -106,9 +75,9 @@ export interface PromoCodePricingResult {
 }
 
 /**
- * Promo preview result for all plans.
+ * Validated promo code data returned after apply.
  */
-export interface PromoCodePreviewResult {
+export interface PromoCodeApplyResult {
   /**
    * Normalized promo value.
    */
@@ -125,14 +94,19 @@ export interface PromoCodePreviewResult {
   percent?: number;
 
   /**
-   * Discount amount or fixed price amount.
+   * Fixed price amount.
    */
   amount?: number;
 
   /**
-   * Calculated price for each visible plan.
+   * Minimum final price after percent discount.
    */
-  plans: PromoCodePlanPrice[];
+  minFinalPrice?: number;
+
+  /**
+   * Plan ids this promo can be applied to.
+   */
+  applicablePlanIds?: string[];
 }
 
 /**
@@ -160,143 +134,18 @@ function isAllowedPromoValue(value: string): boolean {
   return Boolean(value) && PROMO_CODE_REGEXP.test(value);
 }
 
-/**
- * Returns whether plan is available for purchase (not hidden).
- *
- * @param plan - tariff plan
- * @returns whether plan can be selected for paid purchase or grant_plan promo
- */
-function isPlanAvailableForPurchase(plan: PlanModel): boolean {
-  return plan.isHidden !== true;
+function isSupportedPromoCodeBenefitType(type: PromoCodeBenefitType): boolean {
+  return type === 'percent_discount' || type === 'fixed_price';
 }
 
 /**
- * Checks whether promo benefit is applicable to plan.
+ * Rejects benefit types that are defined in schema but not implemented yet.
  *
  * @param benefit - promo benefit
- * @param plan - selected plan
- * @returns whether benefit can be applied to the selected plan
  */
-function isPlanApplicable(benefit: PromoCodeBenefit, plan: PlanModel): boolean {
-  if (benefit.type === 'grant_plan') {
-    return benefit.planId?.toString() === plan._id.toString();
-  }
-
-  if (!benefit.applicablePlanIds || benefit.applicablePlanIds.length === 0) {
-    return true;
-  }
-
-  return benefit.applicablePlanIds.some((planId): boolean => planId.toString() === plan._id.toString());
-}
-
-/**
- * Returns whether discount promo can affect plan price.
- *
- * @param plan - tariff plan
- * @returns whether plan is paid and available for purchase
- */
-function isDiscountablePlan(plan: PlanModel): boolean {
-  return plan.monthlyCharge > 0 && isPlanAvailableForPurchase(plan);
-}
-
-/**
- * Calculates discounted price for one plan.
- *
- * @param benefit - promo benefit
- * @param plan - selected plan
- * @returns calculated promo price for selected plan
- */
-export function calculatePromoCodePlanPrice(benefit: PromoCodeBenefit, plan: PlanModel): PromoCodePlanPrice {
-  const originalAmount = plan.monthlyCharge;
-  const isApplicable = benefit.type !== 'grant_plan' &&
-    isDiscountablePlan(plan) &&
-    isPlanApplicable(benefit, plan);
-
-  if (!isApplicable) {
-    return {
-      planId: plan._id.toString(),
-      isApplicable: false,
-      originalAmount,
-      finalAmount: originalAmount,
-      discountAmount: 0,
-    };
-  }
-
-  switch (benefit.type) {
-    case 'percent_discount': {
-      const minFinalPrice = benefit.minFinalPrice ?? DEFAULT_MIN_FINAL_PRICE;
-      const discountAmount = Math.floor(originalAmount * benefit.percent / 100);
-      const finalAmount = Math.max(originalAmount - discountAmount, minFinalPrice);
-
-      if (finalAmount >= originalAmount) {
-        return {
-          planId: plan._id.toString(),
-          isApplicable: false,
-          originalAmount,
-          finalAmount: originalAmount,
-          discountAmount: 0,
-        };
-      }
-
-      return {
-        planId: plan._id.toString(),
-        isApplicable: true,
-        originalAmount,
-        finalAmount,
-        discountAmount: originalAmount - finalAmount,
-      };
-    }
-
-    case 'amount_discount': {
-      const minFinalPrice = benefit.minFinalPrice ?? DEFAULT_MIN_FINAL_PRICE;
-      const finalAmount = Math.max(originalAmount - benefit.amount, minFinalPrice);
-
-      if (finalAmount >= originalAmount) {
-        return {
-          planId: plan._id.toString(),
-          isApplicable: false,
-          originalAmount,
-          finalAmount: originalAmount,
-          discountAmount: 0,
-        };
-      }
-
-      return {
-        planId: plan._id.toString(),
-        isApplicable: true,
-        originalAmount,
-        finalAmount,
-        discountAmount: originalAmount - finalAmount,
-      };
-    }
-
-    case 'fixed_price':
-      if (benefit.amount >= originalAmount) {
-        return {
-          planId: plan._id.toString(),
-          isApplicable: false,
-          originalAmount,
-          finalAmount: originalAmount,
-          discountAmount: 0,
-        };
-      }
-
-      return {
-        planId: plan._id.toString(),
-        isApplicable: true,
-        originalAmount,
-        finalAmount: benefit.amount,
-        discountAmount: originalAmount - benefit.amount,
-      };
-
-    default:
-      return {
-        planId: plan._id.toString(),
-        isApplicable: false,
-        originalAmount,
-        finalAmount: originalAmount,
-        discountAmount: 0,
-      };
+function assertSupportedBenefitType(benefit: PromoCodeModel['benefit']): void {
+  if (!isSupportedPromoCodeBenefitType(benefit.type)) {
+    throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo benefit type is not supported');
   }
 }
 
@@ -305,25 +154,11 @@ export function calculatePromoCodePlanPrice(benefit: PromoCodeBenefit, plan: Pla
  *
  * @param benefit - promo benefit
  */
-function validateBenefitStructure(benefit: PromoCodeBenefit): void {
-  switch (benefit?.type) {
-    case 'grant_plan':
-      if (!benefit.planId) {
-        throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Grant plan id is missing');
-      }
-
-      return;
-
+function validateBenefitStructure(benefit: PromoCodeModel['benefit']): void {
+  switch (benefit.type) {
     case 'percent_discount':
       if (typeof benefit.percent !== 'number' || benefit.percent <= 0 || benefit.percent > 100) {
         throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Percent discount is invalid');
-      }
-
-      return;
-
-    case 'amount_discount':
-      if (typeof benefit.amount !== 'number' || benefit.amount <= 0) {
-        throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Amount discount is invalid');
       }
 
       return;
@@ -336,6 +171,10 @@ function validateBenefitStructure(benefit: PromoCodeBenefit): void {
       return;
 
     default:
+      if (!isSupportedPromoCodeBenefitType(benefit.type)) {
+        throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo benefit type is not supported');
+      }
+
       throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Unknown benefit type');
   }
 }
@@ -429,45 +268,41 @@ export default class PromoCodeService {
   }
 
   /**
-   * Builds preview prices for visible plans.
-   *
-   * Must run on the API: promo terms and limits live in the database and are re-checked
-   * on composePayment/check/pay. The frontend only sends promo id in the payment checksum;
-   * preview is the user-facing step that validates the code and returns prices to display.
-   * Pure price math is in {@link calculatePromoCodePlanPrice}; this method adds DB lookup,
-   * expiry/usage limits, and grant_plan availability checks.
+   * Validates promo code and returns benefit data for client-side price calculation.
    *
    * @param value - raw promo code value
    * @param userId - user id
    * @param workspaceId - workspace id
    */
-  public async preview(value: string, userId: string, workspaceId: string): Promise<PromoCodePreviewResult> {
+  public async applyPromoCode(value: string, userId: string, workspaceId: string): Promise<PromoCodeApplyResult> {
     const promoCode = await this.getValidPromoCode(value, userId, workspaceId);
     const benefit = promoCode.benefit;
 
-    if (benefit.type === 'grant_plan') {
-      const plan = await this.factories.plansFactory.findById(benefit.planId.toString());
-
-      if (!plan || !isPlanAvailableForPurchase(plan)) {
-        throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Grant plan is unavailable');
-      }
-
-      return {
-        value: promoCode.value,
-        benefitType: benefit.type,
-        plans: [],
-      };
-    }
-
-    const plans = await this.factories.plansFactory.findAll();
-
-    return {
+    const result: PromoCodeApplyResult = {
       value: promoCode.value,
       benefitType: benefit.type,
-      percent: benefit.type === 'percent_discount' ? benefit.percent : undefined,
-      amount: benefit.type === 'amount_discount' || benefit.type === 'fixed_price' ? benefit.amount : undefined,
-      plans: plans.map((plan): PromoCodePlanPrice => calculatePromoCodePlanPrice(benefit, plan)),
     };
+
+    if (benefit.type === 'percent_discount') {
+      result.percent = benefit.percent;
+
+      if (benefit.minFinalPrice !== undefined) {
+        result.minFinalPrice = benefit.minFinalPrice;
+      }
+    }
+
+    if (benefit.type === 'fixed_price') {
+      result.amount = benefit.amount;
+    }
+
+    if (
+      (benefit.type === 'percent_discount' || benefit.type === 'fixed_price') &&
+      benefit.applicablePlanIds?.length
+    ) {
+      result.applicablePlanIds = benefit.applicablePlanIds.map((planId): string => planId.toString());
+    }
+
+    return result;
   }
 
   /**
@@ -485,61 +320,10 @@ export default class PromoCodeService {
   }
 
   /**
-   * Applies grant_plan promo code to workspace.
-   *
-   * @param value - raw promo code value
-   * @param userId - user id
-   * @param workspace - workspace model
-   * @param utm - optional UTM data
-   */
-  public async applyGrantPlan(value: string, userId: string, workspace: WorkspaceModel, utm?: PromoCodeUtm): Promise<PlanModel> {
-    const promoCode = await this.getValidPromoCode(value, userId, workspace._id.toString());
-
-    if (promoCode.benefit.type !== 'grant_plan') {
-      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code is not grant_plan');
-    }
-
-    const plan = await this.factories.plansFactory.findById(promoCode.benefit.planId.toString());
-
-    if (!plan || !isPlanAvailableForPurchase(plan)) {
-      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Grant plan is unavailable');
-    }
-
-    const now = new Date();
-
-    try {
-      await workspace.updatePlanHistory(workspace.tariffPlanId.toString(), now, userId);
-      await workspace.updateLastChargeDate(now);
-      await workspace.changePlan(plan._id);
-    } catch (error) {
-      if (error instanceof PromoCodeError) {
-        throw error;
-      }
-
-      throw new PromoCodeError(PromoCodeErrorCode.ApplyFailed, 'Grant plan apply failed');
-    }
-
-    try {
-      await this.createUsage({
-        promoCode,
-        userId,
-        workspaceId: workspace._id,
-        planId: plan._id,
-        benefitType: promoCode.benefit.type,
-        utm,
-      });
-    } catch (error) {
-      console.error('[PromoCode] Failed to record promo usage after grant_plan apply', error);
-    }
-
-    return plan;
-  }
-
-  /**
-   * Creates usage after successful payment or before immediate grant_plan apply.
+   * Creates usage after successful payment.
    *
    * Unique indexes on promoCodeId + userId/workspaceId enforce one usage per user/workspace.
-   * Usage is recorded after plan change in CloudPayments /pay and grant_plan apply.
+   * Usage is recorded after plan change in CloudPayments /pay.
    *
    * @param params - usage creation params
    * @returns created promo usage
@@ -597,6 +381,7 @@ export default class PromoCodeService {
       throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code expired');
     }
 
+    assertSupportedBenefitType(promoCode.benefit);
     validateBenefitStructure(promoCode.benefit);
     await this.validateUsageLimits(promoCode, userId, new ObjectId(workspaceId));
   }
@@ -609,11 +394,13 @@ export default class PromoCodeService {
    * @returns validated promo pricing for selected plan
    */
   private buildPricingResult(promoCode: PromoCodeModel, plan: PlanModel): PromoCodePricingResult {
-    if (promoCode.benefit.type === 'grant_plan') {
-      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Grant plan promo cannot be used in payment');
+    const benefit = promoCode.benefit;
+
+    if (benefit.type !== 'percent_discount' && benefit.type !== 'fixed_price') {
+      throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo benefit type is not supported');
     }
 
-    const price = calculatePromoCodePlanPrice(promoCode.benefit, plan);
+    const price = calculatePromoCodePlanPrice(benefit, plan);
 
     if (!price.isApplicable) {
       throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Promo code is not applicable to selected plan');

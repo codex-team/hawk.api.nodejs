@@ -248,9 +248,9 @@ input ComposePaymentInput {
 }
 
 """
-Input for promo code preview/apply
+Input for promo code apply
 """
-input PreviewPromoCodeInput {
+input ApplyPromoCodeInput {
   """
   Workspace id for which promo code is applied
   """
@@ -260,11 +260,6 @@ input PreviewPromoCodeInput {
   Promo code value entered by user
   """
   value: String!
-
-  """
-  UTM parameters captured when promo code was applied
-  """
-  utm: UtmInput
 }
 
 """
@@ -278,39 +273,9 @@ enum PromoCodeBenefitType {
 }
 
 """
-Calculated promo code price for a tariff plan
+Validated promo code data for client-side price calculation
 """
-type PromoCodePlanPrice {
-  """
-  Plan id
-  """
-  planId: ID!
-
-  """
-  Whether promo code can be applied to this plan
-  """
-  isApplicable: Boolean!
-
-  """
-  Plan price before promo
-  """
-  originalAmount: Int!
-
-  """
-  Plan price after promo
-  """
-  finalAmount: Int!
-
-  """
-  Actual discount amount in money
-  """
-  discountAmount: Int!
-}
-
-"""
-Promo code preview response
-"""
-type PreviewPromoCodeResponse {
+type ApplyPromoCodeResponse {
   """
   Normalized promo code value
   """
@@ -322,24 +287,24 @@ type PreviewPromoCodeResponse {
   benefitType: PromoCodeBenefitType!
 
   """
-  True if grant_plan promo was applied immediately
-  """
-  applied: Boolean!
-
-  """
   Discount percent for percent promos
   """
   percent: Int
 
   """
-  Discount or fixed price amount
+  Fixed price amount
   """
   amount: Int
 
   """
-  Calculated prices for visible plans
+  Minimum final price after percent discount
   """
-  plans: [PromoCodePlanPrice!]!
+  minFinalPrice: Int
+
+  """
+  Plan ids this promo can be applied to
+  """
+  applicablePlanIds: [ID!]
 }
 
 """
@@ -472,10 +437,9 @@ type PayWithCardResponse {
 
 extend type Mutation {
   """
-  Validates promo code for workspace admin and returns calculated prices,
-  or immediately applies grant_plan promo
+  Validates promo code for workspace admin and returns benefit data
   """
-  previewPromoCode(input: PreviewPromoCodeInput!): PreviewPromoCodeResponse! @requireAdmin
+  applyPromoCode(input: ApplyPromoCodeInput!): ApplyPromoCodeResponse! @requireAdmin
 
   """
   Remove card

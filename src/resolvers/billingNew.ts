@@ -14,8 +14,7 @@ import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
-import PromoCodeService, { PromoCodeError, PromoCodeErrorCode, PromoCodePreviewResult, buildPaymentPromoData } from '../services/promoCodeService';
-import { publish } from '../rabbitmq';
+import PromoCodeService, { PromoCodeApplyResult, PromoCodeError, PromoCodeErrorCode, buildPaymentPromoData } from '../services/promoCodeService';
 import type { PaymentPromoData } from '../billing/types/paymentData';
 import { sanitizeUtmParams } from '../utils/utm/utm';
 
@@ -39,13 +38,12 @@ interface ComposePaymentArgs {
 }
 
 /**
- * Input data for promo code preview/apply mutation.
+ * Input data for promo code apply mutation.
  */
-interface PreviewPromoCodeArgs {
+interface ApplyPromoCodeArgs {
   input: {
     workspaceId: string;
     value: string;
-    utm?: Utm;
   };
 }
 
@@ -60,63 +58,6 @@ function throwPromoCodeGraphQLError(error: unknown): never {
   }
 
   throw new UserInputError(PromoCodeErrorCode.ApplyFailed);
-}
-
-/**
- * Sends task to limiter worker to unblock workspace after plan became valid again.
- * Same mechanism is used after successful payment or manual plan change.
- *
- * @param workspaceId - workspace id to unblock
- */
-async function notifyLimiterToUnblockWorkspace(workspaceId: string): Promise<void> {
-  await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
-    type: 'unblock-workspace',
-    workspaceId,
-  }));
-}
-
-/**
- * Validates promo code and either returns discount preview or applies grant_plan promo.
- *
- * Discount promos: returns recalculated plan prices with applied: false, no side effects.
- * Grant plan promo: applies plan immediately, stores usage, then unblocks workspace in limiter.
- * Unblock is not caused by preview itself — it runs only after grant_plan apply,
- * because workspace received a valid plan the same way as after paid plan change.
- *
- * @param promoCodeService - promo code service instance
- * @param input - promo code mutation input
- * @param userId - current user id
- * @param workspace - workspace model
- * @returns promo preview or apply result
- */
-async function previewOrApplyPromoCode(
-  promoCodeService: PromoCodeService,
-  input: PreviewPromoCodeArgs['input'],
-  userId: string,
-  workspace: WorkspaceModel
-): Promise<PromoCodePreviewResult & { applied: boolean }> {
-  const promoPreview = await promoCodeService.preview(input.value, userId, input.workspaceId);
-
-  if (promoPreview.benefitType !== 'grant_plan') {
-    return {
-      ...promoPreview,
-      applied: false,
-    };
-  }
-
-  await promoCodeService.applyGrantPlan(
-    input.value,
-    userId,
-    workspace,
-    sanitizeUtmParams(input.utm)
-  );
-
-  await notifyLimiterToUnblockWorkspace(workspace._id.toString());
-
-  return {
-    ...promoPreview,
-    applied: true,
-  };
 }
 
 /**
@@ -377,12 +318,7 @@ debug: ${Boolean(workspace.isDebug)}`
 
   Mutation: {
     /**
-     * Validates promo code for workspace and returns calculated prices.
-     *
-     * Preview here means a dry-run for discount promos: server recalculates prices
-     * for all visible plans and returns them without creating promo usage.
-     * For grant_plan promo preview becomes apply: workspace plan is changed immediately,
-     * usage is stored, and response contains applied: true.
+     * Validates promo code for workspace and returns benefit data for client-side pricing.
      *
      * Access check is handled by @requireAdmin on GraphQL schema.
      *
@@ -391,11 +327,11 @@ debug: ${Boolean(workspace.isDebug)}`
      * @param user - current authorized user
      * @param factories - factories for working with models
      */
-    async previewPromoCode(
+    async applyPromoCode(
       _obj: undefined,
-      { input }: PreviewPromoCodeArgs,
+      { input }: ApplyPromoCodeArgs,
       { user, factories }: ResolverContextWithUser
-    ): Promise<PromoCodePreviewResult & { applied: boolean }> {
+    ): Promise<PromoCodeApplyResult> {
       const workspace = await factories.workspacesFactory.findById(input.workspaceId);
 
       if (!workspace) {
@@ -405,7 +341,7 @@ debug: ${Boolean(workspace.isDebug)}`
       const promoCodeService = new PromoCodeService(factories);
 
       try {
-        return await previewOrApplyPromoCode(promoCodeService, input, user.id, workspace);
+        return await promoCodeService.applyPromoCode(input.value, user.id, input.workspaceId);
       } catch (error) {
         throwPromoCodeGraphQLError(error);
       }
