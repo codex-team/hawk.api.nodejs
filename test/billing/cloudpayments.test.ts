@@ -592,6 +592,36 @@ describe('CloudPaymentsWebhooks', () => {
       expect(res.json).toHaveBeenCalledWith({ code: CheckCodes.SUCCESS });
     });
 
+    it('should accept full plan amount on subscription renewal check without promo in Data', async () => {
+      const webhooks = new CloudPaymentsWebhooks() as any;
+      const workspaceId = new ObjectId().toString();
+      const userId = new ObjectId().toString();
+      const plan = createPlan(1000);
+      const { context, workspace } = createWebhookContext({
+        workspaceId,
+        userId,
+        plan,
+        subscriptionId: 'subscription-id',
+      });
+
+      context.factories.workspacesFactory.findBySubscriptionId = jest.fn().mockResolvedValue(workspace);
+
+      const res = createMockResponse();
+
+      await webhooks.check({
+        context,
+        body: {
+          ...createCheckBody(1010, '1000', ''),
+          SubscriptionId: 'subscription-id',
+          AccountId: userId,
+          Data: undefined,
+        },
+      }, res);
+
+      expect(context.factories.workspacesFactory.findBySubscriptionId).toHaveBeenCalledWith('subscription-id');
+      expect(res.json).toHaveBeenCalledWith({ code: CheckCodes.SUCCESS });
+    });
+
     it('should reject wrong amount when promo is not applied', async () => {
       const webhooks = new CloudPaymentsWebhooks() as any;
       const workspaceId = new ObjectId().toString();
@@ -689,11 +719,9 @@ describe('CloudPaymentsWebhooks', () => {
 
       expect(changePlan).toHaveBeenCalledWith(plan._id);
       expect(createUsage).toHaveBeenCalledWith(expect.objectContaining({
+        promoCodeId: promoCode._id.toString(),
         userId,
-        benefitType: 'percent_discount',
-        originalAmount: 1000,
-        finalAmount: 750,
-        discountAmount: 250,
+        plan: expect.objectContaining({ _id: plan._id }),
       }));
       expect(publish).toHaveBeenCalled();
       expect(sendNotification).toHaveBeenCalledWith(

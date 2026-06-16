@@ -210,6 +210,17 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
+    /**
+     * Validates recurrent.amount for the first subscription payment when promo is applied.
+     *
+     * CloudPayments flows:
+     * 1. First charge via widget — body.Data is present, checksum may include promo.id and
+     *    cloudPayments.recurrent.amount. Discount applies only to body.Amount (first charge).
+     *    recurrent.amount must stay equal to full plan.monthlyCharge so later renewals bill full price.
+     * 2. Monthly renewals — body.Data is absent, getDataFromRequest() resolves workspace by
+     *    SubscriptionId only, data.promo is undefined, this block is skipped, and amount must
+     *    equal plan.monthlyCharge (see isRightAmount above).
+     */
     if (
       data.promo &&
       recurrentPaymentSettings?.amount !== undefined &&
@@ -358,22 +369,12 @@ export default class CloudPaymentsWebhooks {
     if (data.promo && !data.isCardLinkOperation) {
       try {
         const promoCodeService = new PromoCodeService(req.context.factories);
-        const promoPricing = await promoCodeService.getPricingForPromoCodeId(
-          data.promo.id,
-          data.userId,
-          data.workspaceId,
-          tariffPlan
-        );
 
         await promoCodeService.createUsage({
-          promoCode: promoPricing.promoCode,
+          promoCodeId: data.promo.id,
           userId: data.userId,
           workspaceId: workspace._id,
-          planId: tariffPlan._id,
-          benefitType: promoPricing.benefitType,
-          originalAmount: promoPricing.originalAmount,
-          finalAmount: promoPricing.finalAmount,
-          discountAmount: promoPricing.discountAmount,
+          plan: tariffPlan,
           utm: data.promo.utm,
         });
       } catch (error) {
@@ -838,8 +839,8 @@ status: ${body.Status}`
     const body: CheckRequest | PayRequest | FailRequest = req.body;
 
     /**
-     * If Data is not presented in body means there is a recurring payment
-     * Data field is presented only in one-time payment requests or subscription initial request
+     * If Data is absent, this is a subscription renewal (or check/pay identified by SubscriptionId).
+     * Renewals do not carry promo: discount was applied only on the first widget payment.
      */
     if (body.Data) {
       const parsedData = JSON.parse(body.Data || '{}') as WebhookData;

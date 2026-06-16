@@ -322,37 +322,38 @@ export default class PromoCodeService {
   /**
    * Creates usage after successful payment.
    *
+   * Re-validates promo by id, resolves pricing for the selected plan, and stores usage.
    * Unique indexes on promoCodeId + userId/workspaceId enforce one usage per user/workspace.
-   * Usage is recorded after plan change in CloudPayments /pay.
    *
    * @param params - usage creation params
    * @returns created promo usage
    */
   public async createUsage(params: {
-    promoCode: PromoCodeModel;
+    promoCodeId: string;
     userId: string;
     workspaceId: ObjectId;
-    planId?: ObjectId;
-    benefitType: PromoCodeBenefitType;
-    originalAmount?: number;
-    finalAmount?: number;
-    discountAmount?: number;
+    plan: PlanModel;
     utm?: PromoCodeUtm;
   }): Promise<PromoCodeUsageModel> {
-    await this.validateUsageLimits(params.promoCode, params.userId, params.workspaceId);
+    const promoPricing = await this.getPricingForPromoCodeId(
+      params.promoCodeId,
+      params.userId,
+      params.workspaceId.toString(),
+      params.plan
+    );
 
     const utm = sanitizeUtmParams(params.utm);
 
     try {
       return await this.factories.promoCodeUsagesFactory.create({
-        promoCodeId: params.promoCode._id,
+        promoCodeId: promoPricing.promoCode._id,
         userId: params.userId,
         workspaceId: params.workspaceId,
-        planId: params.planId,
-        benefitType: params.benefitType,
-        originalAmount: params.originalAmount,
-        finalAmount: params.finalAmount,
-        discountAmount: params.discountAmount,
+        planId: params.plan._id,
+        benefitType: promoPricing.benefitType,
+        originalAmount: promoPricing.originalAmount,
+        finalAmount: promoPricing.finalAmount,
+        discountAmount: promoPricing.discountAmount,
         appliedAt: new Date(),
         ...(utm ? { utm } : {}),
       });

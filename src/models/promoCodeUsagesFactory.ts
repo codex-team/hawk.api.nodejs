@@ -4,6 +4,18 @@ import { Collection, Db, ObjectId } from 'mongodb';
 import { PromoCodeUsageDBScheme } from '@hawk.so/types';
 
 /**
+ * Input for creating promo usage with MongoDB driver ObjectId instances.
+ */
+export type PromoCodeUsageCreateInput = Omit<
+  PromoCodeUsageDBScheme,
+  '_id' | 'promoCodeId' | 'workspaceId' | 'planId'
+> & {
+  promoCodeId: ObjectId;
+  workspaceId: ObjectId;
+  planId?: ObjectId;
+};
+
+/**
  * Promo code usages factory to work with promoCodeUsages collection.
  */
 export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCodeUsageDBScheme, PromoCodeUsageModel> {
@@ -74,14 +86,14 @@ export default class PromoCodeUsagesFactory extends AbstractModelFactory<PromoCo
    *
    * @param usageData - promo code usage data
    */
-  public async create(usageData: Omit<PromoCodeUsageDBScheme, '_id'>): Promise<PromoCodeUsageModel> {
+  public async create(usageData: PromoCodeUsageCreateInput): Promise<PromoCodeUsageModel> {
     const usage = {
       _id: new ObjectId(),
       ...usageData,
     };
 
-    await this.collection.insertOne(usage);
+    await this.collection.insertOne(usage as PromoCodeUsageDBScheme);
 
-    return new PromoCodeUsageModel(usage);
+    return new PromoCodeUsageModel(usage as PromoCodeUsageDBScheme);
   }
 }

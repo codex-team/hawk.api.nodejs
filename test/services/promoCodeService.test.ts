@@ -269,36 +269,58 @@ describe('PromoCodeService', () => {
   });
 
   describe('createUsage()', () => {
+    it('should resolve pricing by promo id and create usage record', async () => {
+      const plan = createPlan({ monthlyCharge: 1000 });
+      const promoCode = createPromoCode({
+        type: 'percent_discount',
+        percent: 25,
+      });
+      const service = createService(promoCode, { plan });
+
+      const usage = await service.createUsage({
+        promoCodeId: promoCode._id.toString(),
+        userId: new ObjectId().toString(),
+        workspaceId: new ObjectId(),
+        plan,
+      });
+
+      expect(usage).toMatchObject({ _id: expect.any(ObjectId) });
+    });
+
     it('should map duplicate usage creation to limit exceeded error', async () => {
+      const plan = createPlan({ monthlyCharge: 1000 });
       const promoCode = createPromoCode({
         type: 'fixed_price',
         amount: 100,
       });
       const service = new PromoCodeService({
+        promoCodesFactory: {
+          findOne: jest.fn().mockResolvedValue(promoCode),
+        },
         promoCodeUsagesFactory: {
           countByPromoCodeId: jest.fn().mockResolvedValue(0),
           findByPromoCodeAndUser: jest.fn().mockResolvedValue(null),
           findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(null),
           create: jest.fn().mockRejectedValue({ code: 11000 }),
         },
+        plansFactory: {
+          findById: jest.fn().mockResolvedValue(plan),
+        },
       } as any);
 
       await expectPromoError(
         service.createUsage({
-          promoCode,
+          promoCodeId: promoCode._id.toString(),
           userId: new ObjectId().toString(),
           workspaceId: new ObjectId(),
-          planId: new ObjectId(),
-          benefitType: 'fixed_price',
-          originalAmount: 1000,
-          finalAmount: 100,
-          discountAmount: 900,
+          plan,
         }),
         PromoCodeErrorCode.LimitExceeded
       );
     });
 
     it('should reject second createUsage when insert returns duplicate key', async () => {
+      const plan = createPlan({ monthlyCharge: 1000 });
       const promoCode = createPromoCode({
         type: 'fixed_price',
         amount: 100,
@@ -307,22 +329,24 @@ describe('PromoCodeService', () => {
         .mockResolvedValueOnce({ _id: new ObjectId() })
         .mockRejectedValueOnce({ code: 11000 });
       const service = new PromoCodeService({
+        promoCodesFactory: {
+          findOne: jest.fn().mockResolvedValue(promoCode),
+        },
         promoCodeUsagesFactory: {
           countByPromoCodeId: jest.fn().mockResolvedValue(0),
           findByPromoCodeAndUser: jest.fn().mockResolvedValue(null),
           findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(null),
           create,
         },
+        plansFactory: {
+          findById: jest.fn().mockResolvedValue(plan),
+        },
       } as any);
       const usageParams = {
-        promoCode,
+        promoCodeId: promoCode._id.toString(),
         userId: new ObjectId().toString(),
         workspaceId: new ObjectId(),
-        planId: new ObjectId(),
-        benefitType: 'fixed_price' as const,
-        originalAmount: 1000,
-        finalAmount: 100,
-        discountAmount: 900,
+        plan,
       };
 
       await service.createUsage(usageParams);
