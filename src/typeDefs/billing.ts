@@ -312,16 +312,6 @@ Promo data returned with composePayment
 """
 type ComposePaymentPromo {
   """
-  Applied promo code id
-  """
-  id: ID!
-
-  """
-  Promo benefit type
-  """
-  benefitType: PromoCodeBenefitType!
-
-  """
   Plan price before promo
   """
   originalAmount: Int!
@@ -330,11 +320,6 @@ type ComposePaymentPromo {
   Plan price after promo
   """
   finalAmount: Int!
-
-  """
-  Actual discount amount in money
-  """
-  discountAmount: Int!
 }
 
 """

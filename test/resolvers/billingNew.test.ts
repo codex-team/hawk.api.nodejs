@@ -356,11 +356,8 @@ describe('GraphQLBillingNew', () => {
       expect(result.plan.monthlyCharge).toBe(1000);
       expect(result.chargeAmount).toBe(750);
       expect(result.promo).toMatchObject({
-        id: promoCodeId.toString(),
-        benefitType: 'percent_discount',
         originalAmount: 1000,
         finalAmount: 750,
-        discountAmount: 250,
       });
 
       const checksumData = checksumService.parseAndVerifyChecksum(result.checksum);
@@ -566,8 +563,7 @@ describe('GraphQLBillingNew', () => {
       jest.clearAllMocks();
     });
 
-    it('should charge discounted amount and set full recurrent amount from checksum promo id', async () => {
-      const promoCodeId = new ObjectId();
+    it('should charge full plan amount for recurrent payment', async () => {
       const userId = new ObjectId().toString();
       const workspaceId = new ObjectId().toString();
       const cardId = 'card-1';
@@ -587,9 +583,6 @@ describe('GraphQLBillingNew', () => {
         tariffPlanId: newPlanId.toString(),
         shouldSaveCard: false,
         nextPaymentDate: new Date().toISOString(),
-        promo: {
-          id: promoCodeId.toString(),
-        },
       });
       const dueDate = new Date();
       dueDate.setMonth(dueDate.getMonth() + 1);
@@ -626,21 +619,8 @@ describe('GraphQLBillingNew', () => {
             getBusinessOperationByTransactionId: jest.fn().mockResolvedValue({ _id: new ObjectId() }),
           } as any,
           releasesFactory: {} as any,
-          promoCodesFactory: {
-            findOne: jest.fn().mockResolvedValue({
-              _id: promoCodeId,
-              value: 'SAVE25',
-              benefit: {
-                type: 'percent_discount',
-                percent: 25,
-              },
-            }),
-          } as any,
-          promoCodeUsagesFactory: {
-            countByPromoCodeId: jest.fn().mockResolvedValue(0),
-            findByPromoCodeAndUser: jest.fn().mockResolvedValue(null),
-            findByPromoCodeAndWorkspace: jest.fn().mockResolvedValue(null),
-          } as any,
+          promoCodesFactory: {} as any,
+          promoCodeUsagesFactory: {} as any,
         },
       };
 
@@ -664,7 +644,7 @@ describe('GraphQLBillingNew', () => {
 
       expect(cloudPaymentsApi.payByToken).toHaveBeenCalledWith(
         expect.objectContaining({
-          Amount: 750,
+          Amount: 1000,
           JsonData: expect.objectContaining({
             cloudPayments: expect.objectContaining({
               recurrent: expect.objectContaining({

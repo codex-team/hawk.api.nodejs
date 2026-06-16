@@ -177,11 +177,8 @@ export default {
           paymentAmount = pricing.finalAmount;
           paymentPromoChecksum = buildPaymentPromoData(pricing.promoCode._id.toString(), promoUtm);
           composePaymentPromo = {
-            id: pricing.promoCode._id.toString(),
-            benefitType: pricing.benefitType,
             originalAmount: pricing.originalAmount,
             finalAmount: pricing.finalAmount,
-            discountAmount: pricing.discountAmount,
           };
         } catch (error) {
           throwPromoCodeGraphQLError(error);
@@ -375,23 +372,6 @@ debug: ${Boolean(workspace.isDebug)}`
         throw new UserInputError('Wrong checksum data');
       }
 
-      let planPaymentAmount = plan.monthlyCharge;
-
-      if (paymentData.promo?.id) {
-        try {
-          const pricing = await new PromoCodeService(factories).getPricingForPromoCodeId(
-            paymentData.promo.id,
-            user.id,
-            paymentData.workspaceId,
-            plan
-          );
-
-          planPaymentAmount = pricing.finalAmount;
-        } catch (error) {
-          throwPromoCodeGraphQLError(error);
-        }
-      }
-
       const token = fullUserInfo.bankCards?.find(card => card.id === args.input.cardId)?.token;
 
       if (!token) {
@@ -425,7 +405,7 @@ debug: ${Boolean(workspace.isDebug)}`
         }
       }
 
-      let amount = planPaymentAmount;
+      let amount = plan.monthlyCharge;
 
       const isPaymentForCurrentTariffPlan = workspace.tariffPlanId.toString() === plan._id.toString();
 
