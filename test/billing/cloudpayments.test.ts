@@ -166,7 +166,7 @@ function createCheckBody(transactionId: number, amount: string, data: string) {
   };
 }
 
-function createPayBody(transactionId: number, amount: string, data: string, overrides: Record<string, unknown> = {}) {
+function createPayBody(transactionId: number, amount: string, data?: string, overrides: Record<string, unknown> = {}) {
   return {
     TransactionId: transactionId,
     Amount: amount,
@@ -758,6 +758,37 @@ describe('CloudPaymentsWebhooks', () => {
       expect(res.json).toHaveBeenCalledWith({ code: PayCodes.SUCCESS });
     });
 
+    it('should complete subscription renewal without Data and without promo usage', async () => {
+      const webhooks = new CloudPaymentsWebhooks() as any;
+      const workspaceId = new ObjectId().toString();
+      const userId = new ObjectId().toString();
+      const plan = createPlan(1000);
+      const { context, workspace, changePlan, createUsage } = createWebhookContext({
+        workspaceId,
+        userId,
+        plan,
+        subscriptionId: 'subscription-id',
+      });
+
+      context.factories.workspacesFactory.findBySubscriptionId = jest.fn().mockResolvedValue(workspace);
+
+      const res = createMockResponse();
+
+      await webhooks.pay({
+        context,
+        body: createPayBody(2004, '1000', undefined, {
+          AccountId: userId,
+          Data: undefined,
+          SubscriptionId: 'subscription-id',
+        }),
+      }, res);
+
+      expect(context.factories.workspacesFactory.findBySubscriptionId).toHaveBeenCalledWith('subscription-id');
+      expect(changePlan).toHaveBeenCalledWith(plan._id);
+      expect(createUsage).not.toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({ code: PayCodes.SUCCESS });
+    });
+
     it('should cancel old subscription when a new subscription id is received', async () => {
       const webhooks = new CloudPaymentsWebhooks() as any;
       const workspaceId = new ObjectId().toString();
@@ -775,7 +806,7 @@ describe('CloudPaymentsWebhooks', () => {
 
       await webhooks.pay({
         context,
-        body: createPayBody(2004, '1000', Data, { SubscriptionId: 'new-subscription' }),
+        body: createPayBody(2005, '1000', Data, { SubscriptionId: 'new-subscription' }),
       }, res);
 
       expect(cloudPaymentsClientMocks.cancelSubscription).toHaveBeenCalledWith({ Id: 'old-subscription' });
@@ -807,10 +838,10 @@ describe('CloudPaymentsWebhooks', () => {
         },
       });
 
-      await webhooks.pay({ context, body: createPayBody(2005, '1', Data) }, res);
+      await webhooks.pay({ context, body: createPayBody(2006, '1', Data) }, res);
 
       expect(changePlan).not.toHaveBeenCalled();
-      expect(cloudPaymentsApi.cancelPayment).toHaveBeenCalledWith(2005);
+      expect(cloudPaymentsApi.cancelPayment).toHaveBeenCalledWith(2006);
       expect(createBusinessOperation).toHaveBeenCalledWith(expect.objectContaining({
         type: BusinessOperationType.CardLinkRefund,
         status: BusinessOperationStatus.Confirmed,
@@ -831,7 +862,7 @@ describe('CloudPaymentsWebhooks', () => {
 
       (publish as jest.Mock).mockRejectedValueOnce(new Error('rabbit down'));
 
-      await webhooks.pay({ context, body: createPayBody(2006, '1000', Data) }, res);
+      await webhooks.pay({ context, body: createPayBody(2007, '1000', Data) }, res);
 
       expect(res.json).toHaveBeenCalledWith({ code: PayCodes.SUCCESS });
     });
@@ -848,7 +879,7 @@ describe('CloudPaymentsWebhooks', () => {
 
       (sendNotification as jest.Mock).mockRejectedValueOnce(new Error('notify failed'));
 
-      await webhooks.pay({ context, body: createPayBody(2007, '1000', Data) }, res);
+      await webhooks.pay({ context, body: createPayBody(2008, '1000', Data) }, res);
 
       expect(res.json).toHaveBeenCalledWith({ code: PayCodes.SUCCESS });
     });

@@ -20,7 +20,8 @@ interface RecurrentPaymentSettings {
   startDate?: string;
 
   /**
-   * Recurring payment amount.
+   * Recurring payment amount for automatic subscription renewals.
+   * Keep it equal to the full plan price even when the first widget charge uses a promo.
    */
   amount?: number;
 }
@@ -38,8 +39,9 @@ interface CloudPaymentsSettings {
 }
 
 /**
- * Promo reference attached to payment request.
+ * Promo reference attached to the signed first payment request.
  * Amounts are resolved on the server by promo id during check/pay.
+ * Recurrent renewals are restored by SubscriptionId and do not carry promo data.
  */
 export interface PaymentPromoData {
   /**

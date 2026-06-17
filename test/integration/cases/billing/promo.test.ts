@@ -58,19 +58,19 @@ describe('Promo billing webhooks', () => {
    * Insert a document and load the persisted record.
    * Throws if insert or read fails — keeps fixture setup explicit in tests.
    */
-  async function insertAndLoad<T extends { _id?: ObjectId }, R extends T>(
-    collection: Collection<T>,
-    document: Omit<T, '_id'>,
+  async function insertAndLoad<R extends { _id: ObjectId }>(
+    collection: Collection<any>,
+    document: Omit<R, '_id'>,
     errorMessage: string
   ): Promise<R> {
-    const insertedId = (await collection.insertOne(document as T)).insertedId;
-    const result = await collection.findOne({ _id: insertedId } as Partial<T>);
+    const insertedId = (await collection.insertOne(document)).insertedId;
+    const result = await collection.findOne({ _id: insertedId });
 
     if (!result) {
       throw new Error(errorMessage);
     }
 
-    return result as R;
+    return result as unknown as R;
   }
 
   /**
@@ -95,7 +95,7 @@ describe('Promo billing webhooks', () => {
         name: 'PromoBillingTest',
         accountId: '123',
         tariffPlanId: currentPlanId,
-      } as WorkspaceDBScheme,
+      } as Omit<WorkspaceDBScheme, '_id'>,
       'Failed to create workspace'
     );
 
@@ -241,6 +241,7 @@ describe('Promo billing webhooks', () => {
           OperationType: OperationType.PAYMENT,
           Status: OperationStatus.COMPLETED,
           TestMode: false,
+          TotalFee: 0,
           TransactionId: transactionId,
           Token: '123123',
           IssuerBankCountry: 'US',
