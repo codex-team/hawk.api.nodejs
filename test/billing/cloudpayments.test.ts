@@ -330,6 +330,50 @@ describe('CloudPaymentsWebhooks', () => {
       });
     });
 
+    it('should keep card-link checksum data when unsigned Data contains plan payment fields', async () => {
+      const checksum = await checksumService.generateChecksum({
+        isCardLinkOperation: true,
+        workspaceId: 'signed-workspace',
+        userId: 'signed-user',
+        nextPaymentDate: new Date().toISOString(),
+      });
+      const webhooks = new CloudPaymentsWebhooks() as any;
+
+      const data = await webhooks.getDataFromRequest({
+        body: {
+          Data: JSON.stringify({
+            checksum,
+            tariffPlanId: 'unsigned-plan',
+            shouldSaveCard: true,
+            promo: {
+              id: new ObjectId().toString(),
+            },
+            cloudPayments: {
+              recurrent: {
+                interval: 'Month',
+                period: 1,
+              },
+            },
+          }),
+        },
+      });
+
+      expect(data).toMatchObject({
+        workspaceId: 'signed-workspace',
+        userId: 'signed-user',
+        tariffPlanId: '',
+        shouldSaveCard: false,
+        isCardLinkOperation: true,
+        cloudPayments: {
+          recurrent: {
+            interval: 'Month',
+            period: 1,
+          },
+        },
+      });
+      expect(data.promo).toBeUndefined();
+    });
+
     it('should restore subscription renewal data by SubscriptionId without promo', async () => {
       const webhooks = new CloudPaymentsWebhooks() as any;
       const workspaceId = new ObjectId().toString();
@@ -396,6 +440,40 @@ describe('CloudPaymentsWebhooks', () => {
         status: BusinessOperationStatus.Pending,
       }));
       expect(res.json).toHaveBeenCalledWith({ code: CheckCodes.SUCCESS });
+    });
+
+    it('should validate amount against signed plan when unsigned Data tries to replace tariffPlanId', async () => {
+      const webhooks = new CloudPaymentsWebhooks() as any;
+      const workspaceId = new ObjectId().toString();
+      const userId = new ObjectId().toString();
+      const signedPlan = createPlan(1000);
+      const unsignedPlan = createPlan(500);
+      const { context } = createWebhookContext({
+        workspaceId,
+        userId,
+        plan: signedPlan,
+      });
+      const res = createMockResponse();
+      const checksum = await checksumService.generateChecksum({
+        workspaceId,
+        userId,
+        tariffPlanId: signedPlan._id.toString(),
+        shouldSaveCard: false,
+        nextPaymentDate: new Date().toISOString(),
+      });
+      const Data = JSON.stringify({
+        checksum,
+        tariffPlanId: unsignedPlan._id.toString(),
+      });
+
+      context.factories.plansFactory.findById = jest.fn().mockImplementation((planId: string) => {
+        return Promise.resolve(planId === signedPlan._id.toString() ? signedPlan : unsignedPlan);
+      });
+
+      await webhooks.check({ context, body: createCheckBody(1001, '500', Data) }, res);
+
+      expect(context.factories.plansFactory.findById).toHaveBeenCalledWith(signedPlan._id.toString());
+      expect(res.json).toHaveBeenCalledWith({ code: CheckCodes.WRONG_AMOUNT });
     });
 
     it('should reject wrong amount when promo id is in checksum', async () => {
