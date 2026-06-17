@@ -337,7 +337,7 @@ type ComposePaymentResponse {
   plan: ComposePaymentPlanInfo!
 
   """
-  Amount to charge for this payment (may differ from plan.monthlyCharge when promo is applied)
+  Amount to charge for this payment (card validation amount, promo price, or full plan price)
   """
   chargeAmount: Int!
 

@@ -6,7 +6,6 @@ import {
   BusinessOperationPayloadType,
   PayloadOfDepositByUser,
   PayloadOfWorkspacePlanPurchase,
-  PromoCodeBenefitType,
   Utm
 } from '@hawk.so/types';
 import checksumService from '../utils/checksumService';
@@ -119,11 +118,8 @@ export default {
       nextPaymentDate: Date;
       cloudPaymentsPublicId: string;
       promo?: {
-        id: string;
-        benefitType: PromoCodeBenefitType;
         originalAmount: number;
         finalAmount: number;
-        discountAmount: number;
       };
     }> {
       const { workspaceId, tariffPlanId, shouldSaveCard, promoCode } = input;
@@ -165,7 +161,7 @@ export default {
         isCardLinkOperation = true;
       }
 
-      let paymentAmount = plan.monthlyCharge;
+      let tariffChargeAmount = plan.monthlyCharge;
       let paymentPromoChecksum: PaymentPromoData | undefined;
       let composePaymentPromo;
 
@@ -174,14 +170,11 @@ export default {
           const promoCodeService = new PromoCodeService(factories);
           const pricing = await promoCodeService.getPricingForPlan(promoCode, user.id, workspace._id.toString(), plan);
 
-          paymentAmount = pricing.finalAmount;
+          tariffChargeAmount = pricing.finalAmount;
           paymentPromoChecksum = buildPaymentPromoData(pricing.promoCode._id.toString(), promoUtm);
           composePaymentPromo = {
-            id: pricing.promoCode._id.toString(),
-            benefitType: pricing.benefitType,
             originalAmount: pricing.originalAmount,
             finalAmount: pricing.finalAmount,
-            discountAmount: pricing.discountAmount,
           };
         } catch (error) {
           throwPromoCodeGraphQLError(error);
@@ -216,7 +209,7 @@ export default {
 
       const checksum = await checksumService.generateChecksum(checksumData);
 
-      const loggedAmount = isCardLinkOperation ? AMOUNT_FOR_CARD_VALIDATION : paymentAmount;
+      const chargeAmount = isCardLinkOperation ? AMOUNT_FOR_CARD_VALIDATION : tariffChargeAmount;
 
       /**
        * Send info to Telegram (non-blocking)
@@ -225,7 +218,7 @@ export default {
         .sendMessage(`👀 [Billing / Compose payment]
 
 card link operation: ${isCardLinkOperation}
-amount: ${+loggedAmount} RUB
+amount: ${chargeAmount} RUB
 last charge date: ${workspace.lastChargeDate?.toISOString()}
 next payment date: ${nextPaymentDate.toISOString()}
 workspace id: ${workspace._id.toString()}
@@ -240,7 +233,7 @@ debug: ${Boolean(workspace.isDebug)}`
           name: plan.name,
           monthlyCharge: plan.monthlyCharge,
         },
-        chargeAmount: isCardLinkOperation ? AMOUNT_FOR_CARD_VALIDATION : paymentAmount,
+        chargeAmount,
         isCardLinkOperation,
         currency: 'RUB',
         checksum,
