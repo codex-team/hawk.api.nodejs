@@ -329,9 +329,75 @@ describe('CloudPaymentsWebhooks', () => {
         isCardLinkOperation: false,
       });
     });
+
+    it('should restore subscription renewal data by SubscriptionId without promo', async () => {
+      const webhooks = new CloudPaymentsWebhooks() as any;
+      const workspaceId = new ObjectId().toString();
+      const userId = new ObjectId().toString();
+      const plan = createPlan(1000);
+      const { context, workspace } = createWebhookContext({
+        workspaceId,
+        userId,
+        plan,
+        subscriptionId: 'subscription-id',
+      });
+
+      context.factories.workspacesFactory.findBySubscriptionId = jest.fn().mockResolvedValue(workspace);
+
+      const data = await webhooks.getDataFromRequest({
+        context,
+        body: {
+          SubscriptionId: 'subscription-id',
+          AccountId: userId,
+        },
+      });
+
+      expect(context.factories.workspacesFactory.findBySubscriptionId).toHaveBeenCalledWith('subscription-id');
+      expect(data).toMatchObject({
+        workspaceId,
+        userId,
+        tariffPlanId: plan._id.toString(),
+        shouldSaveCard: false,
+        isCardLinkOperation: false,
+      });
+      expect(data.promo).toBeUndefined();
+    });
   });
 
   describe('check()', () => {
+    it('should accept card-link validation amount without changing plan', async () => {
+      const webhooks = new CloudPaymentsWebhooks() as any;
+      const workspaceId = new ObjectId().toString();
+      const userId = new ObjectId().toString();
+      const plan = createPlan(1000);
+      const { context, createBusinessOperation } = createWebhookContext({
+        workspaceId,
+        userId,
+        plan,
+      });
+      const res = createMockResponse();
+      const Data = await buildCardLinkChecksumPayload({
+        workspaceId,
+        userId,
+        cloudPayments: {
+          recurrent: {
+            interval: 'Month',
+            period: 1,
+            amount: 1000,
+            startDate: new Date().toISOString(),
+          },
+        },
+      });
+
+      await webhooks.check({ context, body: createCheckBody(1000, '1', Data) }, res);
+
+      expect(createBusinessOperation).toHaveBeenCalledWith(expect.objectContaining({
+        type: BusinessOperationType.CardLinkCharge,
+        status: BusinessOperationStatus.Pending,
+      }));
+      expect(res.json).toHaveBeenCalledWith({ code: CheckCodes.SUCCESS });
+    });
+
     it('should reject wrong amount when promo id is in checksum', async () => {
       const webhooks = new CloudPaymentsWebhooks() as any;
       const workspaceId = new ObjectId().toString();
@@ -620,6 +686,36 @@ describe('CloudPaymentsWebhooks', () => {
 
       expect(context.factories.workspacesFactory.findBySubscriptionId).toHaveBeenCalledWith('subscription-id');
       expect(res.json).toHaveBeenCalledWith({ code: CheckCodes.SUCCESS });
+    });
+
+    it('should reject wrong amount on subscription renewal check without Data', async () => {
+      const webhooks = new CloudPaymentsWebhooks() as any;
+      const workspaceId = new ObjectId().toString();
+      const userId = new ObjectId().toString();
+      const plan = createPlan(1000);
+      const { context, workspace } = createWebhookContext({
+        workspaceId,
+        userId,
+        plan,
+        subscriptionId: 'subscription-id',
+      });
+
+      context.factories.workspacesFactory.findBySubscriptionId = jest.fn().mockResolvedValue(workspace);
+
+      const res = createMockResponse();
+
+      await webhooks.check({
+        context,
+        body: {
+          ...createCheckBody(1011, '999', ''),
+          SubscriptionId: 'subscription-id',
+          AccountId: userId,
+          Data: undefined,
+        },
+      }, res);
+
+      expect(context.factories.workspacesFactory.findBySubscriptionId).toHaveBeenCalledWith('subscription-id');
+      expect(res.json).toHaveBeenCalledWith({ code: CheckCodes.WRONG_AMOUNT });
     });
 
     it('should reject wrong amount when promo is not applied', async () => {
