@@ -177,8 +177,11 @@ export default {
           paymentAmount = pricing.finalAmount;
           paymentPromoChecksum = buildPaymentPromoData(pricing.promoCode._id.toString(), promoUtm);
           composePaymentPromo = {
+            id: pricing.promoCode._id.toString(),
+            benefitType: pricing.benefitType,
             originalAmount: pricing.originalAmount,
             finalAmount: pricing.finalAmount,
+            discountAmount: pricing.discountAmount,
           };
         } catch (error) {
           throwPromoCodeGraphQLError(error);

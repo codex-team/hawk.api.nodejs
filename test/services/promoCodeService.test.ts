@@ -43,6 +43,7 @@ function createService(promoCode: any, options: {
   return new PromoCodeService({
     promoCodesFactory: {
       findByValue: jest.fn().mockResolvedValue(promoCode),
+      findOne: jest.fn().mockResolvedValue(promoCode),
     },
     promoCodeUsagesFactory: {
       countByPromoCodeId: jest.fn().mockResolvedValue(options.totalUses ?? 0),

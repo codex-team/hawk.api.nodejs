@@ -719,9 +719,14 @@ describe('CloudPaymentsWebhooks', () => {
 
       expect(changePlan).toHaveBeenCalledWith(plan._id);
       expect(createUsage).toHaveBeenCalledWith(expect.objectContaining({
-        promoCodeId: promoCode._id.toString(),
+        promoCodeId: promoCode._id,
         userId,
-        plan: expect.objectContaining({ _id: plan._id }),
+        workspaceId: expect.any(ObjectId),
+        planId: plan._id,
+        benefitType: 'percent_discount',
+        originalAmount: 1000,
+        finalAmount: 750,
+        discountAmount: 250,
       }));
       expect(publish).toHaveBeenCalled();
       expect(sendNotification).toHaveBeenCalledWith(
