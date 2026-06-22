@@ -248,6 +248,8 @@ class HawkAPI {
 
     await redis.initialize();
 
+    this.registerShutdownHandlers(redis);
+
     /**
      * Setup shared factories for SSO and GitHub integration routes
      * These endpoints don't require per-request DataLoaders isolation,
@@ -292,6 +294,31 @@ class HawkAPI {
         resolve();
       });
     });
+  }
+
+  /**
+   * Closes HTTP, Mongo and Redis connections on SIGINT/SIGTERM.
+   *
+   * @param redis - Redis helper to close on shutdown
+   */
+  private registerShutdownHandlers(redis: RedisHelper): void {
+    let shuttingDown = false;
+
+    const shutdown = async (signal: NodeJS.Signals): Promise<void> => {
+      if (shuttingDown) {
+        return;
+      }
+      shuttingDown = true;
+      console.log(`[Shutdown] ${signal} received, closing connections`);
+
+      await new Promise<void>((resolve) => this.httpServer.close(() => resolve()));
+      await Promise.allSettled([mongo.closeConnections(), redis.close()]);
+
+      process.exit(0);
+    };
+
+    process.once('SIGINT', shutdown);
+    process.once('SIGTERM', shutdown);
   }
 }
 

@@ -5,6 +5,20 @@ import { setupMongoMetrics, withMongoMetrics } from './metrics';
 const hawkDBUrl = process.env.MONGO_HAWK_DB_URL || 'mongodb://localhost:27017/hawk';
 const eventsDBUrl = process.env.MONGO_EVENTS_DB_URL || 'mongodb://localhost:27017/events';
 
+const reconnectTries = Number(process.env.MONGO_RECONNECT_TRIES) || 60;
+const reconnectInterval = Number(process.env.MONGO_RECONNECT_INTERVAL) || 1000;
+
+/**
+ * serverSelectionTimeoutMS bounds how long an op waits for an available
+ * server — without it queries hang forever during an outage.
+ */
+const connectionConfig: MongoClientOptions = withMongoMetrics({
+  serverSelectionTimeoutMS: 10000,
+  socketTimeoutMS: 45000,
+  retryWrites: true,
+  retryReads: true,
+});
+
 /**
  * Connections to Hawk databases
  */
@@ -52,40 +66,124 @@ export const mongoClients: MongoClients = {
 };
 
 /**
- * Common params for all connections
+ * Connects to the given URL, retrying with a fixed interval up to
+ * MONGO_RECONNECT_TRIES times before giving up.
+ *
+ * @param name - logical name for logging
+ * @param url - MongoDB connection string
+ * @returns connected client
  */
-/**
- * Common params for all connections
- * Note: useNewUrlParser and useUnifiedTopology are deprecated in mongodb 6.x and removed
- */
-const connectionConfig: MongoClientOptions = withMongoMetrics({});
+async function connectWithRetry(name: string, url: string): Promise<MongoClient> {
+  let lastError = 'unknown error';
+
+  for (let attempt = 1; attempt <= reconnectTries; attempt++) {
+    const client = new MongoClient(url, connectionConfig);
+
+    try {
+      await client.connect();
+      console.log(`[Mongo:${name}] connected`);
+
+      return client;
+    } catch (err) {
+      await client.close().catch(() => undefined);
+
+      lastError = (err as Error)?.message ?? String(err);
+      console.warn(`[Mongo:${name}] attempt ${attempt}/${reconnectTries} failed: ${lastError}`);
+
+      if (attempt < reconnectTries) {
+        await new Promise((resolve) => setTimeout(resolve, reconnectInterval));
+      }
+    }
+  }
+
+  throw new Error(`[Mongo:${name}] failed after ${reconnectTries} attempts: ${lastError}`);
+}
 
 /**
- * Setups connections to the databases (hawk api and events databases)
+ * Logs and reports heartbeat failures / recoveries once per transition.
+ *
+ * @param name - logical name for logging
+ * @param client - connected client to observe
+ */
+function watchConnection(name: string, client: MongoClient): void {
+  let healthy = true;
+
+  client.on('serverHeartbeatFailed', (event) => {
+    if (!healthy) {
+      return;
+    }
+    healthy = false;
+    const message = (event.failure as Error)?.message ?? 'heartbeat failed';
+
+    console.error(`[Mongo:${name}] connection lost: ${message}`);
+    HawkCatcher.send(new Error(`MongoDB ${name} connection lost: ${message}`));
+  });
+
+  client.on('serverHeartbeatSucceeded', () => {
+    if (healthy) {
+      return;
+    }
+    healthy = true;
+    console.log(`[Mongo:${name}] connection recovered`);
+  });
+}
+
+/**
+ * Connects to both databases with bounded retry. The driver auto-recovers
+ * from transient failures on already-open clients, so retries here cover
+ * the initial handshake only.
+ *
+ * @returns promise resolved when both clients are connected
  */
 export async function setupConnections(): Promise<void> {
-  try {
-    const [hawkMongoClient, eventsMongoClient] = await Promise.all([
-      MongoClient.connect(hawkDBUrl, connectionConfig),
-      MongoClient.connect(eventsDBUrl, connectionConfig),
-    ]);
+  const results = await Promise.allSettled([
+    connectWithRetry('hawk', hawkDBUrl),
+    connectWithRetry('events', eventsDBUrl),
+  ]);
 
-    mongoClients.hawk = hawkMongoClient;
-    mongoClients.events = eventsMongoClient;
+  const failure = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
 
-    databases.hawk = hawkMongoClient.db();
-    databases.events = eventsMongoClient.db();
-
-    /**
-     * Log and and measure MongoDB metrics
-     */
-    setupMongoMetrics(hawkMongoClient);
-    setupMongoMetrics(eventsMongoClient);
-  } catch (e) {
-    /** Catch start Mongo errors  */
-    HawkCatcher.send(e as Error);
-    throw e;
+  if (failure) {
+    /** Close any clients that did connect so we don't leak sockets */
+    await Promise.allSettled(
+      results.map((r) => (r.status === 'fulfilled' ? r.value.close() : Promise.resolve()))
+    );
+    HawkCatcher.send(failure.reason as Error);
+    throw failure.reason;
   }
+
+  const hawkClient = (results[0] as PromiseFulfilledResult<MongoClient>).value;
+  const eventsClient = (results[1] as PromiseFulfilledResult<MongoClient>).value;
+
+  mongoClients.hawk = hawkClient;
+  mongoClients.events = eventsClient;
+  databases.hawk = hawkClient.db();
+  databases.events = eventsClient.db();
+
+  /**
+   * Log and measure MongoDB metrics, then observe heartbeats for outage logs
+   */
+  setupMongoMetrics(hawkClient);
+  setupMongoMetrics(eventsClient);
+  watchConnection('hawk', hawkClient);
+  watchConnection('events', eventsClient);
+}
+
+/**
+ * Closes both clients. Call from SIGTERM/SIGINT for graceful shutdown.
+ *
+ * @returns promise resolved once both clients are closed
+ */
+export async function closeConnections(): Promise<void> {
+  await Promise.allSettled([
+    mongoClients.hawk?.close(),
+    mongoClients.events?.close(),
+  ]);
+
+  mongoClients.hawk = null;
+  mongoClients.events = null;
+  databases.hawk = null;
+  databases.events = null;
 }
 
 /**

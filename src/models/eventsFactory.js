@@ -1,8 +1,8 @@
-import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 import safe from 'safe-regex';
 import { createProjectEventsByIdLoader } from '../dataLoaders';
 import RedisHelper from '../redisHelper';
 import ChartDataService from '../services/chartDataService';
+import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
@@ -403,6 +403,22 @@ class EventsFactory extends Factory {
       return { 'event.assignee': String(assignee) };
     })();
 
+    /**
+     * These filters match joined event.* fields, so their $match must run
+     * after the lookups. With none set, $limit can move before the lookups
+     * and skip joining rows we'd drop anyway (~8.8s).
+     * Trim search to match searchFilter's own condition.
+     */
+    const hasContentFilters =
+      search.trim().length > 0 ||
+      Boolean(release) ||
+      Boolean(assignee) ||
+      Object.keys(matchFilter).length > 0;
+
+    if (!hasContentFilters) {
+      pipeline.push({ $limit: limit + 1 });
+    }
+
     pipeline.push(
       /**
        * Left outer join original event on groupHash field
@@ -434,20 +450,24 @@ class EventsFactory extends Factory {
           path: '$repetition',
           preserveNullAndEmptyArrays: true,
         },
-      },
-      {
-        $match: {
-          ...matchFilter,
-          ...searchFilter,
-          ...releaseFilter,
-          ...assigneeFilter,
-        },
-      },
-      { $limit: limit + 1 },
-      {
-        $unset: 'groupHash',
       }
     );
+
+    if (hasContentFilters) {
+      pipeline.push(
+        {
+          $match: {
+            ...matchFilter,
+            ...searchFilter,
+            ...releaseFilter,
+            ...assigneeFilter,
+          },
+        },
+        { $limit: limit + 1 }
+      );
+    }
+
+    pipeline.push({ $unset: 'groupHash' });
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
     const result = await cursor.toArray();
@@ -883,6 +903,27 @@ class EventsFactory extends Factory {
   }
 
   /**
+   * Mark many original events as visited for passed user
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string|ObjectId} userId - id of the user who is visiting events
+   * @returns {Promise<UpdateWriteOpResult>}
+   */
+  async bulkVisitEvents(eventIds, userId) {
+    const uniqueEventIds = [ ...new Set((eventIds || []).map(id => String(id))) ];
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const userObjectId = new ObjectId(userId);
+
+    return collection.updateMany(
+      {
+        _id: { $in: uniqueEventIds.map(id => new ObjectId(id)) },
+        visitedBy: { $ne: userObjectId },
+      },
+      { $addToSet: { visitedBy: userObjectId } }
+    );
+  }
+
+  /**
    * Mark or unmark event as Resolved, Ignored or Starred
    *
    * @param {string|ObjectId} eventId - id of the original event to mark
@@ -916,6 +957,95 @@ class EventsFactory extends Factory {
     }
 
     return collection.updateOne(query, update);
+  }
+
+  /**
+   * Bulk set or clear mark for original events.
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string} mark - 'resolved' | 'ignored' | 'starred'
+   * @param {boolean} enabled - true to set mark, false to clear
+   * @returns {Promise<UpdateWriteOpResult>}
+   */
+  async bulkSetEventMarks(eventIds, mark, enabled) {
+    const uniqueEventIds = [ ...new Set((eventIds || []).map(id => String(id))) ];
+    const objectIds = uniqueEventIds.map(id => new ObjectId(id));
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const nowSec = Math.floor(Date.now() / 1000);
+    const markKey = `marks.${mark}`;
+
+    if (!enabled) {
+      return collection.updateMany(
+        {
+          _id: { $in: objectIds },
+          [markKey]: { $exists: true },
+        },
+        { $unset: { [markKey]: '' } }
+      );
+    }
+
+    return collection.updateMany(
+      {
+        _id: { $in: objectIds },
+        [markKey]: { $exists: false },
+      },
+      { $set: { [markKey]: nowSec } }
+    );
+  }
+
+  /**
+   * Bulk set/clear assignee for many original events.
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string|null|undefined} assignee - target assignee id, null/undefined to clear
+   * @returns {Promise<UpdateWriteOpResult>}
+   */
+  async bulkUpdateAssignee(eventIds, assignee) {
+    const uniqueEventIds = [ ...new Set((eventIds || []).map(id => String(id))) ];
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const normalizedAssignee = assignee ? String(assignee) : '';
+
+    return collection.updateMany(
+      {
+        _id: { $in: uniqueEventIds.map(id => new ObjectId(id)) },
+        assignee: { $ne: normalizedAssignee },
+      },
+      { $set: { assignee: normalizedAssignee } }
+    );
+  }
+
+  /**
+   * Remove a single event and all related data (repetitions, daily events)
+   *
+   * @param {string|ObjectId} eventId - id of the original event to remove
+   * @return {Promise<boolean>}
+   */
+  async removeEvent(eventId) {
+    const eventsCollection = this.getCollection(this.TYPES.EVENTS);
+
+    const event = await eventsCollection.findOne({ _id: new ObjectId(eventId) });
+
+    // If event is not found, throw error
+    if (!event) {
+      throw new Error(`Event not found for eventId: ${eventId}`);
+    }
+
+    const { groupHash } = event;
+
+    // Delete original event
+    const result = await eventsCollection.deleteOne({ _id: new ObjectId(eventId) });
+
+    // Delete all repetitions with same groupHash
+    if (await this.isCollectionExists(this.TYPES.REPETITIONS)) {
+      await this.getCollection(this.TYPES.REPETITIONS).deleteMany({ groupHash });
+    }
+
+    // Delete all daily event records with same groupHash
+    if (await this.isCollectionExists(this.TYPES.DAILY_EVENTS)) {
+      await this.getCollection(this.TYPES.DAILY_EVENTS).deleteMany({ groupHash });
+    }
+
+    return result.acknowledged && result.deletedCount > 0;
   }
 
   /**
