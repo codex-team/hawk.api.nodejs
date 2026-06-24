@@ -272,6 +272,14 @@ type Event {
   totalCount: Int!
 
   """
+  Number of real occurrences this single repetition represents. Null for the
+  original event and for ordinary repetitions (both mean "single occurrence")
+  — distinct from totalCount, which is the group's grand total across all
+  repetitions.
+  """
+  count: Int
+
+  """
   User assigneed to the event
   """
   assignee: User
