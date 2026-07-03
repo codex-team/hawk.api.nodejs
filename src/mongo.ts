@@ -7,12 +7,20 @@ const eventsDBUrl = process.env.MONGO_EVENTS_DB_URL || 'mongodb://localhost:2701
 
 const reconnectTries = Number(process.env.MONGO_RECONNECT_TRIES) || 60;
 const reconnectInterval = Number(process.env.MONGO_RECONNECT_INTERVAL) || 1000;
+const maxPoolSize = Number(process.env.MONGO_MAX_POOL_SIZE) || 30;
 
 /**
  * serverSelectionTimeoutMS bounds how long an op waits for an available
  * server — without it queries hang forever during an outage.
+ *
+ * maxPoolSize caps sockets per client (driver default 100 lets API replicas
+ * alone exhaust the server-side 1024 limit); maxIdleTimeMS closes sockets
+ * left idle after spikes (default 0 keeps them forever).
  */
-const connectionConfig: MongoClientOptions = withMongoMetrics({
+const connectionConfig = (appName: string): MongoClientOptions => withMongoMetrics({
+  appName,
+  maxPoolSize,
+  maxIdleTimeMS: 60000,
   serverSelectionTimeoutMS: 10000,
   socketTimeoutMS: 45000,
   retryWrites: true,
@@ -77,7 +85,7 @@ async function connectWithRetry(name: string, url: string): Promise<MongoClient>
   let lastError = 'unknown error';
 
   for (let attempt = 1; attempt <= reconnectTries; attempt++) {
-    const client = new MongoClient(url, connectionConfig);
+    const client = new MongoClient(url, connectionConfig(`hawk-api-${name}`));
 
     try {
       await client.connect();
