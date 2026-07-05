@@ -388,6 +388,11 @@ debug: ${Boolean(workspace.isDebug)}`
           recurrent: {
             interval,
             period: 1,
+            /**
+             * Subscription renewals must always bill the full plan price.
+             * Amount below may be promo-discounted or reduced for card validation,
+             * but CloudPayments uses recurrent.amount for future automatic charges.
+             */
             amount: plan.monthlyCharge,
           },
         };

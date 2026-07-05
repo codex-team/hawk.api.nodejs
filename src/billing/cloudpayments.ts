@@ -217,32 +217,6 @@ export default class CloudPaymentsWebhooks {
     }
 
     /**
-     * Validates recurrent.amount for the first subscription payment when promo is applied.
-     *
-     * CloudPayments flows:
-     * 1. First charge via widget — body.Data is present, checksum may include promo.id and
-     *    cloudPayments.recurrent.amount. Discount applies only to body.Amount (first charge).
-     *    recurrent.amount must stay equal to full plan.monthlyCharge so later renewals bill full price.
-     * 2. Monthly renewals — body.Data is absent, getDataFromRequest() resolves workspace by
-     *    SubscriptionId only, data.promo is undefined, this block is skipped, and amount must
-     *    equal plan.monthlyCharge (see isRightAmount above).
-     */
-    if (
-      data.promo &&
-      recurrentPaymentSettings?.amount !== undefined &&
-      +recurrentPaymentSettings.amount !== plan.monthlyCharge
-    ) {
-      this.sendError(
-        res,
-        CheckCodes.WRONG_AMOUNT,
-        '[Billing / Check] Recurrent amount must equal full plan price when promo is applied',
-        body
-      );
-
-      return;
-    }
-
-    /**
      * Create business operation about creation of subscription
      */
     try {

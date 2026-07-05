@@ -575,55 +575,6 @@ describe('CloudPaymentsWebhooks', () => {
       expect(res.json).toHaveBeenCalledWith({ code: CheckCodes.SUCCESS });
     });
 
-    it('should reject discounted recurrent amount when promo is applied', async () => {
-      const webhooks = new CloudPaymentsWebhooks() as any;
-      const workspaceId = new ObjectId().toString();
-      const userId = new ObjectId().toString();
-      const plan = createPlan(1000);
-      const planId = plan._id.toString();
-      const promoCode = createPromoCode({ _id: new ObjectId() });
-      const { context } = createWebhookContext({
-        workspaceId,
-        userId,
-        plan,
-        promoCode,
-      });
-      const res = createMockResponse();
-      const Data = await buildChecksumPayload({
-        workspaceId,
-        userId,
-        planId,
-        promoId: promoCode._id.toString(),
-        cloudPayments: {
-          recurrent: {
-            interval: 'Month',
-            period: 1,
-            amount: 750,
-          },
-        },
-      });
-
-      await webhooks.check({
-        context,
-        body: {
-          TransactionId: 1003,
-          Amount: '750',
-          Currency: Currency.RUB,
-          DateTime: new Date(),
-          TestMode: true,
-          Status: OperationStatus.COMPLETED,
-          OperationType: OperationType.PAYMENT,
-          CardType: CardType.VISA,
-          CardExpDate: '12/30',
-          CardFirstSix: '411111',
-          CardLastFour: '1111',
-          Data,
-        },
-      }, res);
-
-      expect(res.json).toHaveBeenCalledWith({ code: CheckCodes.WRONG_AMOUNT });
-    });
-
     it('should allow 1 RUB deferred charge only without promo', async () => {
       const webhooks = new CloudPaymentsWebhooks() as any;
       const workspaceId = new ObjectId().toString();
