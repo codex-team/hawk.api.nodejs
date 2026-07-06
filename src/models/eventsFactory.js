@@ -33,6 +33,7 @@ const ChartType = {
  * @property {Number} originalTimestamp - UNIX timestmap of the original event
  * @property {String} originalEventId - id of the original event
  * @property {String} projectId - id of the project, which repetition it is
+ * @property {Number} [count] - number of real repetition occurrences; absent means single occurrence
  */
 
 /**
@@ -1120,6 +1121,7 @@ class EventsFactory extends Factory {
       originalEventId: event._id,
       timestamp: repetition.timestamp,
       payload: composeEventPayloadByRepetition(event.payload, repetition),
+      count: repetition.count,
       projectId: this.projectId,
     };
   }
