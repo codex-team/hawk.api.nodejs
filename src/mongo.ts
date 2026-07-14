@@ -7,7 +7,10 @@ const eventsDBUrl = process.env.MONGO_EVENTS_DB_URL || 'mongodb://localhost:2701
 
 const reconnectTries = Number(process.env.MONGO_RECONNECT_TRIES) || 60;
 const reconnectInterval = Number(process.env.MONGO_RECONNECT_INTERVAL) || 1000;
-const maxPoolSize = Number(process.env.MONGO_MAX_POOL_SIZE) || 30;
+const maxPoolSizeRaw = process.env.MONGO_MAX_POOL_SIZE;
+const maxPoolSize = maxPoolSizeRaw !== undefined && Number.isFinite(Number(maxPoolSizeRaw))
+  ? Number(maxPoolSizeRaw)
+  : 30;
 
 /**
  * serverSelectionTimeoutMS bounds how long an op waits for an available
