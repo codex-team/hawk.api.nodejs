@@ -20,6 +20,7 @@ const EVENTS_PAYLOAD_RELEASE_INDEX_NAME = 'payloadRelease';
 const GROUPING_TIMESTAMP_INDEX_NAME = 'groupingTimestamp';
 const GROUPING_TIMESTAMP_AND_LAST_REPETITION_TIME_AND_ID_INDEX_NAME = 'groupingTimestampAndLastRepetitionTimeAndId';
 const GROUPING_TIMESTAMP_AND_GROUP_HASH_INDEX_NAME = 'groupingTimestampAndGroupHash';
+const DAILY_EVENTS_GROUP_HASH_INDEX_NAME = 'groupHash';
 const MAX_SEARCH_QUERY_LENGTH = 50;
 const FALLBACK_EVENT_TITLE = 'Unknown';
 
@@ -181,6 +182,12 @@ module.exports = {
         _id: -1,
       }, {
         name: GROUPING_TIMESTAMP_AND_LAST_REPETITION_TIME_AND_ID_INDEX_NAME,
+      });
+
+      await projectDailyEventsCollection.createIndex({
+        groupHash: 1,
+      }, {
+        name: DAILY_EVENTS_GROUP_HASH_INDEX_NAME,
       });
 
       await projectEventsCollection.createIndex({
