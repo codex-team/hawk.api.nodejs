@@ -1,6 +1,5 @@
 import { EventAddons, EventData } from '@hawk.so/types';
 import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { eventSolvingInput } from './inputs/eventSolving';
 import { ctoInstruction } from './instructions/cto';
 
@@ -17,7 +16,7 @@ class VercelAIApi {
       /**
        * @todo make it dynamic, get from project settings
        */
-      this.modelId = 'deepseek/deepseek-v3.1';
+      this.modelId = 'deepseek/deepseek-v4-flash';
     }
 
     /**
@@ -32,6 +31,11 @@ class VercelAIApi {
         model: this.modelId,
         system: ctoInstruction,
         prompt: eventSolvingInput(payload),
+        providerOptions: {
+          gateway: {
+            order: ['novita', 'azure', 'deepseek'],
+          },
+        },
       });
 
       return text;
