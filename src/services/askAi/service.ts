@@ -1,16 +1,14 @@
 import HawkCatcher from '@hawk.so/nodejs';
 import { vercelAIApi } from '../../integrations/vercel-ai/';
 import { buildEventPrompt, spotlightInstruction } from './security/spotlighting';
-import { echoesNonce } from './security/nonceEcho';
+import { echoesNonce, SUGGESTION_FALLBACK_MESSAGE } from './security/nonceEcho';
+import { createStreamGuard, guardSuggestionStream } from './security/holdback';
 import { ctoInstruction } from './instructions/cto';
 import { EventsFactoryInterface } from '../types';
 import type { Event } from '../types';
 import type { AiStream } from '@hawk.so/types';
 
-/**
- * Message returned to the user instead of a rejected suggestion
- */
-export const SUGGESTION_FALLBACK_MESSAGE = 'Could not generate an answer.';
+export { SUGGESTION_FALLBACK_MESSAGE };
 
 /**
  * Report that the nonce check rejected an answer.
@@ -30,6 +28,22 @@ function reportRejectedSuggestion(eventId: string, originalEventId: string): voi
 
   console.error('AI suggestion rejected: model output echoed the data-block nonce', context);
   HawkCatcher.send(new Error('AI suggestion rejected: model output echoed the data-block nonce'), context);
+}
+
+/**
+ * Abort `target` once `source` aborts.
+ *
+ * @param source - signal to react to
+ * @param target - controller to abort in response
+ */
+function forwardAbort(source: AbortSignal, target: AbortController): void {
+  if (source.aborted) {
+    target.abort(source.reason);
+
+    return;
+  }
+
+  source.addEventListener('abort', () => target.abort(source.reason), { once: true });
 }
 
 /**
@@ -88,12 +102,24 @@ export class AskAiService {
     const event = await this.getEventOrThrow(eventsFactory, eventId, originalEventId);
 
     const { prompt, nonce } = buildEventPrompt(event.payload);
+    const abort = new AbortController();
 
-    return vercelAIApi.stream({
+    forwardAbort(signal, abort);
+
+    const stream = vercelAIApi.stream({
       system: ctoInstruction + spotlightInstruction(nonce),
       prompt,
-      signal,
+      signal: abort.signal,
     });
+
+    return guardSuggestionStream(
+      stream,
+      createStreamGuard(nonce),
+      () => {
+        abort.abort();
+        reportRejectedSuggestion(eventId, originalEventId);
+      }
+    );
   }
 
   /**
