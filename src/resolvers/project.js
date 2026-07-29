@@ -23,16 +23,18 @@ const GROUPING_TIMESTAMP_AND_GROUP_HASH_INDEX_NAME = 'groupingTimestampAndGroupH
 const DAILY_EVENTS_GROUP_HASH_INDEX_NAME = 'groupHash';
 const MAX_SEARCH_QUERY_LENGTH = 50;
 const FALLBACK_EVENT_TITLE = 'Unknown';
+const { limitBacktraceForDailyEventsList } = require('../utils/eventPayloadLimits');
 
 /**
- * Ensures each daily event has non-empty payload title
- * and writes warning log with identifiers when fallback is used.
+ * Temporary list-response sanitizer:
+ * - fallback for empty payload.title
+ * - cap backtrace frames/sourceCode size (heavy Rails stacks)
  *
  * @param {object} dailyEventsPortion - portion returned by events factory
  * @param {string|ObjectId} projectId - project id for logs
  * @returns {object}
  */
-function normalizeDailyEventsPayloadTitle(dailyEventsPortion, projectId) {
+function sanitizeDailyEventsPortion(dailyEventsPortion, projectId) {
   if (!dailyEventsPortion || !Array.isArray(dailyEventsPortion.dailyEvents)) {
     return dailyEventsPortion;
   }
@@ -40,21 +42,26 @@ function normalizeDailyEventsPayloadTitle(dailyEventsPortion, projectId) {
   dailyEventsPortion.dailyEvents = dailyEventsPortion.dailyEvents.map((dailyEvent) => {
     const event = dailyEvent && dailyEvent.event ? dailyEvent.event : null;
     const payload = event && event.payload ? event.payload : null;
-    const hasValidTitle = payload &&
-      typeof payload.title === 'string' &&
-      payload.title.trim().length > 0;
+    const rawTitle = payload && typeof payload.title === 'string' ? payload.title : '';
+    const hasValidTitle = rawTitle.trim().length > 0;
+    const title = hasValidTitle ? rawTitle : FALLBACK_EVENT_TITLE;
+    const backtrace = limitBacktraceForDailyEventsList(payload && payload.backtrace);
+    const titleChanged = !payload || payload.title !== title;
+    const backtraceChanged = !payload || payload.backtrace !== backtrace;
 
-    if (hasValidTitle) {
-      return dailyEvent;
+    if (!hasValidTitle) {
+      console.warn('🔴 [ProjectResolver.dailyEventsPortion] Missing event payload title. Fallback title applied.', {
+        projectId: projectId ? projectId.toString() : null,
+        dailyEventId: dailyEvent && dailyEvent.id ? dailyEvent.id.toString() : null,
+        dailyEventGroupHash: dailyEvent && dailyEvent.groupHash ? dailyEvent.groupHash.toString() : null,
+        eventOriginalId: event && event.originalEventId ? event.originalEventId.toString() : null,
+        eventId: event && event._id ? event._id.toString() : null,
+      });
     }
 
-    console.warn('🔴🔴🔴 [ProjectResolver.dailyEventsPortion] Missing event payload title. Fallback title applied.', {
-      projectId: projectId ? projectId.toString() : null,
-      dailyEventId: dailyEvent && dailyEvent.id ? dailyEvent.id.toString() : null,
-      dailyEventGroupHash: dailyEvent && dailyEvent.groupHash ? dailyEvent.groupHash.toString() : null,
-      eventOriginalId: event && event.originalEventId ? event.originalEventId.toString() : null,
-      eventId: event && event._id ? event._id.toString() : null,
-    });
+    if (!titleChanged && !backtraceChanged) {
+      return dailyEvent;
+    }
 
     return {
       ...dailyEvent,
@@ -62,7 +69,8 @@ function normalizeDailyEventsPayloadTitle(dailyEventsPortion, projectId) {
         ...(event || {}),
         payload: {
           ...(payload || {}),
-          title: FALLBACK_EVENT_TITLE,
+          title,
+          backtrace,
         },
       },
     };
@@ -667,9 +675,7 @@ module.exports = {
         assignee
       );
 
-      normalizeDailyEventsPayloadTitle(dailyEventsPortion, project._id);
-
-      return dailyEventsPortion;
+      return sanitizeDailyEventsPortion(dailyEventsPortion, project._id);
     },
 
     /**
