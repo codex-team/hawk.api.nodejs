@@ -220,4 +220,71 @@ describe('Project resolver dailyEventsPortion', () => {
 
     warnSpy.mockRestore();
   });
+
+  it('should cap backtrace frames and sourceCode size in list response', async () => {
+    const longLine = 'x'.repeat(200);
+    const frames = Array.from({ length: 80 }, (_, index) => {
+      return {
+        file: `frame-${index}.rb`,
+        line: index + 1,
+        sourceCode: Array.from({ length: 30 }, (__, lineIndex) => {
+          return {
+            line: lineIndex + 1,
+            content: longLine,
+          };
+        }),
+      };
+    });
+    const findDailyEventsPortion = jest.fn().mockResolvedValue({
+      nextCursor: null,
+      dailyEvents: [
+        {
+          id: 'daily-1',
+          groupHash: 'group-1',
+          event: {
+            _id: 'repetition-1',
+            originalEventId: 'event-1',
+            payload: {
+              title: 'PG::UniqueViolation',
+              backtrace: frames,
+            },
+          },
+        },
+      ],
+    });
+    (getEventsFactory as unknown as jest.Mock).mockReturnValue({
+      findDailyEventsPortion,
+    });
+
+    const project = { _id: 'project-1' };
+    const args = {
+      limit: 10,
+      nextCursor: null,
+      sort: 'BY_DATE',
+      filters: {},
+      search: '',
+    };
+
+    const result = await projectResolver.Project.dailyEventsPortion(project, args, {}) as {
+      dailyEvents: Array<{
+        event: {
+          payload: {
+            title: string;
+            backtrace: Array<{
+              file: string;
+              sourceCode: Array<{ content: string }>;
+            }>;
+          };
+        };
+      }>;
+    };
+
+    const backtrace = result.dailyEvents[0].event.payload.backtrace;
+
+    expect(backtrace).toHaveLength(20);
+    expect(backtrace[0].file).toBe('frame-0.rb');
+    expect(backtrace[0].sourceCode).toHaveLength(21);
+    expect(backtrace[0].sourceCode[0].content.endsWith('…')).toBe(true);
+    expect(backtrace[19].file).toBe('frame-19.rb');
+  });
 });
