@@ -3,6 +3,7 @@ import HawkCatcher from '@hawk.so/nodejs';
 import { EventAddons, EventData } from '@hawk.so/types';
 import { AskAiService } from '../../src/services/askAi/service';
 import { vercelAIApi } from '../../src/integrations/vercel-ai/';
+import type { StreamParams } from '../../src/integrations/vercel-ai/';
 import { ctoInstruction } from '../../src/services/askAi/instructions/cto';
 import { UNTRUSTED_DATA_MARKER_NAME } from '../../src/services/askAi/security/spotlighting';
 import { SUGGESTION_FALLBACK_MESSAGE } from '../../src/services/askAi/security/nonceEcho';
@@ -163,6 +164,31 @@ describe('AskAiService', () => {
       ).rejects.toThrow('Event not found');
 
       expect(vercelAIApi.stream).not.toHaveBeenCalled();
+    });
+
+    it('should arm the guard with this request\'s nonce and report the event ids when it fires', async () => {
+      (vercelAIApi.stream as jest.Mock).mockReturnValue({});
+
+      await askAiService.streamSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId);
+
+      const args = (vercelAIApi.stream as jest.Mock).mock.calls[0][0] as StreamParams;
+      const eventIds = expect.objectContaining({
+        eventId: testEventId,
+        originalEventId: testOriginalEventId,
+      });
+
+      /**
+       * A guard built from any other nonce would let this stream's marker
+       * through, so feeding it this request's nonce must trip it
+       */
+      expect(args.guard?.push(`service marker ${nonceFromPrompt(args.prompt)}`).rejected).toBe(true);
+
+      if (args.onReject) {
+        args.onReject();
+      }
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.any(String), eventIds);
+      expect(HawkCatcher.send).toHaveBeenCalledWith(expect.any(Error), eventIds);
     });
   });
 });

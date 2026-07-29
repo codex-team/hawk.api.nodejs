@@ -4,6 +4,13 @@ module.exports = {
     'node': true,
     'jest': true
   },
+  globals: {
+    /**
+     * Global since Node 18 (this project runs Node 24 per .nvmrc), but not part of
+     * eslint's "node" env, which predates the WHATWG Streams API
+     */
+    'TransformStream': 'readonly'
+  },
   rules: {
     '@typescript-eslint/camelcase': 'warn',
     '@typescript-eslint/no-unused-vars': 'warn',

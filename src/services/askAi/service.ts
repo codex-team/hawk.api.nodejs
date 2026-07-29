@@ -2,6 +2,7 @@ import HawkCatcher from '@hawk.so/nodejs';
 import { vercelAIApi } from '../../integrations/vercel-ai/';
 import { buildEventPrompt, spotlightInstruction } from './security/spotlighting';
 import { echoesNonce, SUGGESTION_FALLBACK_MESSAGE } from './security/nonceEcho';
+import { createStreamGuard } from './security/holdback';
 import { ctoInstruction } from './instructions/cto';
 import { EventsFactoryInterface } from '../types';
 import type { Event } from '../types';
@@ -67,8 +68,9 @@ export class AskAiService {
   /**
    * Generate streaming suggestion for the event
    *
-   * The payload is spotlighted by {@link buildEventPrompt} exactly as in
-   * {@link AskAiService.generateSuggestion}.
+   * Defended exactly as {@link AskAiService.generateSuggestion}, except the
+   * answer is checked by {@link createStreamGuard} as it streams out rather than
+   * by {@link echoesNonce} once it is complete.
    *
    * @param eventsFactory - events factory
    * @param eventId - event id
@@ -87,6 +89,8 @@ export class AskAiService {
     return vercelAIApi.stream({
       system: ctoInstruction + spotlightInstruction(nonce),
       prompt,
+      guard: createStreamGuard(nonce),
+      onReject: () => reportRejectedSuggestion(eventId, originalEventId),
     });
   }
 
