@@ -4,6 +4,7 @@ import { buildEventPrompt, spotlightInstruction } from './security/spotlighting'
 import { echoesNonce, SUGGESTION_FALLBACK_MESSAGE } from './security/nonceEcho';
 import { ctoInstruction } from './instructions/cto';
 import { EventsFactoryInterface } from '../types';
+import type { Event } from '../types';
 
 /**
  * Report that the nonce check rejected an answer.
@@ -40,12 +41,12 @@ export class AskAiService {
    * @param originalEventId - original event id
    * @returns {Promise<string>} - suggestion
    */
-  public async generateSuggestion(eventsFactory: EventsFactoryInterface, eventId: string, originalEventId: string): Promise<string> {
-    const event = await eventsFactory.getEventRepetition(eventId, originalEventId);
-
-    if (!event) {
-      throw new Error('Event not found');
-    }
+  public async generateSuggestion(
+    eventsFactory: EventsFactoryInterface,
+    eventId: string,
+    originalEventId: string
+  ): Promise<string> {
+    const event = await this.getEventOrThrow(eventsFactory, eventId, originalEventId);
 
     const { prompt, nonce } = buildEventPrompt(event.payload);
 
@@ -61,6 +62,61 @@ export class AskAiService {
     }
 
     return text;
+  }
+
+  /**
+   * Generate streaming suggestion for the event
+   *
+   * The payload is spotlighted by {@link buildEventPrompt} exactly as in
+   * {@link AskAiService.generateSuggestion}.
+   *
+   * @param eventsFactory - events factory
+   * @param eventId - event id
+   * @param originalEventId - original event id
+   * @returns streaming suggestion
+   */
+  public async streamSuggestion(
+    eventsFactory: EventsFactoryInterface,
+    eventId: string,
+    originalEventId: string
+  ): Promise<ReturnType<typeof vercelAIApi.stream>> {
+    const event = await this.getEventOrThrow(eventsFactory, eventId, originalEventId);
+
+    const { prompt, nonce } = buildEventPrompt(event.payload);
+
+    return vercelAIApi.stream({
+      system: ctoInstruction + spotlightInstruction(nonce),
+      prompt,
+    });
+  }
+
+  /**
+   * Find the event repetition or throw if it doesn't exist. A thrown lookup
+   * failure is normalized to the same message too, so it doesn't leak details.
+   *
+   * @param eventsFactory - events factory
+   * @param eventId - event id
+   * @param originalEventId - original event id
+   * @returns {Promise<Event>} - event repetition
+   */
+  private async getEventOrThrow(
+    eventsFactory: EventsFactoryInterface,
+    eventId: string,
+    originalEventId: string
+  ): Promise<Event> {
+    let event: Event | null;
+
+    try {
+      event = await eventsFactory.getEventRepetition(eventId, originalEventId);
+    } catch {
+      throw new Error('Event not found');
+    }
+
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    return event;
   }
 }
 
