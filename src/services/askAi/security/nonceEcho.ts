@@ -1,9 +1,4 @@
 /**
- * Message returned to the user instead of a rejected suggestion
- */
-export const SUGGESTION_FALLBACK_MESSAGE = 'Could not generate an answer.';
-
-/**
  * True if the output reproduces the per-request nonce, which only the markers
  * wrapping the untrusted data contain.
  *

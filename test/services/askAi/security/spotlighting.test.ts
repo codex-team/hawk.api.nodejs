@@ -4,7 +4,7 @@ import {
   closeMarker,
   openMarker,
   spotlightInstruction
-} from '../../src/services/askAi/security/spotlighting';
+} from '../../../../src/services/askAi/security/spotlighting';
 
 /**
  * `jest.spyOn(crypto, ...)` cannot be used on a namespace import: the

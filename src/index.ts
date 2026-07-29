@@ -32,6 +32,7 @@ import ReleasesFactory from './models/releasesFactory';
 import RedisHelper from './redisHelper';
 import { appendSsoRoutes } from './sso';
 import { appendGitHubRoutes } from './integrations/github';
+import { appendAiAssistantRoutes } from './services/askAi';
 
 /**
  * Option to enable playground
@@ -271,6 +272,11 @@ class HawkAPI {
      * Note: This must be called after database connections are established
      */
     appendGitHubRoutes(this.app, sharedFactories);
+
+    /**
+     * Append AI assistant route to Express app
+     */
+    appendAiAssistantRoutes(this.app);
 
     await this.server.start();
     this.app.use(graphqlUploadExpress());

@@ -37,7 +37,7 @@ async function checkUserInWorkspaceByWorkspaceId(context: ResolverContextBase, w
  * @param context - request context
  * @param projectId - project id
  */
-async function checkUserInWorkspaceByProjectId(context: ResolverContextBase, projectId: string): Promise<void> {
+export async function checkUserInWorkspaceByProjectId(context: ResolverContextBase, projectId: string): Promise<void> {
   const userId = context.user.id;
 
   if (userId) {

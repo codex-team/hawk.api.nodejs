@@ -1,9 +1,16 @@
 import HawkCatcher from '@hawk.so/nodejs';
 import { vercelAIApi } from '../../integrations/vercel-ai/';
 import { buildEventPrompt, spotlightInstruction } from './security/spotlighting';
-import { echoesNonce, SUGGESTION_FALLBACK_MESSAGE } from './security/nonceEcho';
+import { echoesNonce } from './security/nonceEcho';
 import { ctoInstruction } from './instructions/cto';
 import { EventsFactoryInterface } from '../types';
+import type { Event } from '../types';
+import type { AiStream } from '@hawk.so/types';
+
+/**
+ * Message returned to the user instead of a rejected suggestion
+ */
+export const SUGGESTION_FALLBACK_MESSAGE = 'Could not generate an answer.';
 
 /**
  * Report that the nonce check rejected an answer.
@@ -26,7 +33,7 @@ function reportRejectedSuggestion(eventId: string, originalEventId: string): voi
 }
 
 /**
- * Service for interacting with AI
+ * Looks up an event and turns it into AI suggestion.
  */
 export class AskAiService {
   /**
@@ -40,12 +47,12 @@ export class AskAiService {
    * @param originalEventId - original event id
    * @returns {Promise<string>} - suggestion
    */
-  public async generateSuggestion(eventsFactory: EventsFactoryInterface, eventId: string, originalEventId: string): Promise<string> {
-    const event = await eventsFactory.getEventRepetition(eventId, originalEventId);
-
-    if (!event) {
-      throw new Error('Event not found');
-    }
+  public async generateSuggestion(
+    eventsFactory: EventsFactoryInterface,
+    eventId: string,
+    originalEventId: string
+  ): Promise<string> {
+    const event = await this.getEventOrThrow(eventsFactory, eventId, originalEventId);
 
     const { prompt, nonce } = buildEventPrompt(event.payload);
 
@@ -61,6 +68,60 @@ export class AskAiService {
     }
 
     return text;
+  }
+
+  /**
+   * Generate a streaming suggestion for the event.
+   *
+   * @param eventsFactory - events factory
+   * @param eventId - event id
+   * @param originalEventId - original event id
+   * @param signal - aborted when the answer is no longer wanted
+   * @returns {Promise<AiStream>} - suggestion, as the model writes it
+   */
+  public async streamSuggestion(
+    eventsFactory: EventsFactoryInterface,
+    eventId: string,
+    originalEventId: string,
+    signal: AbortSignal
+  ): Promise<AiStream> {
+    const event = await this.getEventOrThrow(eventsFactory, eventId, originalEventId);
+
+    const { prompt, nonce } = buildEventPrompt(event.payload);
+
+    return vercelAIApi.stream({
+      system: ctoInstruction + spotlightInstruction(nonce),
+      prompt,
+      signal,
+    });
+  }
+
+  /**
+   * Find the event. A failed lookup is reported as a missing one.
+   *
+   * @param eventsFactory - events factory
+   * @param eventId - event id
+   * @param originalEventId - original event id
+   * @returns {Promise<Event>} - event repetition
+   */
+  private async getEventOrThrow(
+    eventsFactory: EventsFactoryInterface,
+    eventId: string,
+    originalEventId: string
+  ): Promise<Event> {
+    let event: Event | null;
+
+    try {
+      event = await eventsFactory.getEventRepetition(eventId, originalEventId);
+    } catch {
+      throw new Error('Event not found');
+    }
+
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    return event;
   }
 }
 
