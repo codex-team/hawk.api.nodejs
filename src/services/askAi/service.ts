@@ -1,10 +1,12 @@
-import { vercelAIApi } from '../integrations/vercel-ai/';
-import { EventsFactoryInterface } from './types';
+import { vercelAIApi } from '../../integrations/vercel-ai/';
+import { eventSolvingInput } from './inputs/eventSolving';
+import { ctoInstruction } from './instructions/cto';
+import { EventsFactoryInterface } from '../types';
 
 /**
  * Service for interacting with AI
  */
-export class AIService {
+export class AskAiService {
   /**
    * Generate suggestion for the event
    *
@@ -20,8 +22,11 @@ export class AIService {
       throw new Error('Event not found');
     }
 
-    return vercelAIApi.generateSuggestion(event.payload);
+    return vercelAIApi.complete({
+      system: ctoInstruction,
+      prompt: eventSolvingInput(event.payload),
+    });
   }
 }
 
-export const aiService = new AIService();
+export const askAiService = new AskAiService();
