@@ -3,6 +3,9 @@ import type {
   PercentDiscountPromoCodeBenefit
 } from '@hawk.so/types';
 
+/**
+ * Default floor for percent-discount final price when benefit has no minFinalPrice
+ */
 const DEFAULT_MIN_FINAL_PRICE = 1;
 
 /**
@@ -50,10 +53,22 @@ function getPlanId(plan: PromoCodePricingPlan): string {
   throw new Error('Plan id is required for promo pricing');
 }
 
+/**
+ * Whether plan can be purchased (hidden plans are not sellable)
+ *
+ * @param plan - pricing plan
+ */
 function isPlanAvailableForPurchase(plan: PromoCodePricingPlan): boolean {
   return plan.isHidden !== true;
 }
 
+/**
+ * Whether promo benefit applies to the given plan.
+ * Empty/missing applicablePlanIds means all plans.
+ *
+ * @param benefit - promo benefit
+ * @param plan - pricing plan
+ */
 function isPlanApplicable(benefit: PromoCodePricingBenefit, plan: PromoCodePricingPlan): boolean {
   if (!benefit.applicablePlanIds || benefit.applicablePlanIds.length === 0) {
     return true;
@@ -64,6 +79,11 @@ function isPlanApplicable(benefit: PromoCodePricingBenefit, plan: PromoCodePrici
   return benefit.applicablePlanIds.some((applicablePlanId): boolean => applicablePlanId.toString() === planId);
 }
 
+/**
+ * Whether plan can receive a promo discount (paid + available for purchase)
+ *
+ * @param plan - pricing plan
+ */
 function isDiscountablePlan(plan: PromoCodePricingPlan): boolean {
   return plan.monthlyCharge > 0 && isPlanAvailableForPurchase(plan);
 }
@@ -72,6 +92,8 @@ function isDiscountablePlan(plan: PromoCodePricingPlan): boolean {
  * Calculates discounted price for one plan.
  *
  * Keep in sync with garage/src/utils/promoCodePricing.ts
+ *
+ * Unknown benefit types return the original price with isApplicable=false.
  *
  * @param benefit - promo benefit
  * @param plan - selected plan
