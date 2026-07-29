@@ -1,7 +1,11 @@
 name: Run Jest tests on push
 
 on:
-  - push
+  push:
+    branches-ignore:
+      - main
+      - master
+      - prod
 
 jobs:
   build:
