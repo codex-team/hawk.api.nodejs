@@ -50,7 +50,7 @@ function sanitizeDailyEventsPortion(dailyEventsPortion, projectId) {
     const backtraceChanged = !payload || payload.backtrace !== backtrace;
 
     if (!hasValidTitle) {
-      console.warn('[ProjectResolver.dailyEventsPortion] Missing event payload title. Fallback title applied.', {
+      console.warn('🔴 [ProjectResolver.dailyEventsPortion] Missing event payload title. Fallback title applied.', {
         projectId: projectId ? projectId.toString() : null,
         dailyEventId: dailyEvent && dailyEvent.id ? dailyEvent.id.toString() : null,
         dailyEventGroupHash: dailyEvent && dailyEvent.groupHash ? dailyEvent.groupHash.toString() : null,
