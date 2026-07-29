@@ -1,9 +1,10 @@
 import '../../src/env-test';
-import { generateText } from 'ai';
+import { generateText, streamText } from 'ai';
 import { vercelAIApi } from '../../src/integrations/vercel-ai/';
 
 jest.mock('ai', () => ({
   generateText: jest.fn(),
+  streamText: jest.fn(),
 }));
 
 describe('VercelAIApi', () => {
@@ -36,6 +37,27 @@ describe('VercelAIApi', () => {
         providerOptions: testProviderOptions,
       });
       expect(result).toBe('model output');
+    });
+  });
+
+  describe('stream', () => {
+    it('should forward the system/prompt pair to streamText and return its result synchronously', () => {
+      const streamResult = { toUIMessageStreamResponse: jest.fn() };
+
+      (streamText as jest.Mock).mockReturnValue(streamResult);
+
+      const result = vercelAIApi.stream({
+        system: testSystem,
+        prompt: testPrompt,
+      });
+
+      expect(streamText).toHaveBeenCalledWith({
+        model: testModelId,
+        system: testSystem,
+        prompt: testPrompt,
+        providerOptions: testProviderOptions,
+      });
+      expect(result).toBe(streamResult);
     });
   });
 });

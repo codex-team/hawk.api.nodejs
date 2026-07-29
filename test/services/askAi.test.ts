@@ -10,6 +10,7 @@ import { SUGGESTION_FALLBACK_MESSAGE } from '../../src/services/askAi/security/n
 jest.mock('../../src/integrations/vercel-ai/', () => ({
   vercelAIApi: {
     complete: jest.fn(),
+    stream: jest.fn(),
   },
 }));
 
@@ -21,7 +22,7 @@ jest.mock('@hawk.so/nodejs', () => ({
 /**
  * Extract the per-request nonce from the prompt handed to the transport
  *
- * @param prompt - prompt captured from the transport's `complete` call
+ * @param prompt - prompt captured from the transport's `complete`/`stream` call
  * @returns {string} nonce carried by the untrusted-data marker
  */
 function nonceFromPrompt(prompt: string): string {
@@ -99,6 +100,18 @@ describe('AskAiService', () => {
       expect(vercelAIApi.complete).not.toHaveBeenCalled();
     });
 
+    it('should normalize a thrown lookup failure to Event not found', async () => {
+      const eventsFactory = {
+        getEventRepetition: jest.fn().mockRejectedValue(new Error(`Cant find event repetition for repetitionId: ${testEventId}`)),
+      };
+
+      await expect(
+        askAiService.generateSuggestion(eventsFactory, testEventId, testOriginalEventId)
+      ).rejects.toThrow('Event not found');
+
+      expect(vercelAIApi.complete).not.toHaveBeenCalled();
+    });
+
     it('should return the fallback and report the event ids when the answer echoes the nonce', async () => {
       respondWithNonce();
 
@@ -126,6 +139,30 @@ describe('AskAiService', () => {
 
       expect(error.message).not.toContain('Service marker');
       expect(JSON.stringify(context)).not.toContain('Service marker');
+    });
+  });
+
+  describe('streamSuggestion', () => {
+    it('should spotlight the event with a nonce the system instruction repeats, and return the stream unchanged', async () => {
+      const streamResult = { toUIMessageStreamResponse: jest.fn() };
+
+      (vercelAIApi.stream as jest.Mock).mockReturnValue(streamResult);
+
+      const result = await askAiService.streamSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId);
+      const args = (vercelAIApi.stream as jest.Mock).mock.calls[0][0] as { system: string; prompt: string };
+
+      expect(args.prompt).toContain(JSON.stringify(testPayload));
+      expect(args.system.startsWith(ctoInstruction)).toBe(true);
+      expect(args.system).toContain(nonceFromPrompt(args.prompt));
+      expect(result).toBe(streamResult);
+    });
+
+    it('should throw Event not found when the events factory returns nothing', async () => {
+      await expect(
+        askAiService.streamSuggestion(createEventsFactory(null), testEventId, testOriginalEventId)
+      ).rejects.toThrow('Event not found');
+
+      expect(vercelAIApi.stream).not.toHaveBeenCalled();
     });
   });
 });
