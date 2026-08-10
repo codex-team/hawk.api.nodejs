@@ -2,6 +2,7 @@ import promClient from 'prom-client';
 import { MongoClient, MongoClientOptions } from 'mongodb';
 import { Effect, sgr } from '../utils/ansi';
 import HawkCatcher from '@hawk.so/nodejs';
+import { notifySlowOperation, truncateText } from './slowOperationAlert';
 
 /**
  * MongoDB command duration histogram
@@ -156,6 +157,7 @@ function colorizeDuration(duration: number): string {
  */
 interface StoredCommandInfo {
   formattedCommand: string;
+  plainFormattedCommand: string;
   timestamp: number;
 }
 
@@ -202,7 +204,8 @@ setInterval(cleanupStaleCommandInfo, COMMAND_INFO_TIMEOUT_MS);
  */
 function storeCommandInfo(event: any): void {
   const collectionRaw = extractCollectionFromCommand(event.command, event.commandName);
-  const collection = sgr(normalizeCollectionName(collectionRaw), Effect.ForegroundGreen);
+  const collectionName = normalizeCollectionName(collectionRaw);
+  const collection = sgr(collectionName, Effect.ForegroundGreen);
   const db = event.databaseName || 'unknown db';
   const commandName = sgr(event.commandName, Effect.ForegroundRed);
   const filter = event.command.filter;
@@ -212,11 +215,12 @@ function storeCommandInfo(event: any): void {
   const params = filter || update || pipeline;
   const paramsStr = formatParams(params);
   const projectionStr = projection ? ` projection: ${formatParams(projection)}` : '';
-
+  const plainFormattedCommand = `[${event.requestId}] ${db}.${collectionName}.${event.commandName}(${paramsStr})${projectionStr}`;
   const formattedCommand = `[${event.requestId}] ${db}.${collection}.${commandName}(${paramsStr})${projectionStr}`;
 
   commandInfoMap.set(event.requestId, {
     formattedCommand,
+    plainFormattedCommand,
     timestamp: Date.now(),
   });
 }
@@ -232,9 +236,24 @@ function logCommandSucceeded(event: any): void {
 
   if (info) {
     console.log(`${info.formattedCommand} ✓ ${durationStr}`);
+    notifySlowOperation(
+      `Slow MongoDB command: ${event.commandName}`,
+      event.duration,
+      {
+        requestId: event.requestId,
+        command: truncateText(info.plainFormattedCommand),
+      }
+    );
     commandInfoMap.delete(event.requestId);
   } else {
     console.log(`[${event.requestId}] ${event.commandName} ✓ ${durationStr}`);
+    notifySlowOperation(
+      `Slow MongoDB command: ${event.commandName}`,
+      event.duration,
+      {
+        requestId: event.requestId,
+      }
+    );
   }
 }
 
@@ -250,9 +269,26 @@ function logCommandFailed(event: any): void {
 
   if (info) {
     console.error(`${info.formattedCommand} ✗ ${errorMsg} ${durationStr}`);
+    notifySlowOperation(
+      `Slow MongoDB command: ${event.commandName}`,
+      event.duration,
+      {
+        requestId: event.requestId,
+        command: truncateText(info.plainFormattedCommand),
+        error: truncateText(errorMsg, 500),
+      }
+    );
     commandInfoMap.delete(event.requestId);
   } else {
     console.error(`[${event.requestId}] ${event.commandName} ✗ ${errorMsg} ${durationStr}`);
+    notifySlowOperation(
+      `Slow MongoDB command: ${event.commandName}`,
+      event.duration,
+      {
+        requestId: event.requestId,
+        error: truncateText(errorMsg, 500),
+      }
+    );
   }
 }
 
