@@ -126,7 +126,9 @@ export default {
         isCardLinkOperation = true;
       }
 
-      // Calculate next payment date
+      /**
+       * Calculate next payment date
+       */
       const lastChargeDate = workspace.lastChargeDate ? new Date(workspace.lastChargeDate) : now;
       const nextPaymentDate = isCardLinkOperation ? new Date(lastChargeDate) : new Date(now);
 
