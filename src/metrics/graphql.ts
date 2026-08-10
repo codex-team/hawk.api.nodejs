@@ -3,7 +3,7 @@ import { ApolloServerPlugin, GraphQLRequestContext, GraphQLRequestListener } fro
 import { GraphQLError } from 'graphql';
 import HawkCatcher from '@hawk.so/nodejs';
 import { notifySlowOperation } from './slowOperationAlert';
-import { buildGraphqlRequestContext } from './graphqlRequestDetails';
+import { buildGraphqlRequestContext, formatGraphqlErrorsForAlert } from './graphqlRequestDetails';
 /**
  * GraphQL operation duration histogram
  * Tracks GraphQL operation duration by operation name and type
@@ -103,7 +103,7 @@ export const graphqlMetricsPlugin: ApolloServerPlugin = {
             operationName,
             ...buildGraphqlRequestContext(ctx),
             ...(hasErrors && {
-              errors: ctx.errors!.map((error: GraphQLError) => error.message),
+              errors: formatGraphqlErrorsForAlert(ctx.errors!),
             }),
           }
         );

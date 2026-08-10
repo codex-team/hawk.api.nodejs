@@ -1,6 +1,10 @@
 import { GraphQLRequestContext } from 'apollo-server-plugin-base';
+import { GraphQLError } from 'graphql';
 import { ResolverContextBase } from '../types/graphql';
 import { truncateText } from './slowOperationAlert';
+
+const MAX_ALERT_ERRORS = 10;
+const MAX_ALERT_ERRORS_LENGTH = 1200;
 
 const SENSITIVE_VARIABLE_KEYS = new Set([
   'password',
@@ -51,8 +55,15 @@ function sanitizeVariableValue(value: unknown, key: string): unknown {
  * @param variables - GraphQL request variables
  * @returns sanitized variables
  */
-function sanitizeVariables(variables: Record<string, unknown> | undefined): Record<string, unknown> {
-  if (!variables) {
+function sanitizeVariables(
+  variables: Record<string, unknown> | null | undefined
+): Record<string, unknown> {
+  /**
+   * Null / non-object values are treated as empty — many clients send
+   * `variables: null` for operations without variables, and arrays are not a
+   * valid GraphQL variables map.
+   */
+  if (variables == null || typeof variables !== 'object' || Array.isArray(variables)) {
     return {};
   }
 
@@ -98,6 +109,23 @@ function collectHighlightedIds(
 }
 
 /**
+ * Flatten GraphQL errors into a capped string for Hawk alert context.
+ * sanitizeContext() only truncates top-level strings, not values nested in arrays.
+ * Reserves space for an omitted-count suffix and truncateText()'s ellipsis.
+ *
+ * @param errors - GraphQL errors from the request
+ * @returns flattened and truncated error messages
+ */
+export function formatGraphqlErrorsForAlert(errors: readonly GraphQLError[]): string {
+  const messages = errors.slice(0, MAX_ALERT_ERRORS).map((error) => error.message);
+  const omittedCount = errors.length - messages.length;
+  const omittedSuffix = omittedCount > 0 ? `; …(+${omittedCount} more)` : '';
+  const maxMessagesLength = Math.max(0, MAX_ALERT_ERRORS_LENGTH - omittedSuffix.length - 1);
+
+  return `${truncateText(messages.join('; '), maxMessagesLength)}${omittedSuffix}`;
+}
+
+/**
  * Build request context for slow GraphQL operation alerts.
  *
  * @param ctx - GraphQL request context
@@ -105,7 +133,9 @@ function collectHighlightedIds(
  */
 export function buildGraphqlRequestContext(ctx: GraphQLRequestContext): Record<string, unknown> {
   const context = ctx.context as ResolverContextBase | undefined;
-  const variables = sanitizeVariables(ctx.request.variables as Record<string, unknown> | undefined);
+  const variables = sanitizeVariables(
+    ctx.request.variables as Record<string, unknown> | null | undefined
+  );
   const highlightedIds = collectHighlightedIds(variables);
   const alertContext: Record<string, unknown> = {};
 
