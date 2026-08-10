@@ -163,7 +163,7 @@ card link operation: ${isCardLinkOperation}
 amount: ${+plan.monthlyCharge} RUB
 last charge date: ${workspace.lastChargeDate?.toISOString()}
 next payment date: ${nextPaymentDate.toISOString()}
-workspace id: ${workspace._id.toString()}
+workspace: «${workspace.name}» (${workspace._id.toString()})
 debug: ${Boolean(workspace.isDebug)}`
         , TelegramBotURLs.Money)
         .catch(e => console.error('Error while sending message to Telegram: ' + e));
