@@ -202,7 +202,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    telegram.sendMessage(`🤗 [Billing / Check] All checks passed successfully «${workspace.name}»`, TelegramBotURLs.Money)
+    telegram.sendMessage(`🤗 [Billing / Check] All checks passed successfully ${this.formatWorkspaceForTelegram(workspace)}`, TelegramBotURLs.Money)
       .catch(e => console.error('Error while sending message to Telegram: ' + e));
 
     HawkCatcher.send(new Error('[Billing / Check] All checks passed successfully'), body as any);
@@ -425,7 +425,7 @@ export default class CloudPaymentsWebhooks {
 
         this.handleSendingToTelegramError(telegram.sendMessage(`✅ [Billing / Pay] Card linked
 
-workspace id: ${workspace._id}
+${this.formatWorkspaceForTelegram(workspace)}
 date of operation: ${body.DateTime}
 first payment date: ${data.cloudPayments?.recurrent.startDate}
 card link charge: ${+body.Amount} ${body.Currency}
@@ -451,14 +451,14 @@ plan monthly charge: ${data.cloudPayments?.recurrent.amount} ${body.Currency}`
 
 amount: ${+body.Amount} ${body.Currency}
 next payment date: ${data.cloudPayments?.recurrent.startDate}
-workspace id: ${workspace._id}
+${this.formatWorkspaceForTelegram(workspace)}
 date of operation: ${body.DateTime}
 subscription id: ${body.SubscriptionId}`;
         } else {
           messageText = `✅ [Billing / Pay] New Recurrent payment
 
 amount: ${+body.Amount} ${body.Currency}
-workspace id: ${workspace._id}
+${this.formatWorkspaceForTelegram(workspace)}
 date of operation: ${body.DateTime}
 subscription id: ${body.SubscriptionId}`;
         }
@@ -491,10 +491,12 @@ subscription id: ${body.SubscriptionId}`;
 
     console.log('💎 CloudPayments /fail request', body);
 
+    const failReasonLine = `reason: ${body.Reason} (${body.ReasonCode})`;
+
     try {
       data = await this.getDataFromRequest(req);
     } catch (e) {
-      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Invalid request`, body);
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Invalid request\n${failReasonLine}`, body);
 
       return;
     }
@@ -508,7 +510,7 @@ subscription id: ${body.SubscriptionId}`;
      */
 
     if (!data.workspaceId || !data.userId || !data.tariffPlanId) {
-      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No workspace or user id or plan id in request body`, body);
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No workspace or user id or plan id in request body\n${failReasonLine}`, body);
 
       return;
     }
@@ -520,7 +522,7 @@ subscription id: ${body.SubscriptionId}`;
     } catch (e) {
       const error = e as Error;
 
-      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] ${error.toString()}`, body);
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] ${error.toString()}\n${failReasonLine}`, body);
 
       return;
     }
@@ -530,7 +532,7 @@ subscription id: ${body.SubscriptionId}`;
     } catch (e) {
       const error = e as Error;
 
-      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Can't update business operation status ${error.toString()}`, body);
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Can't update business operation status ${error.toString()}\n${failReasonLine}`, body);
 
       return;
     }
@@ -548,12 +550,18 @@ subscription id: ${body.SubscriptionId}`;
     } catch (e) {
       const error = e as Error;
 
-      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Error while sending notification to the user ${error.toString()}`, body);
+      this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Error while sending notification to the user ${error.toString()}\n${failReasonLine}`, body);
 
       return;
     }
 
-    this.handleSendingToTelegramError(telegram.sendMessage(`❌ [Billing / Fail] Transaction failed for «${workspace.name}»`, TelegramBotURLs.Money));
+    this.handleSendingToTelegramError(telegram.sendMessage(`❌ [Billing / Fail] Transaction failed for ${this.formatWorkspaceForTelegram(workspace)}
+
+amount: ${+body.Amount} ${body.Currency}
+${failReasonLine}
+transaction id: ${body.TransactionId}
+subscription id: ${body.SubscriptionId || 'none'}`
+    , TelegramBotURLs.Money));
 
     HawkCatcher.send(new Error('[Billing / Fail] Transaction failed'), body as any);
 
@@ -577,11 +585,21 @@ subscription id: ${body.SubscriptionId}`;
 
     const emoji = [SubscriptionStatus.CANCELLED, SubscriptionStatus.REJECTED].includes(body.Status) ? '❌' : '✅';
 
+    let workspace: WorkspaceModel | null = null;
+    let workspaceLookupError: Error | null = null;
+
+    try {
+      workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
+    } catch (e) {
+      workspaceLookupError = e as Error;
+    }
+
     this.handleSendingToTelegramError(telegram.sendMessage(`${emoji} [Billing / Recurrent] New recurrent event
 
 amount: ${+body.Amount} ${body.Currency}
 next payment date: ${body.NextTransactionDate}
-workspace id: ${body.AccountId}
+${this.formatWorkspaceForTelegram(workspace)}
+user id: ${body.AccountId}
 subscription id: ${body.Id}
 status: ${body.Status}`
     , TelegramBotURLs.Money));
@@ -591,18 +609,8 @@ status: ${body.Status}`
     switch (body.Status) {
       case SubscriptionStatus.CANCELLED:
       case SubscriptionStatus.REJECTED: {
-        let workspace;
-
-        try {
-          /**
-           * If there is a workspace with subscription id then subscription was cancelled via CloudPayments admin panel (or other no garage way)
-           * We need to remove subscription id from workspace
-           */
-          workspace = await context.factories.workspacesFactory.findBySubscriptionId(body.Id);
-        } catch (e) {
-          const error = e as Error;
-
-          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't get data from database: ${error.toString()}`, {
+        if (workspaceLookupError) {
+          this.sendError(res, RecurrentCodes.SUCCESS, `[Billing / Recurrent] Can't get data from database: ${workspaceLookupError.toString()}`, {
             body,
             workspace,
           });
@@ -624,6 +632,10 @@ status: ${body.Status}`
         }
 
         try {
+          /**
+           * Subscription was cancelled via CloudPayments admin panel (or other no-garage way).
+           * Remove subscription id from workspace.
+           */
           await workspace.setSubscriptionId(null);
         } catch (e) {
           const error = e as Error;
@@ -639,6 +651,23 @@ status: ${body.Status}`
     res.json({
       code: RecurrentCodes.SUCCESS,
     } as RecurrentResponse);
+  }
+
+  /**
+   * Formats workspace identity for Telegram money notifications
+   *
+   * @param workspace - workspace model or null when it was not found
+   */
+  private formatWorkspaceForTelegram(workspace: Pick<WorkspaceModel, '_id' | 'name'> | null): string {
+    if (!workspace) {
+      return 'workspace: unknown';
+    }
+
+    if (workspace.name) {
+      return `workspace: «${workspace.name}» (${workspace._id})`;
+    }
+
+    return `workspace id: ${workspace._id}`;
   }
 
   /**
