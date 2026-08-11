@@ -33,6 +33,7 @@ import RedisHelper from './redisHelper';
 import { appendSsoRoutes } from './sso';
 import { appendGitHubRoutes } from './integrations/github';
 import { appendAiAssistantRoutes } from './services/askAi';
+import { appendMCPRoutes } from './integrations/mcp';
 
 /**
  * Option to enable playground
@@ -277,6 +278,7 @@ class HawkAPI {
      * Append AI assistant route to Express app
      */
     appendAiAssistantRoutes(this.app);
+    appendMCPRoutes(this.app, sharedFactories);
 
     await this.server.start();
     this.app.use(graphqlUploadExpress());
