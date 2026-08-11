@@ -42,13 +42,5 @@ export const createMCPRouter = (factories: ContextFactories): express.Router => 
     }
   });
 
-  router.post("/", async (req, res, next) => {
-    try {
-      await transport.handleRequest(req, res, req.body);
-    } catch (error) {
-      next(error);
-    }
-  })
-
   return router;
 };
