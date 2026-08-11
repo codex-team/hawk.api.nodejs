@@ -32,6 +32,7 @@ import ReleasesFactory from './models/releasesFactory';
 import RedisHelper from './redisHelper';
 import { appendSsoRoutes } from './sso';
 import { appendGitHubRoutes } from './integrations/github';
+import { appendMCPRoutes } from './integrations/mcp';
 
 /**
  * Option to enable playground
@@ -271,6 +272,8 @@ class HawkAPI {
      * Note: This must be called after database connections are established
      */
     appendGitHubRoutes(this.app, sharedFactories);
+
+    appendMCPRoutes(this.app, sharedFactories);
 
     await this.server.start();
     this.app.use(graphqlUploadExpress());
