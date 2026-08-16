@@ -232,7 +232,9 @@ describe('AI stream routes - GET /integration/ai/stream', () => {
 
   it('should stream the AI suggestion as a UI message stream with the gateway status and headers', async () => {
     mockStreamSuggestion.mockResolvedValue({
-      pipeUIMessageStreamToResponse: (res: NodeJS.WritableStream & { writeHead: Function }) => {
+      pipeUIMessageStreamToResponse: (res: NodeJS.WritableStream & { writeHead: Function }, options?: { sendReasoning?: boolean }) => {
+        expect(options).toEqual({ sendReasoning: false });
+
         res.writeHead(200, { 'content-type': 'text/event-stream' });
         res.write('data: {"type":"text-delta","id":"0","delta":"Answer"}\n\n');
         res.end();

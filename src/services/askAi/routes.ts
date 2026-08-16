@@ -95,7 +95,8 @@ export function createAiStreamRouter(): express.Router {
         return;
       }
 
-      result.pipeUIMessageStreamToResponse(res);
+      /** Reasoning is neither scanned for the nonce nor rendered anywhere */
+      result.pipeUIMessageStreamToResponse(res, { sendReasoning: false });
     } catch (error) {
       next(error);
     }
