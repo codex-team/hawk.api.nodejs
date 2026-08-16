@@ -54,10 +54,9 @@ export interface StreamGuard {
  * next one's id. Its tail is kept as scanning context instead, without which a
  * nonce split across two blocks would pass unseen.
  *
- * On rejection the rest of the answer is replaced by
- * {@link SUGGESTION_FALLBACK_MESSAGE}, emitted once. Text already sent cannot be
- * taken back, and the holdback cuts it at an arbitrary character, so the client
- * is left with a truncated prefix followed by the fallback.
+ * On rejection nothing more is released and {@link SUGGESTION_FALLBACK_MESSAGE}
+ * is returned once, for the transport to deliver as it sees fit. Text already
+ * sent cannot be taken back, and the holdback cuts it at an arbitrary character.
  *
  * @param nonce - per-request nonce used in the prompt markers
  * @returns {StreamGuard} guard for a single stream, not reusable

@@ -239,6 +239,27 @@ describe('VercelAIApi', () => {
       expect(emitted).toEqual([ 'tail' ]);
     });
 
+    it('should deliver a rejection as an error part instead of more text', async () => {
+      const guard = stubGuard([
+        {
+          emit: 'Could not generate an answer.',
+          rejected: true,
+        },
+        {
+          emit: '',
+          rejected: true,
+        },
+      ]);
+
+      const { parts } = await runTransformRaw(guard, [delta('first'), delta('second')]);
+
+      expect(parts.filter((part) => part.type === 'text-delta')).toEqual([]);
+      expect(parts.filter((part) => part.type === 'error')).toEqual([ {
+        type: 'error',
+        error: new Error('Could not generate an answer.'),
+      } ]);
+    });
+
     it('should report a rejection once even when the guard keeps reporting it', async () => {
       const onReject = jest.fn();
       const guard = stubGuard([

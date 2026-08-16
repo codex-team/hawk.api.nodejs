@@ -58,7 +58,10 @@ function guardedTransform<TOOLS extends ToolSet>(guard: StreamGuard, onReject: (
     let rejectReported = false;
 
     /**
-     * Forward the guard's verdict downstream, reporting a rejection at most once
+     * Forward the guard's verdict downstream, reporting a rejection at most once.
+     *
+     * A rejection travels as an error part rather than more text, so the client
+     * can tell it apart from the answer and drop what it has already rendered.
      *
      * @param verdict - what the guard allows to be sent
      * @param controller - transform stream controller
@@ -69,18 +72,27 @@ function guardedTransform<TOOLS extends ToolSet>(guard: StreamGuard, onReject: (
       controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
       id: string | null
     ): void => {
+      if (verdict.rejected) {
+        if (!rejectReported) {
+          rejectReported = true;
+
+          controller.enqueue({
+            type: 'error',
+            error: new Error(verdict.emit),
+          } as TextStreamPart<TOOLS>);
+
+          onReject();
+        }
+
+        return;
+      }
+
       if (verdict.emit && id !== null) {
         controller.enqueue({
           type: 'text-delta',
           id,
           text: verdict.emit,
         } as TextStreamPart<TOOLS>);
-      }
-
-      if (verdict.rejected && !rejectReported) {
-        rejectReported = true;
-
-        onReject();
       }
     };
 
