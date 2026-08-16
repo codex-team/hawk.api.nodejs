@@ -230,11 +230,11 @@ describe('AI stream routes - GET /integration/ai/stream', () => {
     expect(response.body.error).toContain('projectId');
   });
 
-  it('should stream the AI suggestion as plain text with the gateway status and headers', async () => {
+  it('should stream the AI suggestion as a UI message stream with the gateway status and headers', async () => {
     mockStreamSuggestion.mockResolvedValue({
-      pipeTextStreamToResponse: (res: NodeJS.WritableStream & { writeHead: Function }) => {
-        res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
-        res.write('Answer');
+      pipeUIMessageStreamToResponse: (res: NodeJS.WritableStream & { writeHead: Function }) => {
+        res.writeHead(200, { 'content-type': 'text/event-stream' });
+        res.write('data: {"type":"text-delta","id":"0","delta":"Answer"}\n\n');
         res.end();
       },
     });
@@ -249,7 +249,8 @@ describe('AI stream routes - GET /integration/ai/stream', () => {
     expect(mockGetEventsFactory).toHaveBeenCalledWith(expect.objectContaining({ user: expect.objectContaining({ id: userId }) }), projectId);
     expect(mockStreamSuggestion).toHaveBeenCalledWith({}, eventId, originalEventId);
     expect(response.status).toBe(200);
-    expect(response.headers['content-type']).toBe('text/plain; charset=utf-8');
-    expect(response.body).toBe('Answer');
+    expect(response.headers['content-type']).toBe('text/event-stream');
+    expect(response.body).toContain('"type":"text-delta"');
+    expect(response.body).toContain('Answer');
   });
 });

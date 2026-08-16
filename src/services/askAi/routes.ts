@@ -95,7 +95,7 @@ export function createAiStreamRouter(): express.Router {
         return;
       }
 
-      result.pipeTextStreamToResponse(res);
+      result.pipeUIMessageStreamToResponse(res);
     } catch (error) {
       next(error);
     }
