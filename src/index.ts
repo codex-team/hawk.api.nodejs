@@ -278,6 +278,11 @@ class HawkAPI {
      * Append AI assistant route to Express app
      */
     appendAiAssistantRoutes(this.app);
+
+    /**
+     * Append MCP integration routes to Express app using shared factories
+     * Note: This must be called after database connections are established
+     */
     appendMCPRoutes(this.app, sharedFactories);
 
     await this.server.start();
