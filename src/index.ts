@@ -273,6 +273,10 @@ class HawkAPI {
      */
     appendGitHubRoutes(this.app, sharedFactories);
 
+    /**
+     * Append MCP integration routes to Express app using shared factories
+     * Note: This must be called after database connections are established
+     */
     appendMCPRoutes(this.app, sharedFactories);
 
     await this.server.start();
