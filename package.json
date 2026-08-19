@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.5.13",
+  "version": "1.5.14",
   "main": "index.ts",
   "license": "BUSL-1.1",
   "scripts": {
@@ -43,6 +43,8 @@
     "@graphql-tools/utils": "^8.9.0",
     "@hawk.so/nodejs": "^3.3.2",
     "@hawk.so/types": "^0.5.9",
+    "@modelcontextprotocol/node": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@n1ru4l/json-patch-plus": "^0.2.0",
     "@node-saml/node-saml": "^5.0.1",
     "@octokit/oauth-methods": "^4.0.0",
