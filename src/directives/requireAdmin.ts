@@ -80,6 +80,14 @@ export default function requireAdminDirective(directiveName = 'requireAdmin') {
                 await checkByWorkspaceId(context, args.workspaceId);
               }
 
+              if (args.input?.workspaceId) {
+                await checkByWorkspaceId(context, args.input.workspaceId);
+              }
+
+              if (args.projectId) {
+                await checkByProjectId(context, args.projectId);
+              }
+
               if (args.input?.projectId) {
                 await checkByProjectId(context, args.input.projectId);
               }

@@ -49,7 +49,7 @@ type ComposePaymentPlanInfo {
   name: String!
 
   """
-  Monthly charge for plan
+  Monthly charge for plan (full tariff price)
   """
   monthlyCharge: Int!
 }
@@ -235,6 +235,91 @@ input ComposePaymentInput {
   Whether card should be saved for future recurrent payments
   """
   shouldSaveCard: Boolean
+
+  """
+  Promo code value entered by user
+  """
+  promoCode: String
+
+  """
+  UTM parameters captured when promo code was applied
+  """
+  promoUtm: UtmInput
+}
+
+"""
+Input for promo code verification
+"""
+input VerifyPromoCodeInput {
+  """
+  Workspace id for which promo code is applied
+  """
+  workspaceId: ID!
+
+  """
+  Promo code value entered by user
+  """
+  value: String!
+}
+
+"""
+Promo code benefit type
+"""
+enum PromoCodeBenefitType {
+  grant_plan
+  percent_discount
+  amount_discount
+  fixed_price
+}
+
+"""
+Verified promo code data for client-side price calculation
+"""
+type VerifyPromoCodeResponse {
+  """
+  Normalized promo code value
+  """
+  value: String!
+
+  """
+  Benefit type
+  """
+  benefitType: PromoCodeBenefitType!
+
+  """
+  Discount percent for percent promos
+  """
+  percent: Int
+
+  """
+  Fixed price amount
+  """
+  amount: Int
+
+  """
+  Minimum final price after percent discount
+  """
+  minFinalPrice: Int
+
+  """
+  Plan ids this promo can be applied to
+  """
+  applicablePlanIds: [ID!]
+}
+
+"""
+Promo data returned with composePayment
+"""
+type ComposePaymentPromo {
+  """
+  Plan price before promo
+  """
+  originalAmount: Int!
+
+  """
+  Plan price after promo
+  """
+  finalAmount: Int!
 }
 
 """
@@ -250,6 +335,11 @@ type ComposePaymentResponse {
   Selected plan info
   """
   plan: ComposePaymentPlanInfo!
+
+  """
+  Amount to charge for this payment (card validation amount, promo price, or full plan price)
+  """
+  chargeAmount: Int!
 
   """
   True if only card linking validation payment is expected
@@ -275,6 +365,11 @@ type ComposePaymentResponse {
   CloudPayments public id (merchant identifier for payment widget)
   """
   cloudPaymentsPublicId: String!
+
+  """
+  Applied promo code data
+  """
+  promo: ComposePaymentPromo
 }
 
 
@@ -326,6 +421,11 @@ type PayWithCardResponse {
 }
 
 extend type Mutation {
+  """
+  Verifies promo code for workspace admin and returns benefit data
+  """
+  verifyPromoCode(input: VerifyPromoCodeInput!): VerifyPromoCodeResponse! @requireAdmin
+
   """
   Remove card
   """

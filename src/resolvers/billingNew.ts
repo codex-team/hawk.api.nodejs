@@ -5,13 +5,17 @@ import UserModel from '../models/user';
 import {
   BusinessOperationPayloadType,
   PayloadOfDepositByUser,
-  PayloadOfWorkspacePlanPurchase
+  PayloadOfWorkspacePlanPurchase,
+  Utm
 } from '@hawk.so/types';
 import checksumService from '../utils/checksumService';
 import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
+import PromoCodeService, { PromoCodeVerifyResult, PromoCodeError, PromoCodeErrorCode, buildPaymentPromoData } from '../services/promoCodeService';
+import type { PaymentPromoData } from '../billing/types/paymentData';
+import { sanitizeUtmParams } from '../utils/utm/utm';
 
 /**
  * The amount we will debit to confirm the subscription.
@@ -27,7 +31,32 @@ interface ComposePaymentArgs {
     workspaceId: string;
     tariffPlanId: string;
     shouldSaveCard?: boolean;
+    promoCode?: string;
+    promoUtm?: Utm;
   };
+}
+
+/**
+ * Input data for promo code verification mutation.
+ */
+interface VerifyPromoCodeArgs {
+  input: {
+    workspaceId: string;
+    value: string;
+  };
+}
+
+/**
+ * Converts internal promo errors to public GraphQL errors.
+ *
+ * @param error - error to convert
+ */
+function throwPromoCodeGraphQLError(error: unknown): never {
+  if (error instanceof PromoCodeError) {
+    throw new UserInputError(error.code);
+  }
+
+  throw new UserInputError(PromoCodeErrorCode.VerifyFailed);
 }
 
 /**
@@ -82,13 +111,19 @@ export default {
     ): Promise<{
       invoiceId: string;
       plan: { id: string; name: string; monthlyCharge: number };
+      chargeAmount: number;
       isCardLinkOperation: boolean;
       currency: string;
       checksum: string;
       nextPaymentDate: Date;
       cloudPaymentsPublicId: string;
+      promo?: {
+        originalAmount: number;
+        finalAmount: number;
+      };
     }> {
-      const { workspaceId, tariffPlanId, shouldSaveCard } = input;
+      const { workspaceId, tariffPlanId, shouldSaveCard, promoCode } = input;
+      const promoUtm = sanitizeUtmParams(input.promoUtm);
 
       if (!workspaceId || !tariffPlanId || !user?.id) {
         throw new UserInputError('No workspaceId, tariffPlanId or user id provided');
@@ -126,6 +161,26 @@ export default {
         isCardLinkOperation = true;
       }
 
+      let tariffChargeAmount = plan.monthlyCharge;
+      let paymentPromoChecksum: PaymentPromoData | undefined;
+      let composePaymentPromo;
+
+      if (promoCode && !isCardLinkOperation) {
+        try {
+          const promoCodeService = new PromoCodeService(factories);
+          const pricing = await promoCodeService.getPricingForPlan(promoCode, user.id, workspace._id.toString(), plan);
+
+          tariffChargeAmount = pricing.finalAmount;
+          paymentPromoChecksum = buildPaymentPromoData(pricing.promoCode._id.toString(), promoUtm);
+          composePaymentPromo = {
+            originalAmount: pricing.originalAmount,
+            finalAmount: pricing.finalAmount,
+          };
+        } catch (error) {
+          throwPromoCodeGraphQLError(error);
+        }
+      }
+
       /**
        * Calculate next payment date
        */
@@ -151,9 +206,12 @@ export default {
           tariffPlanId: plan._id.toString(),
           shouldSaveCard: Boolean(shouldSaveCard),
           nextPaymentDate: nextPaymentDate.toISOString(),
+          ...(paymentPromoChecksum ? { promo: paymentPromoChecksum } : {}),
         };
 
       const checksum = await checksumService.generateChecksum(checksumData);
+
+      const chargeAmount = isCardLinkOperation ? AMOUNT_FOR_CARD_VALIDATION : tariffChargeAmount;
 
       /**
        * Send info to Telegram (non-blocking)
@@ -162,7 +220,7 @@ export default {
         .sendMessage(`👀 [Billing / Compose payment]
 
 card link operation: ${isCardLinkOperation}
-amount: ${+plan.monthlyCharge} RUB
+amount: ${chargeAmount} RUB
 last charge date: ${workspace.lastChargeDate?.toISOString()}
 next payment date: ${nextPaymentDate.toISOString()}
 workspace: «${workspace.name}» (${workspace._id.toString()})
@@ -177,11 +235,13 @@ debug: ${Boolean(workspace.isDebug)}`
           name: plan.name,
           monthlyCharge: plan.monthlyCharge,
         },
+        chargeAmount,
         isCardLinkOperation,
         currency: 'RUB',
         checksum,
         nextPaymentDate,
         cloudPaymentsPublicId: process.env.CLOUDPAYMENTS_PUBLIC_ID || '',
+        promo: composePaymentPromo,
       };
     },
   },
@@ -255,6 +315,36 @@ debug: ${Boolean(workspace.isDebug)}`
 
   Mutation: {
     /**
+     * Verifies promo code for workspace and returns benefit data for client-side pricing.
+     *
+     * Access check is handled by @requireAdmin on GraphQL schema.
+     *
+     * @param _obj - parent object
+     * @param input - promo code input
+     * @param user - current authorized user
+     * @param factories - factories for working with models
+     */
+    async verifyPromoCode(
+      _obj: undefined,
+      { input }: VerifyPromoCodeArgs,
+      { user, factories }: ResolverContextWithUser
+    ): Promise<PromoCodeVerifyResult> {
+      const workspace = await factories.workspacesFactory.findById(input.workspaceId);
+
+      if (!workspace) {
+        throw new UserInputError(PromoCodeErrorCode.Invalid);
+      }
+
+      const promoCodeService = new PromoCodeService(factories);
+
+      try {
+        return await promoCodeService.verifyPromoCode(input.value, user.id, input.workspaceId);
+      } catch (error) {
+        throwPromoCodeGraphQLError(error);
+      }
+    },
+
+    /**
      * Mutation for processing payment via saved card
      *
      * @param _obj - parent object
@@ -300,6 +390,12 @@ debug: ${Boolean(workspace.isDebug)}`
           recurrent: {
             interval,
             period: 1,
+            /**
+             * Subscription renewals must always bill the full plan price.
+             * Amount below may be promo-discounted or reduced for card validation,
+             * but CloudPayments uses recurrent.amount for future automatic charges.
+             */
+            amount: plan.monthlyCharge,
           },
         };
 
@@ -309,7 +405,6 @@ debug: ${Boolean(workspace.isDebug)}`
          */
         if (!isTariffPlanExpired) {
           jsonData.cloudPayments.recurrent.startDate = dueDate.toDateString();
-          jsonData.cloudPayments.recurrent.amount = plan.monthlyCharge;
         }
       }
 

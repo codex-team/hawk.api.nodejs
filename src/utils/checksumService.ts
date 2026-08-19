@@ -1,5 +1,5 @@
-import { PlanProlongationPayload } from '@hawk.so/types';
 import jwt, { Secret } from 'jsonwebtoken';
+import type { PaymentPromoData } from '../billing/types/paymentData';
 
 export type ChecksumData = PlanPurchaseChecksumData | CardLinkChecksumData;
 
@@ -24,6 +24,10 @@ interface PlanPurchaseChecksumData {
    * Next payment date
    */
   nextPaymentDate: string;
+  /**
+   * Applied promo code data
+   */
+  promo?: PaymentPromoData;
 }
 
 interface CardLinkChecksumData {
@@ -84,6 +88,7 @@ class ChecksumService {
         tariffPlanId: payload.tariffPlanId,
         shouldSaveCard: payload.shouldSaveCard,
         nextPaymentDate: payload.nextPaymentDate,
+        promo: payload.promo,
       };
     }
   }

@@ -3,6 +3,7 @@ import UserModel from './user';
 import { Collection, Db, OptionalId } from 'mongodb';
 import DataLoaders from '../dataLoaders';
 import { UserDBScheme } from '@hawk.so/types';
+import type { Utm } from '@hawk.so/types';
 
 /**
  * Users factory to work with User Model
@@ -66,7 +67,7 @@ export default class UsersFactory extends AbstractModelFactory<Omit<UserDBScheme
   public async create(
     email: string,
     password?: string,
-    utm?: UserDBScheme['utm']
+    utm?: Utm
   ): Promise<UserModel> {
     const generatedPassword = password || (await UserModel.generatePassword());
     const hashedPassword = await UserModel.hashPassword(generatedPassword);
