@@ -66,10 +66,8 @@ export class AskAiService {
   }
 
   /**
-   * Generate streaming suggestion for the event
-   *
-   * The payload is spotlighted by {@link buildEventPrompt} exactly as in
-   * {@link AskAiService.generateSuggestion}.
+   * Generate a streaming suggestion for the event, spotlighted exactly as
+   * {@link AskAiService.generateSuggestion}
    *
    * @param eventsFactory - events factory
    * @param eventId - event id
@@ -95,8 +93,8 @@ export class AskAiService {
   }
 
   /**
-   * Find the event repetition or throw if it doesn't exist. A thrown lookup
-   * failure is normalized to the same message too, so it doesn't leak details.
+   * Find the event repetition. A failed lookup is reported as a missing one,
+   * so the reason does not reach the caller.
    *
    * @param eventsFactory - events factory
    * @param eventId - event id

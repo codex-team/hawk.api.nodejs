@@ -8,8 +8,7 @@ export interface CapturedResponse {
 }
 
 /**
- * Shape of the fake response {@link createFakeResponse} returns: a real Writable with the
- * subset of Express/Node's response API the AI stream route and its stream helpers exercise.
+ * The part of Express's response API the routes under test use
  */
 interface FakeResponse extends Writable {
   status(code: number): FakeResponse;
@@ -22,12 +21,11 @@ interface FakeResponse extends Writable {
 }
 
 /**
- * Express's expressInit middleware unconditionally runs setPrototypeOf(res, app.response)
- * on every request. That silently discards any *class* methods on our fake res (they live
- * on the class prototype, not as own properties of the instance) and falls back to Express/
- * Node's real ServerResponse implementation, which then throws trying to touch a real socket
- * that doesn't exist here. Own properties always shadow whatever a new prototype provides,
- * so binding inherited methods as own properties makes them survive the prototype swap.
+ * Rebind inherited methods as own properties, which a prototype swap cannot hide.
+ *
+ * Express's expressInit runs setPrototypeOf(res, app.response) on every request,
+ * which would otherwise leave the fake response with Node's real implementation
+ * reaching for a socket that does not exist here.
  *
  * @param obj - object whose inherited methods should survive a prototype swap
  */
@@ -121,8 +119,7 @@ function createFakeResponse(settle: (result: CapturedResponse) => void): FakeRes
 }
 
 /**
- * Sends a fake request through an Express app via its internal handle() method,
- * without opening a real socket - simulates how Express actually processes requests.
+ * Send a request through an Express app without opening a socket
  *
  * @param app - Express application to route the request through
  * @param method - HTTP method
