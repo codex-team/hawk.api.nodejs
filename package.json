@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.5.10",
+  "version": "1.5.13",
   "main": "index.ts",
   "license": "BUSL-1.1",
   "scripts": {
@@ -57,7 +57,7 @@
     "@types/lodash.mergewith": "^4.6.9",
     "@types/mime-types": "^2.1.0",
     "@types/morgan": "^1.9.10",
-    "@types/node": "^16.11.46",
+    "@types/node": "^24.13.3",
     "@types/safe-regex": "^1.1.6",
     "@types/uuid": "^8.3.4",
     "ai": "^5.0.89",
