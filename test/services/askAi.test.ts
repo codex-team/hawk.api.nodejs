@@ -150,18 +150,21 @@ describe('AskAiService', () => {
 
       (vercelAIApi.stream as jest.Mock).mockReturnValue(streamResult);
 
-      const result = await askAiService.streamSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId);
-      const args = (vercelAIApi.stream as jest.Mock).mock.calls[0][0] as { system: string; prompt: string };
+      const signal = new AbortController().signal;
+
+      const result = await askAiService.streamSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId, signal);
+      const args = (vercelAIApi.stream as jest.Mock).mock.calls[0][0] as { system: string; prompt: string; signal: AbortSignal };
 
       expect(args.prompt).toContain(JSON.stringify(testPayload));
       expect(args.system.startsWith(ctoInstruction)).toBe(true);
       expect(args.system).toContain(nonceFromPrompt(args.prompt));
+      expect(args.signal).toBe(signal);
       expect(result).toBe(streamResult);
     });
 
     it('should throw Event not found when the events factory returns nothing', async () => {
       await expect(
-        askAiService.streamSuggestion(createEventsFactory(null), testEventId, testOriginalEventId)
+        askAiService.streamSuggestion(createEventsFactory(null), testEventId, testOriginalEventId, new AbortController().signal)
       ).rejects.toThrow('Event not found');
 
       expect(vercelAIApi.stream).not.toHaveBeenCalled();

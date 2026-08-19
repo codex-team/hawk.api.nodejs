@@ -41,6 +41,8 @@ describe('VercelAIApi', () => {
   });
 
   describe('stream', () => {
+    const testSignal = new AbortController().signal;
+
     /**
      * Answer streamText with a canned stream of parts in the SDK's own shape
      *
@@ -65,6 +67,7 @@ describe('VercelAIApi', () => {
       for await (const part of vercelAIApi.stream({
         system: testSystem,
         prompt: testPrompt,
+        signal: testSignal,
       })) {
         parts.push(part);
       }
@@ -72,7 +75,7 @@ describe('VercelAIApi', () => {
       return parts;
     }
 
-    it('should forward the system/prompt pair to streamText', async () => {
+    it('should forward the system/prompt pair and the abort signal to streamText', async () => {
       modelProduces([]);
 
       await readSuggestion();
@@ -82,6 +85,7 @@ describe('VercelAIApi', () => {
         system: testSystem,
         prompt: testPrompt,
         providerOptions: testProviderOptions,
+        abortSignal: testSignal,
       });
     });
 

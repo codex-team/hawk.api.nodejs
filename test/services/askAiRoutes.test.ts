@@ -253,7 +253,7 @@ describe('AI stream routes - GET /integration/ai/stream', () => {
     });
 
     expect(mockGetEventsFactory).toHaveBeenCalledWith(expect.objectContaining({ user: expect.objectContaining({ id: userId }) }), projectId);
-    expect(mockStreamSuggestion).toHaveBeenCalledWith({}, eventId, originalEventId);
+    expect(mockStreamSuggestion).toHaveBeenCalledWith({}, eventId, originalEventId, expect.any(AbortSignal));
   });
 
   it('should send each piece of the answer as a server-sent event', async () => {
@@ -275,6 +275,31 @@ describe('AI stream routes - GET /integration/ai/stream', () => {
       'data: {"type":"text-delta","delta":"The stack trace "}\n\n' +
       'data: {"type":"text-delta","delta":"points at a null dereference"}\n\n'
     );
+  });
+
+  it('should stop writing the answer once the client is gone', async () => {
+    let closeConnection = (): void => {};
+
+    mockStreamSuggestion.mockResolvedValue((async function * () {
+      yield { type: 'text-delta', delta: 'read by the client' };
+      closeConnection();
+      yield { type: 'text-delta', delta: 'written after the client left' };
+    })());
+    const app = setupApp();
+
+    const response = await makeExpressRequest(
+      app,
+      'GET',
+      '/integration/ai/stream',
+      { projectId, eventId, originalEventId },
+      (res) => {
+        closeConnection = (): void => {
+          res.emit('close');
+        };
+      }
+    );
+
+    expect(response.body).toBe('data: {"type":"text-delta","delta":"read by the client"}\n\n');
   });
 
   it('should send a failure on the error channel rather than as more of the answer', async () => {

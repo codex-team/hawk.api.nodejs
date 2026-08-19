@@ -74,12 +74,14 @@ export class AskAiService {
    * @param eventsFactory - events factory
    * @param eventId - event id
    * @param originalEventId - original event id
+   * @param signal - aborted when the answer is no longer wanted
    * @returns {Promise<SuggestionStream>} - suggestion, as the model writes it
    */
   public async streamSuggestion(
     eventsFactory: EventsFactoryInterface,
     eventId: string,
-    originalEventId: string
+    originalEventId: string,
+    signal: AbortSignal
   ): Promise<SuggestionStream> {
     const event = await this.getEventOrThrow(eventsFactory, eventId, originalEventId);
 
@@ -88,6 +90,7 @@ export class AskAiService {
     return vercelAIApi.stream({
       system: ctoInstruction + spotlightInstruction(nonce),
       prompt,
+      signal,
     });
   }
 

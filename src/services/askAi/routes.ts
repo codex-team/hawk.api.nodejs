@@ -58,6 +58,11 @@ export function createAiStreamRouter(): express.Router {
    * Stream an AI suggestion for the event
    */
   router.get('/stream', async (req, res, next) => {
+    const abort = new AbortController();
+
+    /** Otherwise the model writes the rest of the answer, and bills for it, to nobody */
+    res.on('close', () => abort.abort());
+
     try {
       const { projectId, eventId, originalEventId } = req.query;
 
@@ -84,7 +89,7 @@ export function createAiStreamRouter(): express.Router {
       let stream;
 
       try {
-        stream = await askAiService.streamSuggestion(eventsFactory, eventId, originalEventId);
+        stream = await askAiService.streamSuggestion(eventsFactory, eventId, originalEventId, abort.signal);
       } catch (error) {
         if (!(error instanceof Error) || error.message !== 'Event not found') {
           throw error;
@@ -102,11 +107,19 @@ export function createAiStreamRouter(): express.Router {
       });
 
       for await (const part of stream) {
+        if (abort.signal.aborted) {
+          break;
+        }
+
         res.write(`data: ${JSON.stringify(part)}\n\n`);
       }
 
       res.end();
     } catch (error) {
+      if (abort.signal.aborted) {
+        return;
+      }
+
       next(error);
     }
   });

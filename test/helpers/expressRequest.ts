@@ -128,13 +128,16 @@ function createFakeResponse(settle: (result: CapturedResponse) => void): FakeRes
  * @param method - HTTP method
  * @param path - request path, without the query string
  * @param query - query parameters to append; an array value repeats the key
+ * @param onResponse - called with the response before the request is routed, for a test
+ * that has to act on it mid-flight
  * @returns {Promise<CapturedResponse>} status, headers and body the route produced
  */
 export function makeExpressRequest(
   app: express.Application,
   method: string,
   path: string,
-  query?: Record<string, string | string[]>
+  query?: Record<string, string | string[]>,
+  onResponse?: (res: FakeResponse) => void
 ): Promise<CapturedResponse> {
   return new Promise((resolve, reject) => {
     const searchParams = new URLSearchParams();
@@ -159,6 +162,10 @@ export function makeExpressRequest(
     } as any;
 
     const res = createFakeResponse(resolve);
+
+    if (onResponse) {
+      onResponse(res);
+    }
 
     (app as any).handle(req, res, (err: any) => {
       if (err) {
