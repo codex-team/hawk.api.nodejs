@@ -144,7 +144,9 @@ describe('AskAiService', () => {
 
   describe('streamSuggestion', () => {
     it('should spotlight the event with a nonce the system instruction repeats, and return the stream unchanged', async () => {
-      const streamResult = { toUIMessageStreamResponse: jest.fn() };
+      const streamResult = (async function * () {
+        yield { type: 'text-delta', delta: 'Answer' };
+      })();
 
       (vercelAIApi.stream as jest.Mock).mockReturnValue(streamResult);
 

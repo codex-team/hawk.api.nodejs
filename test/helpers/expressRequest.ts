@@ -52,10 +52,7 @@ function pinInheritedMethodsAsOwnProperties(obj: any): void {
 }
 
 /**
- * Fake Express response supporting both res.json()/res.send()/res.redirect() and
- * res.write()/res.end() via stream.pipe() (as the AI stream route does). Built on a real
- * Writable so pipe() gets genuine EventEmitter semantics, with every method pinned as an
- * own property per pinInheritedMethodsAsOwnProperties above.
+ * Fake Express response that records what a route wrote to it
  *
  * @param settle - called once with everything the route wrote to the response
  * @returns {FakeResponse} fake response object to hand to Express

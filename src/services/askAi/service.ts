@@ -5,6 +5,7 @@ import { echoesNonce, SUGGESTION_FALLBACK_MESSAGE } from './security/nonceEcho';
 import { ctoInstruction } from './instructions/cto';
 import { EventsFactoryInterface } from '../types';
 import type { Event } from '../types';
+import type { SuggestionStream } from './suggestionStream';
 
 /**
  * Report that the nonce check rejected an answer.
@@ -73,13 +74,13 @@ export class AskAiService {
    * @param eventsFactory - events factory
    * @param eventId - event id
    * @param originalEventId - original event id
-   * @returns streaming suggestion
+   * @returns {Promise<SuggestionStream>} - suggestion, as the model writes it
    */
   public async streamSuggestion(
     eventsFactory: EventsFactoryInterface,
     eventId: string,
     originalEventId: string
-  ): Promise<ReturnType<typeof vercelAIApi.stream>> {
+  ): Promise<SuggestionStream> {
     const event = await this.getEventOrThrow(eventsFactory, eventId, originalEventId);
 
     const { prompt, nonce } = buildEventPrompt(event.payload);

@@ -6,6 +6,7 @@ import { askAiService } from '../../src/services/askAi/service';
 import { getEventsFactory } from '../../src/resolvers/helpers/eventsFactory';
 import { checkUserInWorkspaceByProjectId } from '../../src/directives/requireUserInWorkspace';
 import { createAiStreamRouter, appendAiAssistantRoutes } from '../../src/services/askAi/routes';
+import type { SuggestionPart } from '../../src/services/askAi/suggestionStream';
 
 jest.mock('../../src/services/askAi/service', () => ({
   askAiService: {
@@ -49,6 +50,17 @@ function setupApp(contextOverrides?: (req: any) => void): express.Application {
   app.use('/integration/ai', createAiStreamRouter());
 
   return app;
+}
+
+/**
+ * Answer the route with a canned suggestion stream
+ *
+ * @param parts - parts the service hands to the route
+ */
+function suggestionStreamOf(parts: SuggestionPart[]): void {
+  mockStreamSuggestion.mockResolvedValue((async function * () {
+    yield* parts;
+  })());
 }
 
 describe('AI stream routes - GET /integration/ai/stream', () => {
@@ -230,14 +242,25 @@ describe('AI stream routes - GET /integration/ai/stream', () => {
     expect(response.body.error).toContain('projectId');
   });
 
-  it('should stream the AI suggestion as a UI message stream with the gateway status and headers', async () => {
-    mockStreamSuggestion.mockResolvedValue({
-      pipeUIMessageStreamToResponse: (res: NodeJS.WritableStream & { writeHead: Function }) => {
-        res.writeHead(200, { 'content-type': 'text/event-stream' });
-        res.write('data: {"type":"text-delta","id":"0","delta":"Answer"}\n\n');
-        res.end();
-      },
+  it('should build the suggestion for the requested event of the authorized project', async () => {
+    suggestionStreamOf([{ type: 'text-delta', delta: 'Answer' }]);
+    const app = setupApp();
+
+    await makeExpressRequest(app, 'GET', '/integration/ai/stream', {
+      projectId,
+      eventId,
+      originalEventId,
     });
+
+    expect(mockGetEventsFactory).toHaveBeenCalledWith(expect.objectContaining({ user: expect.objectContaining({ id: userId }) }), projectId);
+    expect(mockStreamSuggestion).toHaveBeenCalledWith({}, eventId, originalEventId);
+  });
+
+  it('should send each piece of the answer as a server-sent event', async () => {
+    suggestionStreamOf([
+      { type: 'text-delta', delta: 'The stack trace ' },
+      { type: 'text-delta', delta: 'points at a null dereference' },
+    ]);
     const app = setupApp();
 
     const response = await makeExpressRequest(app, 'GET', '/integration/ai/stream', {
@@ -246,11 +269,30 @@ describe('AI stream routes - GET /integration/ai/stream', () => {
       originalEventId,
     });
 
-    expect(mockGetEventsFactory).toHaveBeenCalledWith(expect.objectContaining({ user: expect.objectContaining({ id: userId }) }), projectId);
-    expect(mockStreamSuggestion).toHaveBeenCalledWith({}, eventId, originalEventId);
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toBe('text/event-stream');
-    expect(response.body).toContain('"type":"text-delta"');
-    expect(response.body).toContain('Answer');
+    expect(response.body).toBe(
+      'data: {"type":"text-delta","delta":"The stack trace "}\n\n' +
+      'data: {"type":"text-delta","delta":"points at a null dereference"}\n\n'
+    );
+  });
+
+  it('should send a failure on the error channel rather than as more of the answer', async () => {
+    suggestionStreamOf([
+      { type: 'text-delta', delta: 'The stack trace ' },
+      { type: 'error', errorText: 'Could not generate an answer.' },
+    ]);
+    const app = setupApp();
+
+    const response = await makeExpressRequest(app, 'GET', '/integration/ai/stream', {
+      projectId,
+      eventId,
+      originalEventId,
+    });
+
+    expect(response.body).toBe(
+      'data: {"type":"text-delta","delta":"The stack trace "}\n\n' +
+      'data: {"type":"error","errorText":"Could not generate an answer."}\n\n'
+    );
   });
 });

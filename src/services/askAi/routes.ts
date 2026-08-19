@@ -81,10 +81,10 @@ export function createAiStreamRouter(): express.Router {
 
       const eventsFactory = getEventsFactory(req.context, authResult.projectId);
 
-      let result;
+      let stream;
 
       try {
-        result = await askAiService.streamSuggestion(eventsFactory, eventId, originalEventId);
+        stream = await askAiService.streamSuggestion(eventsFactory, eventId, originalEventId);
       } catch (error) {
         if (!(error instanceof Error) || error.message !== 'Event not found') {
           throw error;
@@ -95,7 +95,17 @@ export function createAiStreamRouter(): express.Router {
         return;
       }
 
-      result.pipeUIMessageStreamToResponse(res);
+      res.writeHead(200, {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      });
+
+      for await (const part of stream) {
+        res.write(`data: ${JSON.stringify(part)}\n\n`);
+      }
+
+      res.end();
     } catch (error) {
       next(error);
     }
