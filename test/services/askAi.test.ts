@@ -143,7 +143,7 @@ describe('AskAiService', () => {
   });
 
   describe('streamSuggestion', () => {
-    it('should spotlight the event with a nonce the system instruction repeats, and return the stream unchanged', async () => {
+    it('should spotlight the event with a nonce the system instruction repeats', async () => {
       const streamResult = (async function * () {
         yield { type: 'text-delta', delta: 'Answer' };
       })();
@@ -152,14 +152,13 @@ describe('AskAiService', () => {
 
       const signal = new AbortController().signal;
 
-      const result = await askAiService.streamSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId, signal);
+      await askAiService.streamSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId, signal);
       const args = (vercelAIApi.stream as jest.Mock).mock.calls[0][0] as { system: string; prompt: string; signal: AbortSignal };
 
       expect(args.prompt).toContain(JSON.stringify(testPayload));
       expect(args.system.startsWith(ctoInstruction)).toBe(true);
       expect(args.system).toContain(nonceFromPrompt(args.prompt));
       expect(args.signal).toBe(signal);
-      expect(result).toBe(streamResult);
     });
 
     it('should throw Event not found when the events factory returns nothing', async () => {
@@ -168,6 +167,39 @@ describe('AskAiService', () => {
       ).rejects.toThrow('Event not found');
 
       expect(vercelAIApi.stream).not.toHaveBeenCalled();
+    });
+
+    it('should scan the stream with this request\'s nonce and report the event ids when it fires', async () => {
+      (vercelAIApi.stream as jest.Mock).mockImplementation(({ prompt }: { prompt: string }) => (async function * () {
+        yield {
+          type: 'text-delta',
+          delta: `service marker ${nonceFromPrompt(prompt)}`,
+        };
+      })());
+
+      const stream = await askAiService.streamSuggestion(
+        eventsFactoryWithPayload(),
+        testEventId,
+        testOriginalEventId,
+        new AbortController().signal
+      );
+      const received = [];
+
+      for await (const part of stream) {
+        received.push(part);
+      }
+
+      const eventIds = expect.objectContaining({
+        eventId: testEventId,
+        originalEventId: testOriginalEventId,
+      });
+
+      expect(received).toEqual([ {
+        type: 'error',
+        errorText: SUGGESTION_FALLBACK_MESSAGE,
+      } ]);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.any(String), eventIds);
+      expect(HawkCatcher.send).toHaveBeenCalledWith(expect.any(Error), eventIds);
     });
   });
 });
