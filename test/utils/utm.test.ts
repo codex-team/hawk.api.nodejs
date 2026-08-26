@@ -1,4 +1,4 @@
-import { validateUtmParams } from '../../src/utils/utm/utm';
+import { sanitizeUtmParams, validateUtmParams } from '../../src/utils/utm/utm';
 
 describe('UTM Utils', () => {
   describe('validateUtmParams', () => {
@@ -133,6 +133,21 @@ describe('UTM Utils', () => {
         campaign: 'spring_2025_launch',
         content: 'ad_variant_a',
         term: 'error_tracker',
+      });
+    });
+  });
+
+  describe('sanitizeUtmParams', () => {
+    it('should return undefined for invalid or empty UTM input', () => {
+      expect(sanitizeUtmParams(undefined)).toBeUndefined();
+      expect(sanitizeUtmParams({ invalidKey: 'value' })).toBeUndefined();
+      expect(sanitizeUtmParams({ source: 'bad@chars' })).toBeUndefined();
+    });
+
+    it('should return sanitized UTM object for valid input', () => {
+      expect(sanitizeUtmParams({ source: 'google', medium: 'cpc' })).toEqual({
+        source: 'google',
+        medium: 'cpc',
       });
     });
   });

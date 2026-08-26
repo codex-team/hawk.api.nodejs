@@ -170,6 +170,8 @@ describe('SamlController', () => {
       plansFactory: {} as any,
       businessOperationsFactory: {} as any,
       releasesFactory: {} as any,
+      promoCodesFactory: {} as any,
+      promoCodeUsagesFactory: {} as any,
     };
 
     /**

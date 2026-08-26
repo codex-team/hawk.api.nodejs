@@ -8,9 +8,9 @@ import { SenderWorkerTaskType } from '../types/userNotifications';
 import { TaskPriorities, emailNotification } from '../utils/emailNotifications';
 import isE2E from '../utils/isE2E';
 import { dateFromObjectId } from '../utils/dates';
-import { UserDBScheme } from '@hawk.so/types';
 import * as telegram from '../utils/telegram';
 import { MongoError } from 'mongodb';
+import type { Utm, UserDBScheme } from '@hawk.so/types';
 import { validateUtmParams } from '../utils/utm/utm';
 
 /**
@@ -43,7 +43,7 @@ export default {
      */
     async signUp(
       _obj: undefined,
-      { email, utm }: { email: string; utm?: UserDBScheme['utm'] },
+      { email, utm }: { email: string; utm?: Utm },
       { factories }: ResolverContextBase
     ): Promise<boolean | string> {
       const validatedUtm = validateUtmParams(utm);
