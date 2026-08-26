@@ -465,26 +465,28 @@ describe('GraphQLBillingNew', () => {
       expect(workspaceMock.changePlan).not.toHaveBeenCalled();
     });
 
-    it('should reject unsupported grant_plan promo', async () => {
+    it.each([
+      [
+        'grant_plan',
+        {
+          type: 'grant_plan',
+          planId: new ObjectId(),
+        },
+      ],
+      [
+        'amount_discount',
+        {
+          type: 'amount_discount',
+          amount: 100,
+        },
+      ],
+    ])('should reject unsupported %s promo', async (_type, benefit) => {
       const promoCodeId = new ObjectId();
-      const grantPlanId = new ObjectId();
       const { mockContext, workspaceId } = createVerifyPromoCodeTestSetup({
         promoCode: {
           _id: promoCodeId,
-          value: 'GRANT',
-          benefit: {
-            type: 'grant_plan',
-            planId: grantPlanId,
-          },
-        },
-        grantPlan: {
-          _id: grantPlanId,
-          name: 'Pro',
-          monthlyCharge: 2000,
-          monthlyChargeCurrency: 'RUB',
-          eventsLimit: 5000,
-          isDefault: false,
-          isHidden: false,
+          value: 'UNSUPPORTED',
+          benefit,
         },
       });
 
@@ -494,7 +496,7 @@ describe('GraphQLBillingNew', () => {
           {
             input: {
               workspaceId,
-              value: 'grant',
+              value: 'unsupported',
             },
           },
           mockContext

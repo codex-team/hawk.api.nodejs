@@ -337,7 +337,9 @@ type ComposePaymentResponse {
   plan: ComposePaymentPlanInfo!
 
   """
-  Amount to charge for this payment (card validation amount, promo price, or full plan price)
+  Amount CloudPayments should charge now.
+  1 RUB for card linking, promo.finalAmount when a promo applies, otherwise plan.monthlyCharge.
+  Not the same as promo: promo is an optional pricing breakdown and is absent on card-link payments.
   """
   chargeAmount: Int!
 

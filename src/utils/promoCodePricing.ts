@@ -89,6 +89,19 @@ function isDiscountablePlan(plan: PromoCodePricingPlan): boolean {
 }
 
 /**
+ * Floor for percent-discount final price. Invalid or missing values fall back to DEFAULT_MIN_FINAL_PRICE.
+ *
+ * @param minFinalPrice - optional floor from promo benefit
+ */
+function resolveMinFinalPrice(minFinalPrice?: number): number {
+  if (typeof minFinalPrice !== 'number' || !Number.isFinite(minFinalPrice)) {
+    return DEFAULT_MIN_FINAL_PRICE;
+  }
+
+  return Math.max(minFinalPrice, DEFAULT_MIN_FINAL_PRICE);
+}
+
+/**
  * Calculates discounted price for one plan.
  *
  * Keep in sync with garage/src/utils/promoCodePricing.ts
@@ -118,7 +131,7 @@ export function calculatePromoCodePlanPrice(
 
   switch (benefit.type) {
     case 'percent_discount': {
-      const minFinalPrice = benefit.minFinalPrice ?? DEFAULT_MIN_FINAL_PRICE;
+      const minFinalPrice = resolveMinFinalPrice(benefit.minFinalPrice);
       const discountAmount = Math.floor(originalAmount * benefit.percent / 100);
       const finalAmount = Math.max(originalAmount - discountAmount, minFinalPrice);
 

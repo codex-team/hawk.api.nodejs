@@ -59,7 +59,7 @@ function createContext(options: { isAdmin: boolean }) {
 }
 
 describe('requireAdmin directive', () => {
-  it('should allow mutation when user is workspace admin via input.workspaceId', async () => {
+  it('should allow query when user is workspace admin via input.workspaceId', async () => {
     const context = createContext({ isAdmin: true });
 
     const result = await graphql({
@@ -82,7 +82,7 @@ describe('requireAdmin directive', () => {
     expect(result.data?.verifyPromoCode).toBe('ok');
   });
 
-  it('should reject mutation when user is not workspace admin via input.workspaceId', async () => {
+  it('should reject query when user is not workspace admin via input.workspaceId', async () => {
     const context = createContext({ isAdmin: false });
 
     const result = await graphql({

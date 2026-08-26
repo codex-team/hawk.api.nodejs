@@ -161,6 +161,15 @@ function validateBenefitStructure(benefit: PromoCodeModel['benefit']): void {
         throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Percent discount is invalid');
       }
 
+      if (
+        benefit.minFinalPrice !== undefined &&
+        (typeof benefit.minFinalPrice !== 'number' ||
+          !Number.isFinite(benefit.minFinalPrice) ||
+          benefit.minFinalPrice < DEFAULT_MIN_FINAL_PRICE)
+      ) {
+        throw new PromoCodeError(PromoCodeErrorCode.Invalid, 'Minimum final price is invalid');
+      }
+
       return;
 
     case 'fixed_price':

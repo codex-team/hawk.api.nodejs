@@ -88,6 +88,22 @@ describe('PromoCodeService', () => {
       });
     });
 
+    it('should clamp non-positive minFinalPrice to default floor', () => {
+      const plan = createPlan({ monthlyCharge: 1000 });
+      const price = calculatePromoCodePlanPrice({
+        type: 'percent_discount',
+        percent: 100,
+        minFinalPrice: 0,
+      } as any, plan);
+
+      expect(price).toMatchObject({
+        isApplicable: true,
+        originalAmount: 1000,
+        finalAmount: 1,
+        discountAmount: 999,
+      });
+    });
+
     it('should apply fixed price promo', () => {
       const plan = createPlan({ monthlyCharge: 1000 });
       const price = calculatePromoCodePlanPrice({
@@ -217,6 +233,17 @@ describe('PromoCodeService', () => {
       const promoCode = createPromoCode({
         type: 'percent_discount',
         percent: 101,
+      });
+      const service = createService(promoCode);
+
+      await expectPromoError(service.verifyPromoCode('promo', new ObjectId().toString(), new ObjectId().toString()), PromoCodeErrorCode.Invalid);
+    });
+
+    it.each([0, -1, Number.NaN])('should reject percent discount with invalid minFinalPrice %p', async (minFinalPrice) => {
+      const promoCode = createPromoCode({
+        type: 'percent_discount',
+        percent: 50,
+        minFinalPrice,
       });
       const service = createService(promoCode);
 
