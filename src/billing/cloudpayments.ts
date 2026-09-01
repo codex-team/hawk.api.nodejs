@@ -22,8 +22,7 @@ import {
   BusinessOperationType,
   ConfirmedMemberDBScheme,
   PayloadOfWorkspacePlanPurchase,
-  PlanDBScheme,
-  PlanProlongationPayload
+  PlanDBScheme
 } from '@hawk.so/types';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
@@ -42,9 +41,10 @@ import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import PlanModel from '../models/plan';
 import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
-import PromoCodeService from '../services/promoCodeService';
+import { PromoCodeContext } from '../services/promoCodeService';
 
 const PENNY_MULTIPLIER = 100;
+const AMOUNT_FOR_CARD_VALIDATION = 1;
 
 /**
  * Class for describing the logic of payment routes
@@ -102,14 +102,8 @@ export default class CloudPaymentsWebhooks {
   }
 
   /**
-   * Route to confirm that CloudPayments may process the payment.
+   * Route to confirm the correctness of a user's payment
    * https://developers.cloudpayments.ru/#check
-   *
-   * This route handles both the first widget payment and later subscription charges.
-   * The first widget payment sends signed Data with billing intent and optional promo.
-   * Later recurrent charges may arrive without Data; in that case we resolve the
-   * workspace and current plan by SubscriptionId and validate the amount against
-   * the full plan price.
    *
    * @param req - cloudpayments request with payment details
    * @param res - check result code
@@ -131,33 +125,22 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    /** Data validation */
-    if (data.isCardLinkOperation) {
-      if (!data.userId || !data.workspaceId) {
-        this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the card linking request', req.body);
+    if (!data.userId || !data.workspaceId || !data.tariffPlanId) {
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the request', body);
 
-        return;
-      }
-    } else {
-      if (!data.userId || !data.workspaceId || !data.tariffPlanId) {
-        this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the request', body);
-
-        return;
-      }
+      return;
     }
 
     let workspace: WorkspaceModel;
     let member: ConfirmedMemberDBScheme;
     let plan: PlanModel;
-    let planId: string;
 
     const { workspaceId, userId, tariffPlanId } = data;
 
     try {
       workspace = await this.getWorkspace(req, workspaceId);
       member = await this.getMember(userId, workspace);
-      planId = data.isCardLinkOperation ? workspace.tariffPlanId.toString() : tariffPlanId;
-      plan = await this.getPlan(req, planId);
+      plan = await this.getPlan(req, tariffPlanId);
     } catch (e) {
       const error = e as Error;
 
@@ -166,81 +149,124 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    const recurrentPaymentSettings = data.cloudPayments?.recurrent;
-    let promoPricing;
+    const expectedAmount = data.chargeAmount ?? plan.monthlyCharge;
+    const hasValidSignedAmount =
+      Number.isFinite(expectedAmount) &&
+      expectedAmount > 0 &&
+      (!data.isCardLinkOperation || expectedAmount === AMOUNT_FOR_CARD_VALIDATION) &&
+      (
+        data.isCardLinkOperation ||
+        Boolean(data.promoCodeId) ||
+        data.chargeAmount === undefined ||
+        expectedAmount === plan.monthlyCharge
+      );
 
-    /**
-     * Revalidate promo before accepting payment.
-     *
-     * Amount check uses server-side pricing; usage is recorded later in /pay
-     * after workspace plan is updated successfully.
-     */
-    if (data.promo && !data.isCardLinkOperation) {
-      try {
-        const promoCodeService = new PromoCodeService(context.factories);
+    if (!hasValidSignedAmount || +body.Amount !== expectedAmount) {
+      this.sendError(res, CheckCodes.WRONG_AMOUNT, '[Billing / Check] Amount does not match signed payment data', body);
 
-        promoPricing = await promoCodeService.getPricingForPromoCodeId(
-          data.promo.id,
-          data.userId,
-          data.workspaceId,
-          plan
+      return;
+    }
+
+    const recurrentSettings = data.cloudPayments?.recurrent;
+
+    if (recurrentSettings) {
+      const startDateTime = recurrentSettings.startDate
+        ? new Date(recurrentSettings.startDate).getTime()
+        : undefined;
+      const signedStartDateTime = data.nextPaymentDate
+        ? new Date(data.nextPaymentDate).getTime()
+        : undefined;
+      const isStartDateValid = startDateTime === undefined ||
+        (
+          Number.isFinite(startDateTime) &&
+          startDateTime === signedStartDateTime
         );
+      const isValidRecurrentSettings =
+        recurrentSettings.interval === (workspace.isDebug ? 'Day' : 'Month') &&
+        recurrentSettings.period === 1 &&
+        recurrentSettings.amount !== undefined &&
+        +recurrentSettings.amount === plan.monthlyCharge &&
+        isStartDateValid;
+
+      if (!isValidRecurrentSettings) {
+        this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] Invalid recurrent payment settings', body);
+
+        return;
+      }
+    }
+
+    const promoCodeService = (context as typeof context & PromoCodeContext).promoCodeService;
+    let reservationCreated = false;
+
+    if (data.promoCodeId) {
+      try {
+        const reservation = await promoCodeService.reserve({
+          transactionId: body.TransactionId.toString(),
+          promoCodeId: data.promoCodeId,
+          userId,
+          workspaceId: workspace._id,
+          plan,
+          utm: data.promoUtm,
+        });
+
+        reservationCreated = reservation.created;
+
+        if (reservation.finalAmount !== expectedAmount) {
+          if (reservationCreated) {
+            try {
+              await promoCodeService.release(body.TransactionId.toString());
+            } catch (releaseError) {
+              console.error('[Billing / Check] Failed to release outdated promo reservation', releaseError);
+            }
+          }
+
+          this.sendError(res, CheckCodes.WRONG_AMOUNT, '[Billing / Check] Promo price has changed', body);
+
+          return;
+        }
       } catch (e) {
         const error = e as Error;
 
-        this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Promo code is invalid: ${error.toString()}`, body);
+        this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Promo cannot be reserved: ${error.toString()}`, body);
 
         return;
       }
     }
 
     /**
-     * Validates payment amount from CloudPayments against expected charge.
-     *
-     * expectedAmount:
-     * - with promo: final price recalculated on the server by promo id
-     * - without promo: full selected plan monthly charge
-     *
-     * isRightAmount is true when:
-     * 1) body.Amount equals expectedAmount — regular one-time payment (with or without promo)
-     * 2) no promo and recurrent.startDate is set — subscription is created with a deferred first charge;
-     *    current payment can be a card-link/auth amount (for example 1 RUB) while recurrent.amount
-     *    stores the real plan price for future charges
-     */
-    const expectedAmount = promoPricing?.finalAmount ?? plan.monthlyCharge;
-    const isRightAmount = +body.Amount === expectedAmount || (!data.promo && recurrentPaymentSettings?.startDate);
-
-    if (!isRightAmount) {
-      this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
-
-      return;
-    }
-
-    /**
      * Create business operation about creation of subscription
      */
     try {
-      await context.factories.businessOperationsFactory.create<PayloadOfWorkspacePlanPurchase>({
-        transactionId: body.TransactionId.toString(),
-        type: data.isCardLinkOperation ? BusinessOperationType.CardLinkCharge : BusinessOperationType.WorkspacePlanPurchase,
-        status: BusinessOperationStatus.Pending,
-        payload: {
-          workspaceId: workspace._id,
-          amount: +body.Amount * PENNY_MULTIPLIER,
-          currency: body.Currency,
-          userId: member._id,
-          tariffPlanId: plan._id,
-        },
-        dtCreated: new Date(),
-      });
+      const transactionId = body.TransactionId.toString();
+      const existingOperation = await context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(transactionId);
+
+      if (!existingOperation) {
+        await context.factories.businessOperationsFactory.create<PayloadOfWorkspacePlanPurchase>({
+          transactionId,
+          type: data.isCardLinkOperation ? BusinessOperationType.CardLinkCharge : BusinessOperationType.WorkspacePlanPurchase,
+          status: BusinessOperationStatus.Pending,
+          payload: {
+            workspaceId: workspace._id,
+            amount: +body.Amount * PENNY_MULTIPLIER,
+            currency: body.Currency,
+            userId: member._id,
+            tariffPlanId: plan._id,
+          },
+          dtCreated: new Date(),
+        });
+      }
     } catch (err) {
       const error = err as Error;
 
-      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Business operation wasn't created: ${error.toString()}`, body);
+      if (reservationCreated) {
+        try {
+          await promoCodeService.release(body.TransactionId.toString());
+        } catch (releaseError) {
+          console.error('[Billing / Check] Failed to release promo reservation', releaseError);
+        }
+      }
 
-      res.json({
-        code: CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED,
-      } as CheckResponse);
+      this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] Business operation wasn't created: ${error.toString()}`, body);
 
       return;
     }
@@ -273,24 +299,15 @@ export default class CloudPaymentsWebhooks {
     } catch (e) {
       const error = e as Error;
 
-      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Pay] Invalid request: ${error.toString()}`, body);
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Invalid request: ${error.toString()}`, body);
 
       return;
     }
 
-    /** Data validation */
-    if (data.isCardLinkOperation) {
-      if (!data.userId || !data.workspaceId) {
-        this.sendError(res, PayCodes.SUCCESS, '[Billing / Pay] No workspace or user id in request body', req.body);
+    if (!data.workspaceId || !data.tariffPlanId || !data.userId) {
+      this.sendError(res, PayCodes.SUCCESS, '[Billing / Pay] No workspace, tariff plan or user id in request body', body);
 
-        return;
-      }
-    } else {
-      if (!data.workspaceId || !data.tariffPlanId || !data.userId) {
-        this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] No workspace, tariff plan or user id in request body`, body);
-
-        return;
-      }
+      return;
     }
 
     let businessOperation;
@@ -303,7 +320,7 @@ export default class CloudPaymentsWebhooks {
       businessOperation = await this.getBusinessOperation(req, body.TransactionId.toString());
       workspace = await this.getWorkspace(req, data.workspaceId);
       user = await this.getUser(req, data.userId);
-      planId = data.isCardLinkOperation ? workspace.tariffPlanId.toString() : data.tariffPlanId;
+      planId = data.tariffPlanId;
       tariffPlan = await this.getPlan(req, planId);
     } catch (e) {
       const error = e as Error;
@@ -311,6 +328,20 @@ export default class CloudPaymentsWebhooks {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't get data from Database ${error.toString()}`, body);
 
       return;
+    }
+
+    if (data.promoCodeId) {
+      try {
+        const promoCodeService = (req.context as typeof req.context & PromoCodeContext).promoCodeService;
+
+        await promoCodeService.finalize(body.TransactionId.toString());
+      } catch (e) {
+        const error = e as Error;
+
+        this.sendError(res, PayCodes.TEMPORARY_ERROR, `[Billing / Pay] Promo cannot be finalized: ${error.toString()}`, body);
+
+        return;
+      }
     }
 
     try {
@@ -341,25 +372,9 @@ export default class CloudPaymentsWebhooks {
     } catch (e) {
       const error = e as Error;
 
-      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${error.toString()}`, body);
+      this.sendError(res, PayCodes.TEMPORARY_ERROR, `[Billing / Pay] Can't update workspace billing data ${error.toString()}`, body);
 
       return;
-    }
-
-    if (data.promo && !data.isCardLinkOperation) {
-      try {
-        const promoCodeService = new PromoCodeService(req.context.factories);
-
-        await promoCodeService.createUsage({
-          promoCodeId: data.promo.id,
-          userId: data.userId,
-          workspaceId: workspace._id,
-          plan: tariffPlan,
-          utm: data.promo.utm,
-        });
-      } catch (error) {
-        console.error('[Billing / Pay] Failed to record promo usage after plan change', error);
-      }
     }
 
     // let accountId = workspace.accountId;
@@ -546,11 +561,19 @@ subscription id: ${body.SubscriptionId}`;
    */
   private async fail(req: express.Request, res: express.Response): Promise<void> {
     const body: FailRequest = req.body;
-    let data: PlanProlongationPayload;
+    let data: PaymentData;
 
     console.log('💎 CloudPayments /fail request', body);
 
     const failReasonLine = `reason: ${body.Reason} (${body.ReasonCode})`;
+
+    try {
+      const promoCodeService = (req.context as typeof req.context & PromoCodeContext).promoCodeService;
+
+      await promoCodeService.release(body.TransactionId.toString());
+    } catch (releaseError) {
+      console.error('[Billing / Fail] Promo reservation cannot be released', releaseError);
+    }
 
     try {
       data = await this.getDataFromRequest(req);
@@ -563,10 +586,6 @@ subscription id: ${body.SubscriptionId}`;
     let businessOperation;
     let workspace;
     let user;
-
-    /**
-     * @todo handle card linking and update business operation status
-     */
 
     if (!data.workspaceId || !data.userId || !data.tariffPlanId) {
       this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] No workspace or user id or plan id in request body\n${failReasonLine}`, body);
@@ -630,14 +649,8 @@ subscription id: ${body.SubscriptionId || 'none'}`
   }
 
   /**
-   * Route executed when a CloudPayments subscription status changes.
+   * Route is executed if the status of the recurring payment subscription has been changed.
    * https://developers.cloudpayments.ru/#recurrent
-   *
-   * This notification is about the subscription entity, not a replacement for
-   * /check or /pay transaction notifications. CloudPayments identifies which
-   * charge number this is via SuccessfulTransactionsNumber and sends the
-   * subscription Id; our transaction handlers use that Id to find the workspace.
-   * Promo data is not expected here and is not applied to subscription renewals.
    *
    * @param req - cloudpayments request with subscription details
    * @param res - result code
@@ -845,17 +858,7 @@ status: ${body.Status}`
   }
 
   /**
-   * Parses CloudPayments request body into the signed billing intent.
-   *
-   * First widget payments include Data.checksum generated by composePayment; the
-   * checksum is the only trusted source for workspaceId, tariffPlanId, userId,
-   * shouldSaveCard, and promo id. Unsigned widget Data fields must not override it.
-   *
-   * Recurrent subscription renewals usually do not include Data. For those
-   * requests CloudPayments sends SubscriptionId and AccountId, so we restore the
-   * workspace and current plan by SubscriptionId. Because there is no signed promo
-   * in this path, data.promo is intentionally absent: promo discounts are applied
-   * only to the first widget payment, while renewals are charged at full plan price.
+   * Parses request body and returns data from it
    *
    * @param req - request with necessary data
    */
@@ -864,34 +867,16 @@ status: ${body.Status}`
     const body: CheckRequest | PayRequest | FailRequest = req.body;
 
     /**
-     * If Data is absent, this is a subscription renewal (or check/pay identified by SubscriptionId).
-     * Renewals do not carry promo: discount was applied only on the first widget payment.
+     * If Data is not presented in body means there is a recurring payment
+     * Data field is presented only in one-time payment requests or subscription initial request
      */
     if (body.Data) {
       const parsedData = JSON.parse(body.Data || '{}') as WebhookData;
       const checksumData = checksumService.parseAndVerifyChecksum(parsedData.checksum);
 
-      /**
-       * Treat checksum as the source of truth for billing intent.
-       *
-       * Widget Data is client-controlled, so it must not override signed fields like
-       * workspaceId, tariffPlanId, userId, shouldSaveCard, or promo id. Only
-       * CloudPayments recurrent settings are accepted from Data because they are
-       * validated separately against server-side pricing in /check.
-       */
-      if ('isCardLinkOperation' in checksumData) {
-        return {
-          ...checksumData,
-          tariffPlanId: '',
-          shouldSaveCard: false,
-          ...(parsedData.cloudPayments ? { cloudPayments: parsedData.cloudPayments } : {}),
-        };
-      }
-
       return {
         ...checksumData,
         ...(parsedData.cloudPayments ? { cloudPayments: parsedData.cloudPayments } : {}),
-        isCardLinkOperation: false,
       };
     }
 
@@ -949,7 +934,7 @@ status: ${body.Status}`
    * @param workspace - workspace for which payment is made
    * @param tariff - paid tariff plan
    * @param userMail - user email address
-   * @param amount - actual paid amount
+   * @param amount - charged amount
    */
   private async sendReceipt(workspace: WorkspaceModel, tariff: PlanModel, userMail?: string, amount = tariff.monthlyCharge): Promise<void> {
     /**

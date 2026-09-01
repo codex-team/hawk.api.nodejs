@@ -238,8 +238,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -261,8 +259,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories, (req) => {
@@ -284,8 +280,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -305,8 +299,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -329,8 +321,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -357,8 +347,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -393,8 +381,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -429,8 +415,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -486,8 +470,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -509,8 +491,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -534,8 +514,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -567,8 +545,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -602,8 +578,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -641,8 +615,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -681,8 +653,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -723,8 +693,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -760,8 +728,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -806,8 +772,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -866,8 +830,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -963,8 +925,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);
@@ -1035,8 +995,6 @@ describe('GitHub Routes - /integration/github/connect', () => {
         plansFactory: {} as any,
         businessOperationsFactory: {} as any,
         releasesFactory: {} as any,
-        promoCodesFactory: {} as any,
-        promoCodeUsagesFactory: {} as any,
       };
 
       setupRouter(factories);

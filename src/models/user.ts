@@ -7,7 +7,6 @@ import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
 import { BankCard, UserDBScheme } from '@hawk.so/types';
 import { v4 as uuid } from 'uuid';
-import type { Utm } from '@hawk.so/types';
 
 /**
  * Utility type for making specific fields optional
@@ -140,7 +139,7 @@ export default class UserModel extends AbstractModel<Omit<UserDBScheme, '_id'>> 
   /**
    * UTM parameters from signup - Data form where user went to sign up. Used for analytics purposes
    */
-  public utm?: Utm;
+  public utm?: UserDBScheme['utm'];
 
   /**
    * External identities for SSO (keyed by workspaceId)

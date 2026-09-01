@@ -306,26 +306,30 @@ describe('Check webhook', () => {
     });
   });
 
-  test('Should allow request with amount = 1$, in case of deferred payment', async () => {
+  test('Should allow amount = 1 only for signed card linking', async () => {
     /**
      * Correct data
      */
+    const nextPaymentDate = new Date().toISOString();
     const data: CheckRequest = {
       ...mainRequest,
+      Amount: '1',
       Data: JSON.stringify({
         checksum: await checksumService.generateChecksum({
           workspaceId: workspace._id.toString(),
           userId: admin._id.toString(),
           tariffPlanId: planToChange._id.toString(),
           shouldSaveCard: false,
-          nextPaymentDate: new Date().toString(),
+          isCardLinkOperation: true,
+          chargeAmount: 1,
+          nextPaymentDate,
         }),
         cloudPayments: {
           recurrent: {
             interval: 'Month',
             period: 1,
-            startDate: new Date().toString(),
-            amount: 1,
+            startDate: nextPaymentDate,
+            amount: planToChange.monthlyCharge,
           },
         },
       }),

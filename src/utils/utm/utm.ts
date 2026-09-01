@@ -1,19 +1,7 @@
-import type { Utm } from '@hawk.so/types';
-
 /**
  * Valid UTM parameter keys
  */
-const VALID_UTM_KEYS = ['source', 'medium', 'campaign', 'content', 'term'] as const;
-
-/**
- * Checks that passed key is supported UTM field.
- *
- * @param key - UTM object key
- * @returns whether key is a valid UTM field
- */
-function isValidUtmKey(key: string): key is keyof Utm {
-  return (VALID_UTM_KEYS as readonly string[]).includes(key);
-}
+const VALID_UTM_KEYS = ['source', 'medium', 'campaign', 'content', 'term'];
 
 /**
  * Regular expression for valid UTM characters
@@ -31,16 +19,16 @@ const MAX_UTM_VALUE_LENGTH = 50;
  * @param {Object} utm - UTM parameters to validate
  * @returns {Object} - filtered valid UTM parameters
  */
-export function validateUtmParams(utm: unknown): Utm | undefined {
+export function validateUtmParams(utm: any): Record<string, string> | undefined {
   if (!utm || typeof utm !== 'object' || Array.isArray(utm)) {
     return undefined;
   }
 
-  const result: Utm = {};
+  const result: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(utm)) {
     // 1) Remove keys that are not VALID_UTM_KEYS
-    if (!isValidUtmKey(key)) {
+    if (!VALID_UTM_KEYS.includes(key)) {
       continue;
     }
 
@@ -61,19 +49,4 @@ export function validateUtmParams(utm: unknown): Utm | undefined {
   }
 
   return result;
-}
-
-/**
- * Returns sanitized UTM params ready for storage, or undefined when nothing valid remains.
- *
- * @param utm - raw UTM parameters
- */
-export function sanitizeUtmParams(utm: unknown): Utm | undefined {
-  const validated = validateUtmParams(utm);
-
-  if (!validated || Object.keys(validated).length === 0) {
-    return undefined;
-  }
-
-  return validated;
 }
