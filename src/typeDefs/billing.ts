@@ -235,6 +235,16 @@ input ComposePaymentInput {
   Whether card should be saved for future recurrent payments
   """
   shouldSaveCard: Boolean
+
+  """
+  Promo code applied to the first payment
+  """
+  promoCode: String
+
+  """
+  Promo attribution data
+  """
+  promoUtm: UtmInput
 }
 
 """
@@ -250,6 +260,11 @@ type ComposePaymentResponse {
   Selected plan info
   """
   plan: ComposePaymentPlanInfo!
+
+  """
+  Amount to charge in the first payment
+  """
+  chargeAmount: Int!
 
   """
   True if only card linking validation payment is expected

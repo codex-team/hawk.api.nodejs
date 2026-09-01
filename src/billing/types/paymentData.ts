@@ -56,8 +56,45 @@ export interface PaymentData {
    * If true, we will save user card
    */
   shouldSaveCard: boolean;
+
   /**
    * True if this is card linking operation – charging minimal amount of money to validate card info
    */
   isCardLinkOperation: boolean;
+
+  /**
+   * Amount signed by composePayment for the first charge.
+   * It is absent for automatic subscription renewals.
+   */
+  chargeAmount?: number;
+
+  /**
+   * Signed date for the first recurrent charge.
+   */
+  nextPaymentDate?: string;
+
+  /**
+   * Signed promo code reference.
+   */
+  promoCodeId?: string;
+
+  /**
+   * Signed promo attribution data.
+   */
+  promoUtm?: Record<string, string>;
 }
+
+export type PaymentChecksumData = PaymentData & {
+  chargeAmount: number;
+  nextPaymentDate: string;
+};
+
+/**
+ * Input kept compatible with short-lived checksums created before deployment.
+ * composePayment always supplies the complete PaymentChecksumData.
+ */
+export type PaymentChecksumInput =
+  Pick<PaymentData, 'workspaceId' | 'userId'> &
+  Partial<Omit<PaymentChecksumData, 'workspaceId' | 'userId'>> & {
+    nextPaymentDate: string;
+  };

@@ -12,6 +12,11 @@ import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
+import {
+  PromoCodeContext,
+  PromoCodeError
+} from '../services/promoCodeService';
+import { validateUtmParams } from '../utils/utm/utm';
 
 /**
  * The amount we will debit to confirm the subscription.
@@ -27,7 +32,22 @@ interface ComposePaymentArgs {
     workspaceId: string;
     tariffPlanId: string;
     shouldSaveCard?: boolean;
+    promoCode?: string;
+    promoUtm?: Record<string, string>;
   };
+}
+
+/**
+ * Maps expected promo errors to public GraphQL errors.
+ *
+ * @param error - promo validation error
+ */
+function throwPromoCodeError(error: unknown): never {
+  if (error instanceof PromoCodeError) {
+    throw new UserInputError(error.code);
+  }
+
+  throw error;
 }
 
 /**
@@ -78,17 +98,18 @@ export default {
     async composePayment(
       _obj: undefined,
       { input }: ComposePaymentArgs,
-      { user, factories }: ResolverContextWithUser
+      { user, factories, promoCodeService }: ResolverContextWithUser & PromoCodeContext
     ): Promise<{
       invoiceId: string;
       plan: { id: string; name: string; monthlyCharge: number };
+      chargeAmount: number;
       isCardLinkOperation: boolean;
       currency: string;
       checksum: string;
       nextPaymentDate: Date;
       cloudPaymentsPublicId: string;
     }> {
-      const { workspaceId, tariffPlanId, shouldSaveCard } = input;
+      const { workspaceId, tariffPlanId, shouldSaveCard, promoCode } = input;
 
       if (!workspaceId || !tariffPlanId || !user?.id) {
         throw new UserInputError('No workspaceId, tariffPlanId or user id provided');
@@ -126,6 +147,25 @@ export default {
         isCardLinkOperation = true;
       }
 
+      let chargeAmount = isCardLinkOperation ? AMOUNT_FOR_CARD_VALIDATION : plan.monthlyCharge;
+      let promoCodeId: string | undefined;
+
+      if (promoCode && !isCardLinkOperation) {
+        try {
+          const quote = await promoCodeService.quote(
+            promoCode,
+            user.id,
+            workspace._id,
+            plan
+          );
+
+          chargeAmount = quote.finalAmount;
+          promoCodeId = quote.promoCodeId.toString();
+        } catch (error) {
+          throwPromoCodeError(error);
+        }
+      }
+
       /**
        * Calculate next payment date
        */
@@ -138,20 +178,18 @@ export default {
         nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
       }
 
-      const checksumData = isCardLinkOperation
-        ? {
-          isCardLinkOperation: true as const,
-          workspaceId: workspace._id.toString(),
-          userId: user.id,
-          nextPaymentDate: nextPaymentDate.toISOString(),
-        }
-        : {
-          workspaceId: workspace._id.toString(),
-          userId: user.id,
-          tariffPlanId: plan._id.toString(),
-          shouldSaveCard: Boolean(shouldSaveCard),
-          nextPaymentDate: nextPaymentDate.toISOString(),
-        };
+      const promoUtm = validateUtmParams(input.promoUtm);
+      const checksumData = {
+        workspaceId: workspace._id.toString(),
+        userId: user.id,
+        tariffPlanId: plan._id.toString(),
+        shouldSaveCard: Boolean(shouldSaveCard),
+        isCardLinkOperation,
+        chargeAmount,
+        nextPaymentDate: nextPaymentDate.toISOString(),
+        ...(promoCodeId ? { promoCodeId } : {}),
+        ...(promoUtm && Object.keys(promoUtm).length > 0 ? { promoUtm } : {}),
+      };
 
       const checksum = await checksumService.generateChecksum(checksumData);
 
@@ -162,7 +200,7 @@ export default {
         .sendMessage(`👀 [Billing / Compose payment]
 
 card link operation: ${isCardLinkOperation}
-amount: ${+plan.monthlyCharge} RUB
+amount: ${chargeAmount} RUB
 last charge date: ${workspace.lastChargeDate?.toISOString()}
 next payment date: ${nextPaymentDate.toISOString()}
 workspace: «${workspace.name}» (${workspace._id.toString()})
@@ -177,6 +215,7 @@ debug: ${Boolean(workspace.isDebug)}`
           name: plan.name,
           monthlyCharge: plan.monthlyCharge,
         },
+        chargeAmount,
         isCardLinkOperation,
         currency: 'RUB',
         checksum,
@@ -265,7 +304,13 @@ debug: ${Boolean(workspace.isDebug)}`
     async payWithCard(_obj: undefined, args: PayWithCardArgs, { factories, user }: ResolverContextWithUser): Promise<any> {
       const paymentData = checksumService.parseAndVerifyChecksum(args.input.checksum);
 
-      if (!('tariffPlanId' in paymentData)) {
+      if (
+        !paymentData.workspaceId ||
+        !paymentData.tariffPlanId ||
+        paymentData.userId !== user.id ||
+        !Number.isFinite(paymentData.chargeAmount) ||
+        paymentData.chargeAmount <= 0
+      ) {
         throw new UserInputError('Invalid checksum');
       }
 
@@ -291,7 +336,6 @@ debug: ${Boolean(workspace.isDebug)}`
       };
 
       const isTariffPlanExpired = workspace.isTariffPlanExpired();
-      const dueDate = workspace.getTariffPlanDueDate();
 
       if (args.input.isRecurrent) {
         const interval = workspace.isDebug ? 'Day' : 'Month';
@@ -300,6 +344,7 @@ debug: ${Boolean(workspace.isDebug)}`
           recurrent: {
             interval,
             period: 1,
+            amount: plan.monthlyCharge,
           },
         };
 
@@ -308,27 +353,13 @@ debug: ${Boolean(workspace.isDebug)}`
          * we need to withdraw money only after tariff plan expired
          */
         if (!isTariffPlanExpired) {
-          jsonData.cloudPayments.recurrent.startDate = dueDate.toDateString();
-          jsonData.cloudPayments.recurrent.amount = plan.monthlyCharge;
+          jsonData.cloudPayments.recurrent.startDate = paymentData.nextPaymentDate;
         }
-      }
-
-      let amount = plan.monthlyCharge;
-
-      const isPaymentForCurrentTariffPlan = workspace.tariffPlanId.toString() === plan._id.toString();
-
-      /**
-       * True when we need to withdraw the amount only to validate the subscription
-       */
-      const isOnlyCardValidationNeeded = args.input.isRecurrent && isPaymentForCurrentTariffPlan && !isTariffPlanExpired;
-
-      if (isOnlyCardValidationNeeded) {
-        amount = AMOUNT_FOR_CARD_VALIDATION;
       }
 
       const result = await cloudPaymentsApi.payByToken({
         AccountId: user.id,
-        Amount: amount,
+        Amount: paymentData.chargeAmount,
         Token: token,
         Currency: 'RUB',
         JsonData: jsonData,

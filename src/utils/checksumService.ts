@@ -1,49 +1,8 @@
-import { PlanProlongationPayload } from '@hawk.so/types';
 import jwt, { Secret } from 'jsonwebtoken';
-
-export type ChecksumData = PlanPurchaseChecksumData | CardLinkChecksumData;
-
-interface PlanPurchaseChecksumData {
-  /**
-   * Workspace Identifier
-   */
-  workspaceId: string;
-  /**
-   * Id of the user making the payment
-   */
-  userId: string;
-  /**
-   * Workspace current plan id or plan id to change
-   */
-  tariffPlanId: string;
-  /**
-   * If true, we will save user card
-   */
-  shouldSaveCard: boolean;
-  /**
-   * Next payment date
-   */
-  nextPaymentDate: string;
-}
-
-interface CardLinkChecksumData {
-  /**
-   * Workspace Identifier
-   */
-  workspaceId: string;
-  /**
-   * Id of the user making the payment
-   */
-  userId: string;
-  /**
-   * True if this is card linking operation – charging minimal amount of money to validate card info
-   */
-  isCardLinkOperation: boolean;
-  /**
-   * Next payment date
-   */
-  nextPaymentDate: string;
-}
+import {
+  PaymentChecksumData,
+  PaymentChecksumInput
+} from '../billing/types/paymentData';
 
 /**
  * Helper class for working with checksums
@@ -54,9 +13,13 @@ class ChecksumService {
    *
    * @param data - data for processing billing request
    */
-  public async generateChecksum(data: ChecksumData): Promise<string> {
+  public async generateChecksum(data: PaymentChecksumInput): Promise<string> {
     return jwt.sign(
-      data,
+      {
+        ...data,
+        isCardLinkOperation: Boolean(data.isCardLinkOperation),
+        shouldSaveCard: Boolean(data.shouldSaveCard),
+      },
       process.env.JWT_SECRET_BILLING_CHECKSUM as Secret,
       { expiresIn: '30m' }
     );
@@ -67,25 +30,20 @@ class ChecksumService {
    *
    * @param checksum - checksum to parse
    */
-  public parseAndVerifyChecksum(checksum: string): ChecksumData {
-    const payload = jwt.verify(checksum, process.env.JWT_SECRET_BILLING_CHECKSUM as Secret) as ChecksumData;
+  public parseAndVerifyChecksum(checksum: string): PaymentChecksumData {
+    const payload = jwt.verify(checksum, process.env.JWT_SECRET_BILLING_CHECKSUM as Secret) as PaymentChecksumData;
 
-    if ('isCardLinkOperation' in payload) {
-      return {
-        workspaceId: payload.workspaceId,
-        userId: payload.userId,
-        isCardLinkOperation: payload.isCardLinkOperation,
-        nextPaymentDate: payload.nextPaymentDate,
-      };
-    } else {
-      return {
-        workspaceId: payload.workspaceId,
-        userId: payload.userId,
-        tariffPlanId: payload.tariffPlanId,
-        shouldSaveCard: payload.shouldSaveCard,
-        nextPaymentDate: payload.nextPaymentDate,
-      };
-    }
+    return {
+      workspaceId: payload.workspaceId,
+      userId: payload.userId,
+      tariffPlanId: payload.tariffPlanId,
+      shouldSaveCard: payload.shouldSaveCard,
+      isCardLinkOperation: payload.isCardLinkOperation,
+      chargeAmount: payload.chargeAmount,
+      nextPaymentDate: payload.nextPaymentDate,
+      promoCodeId: payload.promoCodeId,
+      promoUtm: payload.promoUtm,
+    };
   }
 }
 

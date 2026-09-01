@@ -79,6 +79,11 @@ export enum PayCodes {
    * Payment registered
    */
   SUCCESS = 0,
+
+  /**
+   * Temporary processing error. CloudPayments should retry the notification.
+   */
+  TEMPORARY_ERROR = 13,
 }
 
 /**

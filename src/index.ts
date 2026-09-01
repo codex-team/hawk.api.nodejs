@@ -32,6 +32,7 @@ import ReleasesFactory from './models/releasesFactory';
 import RedisHelper from './redisHelper';
 import { appendSsoRoutes } from './sso';
 import { appendGitHubRoutes } from './integrations/github';
+import PromoCodeService from './services/promoCodeService';
 
 /**
  * Option to enable playground
@@ -226,14 +227,18 @@ class HawkAPI {
      * });
      */
 
-    return {
+    const context = {
       factories: HawkAPI.setupFactories(dataLoader),
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      promoCodeService: new PromoCodeService(mongo.databases.hawk!),
       user: {
         id: userId,
         accessTokenExpired: isAccessTokenExpired,
       },
       // accounting,
     };
+
+    return context;
   }
 
   /**
