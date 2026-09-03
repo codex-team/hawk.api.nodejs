@@ -510,10 +510,10 @@
   dependencies:
     bson "^7.0.0"
 
-"@hawk.so/types@^0.5.9":
-  version "0.5.9"
-  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.5.9.tgz#817e8b26283d0367371125f055f2e37a274797bc"
-  integrity sha512-86aE0Bdzvy8C+Dqd1iZpnDho44zLGX/t92SGuAv2Q52gjSJ7SHQdpGDWtM91FXncfT5uzAizl9jYMuE6Qrtm0Q==
+"@hawk.so/types@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@hawk.so/types/-/types-0.7.0.tgz#ee959bc3d3ffa46c4c9d88693ea4d7f26c834f41"
+  integrity sha512-V8zCbnxwu1vVveZvfrm1Xoipi+hP5PZff/QiWeKGCl5/JeC0LX6AeCSIpKo2VvSDwiGcNTwmHygH6Tfch0Y2Dw==
   dependencies:
     bson "^7.0.0"
 
