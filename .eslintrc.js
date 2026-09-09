@@ -4,6 +4,12 @@ module.exports = {
     'node': true,
     'jest': true
   },
+  globals: {
+    /**
+     * TODO: bump ESLint because its current Node environment is missing required globals
+     */
+    'AbortController': 'readonly'
+  },
   rules: {
     '@typescript-eslint/camelcase': 'warn',
     '@typescript-eslint/no-unused-vars': 'warn',

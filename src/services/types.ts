@@ -3,7 +3,7 @@ import { EventAddons, EventData } from '@hawk.so/types';
 /**
  * Event type which is returned by events factory
  */
-type Event = {
+export type Event = {
     _id: string;
     payload: EventData<EventAddons>;
 };
