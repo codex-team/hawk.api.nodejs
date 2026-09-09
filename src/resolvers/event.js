@@ -3,7 +3,7 @@ const {
   parseBulkEventIds,
   enqueueAssigneeNotification,
 } = require('./helpers/bulkEventUtils');
-const { aiService } = require('../services/ai');
+const { askAiService } = require('../services/askAi');
 const { UserInputError } = require('apollo-server-express');
 const { ObjectId } = require('mongodb');
 
@@ -106,7 +106,7 @@ module.exports = {
     async aiSuggestion({ projectId, _id: eventId, originalEventId }, _args, context) {
       const factory = getEventsFactory(context, projectId);
 
-      return aiService.generateSuggestion(factory, eventId, originalEventId);
+      return askAiService.generateSuggestion(factory, eventId, originalEventId);
     },
 
     /**
