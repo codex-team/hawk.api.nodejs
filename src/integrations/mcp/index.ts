@@ -1,6 +1,7 @@
 import express from 'express';
 import { ContextFactories } from 'src/types/graphql';
 import { createMCPHandler } from './mcp';
+import { useMCPAuth, authMiddleware } from "./auth";
 
 /**
  * Appends MCP route to Express App
@@ -9,7 +10,8 @@ import { createMCPHandler } from './mcp';
  * @param factories - context factories for database access
  */
 export function appendMCPRoutes(app: express.Application, factories: ContextFactories): void {
+  useMCPAuth(app);
   const handler = createMCPHandler(factories);
 
-  app.use('/integration/mcp', (req, res) => handler(req, res, req.body));
+  app.use('/integration/mcp', authMiddleware, (req, res) => handler(req, res, req.body));
 }
