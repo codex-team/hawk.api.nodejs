@@ -867,6 +867,13 @@
   dependencies:
     zod "^4.2.0"
 
+"@modelcontextprotocol/express@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@modelcontextprotocol/express/-/express-2.0.0.tgz#0e29ada50d022fd345e8661a337cefeabdc6d0e0"
+  integrity sha512-Snlr8j9FR9LcVvEJPF7qJ7d5zTL4Bes2dk7RcacN9eSZ7OLohwxqhEvWu1+UxELyScgLbLLOdeVEGdwKI1iwVQ==
+  dependencies:
+    cors "^2.8.5"
+
 "@modelcontextprotocol/node@^2.0.0":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@modelcontextprotocol/node/-/node-2.0.0.tgz#3851275cb1c08aeb113d5b7cbe6dbe7adab37c65"
