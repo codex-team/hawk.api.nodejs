@@ -33,7 +33,7 @@ const {
 } = require('../utils/graphqlIntSafe');
 
 /**
- * TEMPORARY (remove after ~2026-11-15): clamps nextCursor Int fields that
+ * @todo TEMPORARY (remove after ~2026-11-15): clamps nextCursor Int fields that
  * exceed GraphQL Int / sane unix range. Needed while legacy Sentry events with
  * year-2056 timestamps may still exist in Mongo.
  *
