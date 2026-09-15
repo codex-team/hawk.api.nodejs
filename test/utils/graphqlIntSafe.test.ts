@@ -3,6 +3,7 @@ import '../../src/env-test';
 const {
   GRAPHQL_INT_MAX,
   isOutOfGraphQLIntRange,
+  isUnsafeUnixTimestamp,
   unixSecondsFromObjectId,
   utcMidnightUnix,
   toSafeGraphQLInt,
@@ -42,8 +43,14 @@ describe('graphqlIntSafe', () => {
     expect(toSafeUnixTimestampForGraphQLInt(ms, objectId, nowSec)).toBe(nowSec - 120);
   });
 
+  it('treats integer millisecond timestamps as unsafe', () => {
+    const ms = (nowSec - 120) * 1000;
+    expect(isUnsafeUnixTimestamp(ms, nowSec)).toBe(true);
+  });
+
   it('keeps reasonable timestamps', () => {
     expect(toSafeUnixTimestampForGraphQLInt(nowSec - 3600, objectId, nowSec)).toBe(nowSec - 3600);
+    expect(isUnsafeUnixTimestamp(nowSec - 3600, nowSec)).toBe(false);
   });
 
   it('builds utc midnight from corrected time', () => {
@@ -53,8 +60,10 @@ describe('graphqlIntSafe', () => {
     expect(midnight % 86400).toBe(0);
   });
 
-  it('treats large sort boundaries as timestamps', () => {
-    expect(toSafeSortValueBoundary(2736187957, objectId, nowSec)).toBe(objectIdSec);
-    expect(toSafeSortValueBoundary(42, objectId, nowSec)).toBe(42);
+  it('uses timestamp conversion only for BY_DATE sort boundaries', () => {
+    expect(toSafeSortValueBoundary(2736187957, objectId, 'BY_DATE', nowSec)).toBe(objectIdSec);
+    expect(toSafeSortValueBoundary(3000000000, objectId, 'BY_COUNT', nowSec)).toBe(GRAPHQL_INT_MAX);
+    expect(toSafeSortValueBoundary(3000000000, objectId, 'BY_AFFECTED_USERS', nowSec)).toBe(GRAPHQL_INT_MAX);
+    expect(toSafeSortValueBoundary(42, objectId, 'BY_COUNT', nowSec)).toBe(42);
   });
 });

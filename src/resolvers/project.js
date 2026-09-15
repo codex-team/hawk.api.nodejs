@@ -33,16 +33,17 @@ const {
 } = require('../utils/graphqlIntSafe');
 
 /**
- * @todo TEMPORARY (remove after ~2026-11-15): clamps nextCursor Int fields that
- * exceed GraphQL Int / sane unix range. Needed while legacy Sentry events with
- * year-2056 timestamps may still exist in Mongo.
+ * TEMPORARY (remove after ~2026-11-15): clamps nextCursor Int fields.
+ * Factory still matches raw Mongo boundaries — converted cursors may skip
+ * leftover legacy rows on later pages (see sanitizeDailyEventsPortion note).
  *
  * @param {object} cursor - DailyEventsCursor from factory
  * @param {string|null} projectIdStr - project id for logs
+ * @param {string|undefined} sort - BY_DATE | BY_COUNT | BY_AFFECTED_USERS
  * @param {number} nowSec - current unix seconds
  * @returns {object} original or converted cursor
  */
-function sanitizeDailyEventsCursor(cursor, projectIdStr, nowSec) {
+function sanitizeDailyEventsCursor(cursor, projectIdStr, sort, nowSec) {
   if (!cursor) {
     return cursor;
   }
@@ -55,6 +56,7 @@ function sanitizeDailyEventsCursor(cursor, projectIdStr, nowSec) {
   const safeSort = toSafeSortValueBoundary(
     cursor.sortValueBoundary,
     cursor.idBoundary,
+    sort,
     nowSec
   );
 
@@ -67,6 +69,7 @@ function sanitizeDailyEventsCursor(cursor, projectIdStr, nowSec) {
 
   console.warn('🟡 [ProjectResolver.dailyEventsPortion] Converted nextCursor Int-unsafe values', {
     projectId: projectIdStr,
+    sort,
     before: {
       groupingTimestampBoundary: cursor.groupingTimestampBoundary,
       sortValueBoundary: cursor.sortValueBoundary,
@@ -121,16 +124,15 @@ function sanitizeDailyEvent(dailyEvent, projectIdStr, nowSec) {
   /**
    * Prefer midnight of corrected lastRepetitionTime when grouping was also bad,
    * so day buckets stay consistent with the event time we expose.
+   * Always use already-normalized safe* values — never raw ms.
    */
   const groupingNeedsFix = isUnsafeUnixTimestamp(dailyEvent && dailyEvent.groupingTimestamp, nowSec);
   const lastRepetitionNeedsFix = isUnsafeUnixTimestamp(dailyEvent && dailyEvent.lastRepetitionTime, nowSec);
   const correctedGroupingTimestamp = groupingNeedsFix
     ? utcMidnightUnix(
-      lastRepetitionNeedsFix
+      typeof safeLastRepetitionTime === 'number'
         ? safeLastRepetitionTime
-        : (typeof dailyEvent.lastRepetitionTime === 'number'
-          ? dailyEvent.lastRepetitionTime
-          : safeGroupingTimestamp)
+        : safeGroupingTimestamp
     )
     : safeGroupingTimestamp;
 
@@ -234,11 +236,15 @@ function sanitizeDailyEvent(dailyEvent, projectIdStr, nowSec) {
  * dailyEventsPortion — title/backtrace hygiene plus Int overflow conversion
  * for legacy far-future Sentry timestamps. Safe to delete once those docs age out.
  *
+ * Note: converting nextCursor can skip remaining legacy rows on later pages
+ * (factory matches raw Mongo fields). Acceptable trade-off vs aggregation cost.
+ *
  * @param {object} dailyEventsPortion - portion returned by events factory
  * @param {string|ObjectId} projectId - project id for logs
+ * @param {string|undefined} sort - BY_DATE | BY_COUNT | BY_AFFECTED_USERS
  * @returns {object}
  */
-function sanitizeDailyEventsPortion(dailyEventsPortion, projectId) {
+function sanitizeDailyEventsPortion(dailyEventsPortion, projectId, sort) {
   if (!dailyEventsPortion || !Array.isArray(dailyEventsPortion.dailyEvents)) {
     return dailyEventsPortion;
   }
@@ -249,6 +255,7 @@ function sanitizeDailyEventsPortion(dailyEventsPortion, projectId) {
   dailyEventsPortion.nextCursor = sanitizeDailyEventsCursor(
     dailyEventsPortion.nextCursor,
     projectIdStr,
+    sort,
     nowSec
   );
 
@@ -855,7 +862,7 @@ module.exports = {
         assignee
       );
 
-      return sanitizeDailyEventsPortion(dailyEventsPortion, project._id);
+      return sanitizeDailyEventsPortion(dailyEventsPortion, project._id, sort);
     },
 
     /**
