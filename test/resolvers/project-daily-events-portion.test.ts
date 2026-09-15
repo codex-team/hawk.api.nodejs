@@ -11,6 +11,8 @@ jest.mock('../../src/resolvers/helpers/eventsFactory', () => ({
 import projectResolverModule from '../../src/resolvers/project';
 import getEventsFactory from '../../src/resolvers/helpers/eventsFactory';
 
+const { GRAPHQL_INT_MAX } = require('../../src/utils/graphqlIntSafe');
+
 const projectResolver = projectResolverModule as {
   Project: {
     dailyEventsPortion: (...args: unknown[]) => Promise<unknown>;
@@ -217,6 +219,130 @@ describe('Project resolver dailyEventsPortion', () => {
 
     expect(result.dailyEvents[0].event.payload.title).toBe('TypeError');
     expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  it('should convert far-future timestamps to ObjectId-based Int-safe values', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const eventObjectId = '6aa93c9b3a3878cb15936a41';
+    const expectedTs = parseInt(eventObjectId.slice(0, 8), 16);
+    const expectedMidnight = Math.floor(new Date(expectedTs * 1000).setUTCHours(0, 0, 0, 0) / 1000);
+
+    const findDailyEventsPortion = jest.fn().mockResolvedValue({
+      nextCursor: {
+        groupingTimestampBoundary: 2736115200,
+        sortValueBoundary: 2736187957,
+        idBoundary: '6aa82a4f9f06968718806c76',
+      },
+      dailyEvents: [
+        {
+          id: '6aa93c9b9eb65b518e9f8cf0',
+          count: 1,
+          affectedUsers: 0,
+          groupingTimestamp: 2736201600,
+          lastRepetitionTime: 2736250836,
+          event: {
+            _id: eventObjectId,
+            originalEventId: '6a217a79db8fff3481881dd4',
+            totalCount: 13692,
+            usersAffected: 0,
+            timestamp: 2736250836,
+            payload: {
+              title: 'Future clock event',
+            },
+          },
+        },
+      ],
+    });
+    (getEventsFactory as unknown as jest.Mock).mockReturnValue({
+      findDailyEventsPortion,
+    });
+
+    const project = { _id: 'project-1' };
+    const result = await projectResolver.Project.dailyEventsPortion(project, {
+      limit: 10,
+      nextCursor: null,
+      sort: 'BY_DATE',
+      filters: {},
+      search: '',
+    }, {}) as {
+      nextCursor: {
+        groupingTimestampBoundary: number;
+        sortValueBoundary: number;
+      };
+      dailyEvents: Array<{
+        groupingTimestamp: number;
+        lastRepetitionTime: number;
+        event: { timestamp: number; totalCount: number };
+      }>;
+    };
+
+    expect(result.dailyEvents[0].groupingTimestamp).toBe(expectedMidnight);
+    expect(result.dailyEvents[0].lastRepetitionTime).toBe(expectedTs);
+    expect(result.dailyEvents[0].event.timestamp).toBe(expectedTs);
+    expect(result.dailyEvents[0].event.totalCount).toBe(13692);
+    /**
+     * Cursor is converted with the same helpers the factory uses for match/sort.
+     */
+    expect(result.nextCursor.groupingTimestampBoundary).toBe(parseInt('6aa82a4f', 16));
+    expect(result.nextCursor.sortValueBoundary).toBe(parseInt('6aa82a4f', 16));
+    expect(warnSpy).toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  it('should normalize millisecond lastRepetitionTime before utc midnight', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const eventObjectId = '6aa93c9b3a3878cb15936a41';
+    const nowSec = Math.floor(Date.now() / 1000);
+    const lastRepetitionMs = (nowSec - 60) * 1000;
+    const expectedSeconds = nowSec - 60;
+    const expectedMidnight = Math.floor(new Date(expectedSeconds * 1000).setUTCHours(0, 0, 0, 0) / 1000);
+
+    const findDailyEventsPortion = jest.fn().mockResolvedValue({
+      nextCursor: null,
+      dailyEvents: [
+        {
+          id: '6aa93c9b9eb65b518e9f8cf0',
+          count: 1,
+          affectedUsers: 0,
+          groupingTimestamp: 2736201600,
+          lastRepetitionTime: lastRepetitionMs,
+          event: {
+            _id: eventObjectId,
+            originalEventId: '6a217a79db8fff3481881dd4',
+            totalCount: 1,
+            timestamp: lastRepetitionMs,
+            payload: {
+              title: 'ms timestamp',
+            },
+          },
+        },
+      ],
+    });
+    (getEventsFactory as unknown as jest.Mock).mockReturnValue({
+      findDailyEventsPortion,
+    });
+
+    const result = await projectResolver.Project.dailyEventsPortion({ _id: 'project-1' }, {
+      limit: 10,
+      nextCursor: null,
+      sort: 'BY_DATE',
+      filters: {},
+      search: '',
+    }, {}) as {
+      dailyEvents: Array<{
+        groupingTimestamp: number;
+        lastRepetitionTime: number;
+        event: { timestamp: number };
+      }>;
+    };
+
+    expect(result.dailyEvents[0].lastRepetitionTime).toBe(expectedSeconds);
+    expect(result.dailyEvents[0].event.timestamp).toBe(expectedSeconds);
+    expect(result.dailyEvents[0].groupingTimestamp).toBe(expectedMidnight);
+    expect(result.dailyEvents[0].groupingTimestamp).toBeLessThanOrEqual(GRAPHQL_INT_MAX);
 
     warnSpy.mockRestore();
   });
