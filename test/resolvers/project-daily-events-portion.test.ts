@@ -221,6 +221,72 @@ describe('Project resolver dailyEventsPortion', () => {
     warnSpy.mockRestore();
   });
 
+  it('should convert far-future timestamps to ObjectId-based Int-safe values', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const eventObjectId = '6aa93c9b3a3878cb15936a41';
+    const expectedTs = parseInt(eventObjectId.slice(0, 8), 16);
+    const expectedMidnight = Math.floor(new Date(expectedTs * 1000).setUTCHours(0, 0, 0, 0) / 1000);
+
+    const findDailyEventsPortion = jest.fn().mockResolvedValue({
+      nextCursor: {
+        groupingTimestampBoundary: 2736115200,
+        sortValueBoundary: 2736187957,
+        idBoundary: '6aa82a4f9f06968718806c76',
+      },
+      dailyEvents: [
+        {
+          id: '6aa93c9b9eb65b518e9f8cf0',
+          count: 1,
+          affectedUsers: 0,
+          groupingTimestamp: 2736201600,
+          lastRepetitionTime: 2736250836,
+          event: {
+            _id: eventObjectId,
+            originalEventId: '6a217a79db8fff3481881dd4',
+            totalCount: 13692,
+            usersAffected: 0,
+            timestamp: 2736250836,
+            payload: {
+              title: 'Future clock event',
+            },
+          },
+        },
+      ],
+    });
+    (getEventsFactory as unknown as jest.Mock).mockReturnValue({
+      findDailyEventsPortion,
+    });
+
+    const project = { _id: 'project-1' };
+    const result = await projectResolver.Project.dailyEventsPortion(project, {
+      limit: 10,
+      nextCursor: null,
+      sort: 'BY_DATE',
+      filters: {},
+      search: '',
+    }, {}) as {
+      nextCursor: {
+        groupingTimestampBoundary: number;
+        sortValueBoundary: number;
+      };
+      dailyEvents: Array<{
+        groupingTimestamp: number;
+        lastRepetitionTime: number;
+        event: { timestamp: number; totalCount: number };
+      }>;
+    };
+
+    expect(result.dailyEvents[0].groupingTimestamp).toBe(expectedMidnight);
+    expect(result.dailyEvents[0].lastRepetitionTime).toBe(expectedTs);
+    expect(result.dailyEvents[0].event.timestamp).toBe(expectedTs);
+    expect(result.dailyEvents[0].event.totalCount).toBe(13692);
+    expect(result.nextCursor.groupingTimestampBoundary).toBe(parseInt('6aa82a4f', 16));
+    expect(result.nextCursor.sortValueBoundary).toBe(parseInt('6aa82a4f', 16));
+    expect(warnSpy).toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
   it('should cap backtrace frames and sourceCode size in list response', async () => {
     const longLine = 'x'.repeat(200);
     const frames = Array.from({ length: 80 }, (_, index) => {

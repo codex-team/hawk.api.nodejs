@@ -24,11 +24,215 @@ const DAILY_EVENTS_GROUP_HASH_INDEX_NAME = 'groupHash';
 const MAX_SEARCH_QUERY_LENGTH = 50;
 const FALLBACK_EVENT_TITLE = 'Unknown';
 const { limitBacktraceForDailyEventsList } = require('../utils/eventPayloadLimits');
+const {
+  isUnsafeUnixTimestamp,
+  toSafeGraphQLInt,
+  toSafeUnixTimestampForGraphQLInt,
+  toSafeSortValueBoundary,
+  utcMidnightUnix,
+} = require('../utils/graphqlIntSafe');
 
 /**
- * Temporary list-response sanitizer:
- * - fallback for empty payload.title
- * - cap backtrace frames/sourceCode size (heavy Rails stacks)
+ * TEMPORARY (remove after ~2026-11-15): clamps nextCursor Int fields that
+ * exceed GraphQL Int / sane unix range. Needed while legacy Sentry events with
+ * year-2056 timestamps may still exist in Mongo.
+ *
+ * @param {object} cursor - DailyEventsCursor from factory
+ * @param {string|null} projectIdStr - project id for logs
+ * @param {number} nowSec - current unix seconds
+ * @returns {object} original or converted cursor
+ */
+function sanitizeDailyEventsCursor(cursor, projectIdStr, nowSec) {
+  if (!cursor) {
+    return cursor;
+  }
+
+  const safeGrouping = toSafeUnixTimestampForGraphQLInt(
+    cursor.groupingTimestampBoundary,
+    cursor.idBoundary,
+    nowSec
+  );
+  const safeSort = toSafeSortValueBoundary(
+    cursor.sortValueBoundary,
+    cursor.idBoundary,
+    nowSec
+  );
+
+  if (
+    safeGrouping === cursor.groupingTimestampBoundary &&
+    safeSort === cursor.sortValueBoundary
+  ) {
+    return cursor;
+  }
+
+  console.warn('🟡 [ProjectResolver.dailyEventsPortion] Converted nextCursor Int-unsafe values', {
+    projectId: projectIdStr,
+    before: {
+      groupingTimestampBoundary: cursor.groupingTimestampBoundary,
+      sortValueBoundary: cursor.sortValueBoundary,
+    },
+    after: {
+      groupingTimestampBoundary: safeGrouping,
+      sortValueBoundary: safeSort,
+    },
+  });
+
+  return {
+    ...cursor,
+    groupingTimestampBoundary: safeGrouping,
+    sortValueBoundary: safeSort,
+  };
+}
+
+/**
+ * TEMPORARY (remove after ~2026-11-15): sanitizes one DailyEvent row for GraphQL
+ * list response — title fallback, backtrace limits, Int-safe timestamps/counts.
+ * Drop once collector clamp has aged out bad dailyEvents / repetitions.
+ *
+ * @param {object} dailyEvent - DailyEvent from factory
+ * @param {string|null} projectIdStr - project id for logs
+ * @param {number} nowSec - current unix seconds
+ * @returns {object}
+ */
+function sanitizeDailyEvent(dailyEvent, projectIdStr, nowSec) {
+  const event = dailyEvent && dailyEvent.event ? dailyEvent.event : null;
+  const payload = event && event.payload ? event.payload : null;
+  const rawTitle = payload && typeof payload.title === 'string' ? payload.title : '';
+  const hasValidTitle = rawTitle.trim().length > 0;
+  const title = hasValidTitle ? rawTitle : FALLBACK_EVENT_TITLE;
+  const backtrace = limitBacktraceForDailyEventsList(payload && payload.backtrace);
+  const titleChanged = !payload || payload.title !== title;
+  const backtraceChanged = !payload || payload.backtrace !== backtrace;
+
+  const fallbackId = (event && (event._id || event.id)) ||
+    (dailyEvent && dailyEvent.id) ||
+    null;
+
+  const safeLastRepetitionTime = toSafeUnixTimestampForGraphQLInt(
+    dailyEvent && dailyEvent.lastRepetitionTime,
+    fallbackId,
+    nowSec
+  );
+  const safeGroupingTimestamp = toSafeUnixTimestampForGraphQLInt(
+    dailyEvent && dailyEvent.groupingTimestamp,
+    fallbackId,
+    nowSec
+  );
+  /**
+   * Prefer midnight of corrected lastRepetitionTime when grouping was also bad,
+   * so day buckets stay consistent with the event time we expose.
+   */
+  const groupingNeedsFix = isUnsafeUnixTimestamp(dailyEvent && dailyEvent.groupingTimestamp, nowSec);
+  const lastRepetitionNeedsFix = isUnsafeUnixTimestamp(dailyEvent && dailyEvent.lastRepetitionTime, nowSec);
+  const correctedGroupingTimestamp = groupingNeedsFix
+    ? utcMidnightUnix(
+      lastRepetitionNeedsFix
+        ? safeLastRepetitionTime
+        : (typeof dailyEvent.lastRepetitionTime === 'number'
+          ? dailyEvent.lastRepetitionTime
+          : safeGroupingTimestamp)
+    )
+    : safeGroupingTimestamp;
+
+  const safeCount = typeof (dailyEvent && dailyEvent.count) === 'number'
+    ? toSafeGraphQLInt(dailyEvent.count, 0)
+    : dailyEvent.count;
+  const safeAffectedUsers = typeof (dailyEvent && dailyEvent.affectedUsers) === 'number'
+    ? toSafeGraphQLInt(dailyEvent.affectedUsers, 0)
+    : dailyEvent.affectedUsers;
+
+  let nextEvent = event;
+
+  if (event) {
+    const safeTotalCount = typeof event.totalCount === 'number'
+      ? toSafeGraphQLInt(event.totalCount, 0)
+      : event.totalCount;
+    const safeUsersAffected = typeof event.usersAffected === 'number'
+      ? toSafeGraphQLInt(event.usersAffected, 0)
+      : event.usersAffected;
+    const safeEventTimestamp = toSafeUnixTimestampForGraphQLInt(
+      event.timestamp,
+      fallbackId,
+      nowSec
+    );
+
+    const eventIntsChanged = safeTotalCount !== event.totalCount ||
+      safeUsersAffected !== event.usersAffected ||
+      safeEventTimestamp !== event.timestamp;
+
+    if (eventIntsChanged || titleChanged || backtraceChanged) {
+      nextEvent = {
+        ...event,
+        totalCount: safeTotalCount,
+        usersAffected: safeUsersAffected,
+        timestamp: safeEventTimestamp,
+        payload: {
+          ...(payload || {}),
+          title,
+          backtrace,
+        },
+      };
+    }
+  } else if (titleChanged || backtraceChanged) {
+    nextEvent = {
+      ...(event || {}),
+      payload: {
+        ...(payload || {}),
+        title,
+        backtrace,
+      },
+    };
+  }
+
+  const dailyChanged = correctedGroupingTimestamp !== dailyEvent.groupingTimestamp ||
+    safeLastRepetitionTime !== dailyEvent.lastRepetitionTime ||
+    safeCount !== dailyEvent.count ||
+    safeAffectedUsers !== dailyEvent.affectedUsers ||
+    nextEvent !== event;
+
+  if (dailyChanged && (groupingNeedsFix || lastRepetitionNeedsFix)) {
+    console.warn('🟡 [ProjectResolver.dailyEventsPortion] Converted Int-unsafe daily event timestamps', {
+      projectId: projectIdStr,
+      dailyEventId: dailyEvent && dailyEvent.id ? dailyEvent.id.toString() : null,
+      before: {
+        groupingTimestamp: dailyEvent.groupingTimestamp,
+        lastRepetitionTime: dailyEvent.lastRepetitionTime,
+      },
+      after: {
+        groupingTimestamp: correctedGroupingTimestamp,
+        lastRepetitionTime: safeLastRepetitionTime,
+      },
+    });
+  }
+
+  if (!hasValidTitle) {
+    console.warn('🔴 [ProjectResolver.dailyEventsPortion] Missing event payload title. Fallback title applied.', {
+      projectId: projectIdStr,
+      dailyEventId: dailyEvent && dailyEvent.id ? dailyEvent.id.toString() : null,
+      dailyEventGroupHash: dailyEvent && dailyEvent.groupHash ? dailyEvent.groupHash.toString() : null,
+      eventOriginalId: event && event.originalEventId ? event.originalEventId.toString() : null,
+      eventId: event && event._id ? event._id.toString() : null,
+    });
+  }
+
+  if (!dailyChanged) {
+    return dailyEvent;
+  }
+
+  return {
+    ...dailyEvent,
+    count: safeCount,
+    affectedUsers: safeAffectedUsers,
+    groupingTimestamp: correctedGroupingTimestamp,
+    lastRepetitionTime: safeLastRepetitionTime,
+    event: nextEvent,
+  };
+}
+
+/**
+ * TEMPORARY (remove after ~2026-11-15): list-response sanitizer for
+ * dailyEventsPortion — title/backtrace hygiene plus Int overflow conversion
+ * for legacy far-future Sentry timestamps. Safe to delete once those docs age out.
  *
  * @param {object} dailyEventsPortion - portion returned by events factory
  * @param {string|ObjectId} projectId - project id for logs
@@ -39,41 +243,17 @@ function sanitizeDailyEventsPortion(dailyEventsPortion, projectId) {
     return dailyEventsPortion;
   }
 
+  const projectIdStr = projectId ? projectId.toString() : null;
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  dailyEventsPortion.nextCursor = sanitizeDailyEventsCursor(
+    dailyEventsPortion.nextCursor,
+    projectIdStr,
+    nowSec
+  );
+
   dailyEventsPortion.dailyEvents = dailyEventsPortion.dailyEvents.map((dailyEvent) => {
-    const event = dailyEvent && dailyEvent.event ? dailyEvent.event : null;
-    const payload = event && event.payload ? event.payload : null;
-    const rawTitle = payload && typeof payload.title === 'string' ? payload.title : '';
-    const hasValidTitle = rawTitle.trim().length > 0;
-    const title = hasValidTitle ? rawTitle : FALLBACK_EVENT_TITLE;
-    const backtrace = limitBacktraceForDailyEventsList(payload && payload.backtrace);
-    const titleChanged = !payload || payload.title !== title;
-    const backtraceChanged = !payload || payload.backtrace !== backtrace;
-
-    if (!hasValidTitle) {
-      console.warn('🔴 [ProjectResolver.dailyEventsPortion] Missing event payload title. Fallback title applied.', {
-        projectId: projectId ? projectId.toString() : null,
-        dailyEventId: dailyEvent && dailyEvent.id ? dailyEvent.id.toString() : null,
-        dailyEventGroupHash: dailyEvent && dailyEvent.groupHash ? dailyEvent.groupHash.toString() : null,
-        eventOriginalId: event && event.originalEventId ? event.originalEventId.toString() : null,
-        eventId: event && event._id ? event._id.toString() : null,
-      });
-    }
-
-    if (!titleChanged && !backtraceChanged) {
-      return dailyEvent;
-    }
-
-    return {
-      ...dailyEvent,
-      event: {
-        ...(event || {}),
-        payload: {
-          ...(payload || {}),
-          title,
-          backtrace,
-        },
-      },
-    };
+    return sanitizeDailyEvent(dailyEvent, projectIdStr, nowSec);
   });
 
   return dailyEventsPortion;
