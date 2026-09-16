@@ -1,8 +1,8 @@
 import express from "express";
 import crypto from "node:crypto";
-import jwt, { Secret } from "jsonwebtoken";
+import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import { UserJWTData } from "src/types/graphql";
-import { OAuthTokenVerifier } from "@modelcontextprotocol/server";
+import { OAuthError, OAuthErrorCode, OAuthTokenVerifier } from "@modelcontextprotocol/server";
 import { requireBearerAuth } from "@modelcontextprotocol/express";
 
 if (!process.env.API_URL) {
@@ -22,17 +22,53 @@ type AuthCodeData = {
 };
 
 const authCodes = new Map<string, AuthCodeData>();
+const accessTokenLifetimeSeconds = "15m";
+
+type TokenData = {
+  userId: string;
+  clientId: string;
+  tokenUse: "access" | "refresh";
+  exp: number;
+};
+
+const verifyToken = (token: string, tokenUse: TokenData["tokenUse"]): TokenData => {
+  const payload = jwt.verify(token, process.env.JWT_SECRET_ACCESS_TOKEN as Secret);
+
+  if (typeof payload === "string" || payload.tokenUse !== tokenUse ||
+    typeof payload.userId !== "string" || !payload.userId ||
+    typeof payload.clientId !== "string" || !payload.clientId ||
+    typeof payload.exp !== "number") {
+    throw new Error("Invalid token claims");
+  }
+
+  return payload as TokenData;
+};
+
+const createTokenResponse = (userId: string, clientId: string) => ({
+  access_token: jwt.sign(
+    { userId, clientId, tokenUse: "access" },
+    process.env.JWT_SECRET_ACCESS_TOKEN as Secret,
+    { expiresIn: accessTokenLifetimeSeconds }
+  ),
+  refresh_token: jwt.sign(
+    { userId, clientId, tokenUse: "refresh" },
+    process.env.JWT_SECRET_ACCESS_TOKEN as Secret,
+    { expiresIn: "30d" }
+  ),
+  token_type: "Bearer",
+  expires_in: accessTokenLifetimeSeconds,
+  scope: "mcp:tools mcp:resources"
+});
 
 const tokenVerifier: OAuthTokenVerifier = {
   verifyAccessToken: async (token: string) => {
-    const payload = jwt.verify(
-      token,
-      process.env.JWT_SECRET_ACCESS_TOKEN as Secret
-    ) as {
-      userId: string;
-      clientId: string;
-      exp: number;
-    };
+    let payload: TokenData;
+
+    try {
+      payload = verifyToken(token, "access");
+    } catch {
+      throw new OAuthError(OAuthErrorCode.InvalidToken, "Invalid or expired access token");
+    }
 
     return {
       token,
@@ -184,11 +220,36 @@ export const useMCPAuth = (app: express.Application) => {
   app.post("/token/integration/mcp", (req, res) => {
     const {
       grant_type,
+      refresh_token,
       code,
       client_id,
       redirect_uri,
       code_verifier
     } = req.body;
+
+    res.set("Cache-Control", "no-store");
+    res.set("Pragma", "no-cache");
+
+    if (grant_type === "refresh_token") {
+      if (typeof refresh_token !== "string" || !refresh_token ||
+        typeof client_id !== "string" || !client_id) {
+        return res.status(400).json({ error: "invalid_request" });
+      }
+
+      let auth: TokenData;
+
+      try {
+        auth = verifyToken(refresh_token, "refresh");
+      } catch {
+        return res.status(400).json({ error: "invalid_grant" });
+      }
+
+      if (auth.clientId !== client_id) {
+        return res.status(400).json({ error: "invalid_grant" });
+      }
+
+      return res.json(createTokenResponse(auth.userId, auth.clientId));
+    }
 
     if (grant_type !== "authorization_code") {
       return res.status(400).json({
@@ -240,32 +301,6 @@ export const useMCPAuth = (app: express.Application) => {
 
     authCodes.delete(code);
 
-    const accessToken = jwt.sign(
-      {
-        userId: auth.userId,
-        clientId: auth.clientId
-      },
-      process.env.JWT_SECRET_ACCESS_TOKEN as Secret,
-      {
-        expiresIn: "15m"
-      }
-    );
-
-    const refreshToken = jwt.sign(
-      {
-        userId: auth.userId,
-        clientId: auth.clientId
-      },
-      process.env.JWT_SECRET_ACCESS_TOKEN as Secret,
-      { expiresIn: "30d" }
-    )
-
-    return res.json({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      token_type: "Bearer",
-      expires_in: 900,
-      scope: "mcp:tools mcp:resources"
-    });
+    return res.json(createTokenResponse(auth.userId, auth.clientId));
   });
 };
