@@ -5,7 +5,7 @@ import { AskAiService } from '../../../src/services/askAi/service';
 import { vercelAIApi } from '../../../src/integrations/vercel-ai';
 import { ctoInstruction } from '../../../src/services/askAi/instructions/cto';
 import { UNTRUSTED_DATA_MARKER_NAME } from '../../../src/services/askAi/security/spotlighting';
-import { SUGGESTION_FALLBACK_MESSAGE } from '../../../src/services/askAi/service';
+import { SUGGESTION_FALLBACK_MESSAGE } from '../../../src/services/askAi/security/nonceEcho';
 
 jest.mock('../../../src/integrations/vercel-ai/', () => ({
   vercelAIApi: {
@@ -143,23 +143,36 @@ describe('AskAiService', () => {
   });
 
   describe('streamSuggestion', () => {
-    it('should spotlight the event with a nonce the system instruction repeats, and return the stream unchanged', async () => {
+    it('should spotlight the event with a nonce the system instruction repeats', async () => {
       const streamResult = (async function * () {
         yield { type: 'text-delta', delta: 'Answer' };
       })();
 
       (vercelAIApi.stream as jest.Mock).mockReturnValue(streamResult);
 
-      const signal = new AbortController().signal;
-
-      const result = await askAiService.streamSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId, signal);
-      const args = (vercelAIApi.stream as jest.Mock).mock.calls[0][0] as { system: string; prompt: string; signal: AbortSignal };
+      await askAiService.streamSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId, new AbortController().signal);
+      const args = (vercelAIApi.stream as jest.Mock).mock.calls[0][0] as { system: string; prompt: string };
 
       expect(args.prompt).toContain(JSON.stringify(testPayload));
       expect(args.system.startsWith(ctoInstruction)).toBe(true);
       expect(args.system).toContain(nonceFromPrompt(args.prompt));
-      expect(args.signal).toBe(signal);
-      expect(result).toBe(streamResult);
+    });
+
+    it('should let the caller stop the model call', async () => {
+      const streamResult = (async function * () {
+        yield { type: 'text-delta', delta: 'Answer' };
+      })();
+
+      (vercelAIApi.stream as jest.Mock).mockReturnValue(streamResult);
+
+      const controller = new AbortController();
+
+      await askAiService.streamSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId, controller.signal);
+      const args = (vercelAIApi.stream as jest.Mock).mock.calls[0][0] as { signal: AbortSignal };
+
+      controller.abort();
+
+      expect(args.signal.aborted).toBe(true);
     });
 
     it('should throw Event not found when the events factory returns nothing', async () => {
@@ -168,6 +181,41 @@ describe('AskAiService', () => {
       ).rejects.toThrow('Event not found');
 
       expect(vercelAIApi.stream).not.toHaveBeenCalled();
+    });
+
+    it('should scan the stream with this request\'s nonce, report the event ids and stop the model call when it fires', async () => {
+      (vercelAIApi.stream as jest.Mock).mockImplementation(({ prompt }: { prompt: string }) => (async function * () {
+        yield {
+          type: 'text-delta',
+          delta: `service marker ${nonceFromPrompt(prompt)}`,
+        };
+      })());
+
+      const stream = await askAiService.streamSuggestion(
+        eventsFactoryWithPayload(),
+        testEventId,
+        testOriginalEventId,
+        new AbortController().signal
+      );
+      const received = [];
+
+      for await (const part of stream) {
+        received.push(part);
+      }
+
+      const eventIds = expect.objectContaining({
+        eventId: testEventId,
+        originalEventId: testOriginalEventId,
+      });
+      const args = (vercelAIApi.stream as jest.Mock).mock.calls[0][0] as { signal: AbortSignal };
+
+      expect(received).toEqual([ {
+        type: 'error',
+        errorText: SUGGESTION_FALLBACK_MESSAGE,
+      } ]);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.any(String), eventIds);
+      expect(HawkCatcher.send).toHaveBeenCalledWith(expect.any(Error), eventIds);
+      expect(args.signal.aborted).toBe(true);
     });
   });
 });
