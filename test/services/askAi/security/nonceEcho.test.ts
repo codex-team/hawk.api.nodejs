@@ -1,5 +1,4 @@
-import { SUGGESTION_FALLBACK_MESSAGE } from '../../../../src/services/askAi/service';
-import { echoesNonce } from '../../../../src/services/askAi/security/nonceEcho';
+import { echoesNonce, SUGGESTION_FALLBACK_MESSAGE } from '../../../../src/services/askAi/security/nonceEcho';
 
 const nonce = '0123456789abcdef0123456789abcdef';
 
