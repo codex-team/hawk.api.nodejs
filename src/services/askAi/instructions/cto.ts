@@ -3,7 +3,7 @@
  *
  * The shape comes from a filled example.
  *
- * @see {@link https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices | Claude prompting best practices}
+ * @see {@link https://developers.openai.com/api/docs/guides/prompt-engineering | OpenAI prompt engineering guide}
  */
 export const ctoInstruction = `Explain the error and propose a fix.
 
