@@ -6,7 +6,7 @@ import {
   getMaxUses,
   normalizePromoCode,
   PromoCode
-} from '../../src/billing/promoCodes';
+} from '../../../src/billing/promoCodes';
 
 const NOW = new Date('2026-10-13T12:00:00.000Z');
 
