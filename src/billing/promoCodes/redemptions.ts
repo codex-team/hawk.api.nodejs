@@ -2,6 +2,7 @@ import type { Db } from 'mongodb';
 import { MongoServerError, ObjectId } from 'mongodb';
 import { UserInputError } from 'apollo-server-express';
 import { calculateDiscountedAmount, findActivePromoCode } from './index';
+import { releaseExpiredPromoCodeReservations } from './lifecycle';
 
 const RESERVATION_DURATION_MS = 30 * 60 * 1000;
 
@@ -75,6 +76,9 @@ export async function reservePromoCode(
   const promoCode = await findActivePromoCode(db, input.promoCode, now);
   const finalAmount = calculateDiscountedAmount(input.originalAmount, promoCode.discountPercent);
   const redemptions = db.collection<PromoCodeRedemption>('promoCodeRedemptions');
+
+  await releaseExpiredPromoCodeReservations(db, promoCode._id, now);
+
   const existingUseQuery = {
     promoCodeId: promoCode._id,
     $or: [

@@ -15,6 +15,7 @@ describe('Promo code reservation', () => {
   const findRedemption = jest.fn();
   const countDocuments = jest.fn();
   const insertOne = jest.fn();
+  const deleteMany = jest.fn();
   const collection = jest.fn();
   const db = { collection } as unknown as Db;
   let promoCode: PromoCode;
@@ -60,6 +61,7 @@ describe('Promo code reservation', () => {
           findOne: findRedemption,
           countDocuments,
           insertOne,
+          deleteMany,
         };
       }
 
@@ -69,6 +71,7 @@ describe('Promo code reservation', () => {
     findRedemption.mockResolvedValue(null);
     countDocuments.mockResolvedValue(0);
     insertOne.mockResolvedValue({ acknowledged: true });
+    deleteMany.mockResolvedValue({ deletedCount: 0 });
   });
 
   test('should store the user, workspace, plan and discounted price in a reservation', async () => {

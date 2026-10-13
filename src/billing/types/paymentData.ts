@@ -60,4 +60,16 @@ export interface PaymentData {
    * True if this is card linking operation – charging minimal amount of money to validate card info
    */
   isCardLinkOperation: boolean;
+  /**
+   * Signed amount of the current promo payment in rubles
+   */
+  paymentAmount?: number;
+  /**
+   * Signed promo reservation identifier
+   */
+  promoCodeRedemptionId?: string;
+  /**
+   * Signed start date for future full-price payments
+   */
+  nextPaymentDate?: string;
 }

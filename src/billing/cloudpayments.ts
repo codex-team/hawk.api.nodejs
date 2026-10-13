@@ -1,4 +1,14 @@
 import express from 'express';
+import { ObjectId, Db } from 'mongodb';
+import { databases } from '../mongo';
+import {
+  bindPromoCodeReservation,
+  getPromoCodeQuote,
+  completePromoCodeReservation,
+  releasePromoCodeReservation,
+  PromoPayment
+} from './promoCodes/lifecycle';
+import { applyPromoPlan } from './promoCodes/application';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
 import {
@@ -22,8 +32,7 @@ import {
   BusinessOperationType,
   ConfirmedMemberDBScheme,
   PayloadOfWorkspacePlanPurchase,
-  PlanDBScheme,
-  PlanProlongationPayload
+  PlanDBScheme
 } from '@hawk.so/types';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
@@ -159,6 +168,12 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
+    if (data.promoCodeRedemptionId) {
+      await this.checkPromoPayment(req, res, data, workspace, plan);
+
+      return;
+    }
+
     const recurrentPaymentSettings = data.cloudPayments?.recurrent;
 
     /**
@@ -248,6 +263,12 @@ export default class CloudPaymentsWebhooks {
 
         return;
       }
+    }
+
+    if (data.promoCodeRedemptionId) {
+      await this.finishPromoPayment(req, res, data, true);
+
+      return;
     }
 
     let businessOperation;
@@ -487,7 +508,7 @@ subscription id: ${body.SubscriptionId}`;
    */
   private async fail(req: express.Request, res: express.Response): Promise<void> {
     const body: FailRequest = req.body;
-    let data: PlanProlongationPayload;
+    let data: PaymentData;
 
     console.log('💎 CloudPayments /fail request', body);
 
@@ -497,6 +518,12 @@ subscription id: ${body.SubscriptionId}`;
       data = await this.getDataFromRequest(req);
     } catch (e) {
       this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Invalid request\n${failReasonLine}`, body);
+
+      return;
+    }
+
+    if (data.promoCodeRedemptionId) {
+      await this.finishPromoPayment(req, res, data, false);
 
       return;
     }
@@ -780,6 +807,366 @@ status: ${body.Status}`
   }
 
   /**
+   * Require the accounts database for promo reservations.
+   *
+   * @returns accounts database for promo reservations
+   */
+  private getPromoDatabase(): Db {
+    if (!databases.hawk) {
+      throw new Error('Accounts database is not connected');
+    }
+
+    return databases.hawk;
+  }
+
+  /**
+   * Build the payment identity from verified checksum fields and the callback.
+   *
+   * @param body - provider callback
+   * @param data - parsed payment data
+   * @returns payment details for reservation validation
+   */
+  private getPromoPayment(body: CheckRequest | PayRequest | FailRequest, data: PaymentData): PromoPayment {
+    if (!data.promoCodeRedemptionId || typeof data.paymentAmount !== 'number' || data.isCardLinkOperation) {
+      throw new Error('PROMO_CODE_INVALID_PAYMENT');
+    }
+
+    return {
+      promoCodeRedemptionId: data.promoCodeRedemptionId,
+      workspaceId: data.workspaceId,
+      userId: data.userId,
+      tariffPlanId: data.tariffPlanId,
+      paymentAmount: data.paymentAmount,
+      transactionId: body.TransactionId?.toString() || '',
+      amount: Number(body.Amount),
+      currency: body.Currency,
+    };
+  }
+
+  /**
+   * Bind a reservation and create one pending operation for repeated checks.
+   *
+   * @param req - callback request
+   * @param res - provider response
+   * @param data - verified payment data
+   * @param workspace - authorized workspace
+   * @param plan - selected plan
+   */
+  private async checkPromoPayment(
+    req: express.Request,
+    res: express.Response,
+    data: PaymentData,
+    workspace: WorkspaceModel,
+    plan: PlanDBScheme
+  ): Promise<void> {
+    try {
+      const db = this.getPromoDatabase();
+      const payment = this.getPromoPayment(req.body, data);
+      const recurrent = data.cloudPayments?.recurrent;
+
+      if (recurrent && (
+        recurrent.amount !== plan.monthlyCharge ||
+        recurrent.period !== 1 ||
+        recurrent.interval !== (workspace.isDebug ? 'Day' : 'Month') ||
+        !data.nextPaymentDate ||
+        Date.parse(recurrent.startDate || '') !== Date.parse(data.nextPaymentDate)
+      )) {
+        throw new Error('PROMO_CODE_INVALID_SUBSCRIPTION');
+      }
+
+      const reservation = await getPromoCodeQuote(db, payment);
+
+      /**
+       * Create the operation before binding so a failed write cannot strand quota.
+       */
+      await db.collection('businessOperations').updateOne({
+        _id: reservation._id,
+        transactionId: payment.transactionId,
+      }, {
+        $setOnInsert: {
+          transactionId: payment.transactionId,
+          type: BusinessOperationType.WorkspacePlanPurchase,
+          status: BusinessOperationStatus.Pending,
+          payload: {
+            workspaceId: workspace._id,
+            userId: new ObjectId(data.userId),
+            tariffPlanId: plan._id,
+            amount: payment.amount * PENNY_MULTIPLIER,
+            currency: payment.currency,
+          },
+          dtCreated: new Date(),
+        },
+      }, {
+        upsert: true,
+      });
+
+      await bindPromoCodeReservation(db, payment);
+
+      res.json({ code: CheckCodes.SUCCESS });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const code = message === 'PROMO_CODE_WRONG_AMOUNT'
+        ? CheckCodes.WRONG_AMOUNT
+        : CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED;
+
+      this.sendError(res, code, `[Billing / Check] ${message}`, req.body);
+    }
+  }
+
+  /**
+   * Require the operation created for this reservation, not just a transaction id.
+   *
+   * @param req - callback request
+   * @param payment - validated promo payment
+   * @returns matching business operation
+   */
+  private async getPromoBusinessOperation(req: express.Request, payment: PromoPayment): Promise<BusinessOperationModel> {
+    const operation = await this.getBusinessOperation(req, payment.transactionId);
+    const payload = operation.payload;
+
+    if (!operation._id?.equals(new ObjectId(payment.promoCodeRedemptionId)) ||
+      operation.type !== BusinessOperationType.WorkspacePlanPurchase ||
+      !('tariffPlanId' in payload) ||
+      payload.workspaceId.toString() !== payment.workspaceId ||
+      payload.userId.toString() !== payment.userId ||
+      payload.tariffPlanId.toString() !== payment.tariffPlanId ||
+      payload.amount !== payment.amount * PENNY_MULTIPLIER || payload.currency !== payment.currency) {
+      throw new Error('PROMO_CODE_INVALID_PAYMENT');
+    }
+
+    return operation;
+  }
+
+  /**
+   * Finish only a bound promo transaction. A short lease serializes duplicate
+   * callbacks; failed handlers release it, and crashed handlers can be retried.
+   *
+   * @param req - provider callback
+   * @param res - provider response
+   * @param data - verified payment data
+   * @param succeeded - whether the provider reported a successful payment
+   */
+  private async finishPromoPayment(
+    req: express.Request,
+    res: express.Response,
+    data: PaymentData,
+    succeeded: boolean
+  ): Promise<void> {
+    const token = new ObjectId();
+    let operationId: ObjectId | undefined;
+
+    try {
+      const db = this.getPromoDatabase();
+      const payment = this.getPromoPayment(req.body, data);
+      let operation = await this.getPromoBusinessOperation(req, payment);
+      const now = new Date();
+      const lock = await db.collection('businessOperations').updateOne({
+        _id: operation._id,
+        $or: [
+          { promoProcessingUntil: { $exists: false } },
+          { promoProcessingUntil: { $lte: now } },
+        ],
+      }, {
+        $set: {
+          promoProcessingToken: token,
+          promoProcessingUntil: new Date(now.getTime() + 5 * 60 * 1000),
+        },
+      });
+
+      if (lock.modifiedCount !== 1) {
+        throw new Error('PROMO_PAYMENT_IN_PROGRESS');
+      }
+
+      operationId = new ObjectId(payment.promoCodeRedemptionId);
+      operation = await this.getPromoBusinessOperation(req, payment);
+
+      if (!succeeded && operation.status === BusinessOperationStatus.Confirmed) {
+        res.json({ code: 0 });
+
+        return;
+      }
+
+      if (succeeded && operation.status === BusinessOperationStatus.Rejected) {
+        throw new Error('PROMO_PAYMENT_ALREADY_REJECTED');
+      }
+
+      const delivery = await db.collection('businessOperations').findOne({ _id: operationId });
+      const isFinished = succeeded
+        ? operation.status === BusinessOperationStatus.Confirmed && delivery?.promoReceiptSent && delivery?.promoNotificationSent
+        : operation.status === BusinessOperationStatus.Rejected && delivery?.promoNotificationSent;
+
+      if (isFinished) {
+        res.json({ code: 0 });
+
+        return;
+      }
+
+      const workspace = await this.getWorkspace(req, data.workspaceId);
+      const user = await this.getUser(req, data.userId);
+
+      if (succeeded) {
+        const plan = await this.getPlan(req, data.tariffPlanId);
+
+        /**
+         * A successful provider payment consumes the code even if applying the
+         * workspace changes fails. The pending operation remains retryable.
+         */
+        if (operation.status !== BusinessOperationStatus.Confirmed) {
+          await this.updatePromoOperation(db, operationId, token);
+          await completePromoCodeReservation(db, payment);
+          await this.updatePromoOperation(db, operationId, token);
+
+          const ownsBillingPeriod = await applyPromoPlan(db, workspace._id, plan._id, operationId, operation.dtCreated);
+
+          if (ownsBillingPeriod) {
+            const subscriptionId = req.body.SubscriptionId;
+
+            await this.updatePromoOperation(db, operationId, token);
+
+            if (workspace.subscriptionId && workspace.subscriptionId !== subscriptionId) {
+              await this.clientApi.cancelSubscription({ Id: workspace.subscriptionId });
+            }
+
+            await this.updatePromoOperation(db, operationId, token);
+
+            if (subscriptionId) {
+              await workspace.setSubscriptionId(subscriptionId);
+            }
+
+            await this.updatePromoOperation(db, operationId, token);
+            await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
+              type: 'unblock-workspace',
+              workspaceId: data.workspaceId,
+            }));
+          }
+
+          await this.updatePromoOperation(db, operationId, token, { status: BusinessOperationStatus.Confirmed });
+        }
+
+        if (data.shouldSaveCard) {
+          const cardData = this.getCardData(req.body);
+
+          if (cardData) {
+            await this.updatePromoOperation(db, operationId, token);
+            await user.saveNewBankCard(cardData);
+          }
+        }
+
+        if (!delivery?.promoReceiptSent) {
+          await this.updatePromoOperation(db, operationId, token);
+          await this.sendReceipt(workspace, plan,
+            req.body.IssuerBankCountry === 'RU' ? user.email : undefined,
+            payment.amount);
+          await this.updatePromoOperation(db, operationId, token, { promoReceiptSent: true });
+        }
+      } else {
+        if (operation.status !== BusinessOperationStatus.Rejected) {
+          await this.updatePromoOperation(db, operationId, token);
+          const released = await releasePromoCodeReservation(db, payment);
+
+          if (!released) {
+            const reservation = await db.collection('promoCodeRedemptions').findOne({
+              _id: new ObjectId(payment.promoCodeRedemptionId),
+            });
+
+            if (reservation?.status === 'used') {
+              res.json({ code: 0 });
+
+              return;
+            }
+          }
+
+          await this.updatePromoOperation(db, operationId, token, { status: BusinessOperationStatus.Rejected });
+        }
+      }
+
+      if (!delivery?.promoNotificationSent) {
+        const notification: PaymentSuccessNotificationTask | PaymentFailedNotificationTask = succeeded
+          ? {
+            type: SenderWorkerTaskType.PaymentSuccess,
+            payload: {
+              workspaceId: data.workspaceId,
+              tariffPlanId: data.tariffPlanId,
+              userId: data.userId,
+            },
+          }
+          : {
+            type: SenderWorkerTaskType.PaymentFailed,
+            payload: {
+              workspaceId: data.workspaceId,
+              reason: ReasonCodesTranscript[(req.body as FailRequest).ReasonCode],
+            },
+          };
+
+        await this.updatePromoOperation(db, operationId, token);
+        await sendNotification(user, notification);
+        await this.updatePromoOperation(db, operationId, token, { promoNotificationSent: true });
+      }
+
+      res.json({ code: 0 });
+    } catch (error) {
+      console.error('[Billing / Promo] Callback failed', error);
+      /**
+       * Return an error so the provider retries failed database operations.
+       */
+      res.status(500).json({ code: 1 });
+    } finally {
+      if (operationId) {
+        try {
+          await this.getPromoDatabase().collection('businessOperations')
+            .updateOne({
+              _id: operationId,
+              promoProcessingToken: token,
+            }, {
+              $unset: {
+                promoProcessingToken: '',
+                promoProcessingUntil: '',
+              },
+            });
+        } catch (error) {
+          console.error('[Billing / Promo] Could not release callback lease', error);
+        }
+      }
+    }
+  }
+
+  /**
+   * Renew callback ownership and fence writes from an expired handler.
+   *
+   * @param db - accounts database
+   * @param operationId - payment operation
+   * @param token - current callback lease owner
+   * @param fields - completed payment state or delivery markers
+   */
+  private async updatePromoOperation(
+    db: Db,
+    operationId: ObjectId,
+    token: ObjectId,
+    fields: {
+      status?: BusinessOperationStatus;
+      promoReceiptSent?: boolean;
+      promoNotificationSent?: boolean;
+    } = {}
+  ): Promise<void> {
+    const now = new Date();
+    const result = await db.collection('businessOperations').updateOne({
+      _id: operationId,
+      promoProcessingToken: token,
+      promoProcessingUntil: { $gt: now },
+      ...(fields.status !== undefined ? { status: BusinessOperationStatus.Pending } : {}),
+    }, {
+      $set: {
+        ...fields,
+        promoProcessingUntil: new Date(now.getTime() + 5 * 60 * 1000),
+      },
+    });
+
+    if (result.matchedCount !== 1) {
+      throw new Error('PROMO_PAYMENT_LEASE_LOST');
+    }
+  }
+
+  /**
    * Parses request body and returns data from it
    *
    * @param req - request with necessary data
@@ -794,10 +1181,25 @@ status: ${body.Status}`
      */
     if (body.Data) {
       const parsedData = JSON.parse(body.Data || '{}') as WebhookData;
+      const isCompletion = req.path === '/pay' || req.path === '/fail';
+      const verifiedData = checksumService.parseAndVerifyChecksum(parsedData.checksum, isCompletion);
+
+      if ('promoCodeRedemptionId' in verifiedData && verifiedData.promoCodeRedemptionId) {
+        /**
+         * Never override signed promo identity or price with unsigned widget data.
+         */
+        return {
+          ...verifiedData,
+          isCardLinkOperation: false,
+          cloudPayments: parsedData.cloudPayments,
+        };
+      }
 
       return {
-        ...checksumService.parseAndVerifyChecksum(parsedData.checksum),
+        ...verifiedData,
         ...parsedData,
+        promoCodeRedemptionId: undefined,
+        paymentAmount: undefined,
       };
     }
 
@@ -855,8 +1257,9 @@ status: ${body.Status}`
    * @param workspace - workspace for which payment is made
    * @param tariff - paid tariff plan
    * @param userMail - user email address
+   * @param amount - actual payment amount in rubles
    */
-  private async sendReceipt(workspace: WorkspaceModel, tariff: PlanModel, userMail?: string): Promise<void> {
+  private async sendReceipt(workspace: WorkspaceModel, tariff: PlanModel, userMail?: string, amount = tariff.monthlyCharge): Promise<void> {
     /**
      * A general tax that applies to all commercial activities
      * involving the production and distribution of goods and the provision of services
@@ -865,9 +1268,9 @@ status: ${body.Status}`
     const VALUE_ADDED_TAX = 0;
 
     const item: CustomerReceiptItem = {
-      amount: tariff.monthlyCharge,
+      amount,
       label: `${tariff.name} tariff plan`,
-      price: tariff.monthlyCharge,
+      price: amount,
       vat: VALUE_ADDED_TAX,
       quantity: 1,
     };
