@@ -1,4 +1,5 @@
-import type { Db, ObjectId } from 'mongodb';
+import type { Db } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { UserInputError } from 'apollo-server-express';
 
 export interface PromoCode {
@@ -7,9 +8,8 @@ export interface PromoCode {
   discountPercent: number;
   isActive: boolean;
   createdAt: Date;
-  validFrom?: Date;
-  validUntil?: Date;
   maxUses?: number;
+  planIds?: ObjectId[];
 }
 
 /**
@@ -20,7 +20,7 @@ export interface PromoCode {
  */
 export function normalizePromoCode(code: string): string {
   if (typeof code !== 'string' || !code.trim()) {
-    throw new UserInputError('PROMO_CODE_NOT_FOUND');
+    throw new UserInputError('PROMO_CODE_INVALID');
   }
 
   return code.trim().toUpperCase();
@@ -47,7 +47,7 @@ export function getMaxUses(value: unknown): number | undefined {
  */
 function validateDiscountPercent(discountPercent: number): void {
   if (!Number.isFinite(discountPercent) || discountPercent < 1 || discountPercent > 99) {
-    throw new UserInputError('PROMO_CODE_INVALID_DISCOUNT');
+    throw new UserInputError('PROMO_CODE_INVALID');
   }
 }
 
@@ -72,54 +72,30 @@ export function calculateDiscountedAmount(originalAmount: number, discountPercen
 }
 
 /**
- * Reject malformed dates in manually configured promo codes.
- *
- * @param date - optional BSON date stored in the promo code document
- */
-function validatePromoDate(date: Date | undefined): void {
-  if (date !== undefined && (!(date instanceof Date) || !Number.isFinite(date.getTime()))) {
-    throw new UserInputError('PROMO_CODE_INVALID_DATES');
-  }
-}
-
-/**
- * Validate the code configuration without reserving or consuming a use.
- * The validUntil boundary is exclusive. Usage limits are enforced at reservation.
+ * Missing planIds means all plans; a present array allows only its listed plans.
+ * Usage limits are enforced when reserving the payment.
  *
  * @param db - accounts database containing promoCodes
  * @param code - user-provided code
- * @param now - validation time
+ * @param tariffPlanId - selected plan
+ * @returns validated promo code
  */
-export async function findActivePromoCode(db: Db, code: string, now = new Date()): Promise<PromoCode> {
-  const normalizedCode = normalizePromoCode(code);
+export async function findActivePromoCode(db: Db, code: string, tariffPlanId: ObjectId): Promise<PromoCode> {
   const promoCode = await db.collection<PromoCode>('promoCodes').findOne({
-    value: normalizedCode,
+    value: normalizePromoCode(code),
   });
 
-  if (!promoCode) {
-    throw new UserInputError('PROMO_CODE_NOT_FOUND');
+  if (!promoCode || promoCode.isActive !== true) {
+    throw new UserInputError('PROMO_CODE_INVALID');
   }
 
-  if (promoCode.isActive !== true) {
-    throw new UserInputError('PROMO_CODE_INACTIVE');
-  }
+  validateDiscountPercent(promoCode.discountPercent);
 
-  const { discountPercent, validFrom, validUntil } = promoCode;
-
-  validateDiscountPercent(discountPercent);
-  validatePromoDate(validFrom);
-  validatePromoDate(validUntil);
-
-  if (validFrom && validUntil && validFrom >= validUntil) {
-    throw new UserInputError('PROMO_CODE_INVALID_DATES');
-  }
-
-  if (validFrom && now < validFrom) {
-    throw new UserInputError('PROMO_CODE_NOT_STARTED');
-  }
-
-  if (validUntil && now >= validUntil) {
-    throw new UserInputError('PROMO_CODE_EXPIRED');
+  if (promoCode.planIds !== undefined && (
+    !Array.isArray(promoCode.planIds) ||
+    !promoCode.planIds.some(id => id instanceof ObjectId && id.equals(tariffPlanId))
+  )) {
+    throw new UserInputError('PROMO_CODE_INVALID');
   }
 
   return {

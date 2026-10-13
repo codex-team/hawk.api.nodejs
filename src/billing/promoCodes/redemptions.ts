@@ -73,7 +73,7 @@ export async function reservePromoCode(
   input: ReservePromoCodeInput,
   now = new Date()
 ): Promise<PromoCodeRedemption> {
-  const promoCode = await findActivePromoCode(db, input.promoCode, now);
+  const promoCode = await findActivePromoCode(db, input.promoCode, input.tariffPlanId);
   const finalAmount = calculateDiscountedAmount(input.originalAmount, promoCode.discountPercent);
   const redemptions = db.collection<PromoCodeRedemption>('promoCodeRedemptions');
 
@@ -104,15 +104,11 @@ export async function reservePromoCode(
      * Reservations keep occupying quota until explicitly released, not by TTL.
      */
     if (occupiedUses + 1 > promoCode.maxUses) {
-      throw new UserInputError('PROMO_CODE_LIMIT_REACHED');
+      throw new UserInputError('PROMO_CODE_INVALID');
     }
   }
 
-  const reservationDeadline = now.getTime() + RESERVATION_DURATION_MS;
-  const expiresAt = new Date(Math.min(
-    reservationDeadline,
-    promoCode.validUntil?.getTime() ?? reservationDeadline
-  ));
+  const expiresAt = new Date(now.getTime() + RESERVATION_DURATION_MS);
   const reservation: PromoCodeRedemption = {
     _id: new ObjectId(),
     promoCodeId: promoCode._id,

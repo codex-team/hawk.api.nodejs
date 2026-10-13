@@ -1,5 +1,5 @@
-
 import jwt, { Secret } from 'jsonwebtoken';
+import { UserInputError } from 'apollo-server-express';
 
 export type ChecksumData = PlanPurchaseChecksumData | CardLinkChecksumData;
 
@@ -73,7 +73,7 @@ class ChecksumService {
       expiresIn = Math.min(defaultLifetimeSeconds, Math.floor(expiresAt.getTime() / 1000) - nowSeconds);
 
       if (!Number.isFinite(expiresIn) || expiresIn <= 0) {
-        throw new Error('PROMO_CODE_RESERVATION_EXPIRED');
+        throw new UserInputError('PROMO_CODE_INVALID');
       }
     }
 

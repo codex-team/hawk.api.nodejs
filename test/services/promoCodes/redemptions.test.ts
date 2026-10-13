@@ -97,12 +97,23 @@ describe('Promo code reservation', () => {
     expect(countDocuments).not.toHaveBeenCalled();
   });
 
-  test('should not let a reservation outlive the promo code', async () => {
-    promoCode.validUntil = new Date(NOW.getTime() + 10 * 60 * 1000);
+  test('should allow a reservation for a listed plan', async () => {
+    promoCode.planIds = [ input.tariffPlanId ];
 
     const result = await reservePromoCode(db, input, NOW);
 
-    expect(result.expiresAt).toEqual(promoCode.validUntil);
+    expect(result.tariffPlanId).toEqual(input.tariffPlanId);
+    expect(result.expiresAt).toEqual(RESERVATION_DEADLINE);
+  });
+
+  test('should reject an unlisted plan before creating a reservation', async () => {
+    promoCode.planIds = [ new ObjectId() ];
+
+    const result = reservePromoCode(db, input, NOW);
+
+    await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
+    expect(insertOne).not.toHaveBeenCalled();
+    expect(countDocuments).not.toHaveBeenCalled();
   });
 
   test('should reuse an identical reservation without consuming quota again', async () => {
@@ -219,7 +230,7 @@ describe('Promo code reservation', () => {
 
     const result = reservePromoCode(db, input, NOW);
 
-    await expect(result).rejects.toThrow('PROMO_CODE_LIMIT_REACHED');
+    await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
     expect(insertOne).not.toHaveBeenCalled();
   });
 
@@ -279,7 +290,7 @@ describe('Promo code reservation', () => {
 
     const result = reservePromoCode(db, input, NOW);
 
-    await expect(result).rejects.toThrow('PROMO_CODE_INACTIVE');
+    await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
     expect(insertOne).not.toHaveBeenCalled();
   });
 });
