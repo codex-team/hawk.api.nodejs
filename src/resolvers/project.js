@@ -13,6 +13,7 @@ const { GitHubService } = require('../integrations/github/service');
 
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
+const REPETITIONS_GROUP_HASH_AND_RELEASE_INDEX_NAME = 'groupHashAndRelease';
 const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
 const REPETITIONS_TIMESTAMP_INDEX_NAME = 'timestamp';
 const EVENTS_TIMESTAMP_INDEX_NAME = 'timestamp';
@@ -407,6 +408,16 @@ module.exports = {
       },
       {
         name: REPETITIONS_GROUP_HASH_INDEX_NAME,
+      });
+
+      /**
+       * Used by the release validator to find the releases in which each event occurred.
+       */
+      await projectRepetitionsEventsCollection.createIndex({
+        groupHash: 1,
+        release: 1,
+      }, {
+        name: REPETITIONS_GROUP_HASH_AND_RELEASE_INDEX_NAME,
       });
 
       await projectRepetitionsEventsCollection.createIndex({
