@@ -1,7 +1,8 @@
 import express from "express";
-import { McpServer } from '@modelcontextprotocol/server';
+import { McpServer, ServerContext } from '@modelcontextprotocol/server';
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
-import { ContextFactories } from 'src/types/graphql';
+import { ContextFactories, UserJWTData } from 'src/types/graphql';
+import jwt from "jsonwebtoken";
 
 /**
  * Create MCP router
@@ -58,6 +59,26 @@ const createMCPServer = (factories: ContextFactories) => {
           {
             type: "text" as const,
             text: "Hi"
+          }
+        ]
+      }
+    }
+  );
+
+  server.registerTool(
+    "print_userId",
+    {
+      description: "A test tool that pritn userId from auth token"
+    },
+    async (ctx: ServerContext) => {
+      const token = ctx.http?.req?.headers.get("authorization")?.slice(7)!;
+      
+      const auth = jwt.decode(token) as UserJWTData;
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: String(auth.userId)
           }
         ]
       }
