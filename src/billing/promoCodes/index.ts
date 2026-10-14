@@ -6,8 +6,7 @@ export interface PromoCode {
   _id: ObjectId;
   value: string;
   discountPercent: number;
-  isActive: boolean;
-  createdAt: Date;
+  isDisabled?: boolean;
   maxUses?: number;
   planIds?: ObjectId[];
 }
@@ -85,7 +84,7 @@ export async function findActivePromoCode(db: Db, code: string, tariffPlanId: Ob
     value: normalizePromoCode(code),
   });
 
-  if (!promoCode || promoCode.isActive !== true) {
+  if (!promoCode || promoCode.isDisabled === true) {
     throw new UserInputError('PROMO_CODE_INVALID');
   }
 

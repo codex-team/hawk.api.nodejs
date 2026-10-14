@@ -8,8 +8,6 @@ import {
   PromoCode
 } from '../../../src/billing/promoCodes';
 
-const NOW = new Date('2026-10-13T12:00:00.000Z');
-
 describe('Promo code normalization', () => {
   test('should trim whitespace and normalize case', () => {
     const code = '  sale20  ';
@@ -88,8 +86,6 @@ describe('Active promo code lookup', () => {
       _id: new ObjectId(),
       value: 'SALE20',
       discountPercent: 20,
-      isActive: true,
-      createdAt: NOW,
     };
     findOne.mockResolvedValue(promoCode);
   });
@@ -112,12 +108,23 @@ describe('Active promo code lookup', () => {
     await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
   });
 
-  test('should reject an inactive code', async () => {
-    promoCode.isActive = false;
+  test('should reject a disabled code', async () => {
+    promoCode.isDisabled = true;
 
     const result = findActivePromoCode(db, 'SALE20', planId);
 
     await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
+  });
+
+  test.each([undefined, false, null, 0, '', 'true'])('should allow a code when isDisabled is %j', async isDisabled => {
+    findOne.mockResolvedValue({
+      ...promoCode,
+      isDisabled,
+    });
+
+    const result = await findActivePromoCode(db, 'SALE20', planId);
+
+    expect(result).toMatchObject({ isDisabled });
   });
 
   test('should allow a plan explicitly listed in planIds', async () => {

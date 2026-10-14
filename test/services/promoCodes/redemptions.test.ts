@@ -28,8 +28,6 @@ describe('Promo code reservation', () => {
       _id: new ObjectId(),
       value: 'SALE20',
       discountPercent: 20,
-      isActive: true,
-      createdAt: NOW,
     };
     input = {
       promoCode: ' sale20 ',
@@ -285,8 +283,8 @@ describe('Promo code reservation', () => {
     await expect(result).rejects.toBe(error);
   });
 
-  test('should not reserve an inactive promo code', async () => {
-    promoCode.isActive = false;
+  test('should not reserve a disabled promo code', async () => {
+    promoCode.isDisabled = true;
 
     const result = reservePromoCode(db, input, NOW);
 
