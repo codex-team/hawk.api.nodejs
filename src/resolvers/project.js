@@ -410,6 +410,9 @@ module.exports = {
         name: REPETITIONS_GROUP_HASH_INDEX_NAME,
       });
 
+      /**
+       * Used by the release validator to find the releases in which each event occurred.
+       */
       await projectRepetitionsEventsCollection.createIndex({
         groupHash: 1,
         release: 1,
