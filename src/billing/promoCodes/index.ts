@@ -72,7 +72,7 @@ export function calculateDiscountedAmount(originalAmount: number, discountPercen
 
 /**
  * Missing planIds means all plans; a present array allows only its listed plans.
- * Usage limits are enforced when reserving the payment.
+ * Usage limits count successful payments only.
  *
  * @param db - accounts database containing promoCodes
  * @param code - user-provided code

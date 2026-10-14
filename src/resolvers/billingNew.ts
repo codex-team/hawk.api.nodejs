@@ -10,7 +10,7 @@ import {
 import checksumService from '../utils/checksumService';
 import { ObjectId } from 'mongodb';
 import { databases } from '../mongo';
-import { reservePromoCode } from '../billing/promoCodes/redemptions';
+import { preparePromoCode, PromoCodeQuote } from '../billing/promoCodes/redemptions';
 import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import * as telegram from '../utils/telegram';
@@ -133,8 +133,7 @@ export default {
       }
 
       let paymentAmount = isCardLinkOperation ? AMOUNT_FOR_CARD_VALIDATION : plan.monthlyCharge;
-      let promoCodeRedemptionId: string | undefined;
-      let reservationExpiresAt: Date | undefined;
+      let promoQuote: PromoCodeQuote | undefined;
 
       if (promoCode) {
         if (isCardLinkOperation) {
@@ -149,17 +148,15 @@ export default {
           throw new Error('Accounts database is not connected');
         }
 
-        const reservation = await reservePromoCode(databases.hawk, {
+        promoQuote = await preparePromoCode(databases.hawk, {
           promoCode,
           userId: new ObjectId(user.id),
           workspaceId: workspace._id,
           tariffPlanId: plan._id,
           originalAmount: plan.monthlyCharge,
-        }, now);
+        });
 
-        paymentAmount = reservation.finalAmount;
-        promoCodeRedemptionId = reservation._id.toString();
-        reservationExpiresAt = reservation.expiresAt;
+        paymentAmount = promoQuote.finalAmount;
       }
 
       /**
@@ -187,15 +184,18 @@ export default {
           tariffPlanId: plan._id.toString(),
           shouldSaveCard: Boolean(shouldSaveCard),
           nextPaymentDate: nextPaymentDate.toISOString(),
-          ...(promoCodeRedemptionId
+          ...(promoQuote
             ? {
               paymentAmount,
-              promoCodeRedemptionId,
+              promoPaymentId: new ObjectId().toString(),
+              promoCodeId: promoQuote.promoCodeId.toString(),
+              originalAmount: promoQuote.originalAmount,
+              discountPercent: promoQuote.discountPercent,
             }
             : {}),
         };
 
-      const checksum = await checksumService.generateChecksum(checksumData, reservationExpiresAt);
+      const checksum = await checksumService.generateChecksum(checksumData);
 
       /**
        * Send info to Telegram (non-blocking)

@@ -65,9 +65,12 @@ export interface PaymentData {
    */
   paymentAmount?: number;
   /**
-   * Signed promo reservation identifier
+   * Signed promo payment attempt and price snapshot
    */
-  promoCodeRedemptionId?: string;
+  promoPaymentId?: string;
+  promoCodeId?: string;
+  originalAmount?: number;
+  discountPercent?: number;
   /**
    * Signed start date for future full-price payments
    */

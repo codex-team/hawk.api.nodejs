@@ -1,13 +1,8 @@
 import express from 'express';
 import { ObjectId, Db } from 'mongodb';
 import { databases } from '../mongo';
-import {
-  bindPromoCodeReservation,
-  getPromoCodeQuote,
-  completePromoCodeReservation,
-  releasePromoCodeReservation,
-  PromoPayment
-} from './promoCodes/lifecycle';
+import { checkPromoCodeUsage, recordPromoCodeUsage, validatePromoPayment, PromoPayment } from './promoCodes/redemptions';
+import { findActivePromoCode } from './promoCodes';
 import { applyPromoPlan } from './promoCodes/application';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
@@ -168,7 +163,7 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    if (data.promoCodeRedemptionId) {
+    if (data.promoPaymentId) {
       await this.checkPromoPayment(req, res, data, workspace, plan);
 
       return;
@@ -265,7 +260,7 @@ export default class CloudPaymentsWebhooks {
       }
     }
 
-    if (data.promoCodeRedemptionId) {
+    if (data.promoPaymentId) {
       await this.finishPromoPayment(req, res, data, true);
 
       return;
@@ -522,7 +517,7 @@ subscription id: ${body.SubscriptionId}`;
       return;
     }
 
-    if (data.promoCodeRedemptionId) {
+    if (data.promoPaymentId) {
       await this.finishPromoPayment(req, res, data, false);
 
       return;
@@ -807,9 +802,9 @@ status: ${body.Status}`
   }
 
   /**
-   * Require the accounts database for promo reservations.
+   * Require the accounts database for promo payments.
    *
-   * @returns accounts database for promo reservations
+   * @returns accounts database for promo payments
    */
   private getPromoDatabase(): Db {
     if (!databases.hawk) {
@@ -824,15 +819,19 @@ status: ${body.Status}`
    *
    * @param body - provider callback
    * @param data - parsed payment data
-   * @returns payment details for reservation validation
+   * @returns signed payment details
    */
   private getPromoPayment(body: CheckRequest | PayRequest | FailRequest, data: PaymentData): PromoPayment {
-    if (!data.promoCodeRedemptionId || typeof data.paymentAmount !== 'number' || data.isCardLinkOperation) {
+    if (!data.promoPaymentId || !data.promoCodeId || typeof data.paymentAmount !== 'number' ||
+      typeof data.originalAmount !== 'number' || typeof data.discountPercent !== 'number' || data.isCardLinkOperation) {
       throw new Error('PROMO_CODE_INVALID_PAYMENT');
     }
 
     return {
-      promoCodeRedemptionId: data.promoCodeRedemptionId,
+      promoPaymentId: data.promoPaymentId,
+      promoCodeId: data.promoCodeId,
+      originalAmount: data.originalAmount,
+      discountPercent: data.discountPercent,
       workspaceId: data.workspaceId,
       userId: data.userId,
       tariffPlanId: data.tariffPlanId,
@@ -844,7 +843,7 @@ status: ${body.Status}`
   }
 
   /**
-   * Bind a reservation and create one pending operation for repeated checks.
+   * Check usage and create one pending operation without consuming the code.
    *
    * @param req - callback request
    * @param res - provider response
@@ -874,13 +873,18 @@ status: ${body.Status}`
         throw new Error('PROMO_CODE_INVALID_SUBSCRIPTION');
       }
 
-      const reservation = await getPromoCodeQuote(db, payment);
+      validatePromoPayment(payment);
+      const promoCode = await db.collection('promoCodes').findOne({ _id: new ObjectId(payment.promoCodeId) });
 
-      /**
-       * Create the operation before binding so a failed write cannot strand quota.
-       */
+      if (!promoCode) {
+        throw new Error('PROMO_CODE_INVALID');
+      }
+
+      await findActivePromoCode(db, promoCode.value, plan._id);
+      await checkPromoCodeUsage(db, promoCode._id, new ObjectId(data.userId), workspace._id, payment.transactionId);
+
       await db.collection('businessOperations').updateOne({
-        _id: reservation._id,
+        _id: new ObjectId(payment.promoPaymentId),
         transactionId: payment.transactionId,
       }, {
         $setOnInsert: {
@@ -900,7 +904,6 @@ status: ${body.Status}`
         upsert: true,
       });
 
-      await bindPromoCodeReservation(db, payment);
 
       res.json({ code: CheckCodes.SUCCESS });
     } catch (error) {
@@ -914,7 +917,7 @@ status: ${body.Status}`
   }
 
   /**
-   * Require the operation created for this reservation, not just a transaction id.
+   * Require the operation created for this signed payment attempt.
    *
    * @param req - callback request
    * @param payment - validated promo payment
@@ -924,7 +927,7 @@ status: ${body.Status}`
     const operation = await this.getBusinessOperation(req, payment.transactionId);
     const payload = operation.payload;
 
-    if (!operation._id?.equals(new ObjectId(payment.promoCodeRedemptionId)) ||
+    if (!operation._id?.equals(new ObjectId(payment.promoPaymentId)) ||
       operation.type !== BusinessOperationType.WorkspacePlanPurchase ||
       !('tariffPlanId' in payload) ||
       payload.workspaceId.toString() !== payment.workspaceId ||
@@ -938,7 +941,7 @@ status: ${body.Status}`
   }
 
   /**
-   * Finish only a bound promo transaction. A short lease serializes duplicate
+   * Finish only a checked promo transaction. A short lease serializes duplicate
    * callbacks; failed handlers release it, and crashed handlers can be retried.
    *
    * @param req - provider callback
@@ -958,6 +961,9 @@ status: ${body.Status}`
     try {
       const db = this.getPromoDatabase();
       const payment = this.getPromoPayment(req.body, data);
+
+      validatePromoPayment(payment);
+
       let operation = await this.getPromoBusinessOperation(req, payment);
       const now = new Date();
       const lock = await db.collection('businessOperations').updateOne({
@@ -977,7 +983,7 @@ status: ${body.Status}`
         throw new Error('PROMO_PAYMENT_IN_PROGRESS');
       }
 
-      operationId = new ObjectId(payment.promoCodeRedemptionId);
+      operationId = new ObjectId(payment.promoPaymentId);
       operation = await this.getPromoBusinessOperation(req, payment);
 
       if (!succeeded && operation.status === BusinessOperationStatus.Confirmed) {
@@ -1013,7 +1019,7 @@ status: ${body.Status}`
          */
         if (operation.status !== BusinessOperationStatus.Confirmed) {
           await this.updatePromoOperation(db, operationId, token);
-          await completePromoCodeReservation(db, payment);
+          await recordPromoCodeUsage(db, payment);
           await this.updatePromoOperation(db, operationId, token);
 
           const ownsBillingPeriod = await applyPromoPlan(db, workspace._id, plan._id, operationId, operation.dtCreated);
@@ -1062,18 +1068,15 @@ status: ${body.Status}`
       } else {
         if (operation.status !== BusinessOperationStatus.Rejected) {
           await this.updatePromoOperation(db, operationId, token);
-          const released = await releasePromoCodeReservation(db, payment);
+          const successfulUse = await db.collection('promoCodeRedemptions').findOne({
+            promoCodeId: new ObjectId(payment.promoCodeId),
+            transactionId: payment.transactionId,
+          });
 
-          if (!released) {
-            const reservation = await db.collection('promoCodeRedemptions').findOne({
-              _id: new ObjectId(payment.promoCodeRedemptionId),
-            });
+          if (successfulUse) {
+            res.json({ code: 0 });
 
-            if (reservation?.status === 'used') {
-              res.json({ code: 0 });
-
-              return;
-            }
+            return;
           }
 
           await this.updatePromoOperation(db, operationId, token, { status: BusinessOperationStatus.Rejected });
@@ -1184,7 +1187,7 @@ status: ${body.Status}`
       const isCompletion = req.path === '/pay' || req.path === '/fail';
       const verifiedData = checksumService.parseAndVerifyChecksum(parsedData.checksum, isCompletion);
 
-      if ('promoCodeRedemptionId' in verifiedData && verifiedData.promoCodeRedemptionId) {
+      if ('promoPaymentId' in verifiedData && verifiedData.promoPaymentId) {
         /**
          * Never override signed promo identity or price with unsigned widget data.
          */
@@ -1198,7 +1201,10 @@ status: ${body.Status}`
       return {
         ...verifiedData,
         ...parsedData,
-        promoCodeRedemptionId: undefined,
+        promoPaymentId: undefined,
+        promoCodeId: undefined,
+        originalAmount: undefined,
+        discountPercent: undefined,
         paymentAmount: undefined,
       };
     }

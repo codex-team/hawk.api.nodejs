@@ -1,34 +1,24 @@
 import type { Db } from 'mongodb';
 import { MongoServerError, ObjectId } from 'mongodb';
-import {
-  PromoCodeRedemption,
-  ReservePromoCodeInput,
-  reservePromoCode
-} from '../../../src/billing/promoCodes/redemptions';
+import { preparePromoCode, recordPromoCodeUsage, validatePromoPayment } from '../../../src/billing/promoCodes/redemptions';
+import type { PromoCodeInput, PromoPayment, PromoCodeRedemption } from '../../../src/billing/promoCodes/redemptions';
 import type { PromoCode } from '../../../src/billing/promoCodes';
 
-const NOW = new Date('2026-10-13T12:00:00.000Z');
-const RESERVATION_DEADLINE = new Date(NOW.getTime() + 30 * 60 * 1000);
-
-describe('Promo code reservation', () => {
+describe('Promo code usage', () => {
   const findPromoCode = jest.fn();
   const findRedemption = jest.fn();
   const countDocuments = jest.fn();
   const insertOne = jest.fn();
-  const deleteMany = jest.fn();
   const collection = jest.fn();
   const db = { collection } as unknown as Db;
   let promoCode: PromoCode;
-  let input: ReservePromoCodeInput;
-  let existingReservation: PromoCodeRedemption;
+  let input: PromoCodeInput;
+  let payment: PromoPayment;
+  let existingUse: PromoCodeRedemption;
 
   beforeEach(() => {
     jest.resetAllMocks();
-    promoCode = {
-      _id: new ObjectId(),
-      value: 'SALE20',
-      discountPercent: 20,
-    };
+    promoCode = { _id: new ObjectId(), value: 'SALE20', discountPercent: 20 };
     input = {
       promoCode: ' sale20 ',
       userId: new ObjectId(),
@@ -36,259 +26,162 @@ describe('Promo code reservation', () => {
       tariffPlanId: new ObjectId(),
       originalAmount: 100,
     };
-    existingReservation = {
+    payment = {
+      promoCodeId: promoCode._id.toString(),
+      promoPaymentId: new ObjectId().toString(),
+      userId: input.userId.toString(),
+      workspaceId: input.workspaceId.toString(),
+      tariffPlanId: input.tariffPlanId.toString(),
+      originalAmount: 100,
+      discountPercent: 20,
+      paymentAmount: 80,
+      transactionId: 'payment-123',
+      amount: 80,
+      currency: 'RUB',
+    };
+    existingUse = {
       _id: new ObjectId(),
       promoCodeId: promoCode._id,
       userId: input.userId,
       workspaceId: input.workspaceId,
       tariffPlanId: input.tariffPlanId,
-      status: 'reserved',
+      transactionId: payment.transactionId,
       originalAmount: 100,
       finalAmount: 80,
       discountPercent: 20,
-      createdAt: NOW,
-      expiresAt: RESERVATION_DEADLINE,
     };
     collection.mockImplementation((name: string) => {
       if (name === 'promoCodes') {
         return { findOne: findPromoCode };
       }
 
-      if (name === 'promoCodeRedemptions') {
-        return {
-          findOne: findRedemption,
-          countDocuments,
-          insertOne,
-          deleteMany,
-        };
-      }
-
-      throw new Error(`Unexpected collection: ${name}`);
+      return { findOne: findRedemption, countDocuments, insertOne };
     });
     findPromoCode.mockResolvedValue(promoCode);
     findRedemption.mockResolvedValue(null);
     countDocuments.mockResolvedValue(0);
     insertOne.mockResolvedValue({ acknowledged: true });
-    deleteMany.mockResolvedValue({ deletedCount: 0 });
   });
 
-  test('should store the user, workspace, plan and discounted price in a reservation', async () => {
-    const expectedPrice = 80;
+  test('should prepare a discounted quote without creating a usage record', async () => {
+    const expectedAmount = 80;
 
-    const result = await reservePromoCode(db, input, NOW);
+    const result = await preparePromoCode(db, input);
 
-    expect(result._id).toBeInstanceOf(ObjectId);
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       promoCodeId: promoCode._id,
-      userId: input.userId,
-      workspaceId: input.workspaceId,
-      tariffPlanId: input.tariffPlanId,
-      status: 'reserved',
       originalAmount: 100,
-      finalAmount: expectedPrice,
+      finalAmount: expectedAmount,
       discountPercent: 20,
-      createdAt: NOW,
-      expiresAt: RESERVATION_DEADLINE,
     });
-    expect(findPromoCode).toHaveBeenCalledWith({ value: 'SALE20' });
-    expect(insertOne).toHaveBeenCalledWith(result);
-    expect(countDocuments).not.toHaveBeenCalled();
-  });
-
-  test('should allow a reservation for a listed plan', async () => {
-    promoCode.planIds = [ input.tariffPlanId ];
-
-    const result = await reservePromoCode(db, input, NOW);
-
-    expect(result.tariffPlanId).toEqual(input.tariffPlanId);
-    expect(result.expiresAt).toEqual(RESERVATION_DEADLINE);
-  });
-
-  test('should reject an unlisted plan before creating a reservation', async () => {
-    promoCode.planIds = [ new ObjectId() ];
-
-    const result = reservePromoCode(db, input, NOW);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
-    expect(insertOne).not.toHaveBeenCalled();
-    expect(countDocuments).not.toHaveBeenCalled();
-  });
-
-  test('should reuse an identical reservation without consuming quota again', async () => {
-    promoCode.maxUses = 1;
-    findRedemption.mockResolvedValue(existingReservation);
-    countDocuments.mockResolvedValue(1);
-
-    const result = await reservePromoCode(db, input, NOW);
-
-    expect(result).toBe(existingReservation);
-    expect(countDocuments).not.toHaveBeenCalled();
     expect(insertOne).not.toHaveBeenCalled();
   });
 
-  test('should keep the stored price when reusing a reservation', async () => {
-    promoCode.discountPercent = 30;
-    findRedemption.mockResolvedValue(existingReservation);
+  test('should allow repeated preparation while no successful use exists', async () => {
+    const first = await preparePromoCode(db, input);
 
-    const result = await reservePromoCode(db, input, NOW);
+    const second = await preparePromoCode(db, input);
 
-    expect(result.finalAmount).toBe(80);
-    expect(result.discountPercent).toBe(20);
+    expect(second).toEqual(first);
     expect(insertOne).not.toHaveBeenCalled();
   });
 
-  test('should reject a code already used by the same user in another workspace', async () => {
-    existingReservation.workspaceId = new ObjectId();
-    findRedemption.mockResolvedValue(existingReservation);
+  test.each(['userId', 'workspaceId'] as const)('should reject successful reuse by the same %s', async field => {
+    const otherField = field === 'userId' ? 'workspaceId' : 'userId';
 
-    const result = reservePromoCode(db, input, NOW);
+    existingUse[otherField] = new ObjectId();
+    findRedemption.mockResolvedValue(existingUse);
+
+    const result = preparePromoCode(db, input);
 
     await expect(result).rejects.toThrow('PROMO_CODE_ALREADY_USED');
     expect(insertOne).not.toHaveBeenCalled();
   });
 
-  test('should reject a code already used by another user in the same workspace', async () => {
-    existingReservation.userId = new ObjectId();
-    findRedemption.mockResolvedValue(existingReservation);
-
-    const result = reservePromoCode(db, input, NOW);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_ALREADY_USED');
-    expect(insertOne).not.toHaveBeenCalled();
-  });
-
-  test('should reject a successful use even for the same payment details', async () => {
-    existingReservation.status = 'used';
-    findRedemption.mockResolvedValue(existingReservation);
-
-    const result = reservePromoCode(db, input, NOW);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_ALREADY_USED');
-    expect(insertOne).not.toHaveBeenCalled();
-  });
-
-  test('should not reuse an expired reservation before it is released', async () => {
-    existingReservation.expiresAt = NOW;
-    findRedemption.mockResolvedValue(existingReservation);
-
-    const result = reservePromoCode(db, input, NOW);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_ALREADY_USED');
-    expect(insertOne).not.toHaveBeenCalled();
-  });
-
-  test('should not reuse a reservation already bound to a payment', async () => {
-    existingReservation.transactionId = 'payment-123';
-    findRedemption.mockResolvedValue(existingReservation);
-
-    const result = reservePromoCode(db, input, NOW);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_ALREADY_USED');
-    expect(insertOne).not.toHaveBeenCalled();
-  });
-
-  test('should not reuse a reservation for another plan', async () => {
-    existingReservation.tariffPlanId = new ObjectId();
-    findRedemption.mockResolvedValue(existingReservation);
-
-    const result = reservePromoCode(db, input, NOW);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_ALREADY_USED');
-    expect(insertOne).not.toHaveBeenCalled();
-  });
-
-  test('should not reuse a reservation for another original price', async () => {
-    existingReservation.originalAmount = 200;
-    findRedemption.mockResolvedValue(existingReservation);
-
-    const result = reservePromoCode(db, input, NOW);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_ALREADY_USED');
-    expect(insertOne).not.toHaveBeenCalled();
-  });
-
-  test('should count reserved and used records before reserving the last available use', async () => {
-    promoCode.maxUses = 2;
-    countDocuments.mockResolvedValue(1);
-
-    const result = await reservePromoCode(db, input, NOW);
-
-    expect(result.status).toBe('reserved');
-    expect(countDocuments).toHaveBeenCalledWith({
-      promoCodeId: promoCode._id,
-      status: { $in: ['reserved', 'used'] },
-    });
-    expect(insertOne).toHaveBeenCalledTimes(1);
-    expect(promoCode.maxUses).toBe(2);
-  });
-
-  test.each([0, 1, 2])('should reject a reservation when limit %j is exhausted', async maxUses => {
+  test.each([0, 1])('should reject an exhausted limit of %j', async maxUses => {
     promoCode.maxUses = maxUses;
     countDocuments.mockResolvedValue(maxUses);
 
-    const result = reservePromoCode(db, input, NOW);
+    const result = preparePromoCode(db, input);
+
+    await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
+    expect(countDocuments).toHaveBeenCalledWith({ promoCodeId: promoCode._id });
+  });
+
+  test.each([undefined, -1, '2'])('should ignore invalid or missing limit %j', async maxUses => {
+    findPromoCode.mockResolvedValue({ ...promoCode, maxUses });
+
+    const result = await preparePromoCode(db, input);
+
+    expect(result.finalAmount).toBe(80);
+    expect(countDocuments).not.toHaveBeenCalled();
+  });
+
+  test('should reject a plan outside the allowed list', async () => {
+    promoCode.planIds = [ new ObjectId() ];
+
+    const result = preparePromoCode(db, input);
 
     await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
     expect(insertOne).not.toHaveBeenCalled();
   });
 
-  test.each(['10', -1, null, undefined, NaN, Infinity])(
-    'should allow unlimited use when maxUses is %j', async maxUses => {
-      findPromoCode.mockResolvedValue({
-        ...promoCode,
-        maxUses,
-      });
+  test('should record only successful usage without status or expiry fields', async () => {
+    const callback = payment;
 
-      const result = await reservePromoCode(db, input, NOW);
+    await recordPromoCodeUsage(db, callback);
 
-      expect(result.status).toBe('reserved');
-      expect(countDocuments).not.toHaveBeenCalled();
-      expect(insertOne).toHaveBeenCalledTimes(1);
+    expect(insertOne).toHaveBeenCalledWith({
+      ...existingUse,
+      _id: expect.any(ObjectId),
+    });
+    const stored = insertOne.mock.calls[0][0];
+
+    expect(stored).not.toHaveProperty('status');
+    expect(stored).not.toHaveProperty('expiresAt');
+  });
+
+  test('should not create another row when the same successful callback is repeated', async () => {
+    findRedemption.mockResolvedValue(existingUse);
+    insertOne.mockRejectedValue(new MongoServerError({ code: 11000, message: 'Duplicate key' }));
+
+    const result = recordPromoCodeUsage(db, payment);
+
+    await expect(result).resolves.toBeUndefined();
+  });
+
+  test('should not lose the paid plan when a parallel successful payment uses the same code', async () => {
+    existingUse.transactionId = 'another-payment';
+    findRedemption.mockResolvedValue(existingUse);
+    insertOne.mockRejectedValue(new MongoServerError({ code: 11000, message: 'Duplicate key' }));
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    try {
+      const result = recordPromoCodeUsage(db, payment);
+
+      await expect(result).resolves.toBeUndefined();
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
     }
-  );
-
-  test('should reuse the same reservation created by a concurrent request', async () => {
-    findRedemption.mockResolvedValueOnce(null).mockResolvedValueOnce(existingReservation);
-    insertOne.mockRejectedValue(new MongoServerError({
-      message: 'Duplicate key',
-      code: 11000,
-    }));
-
-    const result = await reservePromoCode(db, input, NOW);
-
-    expect(result).toBe(existingReservation);
-    expect(findRedemption).toHaveBeenCalledTimes(2);
   });
 
-  test('should reject a concurrent duplicate use by another user', async () => {
-    existingReservation.userId = new ObjectId();
-    findRedemption.mockResolvedValueOnce(null).mockResolvedValueOnce(existingReservation);
-    insertOne.mockRejectedValue(new MongoServerError({
-      message: 'Duplicate key',
-      code: 11000,
-    }));
-
-    const result = reservePromoCode(db, input, NOW);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_ALREADY_USED');
-  });
-
-  test('should propagate a database write failure', async () => {
+  test('should propagate a database failure so the callback can be retried', async () => {
     const error = new Error('Database unavailable');
 
     insertOne.mockRejectedValue(error);
 
-    const result = reservePromoCode(db, input, NOW);
+    const result = recordPromoCodeUsage(db, payment);
 
     await expect(result).rejects.toBe(error);
   });
 
-  test('should not reserve a disabled promo code', async () => {
-    promoCode.isDisabled = true;
+  test.each([1, 81, NaN])('should reject a callback with a changed amount %j', amount => {
+    payment.amount = amount;
 
-    const result = reservePromoCode(db, input, NOW);
+    const action = (): void => validatePromoPayment(payment);
 
-    await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
+    expect(action).toThrow('PROMO_CODE_WRONG_AMOUNT');
     expect(insertOne).not.toHaveBeenCalled();
   });
 });
