@@ -8,6 +8,9 @@ import {
   PayloadOfWorkspacePlanPurchase
 } from '@hawk.so/types';
 import checksumService from '../utils/checksumService';
+import { ObjectId } from 'mongodb';
+import { databases } from '../mongo';
+import { preparePromoCode, PromoCodeQuote } from '../billing/promoCodes/redemptions';
 import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import * as telegram from '../utils/telegram';
@@ -27,6 +30,7 @@ interface ComposePaymentArgs {
     workspaceId: string;
     tariffPlanId: string;
     shouldSaveCard?: boolean;
+    promoCode?: string | null;
   };
 }
 
@@ -83,12 +87,14 @@ export default {
       invoiceId: string;
       plan: { id: string; name: string; monthlyCharge: number };
       isCardLinkOperation: boolean;
+      paymentAmount: number;
       currency: string;
       checksum: string;
       nextPaymentDate: Date;
       cloudPaymentsPublicId: string;
     }> {
       const { workspaceId, tariffPlanId, shouldSaveCard } = input;
+      const promoCode = input.promoCode?.trim();
 
       if (!workspaceId || !tariffPlanId || !user?.id) {
         throw new UserInputError('No workspaceId, tariffPlanId or user id provided');
@@ -126,6 +132,33 @@ export default {
         isCardLinkOperation = true;
       }
 
+      let paymentAmount = isCardLinkOperation ? AMOUNT_FOR_CARD_VALIDATION : plan.monthlyCharge;
+      let promoQuote: PromoCodeQuote | undefined;
+
+      if (promoCode) {
+        if (isCardLinkOperation) {
+          throw new UserInputError('PROMO_CODE_NOT_AVAILABLE_FOR_CARD_LINK');
+        }
+
+        if (WorkspaceModel.isPendingMember(member) || !member.isAdmin) {
+          throw new UserInputError('PROMO_CODE_ADMIN_REQUIRED');
+        }
+
+        if (!databases.hawk) {
+          throw new Error('Accounts database is not connected');
+        }
+
+        promoQuote = await preparePromoCode(databases.hawk, {
+          promoCode,
+          userId: new ObjectId(user.id),
+          workspaceId: workspace._id,
+          tariffPlanId: plan._id,
+          originalAmount: plan.monthlyCharge,
+        });
+
+        paymentAmount = promoQuote.finalAmount;
+      }
+
       /**
        * Calculate next payment date
        */
@@ -151,6 +184,15 @@ export default {
           tariffPlanId: plan._id.toString(),
           shouldSaveCard: Boolean(shouldSaveCard),
           nextPaymentDate: nextPaymentDate.toISOString(),
+          ...(promoQuote
+            ? {
+              paymentAmount,
+              promoPaymentId: new ObjectId().toString(),
+              promoCodeId: promoQuote.promoCodeId.toString(),
+              originalAmount: promoQuote.originalAmount,
+              discountPercent: promoQuote.discountPercent,
+            }
+            : {}),
         };
 
       const checksum = await checksumService.generateChecksum(checksumData);
@@ -162,7 +204,7 @@ export default {
         .sendMessage(`👀 [Billing / Compose payment]
 
 card link operation: ${isCardLinkOperation}
-amount: ${+plan.monthlyCharge} RUB
+amount: ${paymentAmount} RUB
 last charge date: ${workspace.lastChargeDate?.toISOString()}
 next payment date: ${nextPaymentDate.toISOString()}
 workspace: «${workspace.name}» (${workspace._id.toString()})
@@ -178,6 +220,7 @@ debug: ${Boolean(workspace.isDebug)}`
           monthlyCharge: plan.monthlyCharge,
         },
         isCardLinkOperation,
+        paymentAmount,
         currency: 'RUB',
         checksum,
         nextPaymentDate,
