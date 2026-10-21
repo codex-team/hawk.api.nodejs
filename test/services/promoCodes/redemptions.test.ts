@@ -18,7 +18,11 @@ describe('Promo code usage', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    promoCode = { _id: new ObjectId(), value: 'SALE20', discountPercent: 20 };
+    promoCode = {
+      _id: new ObjectId(),
+      value: 'SALE20',
+      discountPercent: 20,
+    };
     input = {
       promoCode: ' sale20 ',
       userId: new ObjectId(),
@@ -55,7 +59,11 @@ describe('Promo code usage', () => {
         return { findOne: findPromoCode };
       }
 
-      return { findOne: findRedemption, countDocuments, insertOne };
+      return {
+        findOne: findRedemption,
+        countDocuments,
+        insertOne,
+      };
     });
     findPromoCode.mockResolvedValue(promoCode);
     findRedemption.mockResolvedValue(null);
@@ -109,7 +117,10 @@ describe('Promo code usage', () => {
   });
 
   test.each([undefined, -1, '2'])('should ignore invalid or missing limit %j', async maxUses => {
-    findPromoCode.mockResolvedValue({ ...promoCode, maxUses });
+    findPromoCode.mockResolvedValue({
+      ...promoCode,
+      maxUses,
+    });
 
     const result = await preparePromoCode(db, input);
 
@@ -143,7 +154,10 @@ describe('Promo code usage', () => {
 
   test('should not create another row when the same successful callback is repeated', async () => {
     findRedemption.mockResolvedValue(existingUse);
-    insertOne.mockRejectedValue(new MongoServerError({ code: 11000, message: 'Duplicate key' }));
+    insertOne.mockRejectedValue(new MongoServerError({
+      code: 11000,
+      message: 'Duplicate key',
+    }));
 
     const result = recordPromoCodeUsage(db, payment);
 
@@ -153,7 +167,10 @@ describe('Promo code usage', () => {
   test('should not lose the paid plan when a parallel successful payment uses the same code', async () => {
     existingUse.transactionId = 'another-payment';
     findRedemption.mockResolvedValue(existingUse);
-    insertOne.mockRejectedValue(new MongoServerError({ code: 11000, message: 'Duplicate key' }));
+    insertOne.mockRejectedValue(new MongoServerError({
+      code: 11000,
+      message: 'Duplicate key',
+    }));
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     try {
@@ -179,6 +196,11 @@ describe('Promo code usage', () => {
   test.each([1, 81, NaN])('should reject a callback with a changed amount %j', amount => {
     payment.amount = amount;
 
+    /**
+     * Validate the changed callback amount to exercise payment validation.
+     *
+     * @returns Nothing if validation succeeds.
+     */
     const action = (): void => validatePromoPayment(payment);
 
     expect(action).toThrow('PROMO_CODE_WRONG_AMOUNT');

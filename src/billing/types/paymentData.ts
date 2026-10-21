@@ -35,6 +35,9 @@ interface CloudPaymentsSettings {
   recurrent: RecurrentPaymentSettings;
 }
 
+/**
+ * Payment identity parsed from a checksum or an existing subscription.
+ */
 export interface PaymentData {
   /**
    * Data for Cloudpayments needs
@@ -65,11 +68,20 @@ export interface PaymentData {
    */
   paymentAmount?: number;
   /**
-   * Signed promo payment attempt and price snapshot
+   * Signed promo payment attempt, also used as the business operation ID.
    */
   promoPaymentId?: string;
+  /**
+   * Signed identifier of the promo code applied to this payment.
+   */
   promoCodeId?: string;
+  /**
+   * Signed full plan price in rubles before the discount.
+   */
   originalAmount?: number;
+  /**
+   * Signed percentage discount captured when the quote was prepared.
+   */
   discountPercent?: number;
   /**
    * Signed start date for future full-price payments

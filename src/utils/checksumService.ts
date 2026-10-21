@@ -1,8 +1,14 @@
 import jwt, { Secret } from 'jsonwebtoken';
 import { UserInputError } from 'apollo-server-express';
 
+/**
+ * Signed identity for a plan purchase or a card-linking payment.
+ */
 export type ChecksumData = PlanPurchaseChecksumData | CardLinkChecksumData;
 
+/**
+ * Plan purchase data with an optional signed promo price snapshot.
+ */
 interface PlanPurchaseChecksumData {
   /**
    * Workspace Identifier
@@ -29,14 +35,26 @@ interface PlanPurchaseChecksumData {
    */
   paymentAmount?: number;
   /**
-   * Signed identity and price of the promo payment attempt
+   * Signed payment attempt, also used as the business operation ID.
    */
   promoPaymentId?: string;
+  /**
+   * Identifier of the applied promo code.
+   */
   promoCodeId?: string;
+  /**
+   * Full plan price in rubles before the discount.
+   */
   originalAmount?: number;
+  /**
+   * Percentage discount captured when the quote was prepared.
+   */
   discountPercent?: number;
 }
 
+/**
+ * Signed workspace and payer identity for validating a recurring-payment card.
+ */
 interface CardLinkChecksumData {
   /**
    * Workspace Identifier
@@ -64,6 +82,7 @@ class ChecksumService {
    * Generates checksum for processing billing requests
    *
    * @param data - data for processing billing request
+   * @returns signed payment token valid for thirty minutes
    */
   public async generateChecksum(data: ChecksumData): Promise<string> {
     return jwt.sign(data, process.env.JWT_SECRET_BILLING_CHECKSUM as Secret, { expiresIn: '30m' });
@@ -74,6 +93,7 @@ class ChecksumService {
    *
    * @param checksum - checksum to parse
    * @param allowExpiredPromo - allow a late callback for a checked promo payment
+   * @returns verified payment identity without unsigned callback fields
    */
   public parseAndVerifyChecksum(checksum: string, allowExpiredPromo = false): ChecksumData {
     const secret = process.env.JWT_SECRET_BILLING_CHECKSUM as Secret;

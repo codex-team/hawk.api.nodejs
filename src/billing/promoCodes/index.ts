@@ -2,12 +2,33 @@ import type { Db } from 'mongodb';
 import { ObjectId } from 'mongodb';
 import { UserInputError } from 'apollo-server-express';
 
+/**
+ * Promo code configuration stored in the accounts database.
+ */
 export interface PromoCode {
+  /**
+   * Identifier referenced by successful redemptions and payment checksums.
+   */
   _id: ObjectId;
+  /**
+   * Uppercase code without surrounding whitespace.
+   */
   value: string;
+  /**
+   * Percentage discount for the current payment, from 1 to 99.
+   */
   discountPercent: number;
+  /**
+   * Whether the code is unavailable for new payments.
+   */
   isDisabled?: boolean;
+  /**
+   * Limit on successful uses; missing or invalid values mean unlimited use.
+   */
   maxUses?: number;
+  /**
+   * Eligible plans; missing means all plans, while an empty array allows none.
+   */
   planIds?: ObjectId[];
 }
 

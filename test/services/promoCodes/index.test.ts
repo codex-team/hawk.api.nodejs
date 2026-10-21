@@ -18,6 +18,11 @@ describe('Promo code normalization', () => {
   });
 
   test.each(['', '  '])('should reject an empty code: %j', code => {
+    /**
+     * Normalize the empty code to exercise validation.
+     *
+     * @returns The normalized code if validation succeeds.
+     */
     const action = (): string => normalizePromoCode(code);
 
     expect(action).toThrow('PROMO_CODE_INVALID');
@@ -58,6 +63,11 @@ describe('Discounted payment amount', () => {
   test.each([0, -1, NaN, Infinity])('should reject invalid amount %j', amount => {
     const discountPercent = 20;
 
+    /**
+     * Calculate a discount for an invalid amount to exercise validation.
+     *
+     * @returns The discounted amount if validation succeeds.
+     */
     const action = (): number => calculateDiscountedAmount(amount, discountPercent);
 
     expect(action).toThrow('PROMO_CODE_INVALID_AMOUNT');
@@ -66,6 +76,11 @@ describe('Discounted payment amount', () => {
   test.each([0, -1, 100, NaN, Infinity])('should reject invalid discount %j', percent => {
     const originalAmount = 100;
 
+    /**
+     * Calculate an amount with an invalid discount to exercise validation.
+     *
+     * @returns The discounted amount if validation succeeds.
+     */
     const action = (): number => calculateDiscountedAmount(originalAmount, percent);
 
     expect(action).toThrow('PROMO_CODE_INVALID');

@@ -3,40 +3,127 @@ import { MongoServerError, ObjectId } from 'mongodb';
 import { UserInputError } from 'apollo-server-express';
 import { calculateDiscountedAmount, findActivePromoCode, getMaxUses } from './index';
 
+/**
+ * Server-calculated price snapshot used to sign a promo payment.
+ */
 export interface PromoCodeQuote {
+  /**
+   * Identifier of the applied promo code.
+   */
   promoCodeId: ObjectId;
+  /**
+   * Full plan price in rubles before the discount.
+   */
   originalAmount: number;
+  /**
+   * Discounted price in whole rubles, with a one-ruble minimum.
+   */
   finalAmount: number;
+  /**
+   * Percentage discount captured when the quote was prepared.
+   */
   discountPercent: number;
 }
 
+/**
+ * Successful promo use, unique per code and user or workspace.
+ */
 export interface PromoCodeRedemption extends PromoCodeQuote {
+  /**
+   * Identifier of the successful usage record.
+   */
   _id: ObjectId;
+  /**
+   * User who made the payment.
+   */
   userId: ObjectId;
+  /**
+   * Workspace that received the paid plan.
+   */
   workspaceId: ObjectId;
+  /**
+   * Plan purchased with the discount.
+   */
   tariffPlanId: ObjectId;
+  /**
+   * Provider transaction identifier used to recognize callback retries.
+   */
   transactionId: string;
 }
 
+/**
+ * User input and server-resolved payment identity for preparing a quote.
+ */
 export interface PromoCodeInput {
+  /**
+   * User-provided code, normalized before lookup.
+   */
   promoCode: string;
+  /**
+   * Authenticated payer.
+   */
   userId: ObjectId;
+  /**
+   * Authorized workspace receiving the plan.
+   */
   workspaceId: ObjectId;
+  /**
+   * Selected plan checked against the code's eligibility rules.
+   */
   tariffPlanId: ObjectId;
+  /**
+   * Server-resolved full plan price in rubles.
+   */
   originalAmount: number;
 }
 
+/**
+ * Signed promo identity and price combined with provider callback fields.
+ */
 export interface PromoPayment {
+  /**
+   * Promo code identifier from the verified checksum.
+   */
   promoCodeId: string;
+  /**
+   * Signed payment-attempt identifier, also used as the business operation ID.
+   */
   promoPaymentId: string;
+  /**
+   * Payer identifier from the verified checksum.
+   */
   userId: string;
+  /**
+   * Workspace identifier from the verified checksum.
+   */
   workspaceId: string;
+  /**
+   * Purchased plan identifier from the verified checksum.
+   */
   tariffPlanId: string;
+  /**
+   * Signed full plan price in rubles.
+   */
   originalAmount: number;
+  /**
+   * Signed percentage discount for the payment.
+   */
   discountPercent: number;
+  /**
+   * Signed discounted amount in rubles.
+   */
   paymentAmount: number;
+  /**
+   * Provider transaction identifier from the callback.
+   */
   transactionId: string;
+  /**
+   * Actual callback amount in rubles, compared with the signed quote.
+   */
   amount: number;
+  /**
+   * Provider callback currency; promo payments require RUB.
+   */
   currency: string;
 }
 

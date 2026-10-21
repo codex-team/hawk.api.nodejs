@@ -3,7 +3,7 @@ import { ObjectId, Db } from 'mongodb';
 import { databases } from '../mongo';
 import { checkPromoCodeUsage, recordPromoCodeUsage, validatePromoPayment, PromoPayment } from './promoCodes/redemptions';
 import { findActivePromoCode } from './promoCodes';
-import { applyPromoPlan } from './promoCodes/application';
+import { applyPaidPlan } from './promoCodes/application';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
 import {
@@ -53,6 +53,9 @@ const PENNY_MULTIPLIER = 100;
  * Class for describing the logic of payment routes
  */
 export default class CloudPaymentsWebhooks {
+  /**
+   * Authenticated CloudPayments client used for subscriptions and receipts.
+   */
   private readonly clientService = new ClientService({
     publicId: process.env.CLOUDPAYMENTS_PUBLIC_ID || '',
     privateKey: process.env.CLOUDPAYMENTS_SECRET || '',
@@ -97,6 +100,7 @@ export default class CloudPaymentsWebhooks {
    *
    * @param tariffPlan - tariff plan to generate invoice id
    * @param workspace - workspace data to generate invoice id
+   * @returns human-readable invoice label for the payment widget
    */
   private generateInvoiceId(tariffPlan: PlanDBScheme, workspace: WorkspaceModel): string {
     const now = new Date();
@@ -128,7 +132,9 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    /** Data validation */
+    /**
+     * Validate the identity required for a card link or a plan purchase.
+     */
     if (data.isCardLinkOperation) {
       if (!data.userId || !data.workspaceId) {
         this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the card linking request', req.body);
@@ -245,7 +251,9 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    /** Data validation */
+    /**
+     * Validate the identity required for a card link or a plan purchase.
+     */
     if (data.isCardLinkOperation) {
       if (!data.userId || !data.workspaceId) {
         this.sendError(res, PayCodes.SUCCESS, '[Billing / Pay] No workspace or user id in request body', req.body);
@@ -287,39 +295,28 @@ export default class CloudPaymentsWebhooks {
     }
 
     try {
+      if (!businessOperation._id) {
+        throw new Error('Business operation has no id');
+      }
+
+      await applyPaidPlan(
+        this.getPromoDatabase(), workspace._id, tariffPlan._id,
+        businessOperation._id, businessOperation.dtCreated,
+        body.SubscriptionId || null, data.isCardLinkOperation
+      );
+      await this.cancelSupersededSubscriptions(workspace._id);
       await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
-
-      if (!data.isCardLinkOperation) {
-        await workspace.changePlan(tariffPlan._id);
-      }
-
-      const subscriptionId = body.SubscriptionId;
-
-      /**
-       * Cancellation of the current subscription if:
-       * 1) the user pays manually (the workspace has an active subscription, but the request body does not)
-       * 2) if payment is made for another subscription (subscriptions id are not equal)
-       */
-      if (workspace.subscriptionId) {
-        if (!subscriptionId || subscriptionId !== workspace.subscriptionId) {
-          await this.clientApi.cancelSubscription({
-            Id: workspace.subscriptionId,
-          });
-        }
-      }
-
-      if (subscriptionId) {
-        await workspace.setSubscriptionId(subscriptionId);
-      }
     } catch (e) {
       const error = e as Error;
 
-      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${error.toString()}`, body);
+      this.sendError(res.status(500), PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${error.toString()}`, body);
 
       return;
     }
 
-    // let accountId = workspace.accountId;
+    /*
+     * let accountId = workspace.accountId;
+     */
 
     /*
      * try {
@@ -351,7 +348,9 @@ export default class CloudPaymentsWebhooks {
      *   const error = e as Error;
      */
 
-    //   this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while creating operations in accounting ${error.toString()}`, body);
+    /*
+     * this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while creating operations in accounting ${error.toString()}`, body);
+     */
 
     /*
      *   return;
@@ -377,7 +376,9 @@ export default class CloudPaymentsWebhooks {
     }
 
     try {
-      // todo: add plan-prolongation notification if it was a payment by subscription
+      /**
+       * @todo Add plan-prolongation notification for a subscription payment.
+       */
       const senderWorkerTask: PaymentSuccessNotificationTask = {
         type: SenderWorkerTaskType.PaymentSuccess,
         payload: {
@@ -658,7 +659,13 @@ status: ${body.Status}`
            * Subscription was cancelled via CloudPayments admin panel (or other no-garage way).
            * Remove subscription id from workspace.
            */
-          await workspace.setSubscriptionId(null);
+          await this.getPromoDatabase().collection('workspaces')
+            .updateOne({
+              _id: workspace._id,
+              subscriptionId: body.Id,
+            }, {
+              $unset: { subscriptionId: '' },
+            });
         } catch (e) {
           const error = e as Error;
 
@@ -679,6 +686,7 @@ status: ${body.Status}`
    * Formats workspace identity for Telegram money notifications
    *
    * @param workspace - workspace model or null when it was not found
+   * @returns workspace name and identifier, or a fallback for missing data
    */
   private formatWorkspaceForTelegram(workspace: Pick<WorkspaceModel, '_id' | 'name'> | null): string {
     if (!workspace) {
@@ -697,6 +705,7 @@ status: ${body.Status}`
    *
    * @param req - express request
    * @param workspaceId - id of workspace
+   * @returns existing workspace model
    */
   private async getWorkspace(req: express.Request, workspaceId: string): Promise<WorkspaceModel> {
     const workspace = await req.context.factories.workspacesFactory.findById(workspaceId);
@@ -713,6 +722,7 @@ status: ${body.Status}`
    *
    * @param req - express request
    * @param userId - id of user to fetch
+   * @returns existing payer model
    */
   private async getUser(req: express.Request, userId: string): Promise<UserModel> {
     const user = await req.context.factories.usersFactory.findById(userId);
@@ -729,6 +739,7 @@ status: ${body.Status}`
    *
    * @param req - express request
    * @param transactionId - id of the transaction for fetching business operation
+   * @returns existing business operation for the provider transaction
    */
   private async getBusinessOperation(req: express.Request, transactionId: string): Promise<BusinessOperationModel> {
     const businessOperation = await req.context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(transactionId);
@@ -745,6 +756,7 @@ status: ${body.Status}`
    *
    * @param userId - id of current user
    * @param workspace - workspace data
+   * @returns confirmed workspace administrator allowed to pay
    */
   private async getMember(userId: string, workspace: WorkspaceModel): Promise<ConfirmedMemberDBScheme> {
     const user = await workspace.getMemberInfo(userId);
@@ -769,6 +781,7 @@ status: ${body.Status}`
    *
    * @param req - express request
    * @param tariffPlanId - plan id
+   * @returns existing purchased plan model
    */
   private async getPlan(req: express.Request, tariffPlanId: string): Promise<PlanModel> {
     const plan = await req.context.factories.plansFactory.findById(tariffPlanId);
@@ -802,9 +815,9 @@ status: ${body.Status}`
   }
 
   /**
-   * Require the accounts database for promo payments.
+   * Require the accounts database shared by paid-plan and subscription updates.
    *
-   * @returns accounts database for promo payments
+   * @returns connected accounts database
    */
   private getPromoDatabase(): Db {
     if (!databases.hawk) {
@@ -1021,23 +1034,15 @@ status: ${body.Status}`
           await recordPromoCodeUsage(db, payment);
           await this.updatePromoOperation(db, operationId, token);
 
-          const ownsBillingPeriod = await applyPromoPlan(db, workspace._id, plan._id, operationId, operation.dtCreated);
+          const ownsBillingPeriod = await applyPaidPlan(
+            db, workspace._id, plan._id, operationId, operation.dtCreated,
+            req.body.SubscriptionId || null
+          );
+
+          await this.updatePromoOperation(db, operationId, token);
+          await this.cancelSupersededSubscriptions(workspace._id);
 
           if (ownsBillingPeriod) {
-            const subscriptionId = req.body.SubscriptionId;
-
-            await this.updatePromoOperation(db, operationId, token);
-
-            if (workspace.subscriptionId && workspace.subscriptionId !== subscriptionId) {
-              await this.clientApi.cancelSubscription({ Id: workspace.subscriptionId });
-            }
-
-            await this.updatePromoOperation(db, operationId, token);
-
-            if (subscriptionId) {
-              await workspace.setSubscriptionId(subscriptionId);
-            }
-
             await this.updatePromoOperation(db, operationId, token);
             await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
               type: 'unblock-workspace',
@@ -1133,6 +1138,36 @@ status: ${body.Status}`
   }
 
   /**
+   * Retry cancellation without touching the subscription selected by a newer payment.
+   *
+   * @param workspaceId - workspace with durable pending cancellations
+   */
+  private async cancelSupersededSubscriptions(workspaceId: ObjectId): Promise<void> {
+    const workspaces = this.getPromoDatabase().collection<{
+      _id: ObjectId;
+      subscriptionId?: string;
+      subscriptionIdsToCancel?: string[];
+    }>('workspaces');
+    const workspace = await workspaces.findOne({ _id: workspaceId });
+
+    for (const subscriptionId of workspace?.subscriptionIdsToCancel || []) {
+      if (subscriptionId === workspace?.subscriptionId) {
+        continue;
+      }
+
+      const cancellation = await this.clientApi.cancelSubscription({ Id: subscriptionId });
+
+      if (!cancellation.isSuccess()) {
+        throw new Error(`Could not cancel superseded subscription ${subscriptionId}`);
+      }
+
+      await workspaces.updateOne({ _id: workspaceId }, {
+        $pull: { subscriptionIdsToCancel: subscriptionId },
+      });
+    }
+  }
+
+  /**
    * Renew callback ownership and fence writes from an expired handler.
    *
    * @param db - accounts database
@@ -1172,6 +1207,7 @@ status: ${body.Status}`
    * Parses request body and returns data from it
    *
    * @param req - request with necessary data
+   * @returns signed payment data or identity resolved from an existing subscription
    */
   private async getDataFromRequest(req: express.Request): Promise<PaymentData> {
     const context = req.context;
@@ -1241,6 +1277,7 @@ status: ${body.Status}`
   /**
    * Parses body and returns card data
    * @param request - request body to parse
+   * @returns reusable card details, or null when any required field is missing
    */
   private getCardData(request: PayRequest): Omit<BankCard, 'id'> | null {
     if (!request.CardType || !request.CardExpDate || !request.CardLastFour || !request.CardFirstSix || !request.Token) {
