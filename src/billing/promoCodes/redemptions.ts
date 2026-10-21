@@ -59,7 +59,7 @@ export async function checkPromoCodeUsage(
   const redemptions = db.collection<PromoCodeRedemption>('promoCodeRedemptions');
   const existing = await redemptions.findOne({
     promoCodeId,
-    $or: [{ userId }, { workspaceId }],
+    $or: [ { userId }, { workspaceId } ],
   });
 
   if (existing) {
@@ -160,7 +160,7 @@ export async function recordPromoCodeUsage(db: Db, payment: PromoPayment): Promi
 
     const existing = await redemptions.findOne({
       promoCodeId: usage.promoCodeId,
-      $or: [{ userId: usage.userId }, { workspaceId: usage.workspaceId }],
+      $or: [ { userId: usage.userId }, { workspaceId: usage.workspaceId } ],
     });
 
     if (!existing) {

@@ -904,7 +904,6 @@ status: ${body.Status}`
         upsert: true,
       });
 
-
       res.json({ code: CheckCodes.SUCCESS });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
