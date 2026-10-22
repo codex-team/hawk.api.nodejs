@@ -17,7 +17,7 @@ export const createMCPRouter = (factories: ContextFactories): express.Router => 
    * POST /integration/mcp
    * Initiate MCP integration connection
    */
-  router.post("/", async (req, res, next) => {
+  router.all("/", async (req, res, next) => {
     try {
       /**
        * Each request must use its own transport
