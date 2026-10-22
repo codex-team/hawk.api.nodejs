@@ -62,6 +62,15 @@ declare namespace NodeJS {
     SAML_STORE_TYPE?: string;
 
     /**
+     * MCP AuthRequest data store
+
+     * Determines which store implementation to use for MCP AuthRequest data:
+     * - 'redis' (default): Uses Redis store for multi-instance support
+     * - 'memory': Uses in-memory store (single instance only)
+     */
+    MCP_AUTH_REQUEST_STORE_TYPE?: string;
+
+    /**
      * Redis connection URL
      * Used for caching and TimeSeries data
      *
