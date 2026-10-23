@@ -1,15 +1,15 @@
 import express from 'express';
 import { ContextFactories } from 'src/types/graphql';
-import { createMCPRouter } from './mcp';
+import { createMCPHandler } from './mcp';
 
 /**
- * Append MCP route to Express App
+ * Appends MCP route to Express App
  *
  * @param app - Express application instance
  * @param factories - context factories for database access
  */
 export function appendMCPRoutes(app: express.Application, factories: ContextFactories): void {
-  const router = createMCPRouter(factories);
+  const handler = createMCPHandler(factories);
 
-  app.use('/integration/mcp', router);
+  app.use('/integration/mcp', (req, res) => void handler(req, res, req.body));
 }

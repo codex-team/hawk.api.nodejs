@@ -1,7 +1,8 @@
-import express from 'express';
-import { McpServer } from '@modelcontextprotocol/server';
-import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
+import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
+import { toNodeHandler } from '@modelcontextprotocol/node';
 import { ContextFactories } from 'src/types/graphql';
+
+import type { NodeMcpRequestHandler } from "@modelcontextprotocol/node";
 
 /**
  * Create MCP server
@@ -37,33 +38,15 @@ function createMCPServer(factories: ContextFactories) {
 };
 
 /**
- * Create MCP router
+ * Creates MCP handler
  *
  * @param factories - context factories for database access
- * @returns Express router with MCP integration endpoints
+ * @returns MCP RequestHandler
  */
-export function createMCPRouter(factories: ContextFactories): express.Router {
-  const router = express.Router();
+export function createMCPHandler(factories: ContextFactories): NodeMcpRequestHandler {
   const server = createMCPServer(factories);
 
-  /**
-   * POST /integration/mcp
-   * Initiate MCP integration connection
-   */
-  router.all('/', async (req, res, next) => {
-    try {
-      /**
-       * Each request must use its own transport
-       */
-      const transport = new NodeStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  const handler = createMcpHandler(() => server);
 
-      await server.connect(transport);
-
-      await transport.handleRequest(req, res, req.body);
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  return router;
+  return toNodeHandler(handler);
 };
