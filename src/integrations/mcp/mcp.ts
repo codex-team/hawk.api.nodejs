@@ -2,10 +2,10 @@ import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
 import { toNodeHandler } from '@modelcontextprotocol/node';
 import { ContextFactories } from 'src/types/graphql';
 
-import type { NodeMcpRequestHandler } from "@modelcontextprotocol/node";
+import type { NodeMcpRequestHandler } from '@modelcontextprotocol/node';
 
 /**
- * Create MCP server
+ * Creates MCP server
  *
  * @param factories - context factories for database access
  * @returns configured MCP server
@@ -38,7 +38,7 @@ function createMCPServer(factories: ContextFactories) {
 };
 
 /**
- * Creates MCP handler
+ * Creates MCP request handler
  *
  * @param factories - context factories for database access
  * @returns MCP RequestHandler

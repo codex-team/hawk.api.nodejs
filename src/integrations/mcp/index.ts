@@ -11,5 +11,5 @@ import { createMCPHandler } from './mcp';
 export function appendMCPRoutes(app: express.Application, factories: ContextFactories): void {
   const handler = createMCPHandler(factories);
 
-  app.use('/integration/mcp', (req, res) => void handler(req, res, req.body));
+  app.use('/integration/mcp', (req, res) => handler(req, res, req.body));
 }
