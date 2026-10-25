@@ -1,11 +1,12 @@
-import type { AuthRequestData, MemoryAuthRequestData, MCPAuthRequestStoreInterface } from "../types";
+import type { AuthRequestData, MemoryAuthRequestData } from './types';
+import type { MCPAuthRequestStoreInterface } from './MCPAuthRequestStoreInterface';
 
 /**
  * In-memory store for MCP AuthRequest data
- * 
+ *
  * Stores temporary data needed for MCP authentication flow:
  * - AuthRequest maps authorization code to AuthRequest data
- * 
+ *
  * Note: This implementation is not suitable for multi-instance deployments.
  * Use Redis store for production environments with multiple API instances.
  */
@@ -41,7 +42,7 @@ export class MemoryMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
 
   /**
    * Save AuthRequest data
-   * 
+   *
    * @param code - Authorization code ()
    * @param data - AuthRequest data (userId, clientId, redirectUrl, codeChallenge)
    */
@@ -49,14 +50,14 @@ export class MemoryMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
     this.AuthState.set(code,
       {
         ...data,
-        expiresAt: Date.now() + this.TTL
+        expiresAt: Date.now() + this.TTL,
       }
     );
   }
 
   /**
    * Get AuthRequest data
-   * 
+   *
    * @param code - authorizaton code
    * @returns authRequest data or null if not found/expired
    */
@@ -101,5 +102,4 @@ export class MemoryMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
       }
     }
   }
-
 }

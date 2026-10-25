@@ -63,7 +63,7 @@ declare namespace NodeJS {
 
     /**
      * MCP AuthRequest data store
-
+     *
      * Determines which store implementation to use for MCP AuthRequest data:
      * - 'redis' (default): Uses Redis store for multi-instance support
      * - 'memory': Uses in-memory store (single instance only)

@@ -1,14 +1,15 @@
-import type { AuthRequestData, MCPAuthRequestStoreInterface } from "../types";
-import type { RedisClientType } from "redis";
+import RedisHelper from '../../../redisHelper';
 
-import RedisHelper from "../../../redisHelper";
+import type { MCPAuthRequestStoreInterface } from './MCPAuthRequestStoreInterface';
+import type { AuthRequestData } from './types';
+import type { RedisClientType } from 'redis';
 
 /**
  * Redis-based store for MCP AuthRequest data
  *
  * Stores temporary data needed for MCP authentication flow:
  * - AuthRequest maps authorization code to AuthRequest data
- * 
+ *
  * This implementation is suitable for multi-instance deployments as it uses
  * Redis as the shared state store. TTLs are handled by Redis automatically.
  */
@@ -16,7 +17,7 @@ export class RedisMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
   /**
    * Store type identifier
    */
-  public readonly type = "redis";
+  public readonly type = 'redis';
 
   /**
    * Redis helper instance
@@ -39,7 +40,7 @@ export class RedisMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
 
   /**
    * Save AuthRequest data
-   * 
+   *
    * @param code - authorization code
    * @param data - AuthRequest data (userId, clientId, redirectUrl, codeChallenge)
    */
@@ -53,7 +54,7 @@ export class RedisMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
 
   /**
    * Get and consume AuthRequest data
-   * 
+   *
    * @param code - authorization code
    * @returns AuthRequset data or null if not found/expired
    */
@@ -71,9 +72,9 @@ export class RedisMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
       .get(key)
       .del(key)
       .exec();
-        
+
     if (!result || result.length < 2) {
-      return null
+      return null;
     }
 
     const value = result[0] as string | null;
@@ -93,7 +94,7 @@ export class RedisMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
 
   /**
    * Get Redis client
-   * 
+   *
    * @returns Redis client instance
    * @throws Error if Redis client is not available
    */

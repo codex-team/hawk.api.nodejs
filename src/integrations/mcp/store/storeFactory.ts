@@ -1,21 +1,21 @@
-import type { MCPAuthRequestStoreInterface } from "../types";
+import RedisHelper from '../../../redisHelper';
+import { MemoryMCPAuthRequestStore } from './memory.store';
+import { RedisMCPAuthRequestStore } from './redis.store';
 
-import RedisHelper from "../../../redisHelper";
-import { MemoryMCPAuthRequestStore } from "./memory.store";
-import { RedisMCPAuthRequestStore } from "./redis.store";
+import type { MCPAuthRequestStoreInterface } from './MCPAuthRequestStoreInterface';
 
 /**
  * Create MCPAuthRequest data store instance based on configuration
- * 
+ *
  * Store type is determined by MCP_AUTH_REQUEST_STORE_TYPE environment variable:
  * - 'redis' (default): Uses Redis store for multi-instance support
  * - 'memory': Uses in-memory store (single instance only)
- * 
+ *
  * @returns MCPAuthRequest data store instance
  */
 export function createMCPStore(): MCPAuthRequestStoreInterface {
   const storeType = (process.env.MCP_AUTH_REQUEST_STORE_TYPE || 'redis').toLowerCase();
-  
+
   if (storeType === 'memory') {
     return new MemoryMCPAuthRequestStore();
   }
@@ -27,6 +27,7 @@ export function createMCPStore(): MCPAuthRequestStoreInterface {
       console.warn(
         '[MCP Store] Redis store requested but Redis is not connected. Falling back to memory store.'
       );
+
       return new MemoryMCPAuthRequestStore();
     }
 
