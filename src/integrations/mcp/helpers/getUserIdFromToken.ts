@@ -12,6 +12,7 @@ import type { UserJWTData } from 'src/types/graphql';
  */
 export function getUserJWTDataFromToken(token: string, tokenType: 'refresh' | 'access'): UserJWTData | null {
   const jwtSecret = (tokenType === 'refresh' ? process.env.JWT_SECRET_REFRESH_TOKEN : process.env.JWT_SECRET_ACCESS_TOKEN) as Secret;
+
   try {
     return jwt.verify(
       token,

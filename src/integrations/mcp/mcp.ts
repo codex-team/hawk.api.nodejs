@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
 import { toNodeHandler } from '@modelcontextprotocol/node';
 import { createMcpHandler, McpServer, ServerContext } from '@modelcontextprotocol/server';
 import { ContextFactories, UserJWTData } from 'src/types/graphql';

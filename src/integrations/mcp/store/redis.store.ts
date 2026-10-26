@@ -86,7 +86,7 @@ export class RedisMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
     try {
       return JSON.parse(value) as AuthRequestData;
     } catch (error) {
-      console.error('[Redis MCP Store] Failed to parse AuthCode', error);
+      console.error('[MCP Auth Store] Failed to parse AuthCode', error);
 
       return null;
     }

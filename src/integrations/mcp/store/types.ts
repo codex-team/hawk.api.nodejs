@@ -1,3 +1,5 @@
+import type { MemoryMCPAuthRequestStore } from './memory.store';
+
 /**
  * Authorization data needed to verify that the original authorization request
  * was made by the same client making token request
@@ -10,8 +12,8 @@ export type AuthRequestData = {
 };
 
 /**
- * Used by [In-memory store for MCP AuthRequest data](./memory.store.ts)
- * to track AuthRequest expiration 
+ * Used by {@link MemoryMCPAuthRequestStore}
+ * to track AuthRequest expiration
  */
 export type MemoryAuthRequestData = AuthRequestData & {
   expiresAt: number;

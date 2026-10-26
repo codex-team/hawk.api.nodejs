@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/camelcase, camelcase */
 import express from 'express';
 import crypto from 'node:crypto';
 import { createMCPStore } from '../store/storeFactory';
@@ -5,35 +6,65 @@ import { AuthenticationError } from 'apollo-server-express';
 import { getUserJWTDataFromToken } from '../helpers/getUserIdFromToken';
 import { generateMCPClientId } from '../helpers/generateMCPClientId';
 
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
+import type { TokensPair } from '@hawk.so/types';
 import type { ContextFactories } from 'src/types/graphql';
-import type { TokenRequest } from './types';
+import type {
+  AuthorizationServerMetadataResponse,
+  ClientInformationResponse,
+  ProtectedResourceMetadataResponse,
+  TokenRequest,
+  TokenResponse
+} from './types';
 
 /**
- * Implements MCP Authorization Flow using OAuth 2.1
+ * Implements MCP Authorization Flow following
+ * {@link https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-16 | OAuth 2.1}
+ * and
+ * {@link https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/authorization | Authorization in MCP}
  *
+ * Flow:
+ * 1. The client discovers the OAuth metadata and authorization endpoints.
+ * 2. The user signs in and supplies an authorization header.
+ * 3. The server generates an authorization code and stores the pending request data.
+ * 4. The client exchanges the code together with the PKCE verifier for a token pair.
+ * 5. Refresh tokens can be exchanged for a new access and refresh token pair.
  *
- * @param app
- * @param factories
+ * @param app - Express application instance
+ * @param factories - context factories for database access
  */
 export function useMCPAuth(app: express.Application, factories: ContextFactories) {
-  if (!process.env.API_URL) {
-    throw new Error('API_URL environment variable must be set to generate redirect URI');
-  }
-
-  if (!process.env.GARAGE_URL) {
-    throw new Error('GARAGE_URL environment variable must be set to generate authorization endpoint');
-  }
-
   const store = createMCPStore();
 
-  async function createTokenResponse(userId: string) {
+  /**
+   * Generates new {@link TokensPair}
+   *
+   * @param userId - user ID
+   * @returns TokensPair - newly generated access and refresh tokens
+   */
+  async function generateTokensPair(userId: string) {
+    const user = await factories.usersFactory.findById(userId);
+
+    if (!user) {
+      throw new AuthenticationError('Invalid userId');
+    }
+
+    return user.generateTokensPair();
+  };
+
+  /**
+   * Creates {@link TokenResponse}
+   *
+   * @param userId - user ID
+   * @returns TokenResponse or null
+   */
+  async function createTokenResponse(userId: string): Promise<TokenResponse | null> {
     const tokensPair = await generateTokensPair(userId);
 
     const data = getUserJWTDataFromToken(tokensPair.accessToken, 'access');
 
     if (!data) {
-      return;
+      return null;
     }
 
     return {
@@ -45,36 +76,15 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
     };
   };
 
-  async function generateTokensPair(userId: string) {
-    const user = await factories.usersFactory.findById(userId);
-
-    if (!user) {
-      throw new AuthenticationError('Invalid userId');
-    }
-
-    return await user.generateTokensPair();
-  };
-
   /**
-   * Dynamic client registration
-   */
-  app.post('/register/integration/mcp', (req, res) => {
-    res.status(201).json({
-      client_id: generateMCPClientId(),
-      client_name: req.body.client_name,
-      redirect_uris: req.body.redirect_uris,
-      grant_types: ['authorization_code', 'refresh_token'],
-      response_types: [ 'code' ],
-      token_endpoint_auth_method: 'none',
-    });
-  });
-
-  /**
-   * Protected resource metadata
+   * Protected Resource Metadata (PRM) discovery
+   *
+   * MCP client retrieves metadata the authorization server,
+   * supported scopes, and other resource information
    */
   app.get(
     '/.well-known/oauth-protected-resource/integration/mcp',
-    (_req, res) => {
+    (_req, res: Response<ProtectedResourceMetadataResponse>) => {
       res.json({
         resource: `${process.env.API_URL}/integration/mcp`,
         authorization_servers: [
@@ -89,11 +99,14 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
   );
 
   /**
-   * OAuth server metadata
+   * Authorization Server Discovery
+   *
+   * MCP client retrieves another set of metadata properties
+   * that will allow it to know the endpoints it needs to complete the authorization flow
    */
   app.get(
     '/.well-known/oauth-authorization-server/integration/mcp',
-    (_req, res) => {
+    (_req, res: Response<AuthorizationServerMetadataResponse>) => {
       res.json({
         issuer: `${process.env.API_URL}/integration/mcp`,
 
@@ -125,7 +138,36 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
   );
 
   /**
-   * Frontend callback
+   * Dynamic Client Registration (DCR)
+   *
+   * Generates random clientId
+   *
+   * Typically used to register MCP with the authorization server dynamically.
+   * Currently we do not have any real authorization server, but this endpoint is still
+   * implemented in order not to bug the user with manual clientId creation in some IDEs (VSCode)
+   */
+  app.post('/register/integration/mcp', (req, res: Response<ClientInformationResponse>) => {
+    res.status(201).json({
+      client_id: generateMCPClientId(),
+      client_name: req.body.client_name,
+      redirect_uris: req.body.redirect_uris,
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: [ 'code' ],
+    });
+  });
+
+  /**
+   * Authorization Endpoint callback
+   * https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-16#name-authorization-endpoint
+   *
+   * Authenticates the resource owner and establishes
+   * whether the resource owner grants or denies the client's access request
+   *
+   * Assuming the resource owner grants access, the authorization server redirects
+   * the user agent back to the client using the redirect URI provided earlier
+   * (in the request or during client registration).
+   * The redirect URI includes an authorization code and any local state
+   * provided by the client earlier
    */
   app.post('/concent/integration/mcp', async (req, res) => {
     const {
@@ -137,9 +179,9 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
 
     const header = req.headers.authorization;
 
-    if (!header?.startsWith('Bearer ')) {
-      return res.status(401).json({
-        error: 'unauthorized',
+    if (typeof header !== 'string') {
+      return res.status(400).json({
+        error: 'invalid_grant',
       });
     }
 
@@ -153,10 +195,16 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
       });
     }
 
+    /**
+     * Authorization code generation
+     */
     const code = crypto
       .randomBytes(32)
       .toString('base64url');
 
+    /**
+     * Save AuthRequest data to retrieve data on the next step
+     */
     await store.saveAuthRequest(code, {
       userId: user.userId,
       clientId: client_id,
@@ -164,6 +212,9 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
       codeChallenge: code_challenge,
     });
 
+    /**
+     * Add parameters to redirect_uri
+     */
     const callback = new URL(redirect_uri);
 
     callback.searchParams.set('code', code);
@@ -178,7 +229,19 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
   });
 
   /**
-   * MCP client callback
+   * Token Endpoint
+   * https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-16#name-token-endpoint
+   *
+   * Token endpoint is used by the MCP client to exchange the authorization code to access token or
+   * generate new {@link TokensPair} by refresh token
+   *
+   * ON 'authorization_code' GRANT TYPE:
+   * - Validates the authorization code, validates the code verifier, and ensures that
+   *   the redirect URI received matches the URI used to redirect the user agent to the client in previous step.
+   *   If valid, the authorization server responds back with an access token and a refresh token
+   *
+   * ON 'refresh_token' GRANT TYPE:
+   *  - Validates refresh token. If valid, the authorization server responds back with an access token and a refresh token
    */
   app.post('/token/integration/mcp', async (req: Request<{}, {}, TokenRequest>, res) => {
     const { body } = req;
@@ -189,7 +252,7 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
     if (body.grant_type === 'refresh_token') {
       const {
         refresh_token,
-        client_id
+        client_id,
       } = body;
 
       if (typeof refresh_token !== 'string' || !refresh_token ||
@@ -205,6 +268,12 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
 
       const response = await createTokenResponse(data.userId);
 
+      if (!response) {
+        console.warn(`[MCP Auth] refresh_token was successfully verified, but ${data.userId} could not be found`);
+
+        return res.status(400).json({ error: 'invalid_grant' });
+      }
+
       return res.json(response);
     }
 
@@ -218,44 +287,53 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
       code,
       code_verifier,
       client_id,
-      redirect_uri
+      redirect_uri,
     } = body;
 
-    const auth = await store.getAuthRequest(code);
+    /**
+     * Retrieve AuthRequest data from the store
+     */
+    const data = await store.getAuthRequest(code);
 
-    if (!auth) {
+    if (!data) {
       return res.status(400).json({
         error: 'invalid_grant',
       });
     }
 
-    if (auth.clientId !== client_id) {
+    if (data.clientId !== client_id) {
       return res.status(400).json({
         error: 'invalid_grant',
       });
     }
 
-    if (auth.redirectUri !== redirect_uri) {
+    if (data.redirectUri !== redirect_uri) {
       return res.status(400).json({
         error: 'invalid_grant',
       });
     }
 
     /**
-     * PKCE
+     * Validate codeChallenge
      */
     const calculatedChallenge = crypto
       .createHash('sha256')
       .update(code_verifier)
       .digest('base64url');
 
-    if (calculatedChallenge !== auth.codeChallenge) {
+    if (calculatedChallenge !== data.codeChallenge) {
       return res.status(400).json({
         error: 'invalid_grant',
       });
     }
 
-    const response = await createTokenResponse(auth.userId);
+    const response = await createTokenResponse(data.userId);
+
+    if (!response) {
+      console.warn(`[MCP Auth] refresh_token was successfully verified, but ${data.userId} could not be found`);
+
+      return res.status(400).json({ error: 'invalid_grant' });
+    }
 
     return res.json(response);
   });
