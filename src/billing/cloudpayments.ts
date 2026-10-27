@@ -1,9 +1,5 @@
 import express from 'express';
-import { ObjectId, Db } from 'mongodb';
-import { databases } from '../mongo';
-import { checkPromoCodeUsage, recordPromoCodeUsage, validatePromoPayment, PromoPayment } from './promoCodes/redemptions';
-import { findActivePromoCode } from './promoCodes';
-import { applyPaidPlan } from './promoCodes/application';
+import { PromoPayment, validatePromoOperation, validatePromoSubscription } from './promoCodes/redemptions';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
 import {
@@ -169,24 +165,30 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    if (data.promoPaymentId) {
-      await this.checkPromoPayment(req, res, data, workspace, plan);
-
-      return;
-    }
-
     const recurrentPaymentSettings = data.cloudPayments?.recurrent;
 
     /**
      * The amount will be considered correct if it is equal to the cost of the tariff plan.
      * Also, the cost will be correct if it is a payment to activate the subscription.
      */
-    const isRightAmount = +body.Amount === plan.monthlyCharge || recurrentPaymentSettings?.startDate;
+    const expectedAmount = data.promo ? data.promo.finalAmount : plan.monthlyCharge;
+    const isRightAmount = +body.Amount === expectedAmount || (!data.promo && recurrentPaymentSettings?.startDate);
 
     if (!isRightAmount) {
       this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
 
       return;
+    }
+
+    if (data.promo) {
+      try {
+        validatePromoSubscription(data, plan.monthlyCharge, Boolean(workspace.isDebug));
+        await context.factories.promoCodesFactory.ensurePaymentAvailable(this.buildPromoPayment(body, data));
+      } catch (error) {
+        this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] ${String(error)}`, body);
+
+        return;
+      }
     }
 
     /**
@@ -201,7 +203,7 @@ export default class CloudPaymentsWebhooks {
           workspaceId: workspace._id,
           amount: +body.Amount * PENNY_MULTIPLIER,
           currency: body.Currency,
-          userId: member._id,
+          userId: data.promo ? member.userId : member._id,
           tariffPlanId: plan._id,
         },
         dtCreated: new Date(),
@@ -242,7 +244,7 @@ export default class CloudPaymentsWebhooks {
     console.log('💎 CloudPayments /pay request', body);
 
     try {
-      data = await this.getDataFromRequest(req);
+      data = await this.getDataFromRequest(req, true);
     } catch (e) {
       const error = e as Error;
 
@@ -268,12 +270,6 @@ export default class CloudPaymentsWebhooks {
       }
     }
 
-    if (data.promoPaymentId) {
-      await this.finishPromoPayment(req, res, data, true);
-
-      return;
-    }
-
     let businessOperation;
     let workspace;
     let tariffPlan;
@@ -294,22 +290,56 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    try {
-      if (!businessOperation._id) {
-        throw new Error('Business operation has no id');
+    if (data.promo) {
+      let payment: PromoPayment;
+
+      try {
+        payment = this.buildPromoPayment(body, data);
+        validatePromoOperation(payment, businessOperation);
+      } catch (error) {
+        this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Invalid promo payment: ${String(error)}`, body);
+
+        return;
       }
 
-      await applyPaidPlan(
-        this.getPromoDatabase(), workspace._id, tariffPlan._id,
-        businessOperation._id, businessOperation.dtCreated,
-        body.SubscriptionId || null, data.isCardLinkOperation
-      );
-      await this.cancelSupersededSubscriptions(workspace._id);
+      try {
+        await req.context.factories.promoCodeRedemptionsFactory.redeem(payment);
+      } catch (error) {
+        this.sendError(res.status(500), PayCodes.RETRY, `[Billing / Pay] Could not redeem promo code: ${String(error)}`, body);
+
+        return;
+      }
+    }
+
+    try {
       await businessOperation.setStatus(BusinessOperationStatus.Confirmed);
+
+      if (!data.isCardLinkOperation) {
+        await workspace.changePlan(tariffPlan._id);
+      }
+
+      const subscriptionId = body.SubscriptionId;
+
+      /**
+       * Cancellation of the current subscription if:
+       * 1) the user pays manually (the workspace has an active subscription, but the request body does not)
+       * 2) if payment is made for another subscription (subscriptions id are not equal)
+       */
+      if (workspace.subscriptionId) {
+        if (!subscriptionId || subscriptionId !== workspace.subscriptionId) {
+          await this.clientApi.cancelSubscription({
+            Id: workspace.subscriptionId,
+          });
+        }
+      }
+
+      if (subscriptionId) {
+        await workspace.setSubscriptionId(subscriptionId);
+      }
     } catch (e) {
       const error = e as Error;
 
-      this.sendError(res.status(500), PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${error.toString()}`, body);
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't update workspace billing data ${error.toString()}`, body);
 
       return;
     }
@@ -459,7 +489,7 @@ plan monthly charge: ${data.cloudPayments?.recurrent.amount} ${body.Currency}`
          */
         const userEmail = body.IssuerBankCountry === RUSSIA_ISO_CODE ? user.email : undefined;
 
-        await this.sendReceipt(workspace, tariffPlan, userEmail);
+        await this.sendReceipt(workspace, tariffPlan, userEmail, data.promo ? +body.Amount : tariffPlan.monthlyCharge);
 
         let messageText = '';
 
@@ -511,15 +541,9 @@ subscription id: ${body.SubscriptionId}`;
     const failReasonLine = `reason: ${body.Reason} (${body.ReasonCode})`;
 
     try {
-      data = await this.getDataFromRequest(req);
+      data = await this.getDataFromRequest(req, true);
     } catch (e) {
       this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Invalid request\n${failReasonLine}`, body);
-
-      return;
-    }
-
-    if (data.promoPaymentId) {
-      await this.finishPromoPayment(req, res, data, false);
 
       return;
     }
@@ -659,13 +683,7 @@ status: ${body.Status}`
            * Subscription was cancelled via CloudPayments admin panel (or other no-garage way).
            * Remove subscription id from workspace.
            */
-          await this.getPromoDatabase().collection('workspaces')
-            .updateOne({
-              _id: workspace._id,
-              subscriptionId: body.Id,
-            }, {
-              $unset: { subscriptionId: '' },
-            });
+          await workspace.setSubscriptionId(null);
         } catch (e) {
           const error = e as Error;
 
@@ -815,401 +833,36 @@ status: ${body.Status}`
   }
 
   /**
-   * Require the accounts database shared by paid-plan and subscription updates.
-   *
-   * @returns connected accounts database
-   */
-  private getPromoDatabase(): Db {
-    if (!databases.hawk) {
-      throw new Error('Accounts database is not connected');
-    }
-
-    return databases.hawk;
-  }
-
-  /**
-   * Build the payment identity from verified checksum fields and the callback.
+   * Map signed promo data and provider fields to a payment for domain validation.
    *
    * @param body - provider callback
-   * @param data - parsed payment data
-   * @returns signed payment details
+   * @param data - verified payment identity
+   * @returns promo payment without HTTP context
    */
-  private getPromoPayment(body: CheckRequest | PayRequest | FailRequest, data: PaymentData): PromoPayment {
-    if (!data.promoPaymentId || !data.promoCodeId || typeof data.paymentAmount !== 'number' ||
-      typeof data.originalAmount !== 'number' || typeof data.discountPercent !== 'number' || data.isCardLinkOperation) {
+  private buildPromoPayment(body: CheckRequest | PayRequest, data: PaymentData): PromoPayment {
+    if (!data.promo || data.isCardLinkOperation) {
       throw new Error('PROMO_CODE_INVALID_PAYMENT');
     }
 
     return {
-      promoPaymentId: data.promoPaymentId,
-      promoCodeId: data.promoCodeId,
-      originalAmount: data.originalAmount,
-      discountPercent: data.discountPercent,
+      ...data.promo,
       workspaceId: data.workspaceId,
       userId: data.userId,
       tariffPlanId: data.tariffPlanId,
-      paymentAmount: data.paymentAmount,
       transactionId: body.TransactionId?.toString() || '',
-      amount: Number(body.Amount),
+      paidAmount: Number(body.Amount),
       currency: body.Currency,
     };
-  }
-
-  /**
-   * Check usage and create one pending operation without consuming the code.
-   *
-   * @param req - callback request
-   * @param res - provider response
-   * @param data - verified payment data
-   * @param workspace - authorized workspace
-   * @param plan - selected plan
-   */
-  private async checkPromoPayment(
-    req: express.Request,
-    res: express.Response,
-    data: PaymentData,
-    workspace: WorkspaceModel,
-    plan: PlanDBScheme
-  ): Promise<void> {
-    try {
-      const db = this.getPromoDatabase();
-      const payment = this.getPromoPayment(req.body, data);
-      const recurrent = data.cloudPayments?.recurrent;
-
-      if (recurrent && (
-        recurrent.amount !== plan.monthlyCharge ||
-        recurrent.period !== 1 ||
-        recurrent.interval !== (workspace.isDebug ? 'Day' : 'Month') ||
-        !data.nextPaymentDate ||
-        Date.parse(recurrent.startDate || '') !== Date.parse(data.nextPaymentDate)
-      )) {
-        throw new Error('PROMO_CODE_INVALID_SUBSCRIPTION');
-      }
-
-      validatePromoPayment(payment);
-      const promoCode = await db.collection('promoCodes').findOne({ _id: new ObjectId(payment.promoCodeId) });
-
-      if (!promoCode) {
-        throw new Error('PROMO_CODE_INVALID');
-      }
-
-      await findActivePromoCode(db, promoCode.value, plan._id);
-      await checkPromoCodeUsage(db, promoCode._id, new ObjectId(data.userId), workspace._id, payment.transactionId);
-
-      await db.collection('businessOperations').updateOne({
-        _id: new ObjectId(payment.promoPaymentId),
-        transactionId: payment.transactionId,
-      }, {
-        $setOnInsert: {
-          transactionId: payment.transactionId,
-          type: BusinessOperationType.WorkspacePlanPurchase,
-          status: BusinessOperationStatus.Pending,
-          payload: {
-            workspaceId: workspace._id,
-            userId: new ObjectId(data.userId),
-            tariffPlanId: plan._id,
-            amount: payment.amount * PENNY_MULTIPLIER,
-            currency: payment.currency,
-          },
-          dtCreated: new Date(),
-        },
-      }, {
-        upsert: true,
-      });
-
-      res.json({ code: CheckCodes.SUCCESS });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const code = message === 'PROMO_CODE_WRONG_AMOUNT'
-        ? CheckCodes.WRONG_AMOUNT
-        : CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED;
-
-      this.sendError(res, code, `[Billing / Check] ${message}`, req.body);
-    }
-  }
-
-  /**
-   * Require the operation created for this signed payment attempt.
-   *
-   * @param req - callback request
-   * @param payment - validated promo payment
-   * @returns matching business operation
-   */
-  private async getPromoBusinessOperation(req: express.Request, payment: PromoPayment): Promise<BusinessOperationModel> {
-    const operation = await this.getBusinessOperation(req, payment.transactionId);
-    const payload = operation.payload;
-
-    if (!operation._id?.equals(new ObjectId(payment.promoPaymentId)) ||
-      operation.type !== BusinessOperationType.WorkspacePlanPurchase ||
-      !('tariffPlanId' in payload) ||
-      payload.workspaceId.toString() !== payment.workspaceId ||
-      payload.userId.toString() !== payment.userId ||
-      payload.tariffPlanId.toString() !== payment.tariffPlanId ||
-      payload.amount !== payment.amount * PENNY_MULTIPLIER || payload.currency !== payment.currency) {
-      throw new Error('PROMO_CODE_INVALID_PAYMENT');
-    }
-
-    return operation;
-  }
-
-  /**
-   * Finish only a checked promo transaction. A short lease serializes duplicate
-   * callbacks; failed handlers release it, and crashed handlers can be retried.
-   *
-   * @param req - provider callback
-   * @param res - provider response
-   * @param data - verified payment data
-   * @param succeeded - whether the provider reported a successful payment
-   */
-  private async finishPromoPayment(
-    req: express.Request,
-    res: express.Response,
-    data: PaymentData,
-    succeeded: boolean
-  ): Promise<void> {
-    const token = new ObjectId();
-    let operationId: ObjectId | undefined;
-
-    try {
-      const db = this.getPromoDatabase();
-      const payment = this.getPromoPayment(req.body, data);
-
-      validatePromoPayment(payment);
-
-      let operation = await this.getPromoBusinessOperation(req, payment);
-      const now = new Date();
-      const lock = await db.collection('businessOperations').updateOne({
-        _id: operation._id,
-        $or: [
-          { promoProcessingUntil: { $exists: false } },
-          { promoProcessingUntil: { $lte: now } },
-        ],
-      }, {
-        $set: {
-          promoProcessingToken: token,
-          promoProcessingUntil: new Date(now.getTime() + 5 * 60 * 1000),
-        },
-      });
-
-      if (lock.modifiedCount !== 1) {
-        throw new Error('PROMO_PAYMENT_IN_PROGRESS');
-      }
-
-      operationId = new ObjectId(payment.promoPaymentId);
-      operation = await this.getPromoBusinessOperation(req, payment);
-
-      if (!succeeded && operation.status === BusinessOperationStatus.Confirmed) {
-        res.json({ code: 0 });
-
-        return;
-      }
-
-      if (succeeded && operation.status === BusinessOperationStatus.Rejected) {
-        throw new Error('PROMO_PAYMENT_ALREADY_REJECTED');
-      }
-
-      const delivery = await db.collection('businessOperations').findOne({ _id: operationId });
-      const isFinished = succeeded
-        ? operation.status === BusinessOperationStatus.Confirmed && delivery?.promoReceiptSent && delivery?.promoNotificationSent
-        : operation.status === BusinessOperationStatus.Rejected && delivery?.promoNotificationSent;
-
-      if (isFinished) {
-        res.json({ code: 0 });
-
-        return;
-      }
-
-      const workspace = await this.getWorkspace(req, data.workspaceId);
-      const user = await this.getUser(req, data.userId);
-
-      if (succeeded) {
-        const plan = await this.getPlan(req, data.tariffPlanId);
-
-        /**
-         * A successful provider payment consumes the code even if applying the
-         * workspace changes fails. The pending operation remains retryable.
-         */
-        if (operation.status !== BusinessOperationStatus.Confirmed) {
-          await this.updatePromoOperation(db, operationId, token);
-          await recordPromoCodeUsage(db, payment);
-          await this.updatePromoOperation(db, operationId, token);
-
-          const ownsBillingPeriod = await applyPaidPlan(
-            db, workspace._id, plan._id, operationId, operation.dtCreated,
-            req.body.SubscriptionId || null
-          );
-
-          await this.updatePromoOperation(db, operationId, token);
-          await this.cancelSupersededSubscriptions(workspace._id);
-
-          if (ownsBillingPeriod) {
-            await this.updatePromoOperation(db, operationId, token);
-            await publish('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
-              type: 'unblock-workspace',
-              workspaceId: data.workspaceId,
-            }));
-          }
-
-          await this.updatePromoOperation(db, operationId, token, { status: BusinessOperationStatus.Confirmed });
-        }
-
-        if (data.shouldSaveCard) {
-          const cardData = this.getCardData(req.body);
-
-          if (cardData) {
-            await this.updatePromoOperation(db, operationId, token);
-            await user.saveNewBankCard(cardData);
-          }
-        }
-
-        if (!delivery?.promoReceiptSent) {
-          await this.updatePromoOperation(db, operationId, token);
-          await this.sendReceipt(workspace, plan,
-            req.body.IssuerBankCountry === 'RU' ? user.email : undefined,
-            payment.amount);
-          await this.updatePromoOperation(db, operationId, token, { promoReceiptSent: true });
-        }
-      } else {
-        if (operation.status !== BusinessOperationStatus.Rejected) {
-          await this.updatePromoOperation(db, operationId, token);
-          const successfulUse = await db.collection('promoCodeRedemptions').findOne({
-            promoCodeId: new ObjectId(payment.promoCodeId),
-            transactionId: payment.transactionId,
-          });
-
-          if (successfulUse) {
-            res.json({ code: 0 });
-
-            return;
-          }
-
-          await this.updatePromoOperation(db, operationId, token, { status: BusinessOperationStatus.Rejected });
-        }
-      }
-
-      if (!delivery?.promoNotificationSent) {
-        const notification: PaymentSuccessNotificationTask | PaymentFailedNotificationTask = succeeded
-          ? {
-            type: SenderWorkerTaskType.PaymentSuccess,
-            payload: {
-              workspaceId: data.workspaceId,
-              tariffPlanId: data.tariffPlanId,
-              userId: data.userId,
-            },
-          }
-          : {
-            type: SenderWorkerTaskType.PaymentFailed,
-            payload: {
-              workspaceId: data.workspaceId,
-              reason: ReasonCodesTranscript[(req.body as FailRequest).ReasonCode],
-            },
-          };
-
-        await this.updatePromoOperation(db, operationId, token);
-        await sendNotification(user, notification);
-        await this.updatePromoOperation(db, operationId, token, { promoNotificationSent: true });
-      }
-
-      res.json({ code: 0 });
-    } catch (error) {
-      console.error('[Billing / Promo] Callback failed', error);
-      /**
-       * Return an error so the provider retries failed database operations.
-       */
-      res.status(500).json({ code: 1 });
-    } finally {
-      if (operationId) {
-        try {
-          await this.getPromoDatabase().collection('businessOperations')
-            .updateOne({
-              _id: operationId,
-              promoProcessingToken: token,
-            }, {
-              $unset: {
-                promoProcessingToken: '',
-                promoProcessingUntil: '',
-              },
-            });
-        } catch (error) {
-          console.error('[Billing / Promo] Could not release callback lease', error);
-        }
-      }
-    }
-  }
-
-  /**
-   * Retry cancellation without touching the subscription selected by a newer payment.
-   *
-   * @param workspaceId - workspace with durable pending cancellations
-   */
-  private async cancelSupersededSubscriptions(workspaceId: ObjectId): Promise<void> {
-    const workspaces = this.getPromoDatabase().collection<{
-      _id: ObjectId;
-      subscriptionId?: string;
-      subscriptionIdsToCancel?: string[];
-    }>('workspaces');
-    const workspace = await workspaces.findOne({ _id: workspaceId });
-
-    for (const subscriptionId of workspace?.subscriptionIdsToCancel || []) {
-      if (subscriptionId === workspace?.subscriptionId) {
-        continue;
-      }
-
-      const cancellation = await this.clientApi.cancelSubscription({ Id: subscriptionId });
-
-      if (!cancellation.isSuccess()) {
-        throw new Error(`Could not cancel superseded subscription ${subscriptionId}`);
-      }
-
-      await workspaces.updateOne({ _id: workspaceId }, {
-        $pull: { subscriptionIdsToCancel: subscriptionId },
-      });
-    }
-  }
-
-  /**
-   * Renew callback ownership and fence writes from an expired handler.
-   *
-   * @param db - accounts database
-   * @param operationId - payment operation
-   * @param token - current callback lease owner
-   * @param fields - completed payment state or delivery markers
-   */
-  private async updatePromoOperation(
-    db: Db,
-    operationId: ObjectId,
-    token: ObjectId,
-    fields: {
-      status?: BusinessOperationStatus;
-      promoReceiptSent?: boolean;
-      promoNotificationSent?: boolean;
-    } = {}
-  ): Promise<void> {
-    const now = new Date();
-    const result = await db.collection('businessOperations').updateOne({
-      _id: operationId,
-      promoProcessingToken: token,
-      promoProcessingUntil: { $gt: now },
-      ...(fields.status !== undefined ? { status: BusinessOperationStatus.Pending } : {}),
-    }, {
-      $set: {
-        ...fields,
-        promoProcessingUntil: new Date(now.getTime() + 5 * 60 * 1000),
-      },
-    });
-
-    if (result.matchedCount !== 1) {
-      throw new Error('PROMO_PAYMENT_LEASE_LOST');
-    }
   }
 
   /**
    * Parses request body and returns data from it
    *
    * @param req - request with necessary data
+   * @param allowExpiredPromo - accept a delayed completion callback for a promo payment
    * @returns signed payment data or identity resolved from an existing subscription
    */
-  private async getDataFromRequest(req: express.Request): Promise<PaymentData> {
+  private async getDataFromRequest(req: express.Request, allowExpiredPromo = false): Promise<PaymentData> {
     const context = req.context;
     const body: CheckRequest | PayRequest | FailRequest = req.body;
 
@@ -1219,28 +872,17 @@ status: ${body.Status}`
      */
     if (body.Data) {
       const parsedData = JSON.parse(body.Data || '{}') as WebhookData;
-      const isCompletion = req.path === '/pay' || req.path === '/fail';
-      const verifiedData = checksumService.parseAndVerifyChecksum(parsedData.checksum, isCompletion);
+      const verifiedData = checksumService.parseAndVerifyChecksum(parsedData.checksum, allowExpiredPromo);
 
-      if ('promoPaymentId' in verifiedData && verifiedData.promoPaymentId) {
-        /**
-         * Never override signed promo identity or price with unsigned widget data.
-         */
-        return {
-          ...verifiedData,
-          isCardLinkOperation: false,
-          cloudPayments: parsedData.cloudPayments,
-        };
-      }
-
+      /*
+       * Only subscription settings come from the widget; identity and price must remain signed.
+       */
       return {
+        tariffPlanId: '',
+        shouldSaveCard: false,
+        isCardLinkOperation: false,
         ...verifiedData,
-        ...parsedData,
-        promoPaymentId: undefined,
-        promoCodeId: undefined,
-        originalAmount: undefined,
-        discountPercent: undefined,
-        paymentAmount: undefined,
+        cloudPayments: parsedData.cloudPayments,
       };
     }
 

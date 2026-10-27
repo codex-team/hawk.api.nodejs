@@ -1,5 +1,5 @@
 import jwt, { Secret } from 'jsonwebtoken';
-import { UserInputError } from 'apollo-server-express';
+import type { PromoPaymentData } from '../billing/types/paymentData';
 
 /**
  * Signed identity for a plan purchase or a card-linking payment.
@@ -31,25 +31,9 @@ interface PlanPurchaseChecksumData {
    */
   nextPaymentDate: string;
   /**
-   * Discounted amount for the current payment in rubles
+   * Price snapshot present only for promo payments.
    */
-  paymentAmount?: number;
-  /**
-   * Signed payment attempt, also used as the business operation ID.
-   */
-  promoPaymentId?: string;
-  /**
-   * Identifier of the applied promo code.
-   */
-  promoCodeId?: string;
-  /**
-   * Full plan price in rubles before the discount.
-   */
-  originalAmount?: number;
-  /**
-   * Percentage discount captured when the quote was prepared.
-   */
-  discountPercent?: number;
+  promo?: PromoPaymentData;
 }
 
 /**
@@ -100,11 +84,7 @@ class ChecksumService {
     const payload = jwt.verify(checksum, secret, {
       ignoreExpiration: allowExpiredPromo,
     }) as ChecksumData;
-    const isPromoPayment = 'promoPaymentId' in payload && Boolean(payload.promoPaymentId);
-
-    if ('promoCodeRedemptionId' in payload) {
-      throw new UserInputError('PROMO_CODE_INVALID');
-    }
+    const isPromoPayment = 'promo' in payload && Boolean(payload.promo);
 
     if (allowExpiredPromo && !isPromoPayment) {
       jwt.verify(checksum, secret);
@@ -124,15 +104,7 @@ class ChecksumService {
         tariffPlanId: payload.tariffPlanId,
         shouldSaveCard: payload.shouldSaveCard,
         nextPaymentDate: payload.nextPaymentDate,
-        ...(payload.promoPaymentId
-          ? {
-            paymentAmount: payload.paymentAmount,
-            promoPaymentId: payload.promoPaymentId,
-            promoCodeId: payload.promoCodeId,
-            originalAmount: payload.originalAmount,
-            discountPercent: payload.discountPercent,
-          }
-          : {}),
+        ...(payload.promo ? { promo: payload.promo } : {}),
       };
     }
   }

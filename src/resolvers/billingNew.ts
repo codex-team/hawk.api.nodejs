@@ -9,8 +9,7 @@ import {
 } from '@hawk.so/types';
 import checksumService from '../utils/checksumService';
 import { ObjectId } from 'mongodb';
-import { databases } from '../mongo';
-import { preparePromoCode, PromoCodeQuote } from '../billing/promoCodes/redemptions';
+import type { PromoCodeQuote } from '../billing/promoCodes/redemptions';
 import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import * as telegram from '../utils/telegram';
@@ -166,11 +165,7 @@ export default {
           throw new UserInputError('PROMO_CODE_ADMIN_REQUIRED');
         }
 
-        if (!databases.hawk) {
-          throw new Error('Accounts database is not connected');
-        }
-
-        promoQuote = await preparePromoCode(databases.hawk, {
+        promoQuote = await factories.promoCodesFactory.calculatePromoQuote({
           promoCode,
           userId: new ObjectId(user.id),
           workspaceId: workspace._id,
@@ -208,11 +203,11 @@ export default {
           nextPaymentDate: nextPaymentDate.toISOString(),
           ...(promoQuote
             ? {
-              paymentAmount,
-              promoPaymentId: new ObjectId().toString(),
-              promoCodeId: promoQuote.promoCodeId.toString(),
-              originalAmount: promoQuote.originalAmount,
-              discountPercent: promoQuote.discountPercent,
+              promo: {
+                promoCodeId: promoQuote.promoCodeId.toString(),
+                originalAmount: promoQuote.originalAmount,
+                finalAmount: promoQuote.finalAmount,
+              },
             }
             : {}),
         };
@@ -334,6 +329,10 @@ debug: ${Boolean(workspace.isDebug)}`
 
       if (!('tariffPlanId' in paymentData)) {
         throw new UserInputError('Invalid checksum');
+      }
+
+      if (paymentData.promo) {
+        throw new UserInputError('PROMO_CODE_NOT_AVAILABLE_FOR_SAVED_CARD');
       }
 
       const fullUserInfo = await factories.usersFactory.findById(user.id);

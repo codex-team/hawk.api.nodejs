@@ -6,6 +6,8 @@ import ProjectsFactory from '../models/projectsFactory';
 import PlansFactory from '../models/plansFactory';
 import BusinessOperationsFactory from '../models/businessOperationsFactory';
 import ReleasesFactory from '../models/releasesFactory';
+import PromoCodesFactory from '../models/promoCodesFactory';
+import PromoCodeRedemptionsFactory from '../models/promoCodeRedemptionsFactory';
 
 /**
  * Resolver's Context argument
@@ -92,6 +94,16 @@ export interface ContextFactories {
    * Releases factory for working with releases
    */
   releasesFactory: ReleasesFactory;
+
+  /**
+   * Promo quote calculation and payment availability.
+   */
+  promoCodesFactory: PromoCodesFactory;
+
+  /**
+   * Successful promo usage and callback deduplication.
+   */
+  promoCodeRedemptionsFactory: PromoCodeRedemptionsFactory;
 }
 
 /**

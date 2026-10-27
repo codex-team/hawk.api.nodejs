@@ -1,4 +1,22 @@
 /**
+ * Server-signed price for a single discounted payment.
+ */
+export interface PromoPaymentData {
+  /**
+   * Applied promo code identifier.
+   */
+  promoCodeId: string;
+  /**
+   * Full plan price in rubles.
+   */
+  originalAmount: number;
+  /**
+   * Amount to charge in rubles.
+   */
+  finalAmount: number;
+}
+
+/**
  * Data for setting up recurring payments
  */
 interface RecurrentPaymentSettings {
@@ -64,27 +82,11 @@ export interface PaymentData {
    */
   isCardLinkOperation: boolean;
   /**
-   * Signed amount of the current promo payment in rubles
+   * Price snapshot present only for promo payments.
    */
-  paymentAmount?: number;
+  promo?: PromoPaymentData;
   /**
-   * Signed promo payment attempt, also used as the business operation ID.
-   */
-  promoPaymentId?: string;
-  /**
-   * Signed identifier of the promo code applied to this payment.
-   */
-  promoCodeId?: string;
-  /**
-   * Signed full plan price in rubles before the discount.
-   */
-  originalAmount?: number;
-  /**
-   * Signed percentage discount captured when the quote was prepared.
-   */
-  discountPercent?: number;
-  /**
-   * Signed start date for future full-price payments
+   * Next scheduled subscription payment date.
    */
   nextPaymentDate?: string;
 }

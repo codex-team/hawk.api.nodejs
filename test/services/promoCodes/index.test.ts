@@ -1,46 +1,31 @@
-import type { Db } from 'mongodb';
 import { ObjectId } from 'mongodb';
 import {
-  calculateDiscountedAmount,
-  findActivePromoCode,
+  applyDiscount,
+  ensureActivePromoCode,
   getMaxUses,
   normalizePromoCode,
-  PromoCode
+  PromoCode,
+  PromoCodeDiscount
 } from '../../../src/billing/promoCodes';
 
 describe('Promo code normalization', () => {
   test('should trim whitespace and normalize case', () => {
-    const code = '  sale20  ';
-
-    const result = normalizePromoCode(code);
-
-    expect(result).toBe('SALE20');
+    expect(normalizePromoCode('  sale20  ')).toBe('SALE20');
   });
 
-  test.each(['', '  '])('should reject an empty code: %j', code => {
-    /**
-     * Normalize the empty code to exercise validation.
-     *
-     * @returns The normalized code if validation succeeds.
-     */
-    const action = (): string => normalizePromoCode(code);
-
-    expect(action).toThrow('PROMO_CODE_INVALID');
+  test.each(['', '  ', null, undefined, 20])('should reject invalid input: %j', code => {
+    expect(() => normalizePromoCode(code as string)).toThrow('PROMO_CODE_INVALID');
   });
 });
 
 describe('Promo code usage limit', () => {
   test.each([0, 1, 10])('should preserve numeric limit %j', value => {
-    const result = getMaxUses(value);
-
-    expect(result).toBe(value);
+    expect(getMaxUses(value)).toBe(value);
   });
 
   test.each([undefined, null, -1, '10', '0', 'invalid', NaN, Infinity, false])(
     'should treat %j as unlimited without converting strings', value => {
-      const result = getMaxUses(value);
-
-      expect(result).toBeUndefined();
+      expect(getMaxUses(value)).toBeUndefined();
     }
   );
 });
@@ -54,161 +39,105 @@ describe('Discounted payment amount', () => {
     [100, 99, 1],
     [200, 99, 2],
     [100, 1, 99],
+    [100, 71, 29],
   ])('should discount %j RUB by %j percent to %j RUB', (amount, percent, expected) => {
-    const result = calculateDiscountedAmount(amount, percent);
+    expect(applyDiscount({
+      type: 'percent',
+      value: percent,
+    }, amount)).toBe(expected);
+  });
 
-    expect(result).toBe(expected);
+  test.each([
+    [100, 20, 80],
+    [100, 19.5, 81],
+    [100.5, 20, 81],
+    [100, 100, 1],
+    [100, 200, 1],
+    [0.5, 1, 1],
+  ])('should discount %j RUB by a fixed %j RUB to %j RUB', (amount, value, expected) => {
+    expect(applyDiscount({
+      type: 'fixed',
+      value,
+    }, amount)).toBe(expected);
   });
 
   test.each([0, -1, NaN, Infinity])('should reject invalid amount %j', amount => {
-    const discountPercent = 20;
-
-    /**
-     * Calculate a discount for an invalid amount to exercise validation.
-     *
-     * @returns The discounted amount if validation succeeds.
-     */
-    const action = (): number => calculateDiscountedAmount(amount, discountPercent);
-
-    expect(action).toThrow('PROMO_CODE_INVALID_AMOUNT');
+    expect(() => applyDiscount({
+      type: 'percent',
+      value: 20,
+    }, amount)).toThrow('PROMO_CODE_INVALID_AMOUNT');
   });
 
-  test.each([0, -1, 100, NaN, Infinity])('should reject invalid discount %j', percent => {
-    const originalAmount = 100;
-
-    /**
-     * Calculate an amount with an invalid discount to exercise validation.
-     *
-     * @returns The discounted amount if validation succeeds.
-     */
-    const action = (): number => calculateDiscountedAmount(originalAmount, percent);
-
-    expect(action).toThrow('PROMO_CODE_INVALID');
+  test.each([0, -1, 100, 29.1, NaN, Infinity])('should reject invalid percent %j', value => {
+    expect(() => applyDiscount({
+      type: 'percent',
+      value,
+    }, 100)).toThrow('PROMO_CODE_INVALID');
   });
+
+  test.each([0, -1, NaN, Infinity])('should reject invalid fixed discount %j', value => {
+    expect(() => applyDiscount({
+      type: 'fixed',
+      value,
+    }, 100)).toThrow('PROMO_CODE_INVALID');
+  });
+
+  test.each([undefined, null, {}, {
+    type: 'other',
+    value: 20,
+  }, {
+    type: 'percent',
+    value: '20',
+  } ])(
+    'should reject malformed discount %j', discount => {
+      expect(() => applyDiscount(discount as PromoCodeDiscount, 100)).toThrow('PROMO_CODE_INVALID');
+    }
+  );
 });
 
-describe('Active promo code lookup', () => {
-  const findOne = jest.fn();
-  const collection = jest.fn().mockReturnValue({ findOne });
-  const db = { collection } as unknown as Db;
+describe('Active promo code validation', () => {
   let promoCode: PromoCode;
   let planId: ObjectId;
 
   beforeEach(() => {
-    jest.clearAllMocks();
     planId = new ObjectId();
     promoCode = {
       _id: new ObjectId(),
       value: 'SALE20',
-      discountPercent: 20,
+      discount: {
+        type: 'percent',
+        value: 20,
+      },
     };
-    findOne.mockResolvedValue(promoCode);
   });
 
-  test('should allow any plan when planIds is absent', async () => {
-    const code = ' sale20 ';
-
-    const result = await findActivePromoCode(db, code, planId);
-
-    expect(result).toEqual(promoCode);
-    expect(collection).toHaveBeenCalledWith('promoCodes');
-    expect(findOne).toHaveBeenCalledWith({ value: 'SALE20' });
+  test('should allow any plan when planIds is absent', () => {
+    expect(() => ensureActivePromoCode(promoCode, planId)).not.toThrow();
   });
 
-  test('should reject a code that does not exist', async () => {
-    findOne.mockResolvedValue(null);
-
-    const result = findActivePromoCode(db, 'UNKNOWN', planId);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
+  test('should reject a code that does not exist', () => {
+    expect(() => ensureActivePromoCode(null, planId)).toThrow('PROMO_CODE_INVALID');
   });
 
-  test('should reject a disabled code', async () => {
+  test('should reject a disabled code', () => {
     promoCode.isDisabled = true;
-
-    const result = findActivePromoCode(db, 'SALE20', planId);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
+    expect(() => ensureActivePromoCode(promoCode, planId)).toThrow('PROMO_CODE_INVALID');
   });
 
-  test.each([undefined, false, null, 0, '', 'true'])('should allow a code when isDisabled is %j', async isDisabled => {
-    findOne.mockResolvedValue({
-      ...promoCode,
-      isDisabled,
-    });
-
-    const result = await findActivePromoCode(db, 'SALE20', planId);
-
-    expect(result).toMatchObject({ isDisabled });
+  test.each([undefined, false, null, 0, '', 'true'])('should allow isDisabled %j', isDisabled => {
+    promoCode.isDisabled = isDisabled as boolean;
+    expect(() => ensureActivePromoCode(promoCode, planId)).not.toThrow();
   });
 
-  test('should allow a plan explicitly listed in planIds', async () => {
+  test('should allow a plan explicitly listed in planIds', () => {
     promoCode.planIds = [new ObjectId(), planId];
-
-    const result = await findActivePromoCode(db, 'SALE20', planId);
-
-    expect(result).toEqual(promoCode);
+    expect(() => ensureActivePromoCode(promoCode, planId)).not.toThrow();
   });
 
-  test('should reject a plan not listed in planIds', async () => {
-    promoCode.planIds = [ new ObjectId() ];
-
-    const result = findActivePromoCode(db, 'SALE20', planId);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
-  });
-
-  test('should allow no plans when planIds is empty', async () => {
-    promoCode.planIds = [];
-
-    const result = findActivePromoCode(db, 'SALE20', planId);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
-  });
-
-  test.each([
-    { planIds: null },
-    { planIds: 'all' },
-    { planIds: [ null ] },
-    { planIds: [ 'not-a-plan-id' ] },
-  ])('should reject malformed planIds %j', async ({ planIds }) => {
-    findOne.mockResolvedValue({
-      ...promoCode,
-      planIds,
-    });
-
-    const result = findActivePromoCode(db, 'SALE20', planId);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
-  });
-
-  test('should reject an invalid discount from the database', async () => {
-    promoCode.discountPercent = 100;
-
-    const result = findActivePromoCode(db, 'SALE20', planId);
-
-    await expect(result).rejects.toThrow('PROMO_CODE_INVALID');
-  });
-
-  test('should preserve zero for later enforcement during reservation', async () => {
-    promoCode.maxUses = 0;
-
-    const result = await findActivePromoCode(db, 'SALE20', planId);
-
-    expect(result).toMatchObject({ maxUses: 0 });
-  });
-
-  test('should treat a string limit from the database as unlimited', async () => {
-    const storedPromoCode = {
-      ...promoCode,
-      maxUses: '10',
-    };
-
-    findOne.mockResolvedValue(storedPromoCode);
-
-    const result = await findActivePromoCode(db, 'SALE20', planId);
-
-    expect(result.maxUses).toBeUndefined();
-    expect(storedPromoCode.maxUses).toBe('10');
-  });
+  test.each([ [], [ new ObjectId() ], null, 'all', [ null ], [ 'not-a-plan-id' ] ])(
+    'should reject ineligible or malformed planIds %j', planIds => {
+      promoCode.planIds = planIds as ObjectId[];
+      expect(() => ensureActivePromoCode(promoCode, planId)).toThrow('PROMO_CODE_INVALID');
+    }
+  );
 });

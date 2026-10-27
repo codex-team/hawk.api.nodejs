@@ -1,39 +1,37 @@
-import type { Db } from 'mongodb';
 import { ObjectId } from 'mongodb';
 import { UserInputError } from 'apollo-server-express';
+
+/**
+ * Discount applied to the current payment, in percent or RUB.
+ */
+export interface PromoCodeDiscount {
+  type: 'percent' | 'fixed';
+  value: number;
+}
 
 /**
  * Promo code configuration stored in the accounts database.
  */
 export interface PromoCode {
-  /**
-   * Identifier referenced by successful redemptions and payment checksums.
-   */
   _id: ObjectId;
   /**
    * Uppercase code without surrounding whitespace.
    */
   value: string;
-  /**
-   * Percentage discount for the current payment, from 1 to 99.
-   */
-  discountPercent: number;
-  /**
-   * Whether the code is unavailable for new payments.
-   */
+  discount: PromoCodeDiscount;
   isDisabled?: boolean;
   /**
-   * Limit on successful uses; missing or invalid values mean unlimited use.
+   * Soft limit on successful uses; missing or invalid values mean unlimited use.
    */
   maxUses?: number;
   /**
-   * Eligible plans; missing means all plans, while an empty array allows none.
+   * Missing means all plans; an empty array allows none.
    */
   planIds?: ObjectId[];
 }
 
 /**
- * Codes are stored in MongoDB in uppercase, without surrounding whitespace.
+ * Normalize user input for indexed lookup.
  *
  * @param code - user-provided code
  * @returns normalized code for indexed lookup
@@ -61,55 +59,40 @@ export function getMaxUses(value: unknown): number | undefined {
 }
 
 /**
- * Reject unsupported discounts before preparing a payment.
+ * Calculate whole rubles, rounded up, with a 1 RUB floor.
  *
- * @param discountPercent - configured percentage for the current payment
- */
-function validateDiscountPercent(discountPercent: number): void {
-  if (!Number.isFinite(discountPercent) || discountPercent < 1 || discountPercent > 99) {
-    throw new UserInputError('PROMO_CODE_INVALID');
-  }
-}
-
-/**
- * Calculate the current payment in whole rubles, rounded up, with a 1 RUB floor.
- *
+ * @param discount - configured percent (integer 1–99) or fixed RUB discount
  * @param originalAmount - regular plan price in rubles
- * @param discountPercent - percentage discount, from 1 to 99
  * @returns discounted amount in whole rubles
  */
-export function calculateDiscountedAmount(originalAmount: number, discountPercent: number): number {
+export function applyDiscount(discount: PromoCodeDiscount, originalAmount: number): number {
   if (!Number.isFinite(originalAmount) || originalAmount <= 0) {
     throw new UserInputError('PROMO_CODE_INVALID_AMOUNT');
   }
 
-  validateDiscountPercent(discountPercent);
-
-  const discountedAmount = originalAmount * (100 - discountPercent) / 100;
-  const roundedAmount = Math.ceil(discountedAmount);
-
-  return Math.max(1, roundedAmount);
-}
-
-/**
- * Missing planIds means all plans; a present array allows only its listed plans.
- * Usage limits count successful payments only.
- *
- * @param db - accounts database containing promoCodes
- * @param code - user-provided code
- * @param tariffPlanId - selected plan
- * @returns validated promo code
- */
-export async function findActivePromoCode(db: Db, code: string, tariffPlanId: ObjectId): Promise<PromoCode> {
-  const promoCode = await db.collection<PromoCode>('promoCodes').findOne({
-    value: normalizePromoCode(code),
-  });
-
-  if (!promoCode || promoCode.isDisabled === true) {
+  if (!discount || !Number.isFinite(discount.value) || discount.value <= 0 ||
+    (discount.type !== 'percent' && discount.type !== 'fixed') ||
+    (discount.type === 'percent' && (!Number.isInteger(discount.value) || discount.value > 99))) {
     throw new UserInputError('PROMO_CODE_INVALID');
   }
 
-  validateDiscountPercent(promoCode.discountPercent);
+  const discountedAmount = discount.type === 'percent'
+    ? originalAmount * (100 - discount.value) / 100
+    : originalAmount - discount.value;
+
+  return Math.max(1, Math.ceil(discountedAmount));
+}
+
+/**
+ * Check current availability and plan restrictions without recalculating a signed price.
+ *
+ * @param promoCode - stored promo code, if found
+ * @param tariffPlanId - selected plan
+ */
+export function ensureActivePromoCode(promoCode: PromoCode | null, tariffPlanId: ObjectId): asserts promoCode is PromoCode {
+  if (!promoCode || promoCode.isDisabled === true) {
+    throw new UserInputError('PROMO_CODE_INVALID');
+  }
 
   if (promoCode.planIds !== undefined && (
     !Array.isArray(promoCode.planIds) ||
@@ -117,9 +100,4 @@ export async function findActivePromoCode(db: Db, code: string, tariffPlanId: Ob
   )) {
     throw new UserInputError('PROMO_CODE_INVALID');
   }
-
-  return {
-    ...promoCode,
-    maxUses: getMaxUses(promoCode.maxUses),
-  };
 }

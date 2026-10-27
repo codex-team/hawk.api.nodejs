@@ -1,49 +1,25 @@
-import type { Db } from 'mongodb';
-import { MongoServerError, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { UserInputError } from 'apollo-server-express';
-import { calculateDiscountedAmount, findActivePromoCode, getMaxUses } from './index';
+import { getMaxUses, PromoCode } from './index';
+import { BusinessOperationDBScheme, BusinessOperationType } from '@hawk.so/types';
+import type { PaymentData } from '../types/paymentData';
 
 /**
  * Server-calculated price snapshot used to sign a promo payment.
  */
 export interface PromoCodeQuote {
-  /**
-   * Identifier of the applied promo code.
-   */
   promoCodeId: ObjectId;
-  /**
-   * Full plan price in rubles before the discount.
-   */
   originalAmount: number;
-  /**
-   * Discounted price in whole rubles, with a one-ruble minimum.
-   */
   finalAmount: number;
-  /**
-   * Percentage discount captured when the quote was prepared.
-   */
-  discountPercent: number;
 }
 
 /**
  * Successful promo use, unique per code and user or workspace.
  */
 export interface PromoCodeRedemption extends PromoCodeQuote {
-  /**
-   * Identifier of the successful usage record.
-   */
   _id: ObjectId;
-  /**
-   * User who made the payment.
-   */
   userId: ObjectId;
-  /**
-   * Workspace that received the paid plan.
-   */
   workspaceId: ObjectId;
-  /**
-   * Plan purchased with the discount.
-   */
   tariffPlanId: ObjectId;
   /**
    * Provider transaction identifier used to recognize callback retries.
@@ -55,207 +31,121 @@ export interface PromoCodeRedemption extends PromoCodeQuote {
  * User input and server-resolved payment identity for preparing a quote.
  */
 export interface PromoCodeInput {
-  /**
-   * User-provided code, normalized before lookup.
-   */
   promoCode: string;
-  /**
-   * Authenticated payer.
-   */
   userId: ObjectId;
-  /**
-   * Authorized workspace receiving the plan.
-   */
   workspaceId: ObjectId;
-  /**
-   * Selected plan checked against the code's eligibility rules.
-   */
   tariffPlanId: ObjectId;
-  /**
-   * Server-resolved full plan price in rubles.
-   */
   originalAmount: number;
 }
 
 /**
- * Signed promo identity and price combined with provider callback fields.
+ * Verified signed identity and prices combined with provider callback fields.
  */
 export interface PromoPayment {
-  /**
-   * Promo code identifier from the verified checksum.
-   */
   promoCodeId: string;
-  /**
-   * Signed payment-attempt identifier, also used as the business operation ID.
-   */
-  promoPaymentId: string;
-  /**
-   * Payer identifier from the verified checksum.
-   */
-  userId: string;
-  /**
-   * Workspace identifier from the verified checksum.
-   */
-  workspaceId: string;
-  /**
-   * Purchased plan identifier from the verified checksum.
-   */
-  tariffPlanId: string;
-  /**
-   * Signed full plan price in rubles.
-   */
   originalAmount: number;
-  /**
-   * Signed percentage discount for the payment.
-   */
-  discountPercent: number;
-  /**
-   * Signed discounted amount in rubles.
-   */
-  paymentAmount: number;
-  /**
-   * Provider transaction identifier from the callback.
-   */
+  finalAmount: number;
+  userId: string;
+  workspaceId: string;
+  tariffPlanId: string;
   transactionId: string;
-  /**
-   * Actual callback amount in rubles, compared with the signed quote.
-   */
-  amount: number;
-  /**
-   * Provider callback currency; promo payments require RUB.
-   */
+  paidAmount: number;
   currency: string;
 }
 
 /**
- * Check successful uses only. Parallel payments may both pass before either succeeds.
+ * Check successful uses only, allowing retries of the same successful payment.
  *
- * @param db - accounts database
- * @param promoCodeId - selected code
- * @param userId - payer
- * @param workspaceId - paid workspace
- * @param transactionId - same successful callback retry, if present
+ * @param promoCode - already fetched code
+ * @param identity - payer and paid workspace
+ * @param existing - successful use by this payer or workspace, if any
+ * @param successfulUses - number of successful uses of this code
+ * @param transactionId - provider transaction on callback retries
  */
-export async function checkPromoCodeUsage(
-  db: Db,
-  promoCodeId: ObjectId,
-  userId: ObjectId,
-  workspaceId: ObjectId,
+export function ensurePromoCodeAvailable(
+  promoCode: PromoCode,
+  identity: Pick<PromoCodeInput, 'userId' | 'workspaceId'>,
+  existing: PromoCodeRedemption | null,
+  successfulUses: number,
   transactionId?: string
-): Promise<void> {
-  const redemptions = db.collection<PromoCodeRedemption>('promoCodeRedemptions');
-  const existing = await redemptions.findOne({
-    promoCodeId,
-    $or: [ { userId }, { workspaceId } ],
-  });
-
+): void {
   if (existing) {
-    const isSameSuccessfulPayment = transactionId &&
-      existing.transactionId === transactionId &&
-      existing.userId.equals(userId) &&
-      existing.workspaceId.equals(workspaceId);
-
-    if (isSameSuccessfulPayment) {
+    if (transactionId && existing.transactionId === transactionId &&
+      existing.userId.equals(identity.userId) && existing.workspaceId.equals(identity.workspaceId)) {
       return;
     }
 
     throw new UserInputError('PROMO_CODE_ALREADY_USED');
   }
 
-  const promoCode = await db.collection('promoCodes').findOne({ _id: promoCodeId });
-
-  if (!promoCode) {
-    throw new UserInputError('PROMO_CODE_INVALID');
-  }
-
   const maxUses = getMaxUses(promoCode.maxUses);
 
-  if (maxUses !== undefined && await redemptions.countDocuments({ promoCodeId }) + 1 > maxUses) {
+  /*
+   * shortcut: maxUses is a soft limit; parallel successes may exceed it, revisit only after product decides hard-cap semantics.
+   */
+  if (maxUses !== undefined && successfulUses + 1 > maxUses) {
     throw new UserInputError('PROMO_CODE_INVALID');
   }
 }
 
 /**
- * Calculate a signed quote without writing a usage record.
+ * Validate the signed final amount against the provider payment, never recomputing discounts.
  *
- * @param db - accounts database
- * @param input - requested payment
- * @returns discounted quote
- */
-export async function preparePromoCode(db: Db, input: PromoCodeInput): Promise<PromoCodeQuote> {
-  const promoCode = await findActivePromoCode(db, input.promoCode, input.tariffPlanId);
-  const finalAmount = calculateDiscountedAmount(input.originalAmount, promoCode.discountPercent);
-
-  await checkPromoCodeUsage(db, promoCode._id, input.userId, input.workspaceId);
-
-  return {
-    promoCodeId: promoCode._id,
-    originalAmount: input.originalAmount,
-    finalAmount,
-    discountPercent: promoCode.discountPercent,
-  };
-}
-
-/**
- * Validate the signed quote against the successful payment callback.
- *
- * @param payment - signed identity and provider callback fields
+ * @param payment - verified signed identity and provider callback fields
  */
 export function validatePromoPayment(payment: PromoPayment): void {
-  const ids = [payment.promoCodeId, payment.promoPaymentId, payment.userId, payment.workspaceId, payment.tariffPlanId];
+  const ids = [payment.promoCodeId, payment.userId, payment.workspaceId, payment.tariffPlanId];
 
   if (ids.some(id => typeof id !== 'string' || !ObjectId.isValid(id)) ||
     typeof payment.transactionId !== 'string' || !payment.transactionId.trim() || payment.currency !== 'RUB') {
     throw new UserInputError('PROMO_CODE_INVALID_PAYMENT');
   }
 
-  const expectedAmount = calculateDiscountedAmount(payment.originalAmount, payment.discountPercent);
-
-  if (payment.paymentAmount !== expectedAmount || payment.amount !== expectedAmount) {
+  if (!Number.isFinite(payment.originalAmount) || payment.originalAmount <= 0 ||
+    !Number.isSafeInteger(payment.finalAmount) || payment.finalAmount < 1 ||
+    payment.finalAmount > Math.max(1, Math.ceil(payment.originalAmount)) ||
+    payment.paidAmount !== payment.finalAmount) {
     throw new UserInputError('PROMO_CODE_WRONG_AMOUNT');
   }
 }
 
 /**
- * Record promo usage only after the provider reports a successful payment.
+ * Reject callbacks that do not match the purchase accepted by /check.
  *
- * @param db - accounts database
- * @param payment - verified successful payment
+ * @param payment - verified payment
+ * @param operation - purchase loaded by the provider transaction ID
  */
-export async function recordPromoCodeUsage(db: Db, payment: PromoPayment): Promise<void> {
+export function validatePromoOperation(payment: PromoPayment, operation: Pick<BusinessOperationDBScheme, 'type' | 'payload' | 'transactionId'>): void {
   validatePromoPayment(payment);
+  const payload = operation.payload;
 
-  const redemptions = db.collection<PromoCodeRedemption>('promoCodeRedemptions');
-  const usage: PromoCodeRedemption = {
-    _id: new ObjectId(),
-    promoCodeId: new ObjectId(payment.promoCodeId),
-    userId: new ObjectId(payment.userId),
-    workspaceId: new ObjectId(payment.workspaceId),
-    tariffPlanId: new ObjectId(payment.tariffPlanId),
-    transactionId: payment.transactionId,
-    originalAmount: payment.originalAmount,
-    finalAmount: payment.paymentAmount,
-    discountPercent: payment.discountPercent,
-  };
+  if (operation.transactionId !== payment.transactionId ||
+    operation.type !== BusinessOperationType.WorkspacePlanPurchase ||
+    !('tariffPlanId' in payload) ||
+    payload.workspaceId.toString() !== payment.workspaceId ||
+    payload.userId.toString() !== payment.userId ||
+    payload.tariffPlanId.toString() !== payment.tariffPlanId ||
+    payload.amount !== payment.paidAmount * 100 || payload.currency !== payment.currency) {
+    throw new UserInputError('PROMO_CODE_INVALID_PAYMENT');
+  }
+}
 
-  try {
-    await redemptions.insertOne(usage);
-  } catch (error) {
-    if (!(error instanceof MongoServerError) || error.code !== 11000) {
-      throw error;
-    }
+/**
+ * Keep future subscription charges at full price after a discounted first payment.
+ *
+ * @param data - signed payment data and widget subscription settings
+ * @param monthlyCharge - current full plan price
+ * @param isDebug - whether the workspace uses daily billing
+ */
+export function validatePromoSubscription(data: PaymentData, monthlyCharge: number, isDebug: boolean): void {
+  const recurrent = data.cloudPayments?.recurrent;
 
-    const existing = await redemptions.findOne({
-      promoCodeId: usage.promoCodeId,
-      $or: [ { userId: usage.userId }, { workspaceId: usage.workspaceId } ],
-    });
-
-    if (!existing) {
-      throw error;
-    }
-
-    if (existing.transactionId !== payment.transactionId) {
-      console.warn('Promo code was used by a parallel successful payment', payment.transactionId);
-    }
+  if (recurrent && (
+    recurrent.amount !== monthlyCharge || recurrent.period !== 1 ||
+    recurrent.interval !== (isDebug ? 'Day' : 'Month') ||
+    !data.nextPaymentDate ||
+    Date.parse(recurrent.startDate || '') !== Date.parse(data.nextPaymentDate)
+  )) {
+    throw new UserInputError('PROMO_CODE_INVALID_SUBSCRIPTION');
   }
 }

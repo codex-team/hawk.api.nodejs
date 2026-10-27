@@ -1,22 +1,28 @@
 import type { Request, Response } from 'express';
 import { Db, MongoClient, ObjectId } from 'mongodb';
-import type { Document, WithId } from 'mongodb';
-import CloudPaymentsWebhooks from '../../../src/billing/cloudpayments';
-import type { PaymentData } from '../../../src/billing/types/paymentData';
-import { SubscriptionStatus } from '../../../src/billing/types/enums';
+import jwt from 'jsonwebtoken';
+import HawkCatcher from '@hawk.so/nodejs';
 import { BusinessOperationStatus, BusinessOperationType } from '@hawk.so/types';
+import CloudPaymentsWebhooks from '../../../src/billing/cloudpayments';
+import { CheckCodes } from '../../../src/billing/types';
+import { ReasonCode, ReasonCodesTranscript, SubscriptionStatus } from '../../../src/billing/types/enums';
 import { databases } from '../../../src/mongo';
 import DataLoaders from '../../../src/dataLoaders';
 import WorkspacesFactory from '../../../src/models/workspacesFactory';
+import WorkspaceModel from '../../../src/models/workspace';
 import UsersFactory from '../../../src/models/usersFactory';
 import PlansFactory from '../../../src/models/plansFactory';
 import BusinessOperationsFactory from '../../../src/models/businessOperationsFactory';
+import PromoCodesFactory from '../../../src/models/promoCodesFactory';
+import PromoCodeRedemptionsFactory from '../../../src/models/promoCodeRedemptionsFactory';
 import checksumService from '../../../src/utils/checksumService';
 import { publish } from '../../../src/rabbitmq';
 import sendNotification from '../../../src/utils/personalNotifications';
+import { sendMessage, TelegramBotURLs } from '../../../src/utils/telegram';
+import { SenderWorkerTaskType } from '../../../src/types/userNotifications';
 
-/**
- * Metrics starts a process-wide cleanup interval; it is unrelated to callback persistence.
+/*
+ * Metrics starts an unrelated process-wide cleanup interval.
  */
 jest.mock('../../../src/metrics', () => ({
   setupMongoMetrics: jest.fn(),
@@ -45,60 +51,32 @@ jest.mock('cloudpayments', () => ({
   })),
 }));
 
-const PAYMENT_DATE = new Date('2026-10-13T12:00:00.000Z');
-const NEWER_PAYMENT_DATE = new Date('2026-10-13T13:00:00.000Z');
-
-/**
- * Test view exposing callback handlers and mocked external APIs, including private members.
+type Callback = 'check' | 'pay' | 'fail' | 'recurrent';
+/*
+ * Only private visibility is bypassed; handlers, models and factories are real.
  */
-type TestCallbacks = {
-  finishPromoPayment(req: Request, res: Response, data: PaymentData, succeeded: boolean): Promise<void>;
-  pay(req: Request, res: Response): Promise<void>;
-  recurrent(req: Request, res: Response): Promise<void>;
+type TestCallbacks = Record<Callback, (req: Request, res: Response) => Promise<void>> & {
   clientApi: { cancelSubscription: jest.Mock };
   receiptApi: { createReceipt: jest.Mock };
 };
 
-/**
- * Create a barrier for pausing a callback during an external cancellation.
- *
- * @returns A promise and the function that releases waiting callbacks.
- */
-function semaphore(): { promise: Promise<void>; release: () => void } {
-  let release!: () => void;
-  const promise = new Promise<void>(resolve => {
-    release = resolve;
-  });
+const SECRET = 'promo-callback-tests-only';
+const PAYMENT_DATE = new Date('2026-10-13T12:00:00.000Z');
 
-  return {
-    promise,
-    release,
-  };
-}
-
-/**
- * Create a chainable response mock for inspecting callback acknowledgements.
- *
- * @returns An Express response with mocked JSON and status methods.
- */
-function response(): Response & { json: jest.Mock; status: jest.Mock } {
-  return {
-    json: jest.fn().mockReturnThis(),
-    status: jest.fn().mockReturnThis(),
-  } as unknown as Response & { json: jest.Mock; status: jest.Mock };
-}
-
-describe('Promo payment callbacks with MongoDB', () => {
+describe('Payment callbacks with MongoDB', () => {
   let client: MongoClient;
   let db: Db;
   let callbacks: TestCallbacks;
   let workspaceId: ObjectId;
   let userId: ObjectId;
+  let workspaceKeys: string[];
   let factories: {
     workspacesFactory: WorkspacesFactory;
     usersFactory: UsersFactory;
     plansFactory: PlansFactory;
     businessOperationsFactory: BusinessOperationsFactory;
+    promoCodesFactory: PromoCodesFactory;
+    promoCodeRedemptionsFactory: PromoCodeRedemptionsFactory;
   };
   const previousDatabase = databases.hawk;
   const previousSecret = process.env.JWT_SECRET_BILLING_CHECKSUM;
@@ -110,12 +88,11 @@ describe('Promo payment callbacks with MongoDB', () => {
     if (!uri) {
       throw new Error('Jest MongoDB test URI is not configured');
     }
-
     client = new MongoClient(uri);
     await client.connect();
     db = client.db('promo-callback-tests');
     databases.hawk = db;
-    process.env.JWT_SECRET_BILLING_CHECKSUM = 'promo-callback-tests-only';
+    process.env.JWT_SECRET_BILLING_CHECKSUM = SECRET;
   });
 
   beforeEach(async () => {
@@ -133,27 +110,45 @@ describe('Promo payment callbacks with MongoDB', () => {
     }, { unique: true });
     workspaceId = new ObjectId();
     userId = new ObjectId();
-    await db.collection('workspaces').insertOne({
+    const workspace = {
       _id: workspaceId,
       name: 'Callback workspace',
       tariffPlanId: new ObjectId(),
       billingPeriodEventsCount: 50,
-      lastChargeDate: new Date(PAYMENT_DATE.getTime() - 86400000),
+      lastChargeDate: PAYMENT_DATE,
       subscriptionId: 'sub-old',
-    });
+    };
+
+    workspaceKeys = Object.keys(workspace).sort();
+    await db.collection('workspaces').insertOne(workspace);
     await db.collection('users').insertOne({
       _id: userId,
       email: 'callback@example.test',
     });
+    await db.collection(`team:${workspaceId}`).insertOne({
+      userId,
+      isAdmin: true,
+    });
     const loaders = new DataLoaders(db);
+    const redemptions = new PromoCodeRedemptionsFactory(db);
 
     factories = {
       workspacesFactory: new WorkspacesFactory(db, loaders),
       usersFactory: new UsersFactory(db, loaders),
       plansFactory: new PlansFactory(db, loaders),
       businessOperationsFactory: new BusinessOperationsFactory(db, loaders),
+      promoCodesFactory: new PromoCodesFactory(db, redemptions),
+      promoCodeRedemptionsFactory: redemptions,
     };
     callbacks = new CloudPaymentsWebhooks() as unknown as TestCallbacks;
+  });
+
+  afterEach(async () => {
+    jest.restoreAllMocks();
+    /*
+     * No lease, payment-ordering or pending-cancellation markers belong on the workspace.
+     */
+    expect(Object.keys((await db.collection('workspaces').findOne({ _id: workspaceId }))!).sort()).toEqual(workspaceKeys);
   });
 
   afterAll(async () => {
@@ -171,25 +166,10 @@ describe('Promo payment callbacks with MongoDB', () => {
     }
   });
 
-  /**
-   * Persist a pending purchase and prepare its signed payment callback.
-   *
-   * @param label - Payment label used for plan, promo code, transaction and subscription fixtures.
-   * @param date - Creation date of the pending business operation.
-   * @param promo - Whether to include promo code data and a discounted amount.
-   * @returns The operation and plan identifiers, decoded payment data and callback request.
-   */
-  async function payment(label: string, date: Date, promo = true): Promise<{
-    operationId: ObjectId;
-    planId: ObjectId;
-    data: PaymentData;
-    req: Request;
-  }> {
-    const operationId = new ObjectId();
+  async function payment(promo = true) {
     const planId = new ObjectId();
     const promoCodeId = new ObjectId();
     const amount = promo ? 80 : 100;
-    const transactionId = label === 'A' ? 1001 : 1002;
     const signedData = {
       workspaceId: workspaceId.toHexString(),
       userId: userId.toHexString(),
@@ -197,366 +177,599 @@ describe('Promo payment callbacks with MongoDB', () => {
       shouldSaveCard: false,
       nextPaymentDate: '2026-11-13T12:00:00.000Z',
       ...(promo ? {
-        promoPaymentId: operationId.toHexString(),
-        promoCodeId: promoCodeId.toHexString(),
-        originalAmount: 100,
-        paymentAmount: amount,
-        discountPercent: 20,
+        promo: {
+          promoCodeId: promoCodeId.toHexString(),
+          originalAmount: 100,
+          finalAmount: amount,
+        },
       } : {}),
     };
 
     await db.collection('plans').insertOne({
       _id: planId,
-      name: `Plan ${label}`,
+      name: 'Paid plan',
       monthlyCharge: 100,
     });
     if (promo) {
       await db.collection('promoCodes').insertOne({
         _id: promoCodeId,
-        value: `PROMO-${label}`,
-        discountPercent: 20,
+        value: 'PROMO',
+        discount: {
+          type: 'percent',
+          value: 20,
+        },
       });
     }
-    await db.collection('businessOperations').insertOne({
-      _id: operationId,
-      transactionId: transactionId.toString(),
-      type: BusinessOperationType.WorkspacePlanPurchase,
-      status: BusinessOperationStatus.Pending,
-      dtCreated: date,
-      payload: {
-        workspaceId,
-        userId,
-        tariffPlanId: planId,
-        amount: amount * 100,
-        currency: 'RUB',
-      },
-    });
     const checksum = await checksumService.generateChecksum(signedData);
-    const data: PaymentData = {
-      ...signedData,
-      isCardLinkOperation: false,
-    };
     const req = {
-      path: '/pay',
       body: {
-        TransactionId: transactionId,
+        TransactionId: 1001,
         Amount: amount.toString(),
         Currency: 'RUB',
-        SubscriptionId: `sub-${label}`,
+        SubscriptionId: 'sub-new',
         IssuerBankCountry: 'RU',
+        Reason: 'Declined',
+        ReasonCode: ReasonCode.DO_NOT_HONOR,
         Data: JSON.stringify({ checksum }),
       },
       context: { factories },
     } as unknown as Request;
 
     return {
-      operationId,
       planId,
-      data,
+      promoCodeId,
+      signedData,
+      checksum,
       req,
     };
   }
 
-  /**
-   * Resume a successful promo payment through the real completion handler.
-   *
-   * @param attempt - Persisted purchase and its callback data.
-   * @returns The response mock containing the callback acknowledgement.
+  /*
+   * Isolate completion tests from /check; the end-to-end test below covers their contract.
    */
-  async function finish(attempt: Awaited<ReturnType<typeof payment>>): Promise<ReturnType<typeof response>> {
-    const res = response();
-
-    /**
-     * Only the private visibility is bypassed: the callback, plan application and models are real.
-     */
-    await callbacks.finishPromoPayment(attempt.req, res, attempt.data, true);
-
-    return res;
-  }
-
-  /**
-   * Process a payment callback and assert a successful acknowledgement.
-   *
-   * @param attempt - Persisted purchase with the callback request to process.
-   * @returns The response mock after successful payment processing.
-   */
-  async function pay(attempt: Awaited<ReturnType<typeof payment>>): Promise<ReturnType<typeof response>> {
-    const res = response();
-
-    await callbacks.pay(attempt.req, res);
-    expect(res.status).not.toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith({ code: 0 });
-
-    return res;
-  }
-
-  /**
-   * Read the current workspace state after callback processing.
-   *
-   * @returns The persisted workspace document, or null if it is absent.
-   */
-  async function workspace(): Promise<WithId<Document> | null> {
-    return db.collection('workspaces').findOne({ _id: workspaceId });
-  }
-
-  /**
-   * Assert promo payment completion, released processing ownership and a single redemption.
-   *
-   * @param attempt - Promo purchase whose persisted completion state should be checked.
-   * @returns Resolves when all completion assertions pass.
-   */
-  async function expectFinished(attempt: Awaited<ReturnType<typeof payment>>): Promise<void> {
-    expect(await db.collection('businessOperations').findOne({ _id: attempt.operationId })).toMatchObject({
-      status: BusinessOperationStatus.Confirmed,
-      promoReceiptSent: true,
-      promoNotificationSent: true,
-    });
-    expect(await db.collection('businessOperations').findOne({ _id: attempt.operationId })).not.toHaveProperty('promoProcessingToken');
-    expect(await db.collection('promoCodeRedemptions').countDocuments({
-      promoCodeId: new ObjectId(attempt.data.promoCodeId),
-    })).toBe(1);
-  }
-
-  test('retry of pending promo A must not cancel or replace subscription B from a later ordinary payment', async () => {
-    const a = await payment('A', PAYMENT_DATE);
-    const b = await payment('B', NEWER_PAYMENT_DATE, false);
-
-    jest.mocked(publish).mockRejectedValueOnce(new Error('limiter publish failed'));
-    const failed = await finish(a);
-
-    expect(failed.status).toHaveBeenCalledWith(500);
-    expect(failed.json).toHaveBeenCalledWith({ code: 1 });
-    expect(await workspace()).toMatchObject({
-      tariffPlanId: a.planId,
-      lastChargeDate: PAYMENT_DATE,
-      billingPaymentId: a.operationId,
-      billingPaymentDate: PAYMENT_DATE,
-      subscriptionId: 'sub-A',
-    });
-    expect(await db.collection('businessOperations').findOne({ _id: a.operationId })).toMatchObject({
+  async function pending(attempt: Awaited<ReturnType<typeof payment>>, date = PAYMENT_DATE) {
+    return factories.businessOperationsFactory.create({
+      transactionId: attempt.req.body.TransactionId.toString(),
+      type: BusinessOperationType.WorkspacePlanPurchase,
       status: BusinessOperationStatus.Pending,
+      dtCreated: date,
+      payload: {
+        workspaceId,
+        userId,
+        tariffPlanId: attempt.planId,
+        amount: Number(attempt.req.body.Amount) * 100,
+        currency: 'RUB',
+      },
     });
+  }
 
-    await pay(b);
-    const afterB = await workspace();
+  async function invoke(method: Callback, req: Request, code = 0): Promise<void> {
+    const res = {
+      json: jest.fn().mockReturnThis(),
+      status: jest.fn().mockReturnThis(),
+    };
 
-    expect(afterB).toMatchObject({
-      tariffPlanId: b.planId,
-      subscriptionId: 'sub-B',
-      billingPaymentId: b.operationId,
-      billingPaymentDate: NEWER_PAYMENT_DATE,
-      lastChargeDate: NEWER_PAYMENT_DATE,
-      subscriptionIdsToCancel: [],
+    await callbacks[method](req, res as unknown as Response);
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.json.mock.calls).toEqual([ [ { code } ] ]);
+  }
+
+  function expectReceipt(amount: number): void {
+    expect(callbacks.receiptApi.createReceipt).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      email: 'callback@example.test',
+      Items: [ expect.objectContaining({
+        amount,
+        price: amount,
+        quantity: 1,
+      }) ],
+    }));
+  }
+
+  test('/check uses the usual factory and provider transaction ID without reserving promo usage', async () => {
+    const attempt = await payment();
+    const create = jest.spyOn(factories.businessOperationsFactory, 'create');
+
+    await invoke('check', attempt.req);
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      transactionId: '1001',
+      type: BusinessOperationType.WorkspacePlanPurchase,
+      status: BusinessOperationStatus.Pending,
+      payload: expect.objectContaining({
+        workspaceId,
+        tariffPlanId: attempt.planId,
+        amount: 8000,
+        currency: 'RUB',
+      }),
+    }));
+    expect(await db.collection('businessOperations').countDocuments()).toBe(1);
+    expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(0);
+  });
+
+  test('/check creates an operation that the matching /pay can complete', async () => {
+    const attempt = await payment();
+
+    await invoke('check', attempt.req);
+    await invoke('pay', attempt.req);
+    expect(await db.collection('businessOperations').findOne({ transactionId: '1001' })).toMatchObject({
+      status: BusinessOperationStatus.Confirmed,
+      payload: { userId },
     });
-    await db.collection('workspaces').updateOne({ _id: workspaceId }, { $set: { billingPeriodEventsCount: 7 } });
-    const cancellationsBeforeRetry = callbacks.clientApi.cancelSubscription.mock.calls.length;
+    expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(1);
+    expectReceipt(80);
+  });
 
-    for (let retry = 0; retry < 2; retry++) {
-      const res = await finish(a);
+  test('same widget checksum can /check a new transaction after a failed attempt', async () => {
+    const attempt = await payment();
 
-      expect(res.status).not.toHaveBeenCalled();
-      expect(res.json).toHaveBeenCalledWith({ code: 0 });
-    }
-    await expectFinished(a);
-    expect(callbacks.receiptApi.createReceipt).toHaveBeenCalledTimes(2);
-    expect(sendNotification).toHaveBeenCalledTimes(2);
-    expect(callbacks.clientApi.cancelSubscription.mock.calls.slice(cancellationsBeforeRetry))
-      .not.toContainEqual([ { Id: 'sub-B' } ]);
-    expect(await workspace()).toMatchObject({
-      tariffPlanId: b.planId,
-      lastChargeDate: NEWER_PAYMENT_DATE,
-      billingPaymentId: b.operationId,
-      billingPaymentDate: NEWER_PAYMENT_DATE,
-      subscriptionId: 'sub-B',
-      subscriptionIdsToCancel: [],
-      billingPeriodEventsCount: 7,
-    });
+    await invoke('check', attempt.req);
+    await invoke('fail', attempt.req);
+    attempt.req.body.TransactionId = 1002;
+    await invoke('check', attempt.req);
+    expect(JSON.parse(attempt.req.body.Data).checksum).toBe(attempt.checksum);
+    expect(await db.collection('businessOperations').find({}, {
+      projection: {
+        transactionId: 1,
+        status: 1,
+        _id: 0,
+      },
+    })
+      .sort({ transactionId: 1 })
+      .toArray()).toEqual([
+      {
+        transactionId: '1001',
+        status: BusinessOperationStatus.Rejected,
+      },
+      {
+        transactionId: '1002',
+        status: BusinessOperationStatus.Pending,
+      },
+    ]);
+    expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(0);
   });
 
   test.each([
-    ['promo', 'reject'],
-    ['promo', 'false'],
-    ['ordinary', 'reject'],
-    ['ordinary', 'false'],
-  ] as const)(
-    '%s cancellation %s must retain the pending subscription and retry without resetting usage',
-    async (kind, failure) => {
-      const a = await payment('A', PAYMENT_DATE, kind === 'promo');
+    ['amount', { Amount: '79' }, CheckCodes.WRONG_AMOUNT],
+    ['currency', { Currency: 'USD' }, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED],
+  ])('/check rejects invalid promo %s', async (_name, changes, code) => {
+    const attempt = await payment();
 
-      if (failure === 'reject') {
-        callbacks.clientApi.cancelSubscription.mockRejectedValueOnce(new Error('subscription cancellation failed'));
-      } else {
-        callbacks.clientApi.cancelSubscription.mockResolvedValueOnce({ isSuccess: (): boolean => false });
-      }
-      const failed = response();
+    Object.assign(attempt.req.body, changes);
+    await invoke('check', attempt.req, code as number);
+    expect(await db.collection('businessOperations').countDocuments()).toBe(0);
+    expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(0);
+  });
 
-      await callbacks.pay(a.req, failed);
-      expect(failed.status).toHaveBeenCalledWith(500);
-      expect(await workspace()).toMatchObject({
-        tariffPlanId: a.planId,
-        lastChargeDate: PAYMENT_DATE,
-        billingPaymentId: a.operationId,
-        billingPaymentDate: PAYMENT_DATE,
-        subscriptionId: 'sub-A',
-        subscriptionIdsToCancel: [ 'sub-old' ],
+  test.each([
+    ['disabled', { isDisabled: true } ],
+    ['another plan', { planIds: [ new ObjectId() ] } ],
+    ['no allowed plans', { planIds: [] } ],
+  ])('/check rejects a promo that is now %s', async (_name, changes) => {
+    const attempt = await payment();
+
+    await db.collection('promoCodes').updateOne({ _id: attempt.promoCodeId }, { $set: changes });
+    await invoke('check', attempt.req, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
+    expect(await db.collection('businessOperations').countDocuments()).toBe(0);
+  });
+
+  test('/check rejects a deleted promo', async () => {
+    const attempt = await payment();
+
+    await db.collection('promoCodes').deleteOne({ _id: attempt.promoCodeId });
+    await invoke('check', attempt.req, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
+    expect(await db.collection('businessOperations').countDocuments()).toBe(0);
+  });
+
+  test.each([
+    ['full price', {}, 0],
+    ['discounted renewal', { amount: 80 }, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED],
+    ['wrong interval', { interval: 'Day' }, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED],
+    ['wrong period', { period: 2 }, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED],
+    ['wrong start date', { startDate: '2026-12-13T12:00:00.000Z' }, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED],
+  ])('/check validates promo recurrence: %s', async (_name, changes, code) => {
+    const attempt = await payment();
+
+    attempt.req.body.Data = JSON.stringify({
+      checksum: attempt.checksum,
+      cloudPayments: {
+        recurrent: {
+          amount: 100,
+          interval: 'Month',
+          period: 1,
+          startDate: attempt.signedData.nextPaymentDate,
+          ...changes,
+        },
+      },
+    });
+    await invoke('check', attempt.req, code as number);
+    expect(await db.collection('businessOperations').countDocuments()).toBe(code === 0 ? 1 : 0);
+  });
+
+  test('/check does not allow recurrence startDate to bypass the discounted first amount', async () => {
+    const attempt = await payment();
+
+    attempt.req.body.Amount = '1';
+    attempt.req.body.Data = JSON.stringify({
+      checksum: attempt.checksum,
+      cloudPayments: {
+        recurrent: {
+          amount: 100,
+          interval: 'Month',
+          period: 1,
+          startDate: attempt.signedData.nextPaymentDate,
+        },
+      },
+    });
+    await invoke('check', attempt.req, CheckCodes.WRONG_AMOUNT);
+    expect(await db.collection('businessOperations').countDocuments()).toBe(0);
+  });
+
+  test('unsigned identity, card-link and promo fields cannot override a signed promo', async () => {
+    const attempt = await payment();
+
+    attempt.req.body.Data = JSON.stringify({
+      checksum: attempt.checksum,
+      workspaceId: new ObjectId().toString(),
+      userId: new ObjectId().toString(),
+      tariffPlanId: new ObjectId().toString(),
+      isCardLinkOperation: true,
+      promo: {
+        promoCodeId: new ObjectId().toString(),
+        originalAmount: 100,
+        finalAmount: 1,
+      },
+    });
+    await invoke('check', attempt.req);
+    expect(await db.collection('businessOperations').findOne({ transactionId: '1001' })).toMatchObject({
+      type: BusinessOperationType.WorkspacePlanPurchase,
+      payload: {
+        workspaceId,
+        tariffPlanId: attempt.planId,
+        amount: 8000,
+      },
+    });
+    attempt.req.body.TransactionId = 1002;
+    attempt.req.body.Amount = '1';
+    await invoke('check', attempt.req, CheckCodes.WRONG_AMOUNT);
+    expect(await db.collection('businessOperations').countDocuments()).toBe(1);
+  });
+
+  test('unsigned identity cannot override an ordinary signed purchase', async () => {
+    const attempt = await payment(false);
+    const changePlan = jest.spyOn(WorkspaceModel.prototype, 'changePlan');
+    const userLookup = jest.spyOn(factories.usersFactory, 'findById');
+
+    attempt.req.body.Data = JSON.stringify({
+      checksum: attempt.checksum,
+      workspaceId: new ObjectId().toString(),
+      userId: new ObjectId().toString(),
+      tariffPlanId: new ObjectId().toString(),
+      isCardLinkOperation: true,
+      cloudPayments: {
+        recurrent: {
+          amount: 100,
+          interval: 'Month',
+          period: 1,
+          startDate: attempt.signedData.nextPaymentDate,
+        },
+      },
+    });
+    await invoke('check', attempt.req);
+    expect(await db.collection('businessOperations').findOne({ transactionId: '1001' })).toMatchObject({
+      type: BusinessOperationType.WorkspacePlanPurchase,
+      status: BusinessOperationStatus.Pending,
+      payload: {
+        workspaceId,
+        tariffPlanId: attempt.planId,
+        amount: 10000,
+      },
+    });
+    await invoke('pay', attempt.req);
+    expect(userLookup).toHaveBeenCalledWith(userId.toString());
+    expect(changePlan).toHaveBeenCalledWith(attempt.planId);
+    expect(await db.collection('businessOperations').findOne({ transactionId: '1001' })).toMatchObject({
+      status: BusinessOperationStatus.Confirmed,
+    });
+    expect(await db.collection('workspaces').findOne({ _id: workspaceId })).toMatchObject({
+      tariffPlanId: attempt.planId,
+      subscriptionId: 'sub-new',
+    });
+    expectReceipt(100);
+    expect(sendNotification).toHaveBeenCalledWith(expect.objectContaining({ _id: userId }), {
+      type: SenderWorkerTaskType.PaymentSuccess,
+      payload: {
+        workspaceId: workspaceId.toString(),
+        tariffPlanId: attempt.planId.toString(),
+        userId: userId.toString(),
+      },
+    });
+    expect(sendMessage).toHaveBeenCalledWith(
+      expect.stringContaining(`next payment date: ${attempt.signedData.nextPaymentDate}`),
+      TelegramBotURLs.Money
+    );
+    expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(0);
+  });
+
+  test('unsigned promo cannot discount an ordinary signed purchase', async () => {
+    const attempt = await payment(false);
+
+    attempt.req.body.Data = JSON.stringify({
+      checksum: attempt.checksum,
+      promo: {
+        promoCodeId: new ObjectId().toString(),
+        originalAmount: 100,
+        finalAmount: 80,
+      },
+    });
+    attempt.req.body.Amount = '80';
+    await invoke('check', attempt.req, CheckCodes.WRONG_AMOUNT);
+    expect(await db.collection('businessOperations').countDocuments()).toBe(0);
+  });
+
+  test('/pay redeems, follows the normal plan/subscription flow and reports the actual receipt amount', async () => {
+    const attempt = await payment();
+    const operation = await pending(attempt);
+    const changePlan = jest.spyOn(WorkspaceModel.prototype, 'changePlan');
+    const started = Date.now();
+
+    await invoke('pay', attempt.req);
+    expect(changePlan).toHaveBeenCalledWith(attempt.planId);
+    expect(callbacks.clientApi.cancelSubscription).toHaveBeenCalledWith({ Id: 'sub-old' });
+    expect(await db.collection('workspaces').findOne({ _id: workspaceId })).toMatchObject({
+      tariffPlanId: attempt.planId,
+      subscriptionId: 'sub-new',
+      billingPeriodEventsCount: 0,
+      lastChargeDate: expect.any(Date),
+    });
+    const workspace = await db.collection('workspaces').findOne({ _id: workspaceId });
+
+    expect(workspace!.lastChargeDate.getTime()).toBeGreaterThanOrEqual(started);
+    expect(await db.collection('businessOperations').findOne({ _id: operation._id })).toMatchObject({ status: BusinessOperationStatus.Confirmed });
+    expect(await db.collection('promoCodeRedemptions').findOne({ promoCodeId: attempt.promoCodeId })).toMatchObject({
+      userId,
+      workspaceId,
+      tariffPlanId: attempt.planId,
+      transactionId: '1001',
+      originalAmount: 100,
+      finalAmount: 80,
+    });
+    expectReceipt(80);
+    expect(publish).toHaveBeenCalledWith('cron-tasks', 'cron-tasks/limiter', JSON.stringify({
+      type: 'unblock-workspace',
+      workspaceId: workspaceId.toString(),
+    }));
+    expect(sendNotification).toHaveBeenCalledWith(expect.objectContaining({ _id: userId }), {
+      type: SenderWorkerTaskType.PaymentSuccess,
+      payload: {
+        workspaceId: workspaceId.toString(),
+        tariffPlanId: attempt.planId.toString(),
+        userId: userId.toString(),
+      },
+    });
+    expect(sendMessage).toHaveBeenCalledWith(expect.stringMatching(/\[Billing \/ Pay\][\s\S]*amount: 80 RUB/), TelegramBotURLs.Money);
+    expect(HawkCatcher.send).not.toHaveBeenCalled();
+
+    /*
+     * Redemption is idempotent; callback side effects deliberately have no such guarantee.
+     */
+    await invoke('pay', attempt.req);
+    expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(1);
+  });
+
+  test.each(['before insert', 'after insert'] as const)(
+    '/pay retries a redemption persistence failure %s without fulfilling prematurely', async failure => {
+      const attempt = await payment();
+      const operation = await pending(attempt);
+      const before = await db.collection('workspaces').findOne({ _id: workspaceId });
+      const changePlan = jest.spyOn(WorkspaceModel.prototype, 'changePlan');
+      const realRedeem = factories.promoCodeRedemptionsFactory.redeem.bind(factories.promoCodeRedemptionsFactory);
+      const redeem = jest.spyOn(factories.promoCodeRedemptionsFactory, 'redeem').mockImplementationOnce(async paymentData => {
+        if (failure === 'after insert') {
+          await realRedeem(paymentData);
+        }
+        throw new Error('Redemption database unavailable');
       });
-      expect(await db.collection('businessOperations').findOne({ _id: a.operationId })).toMatchObject({
+      const res = {
+        json: jest.fn().mockReturnThis(),
+        status: jest.fn().mockReturnThis(),
+      };
+
+      await callbacks.pay(attempt.req, res as unknown as Response);
+      expect(res.status.mock.calls).toEqual([ [ 500 ] ]);
+      expect(res.json.mock.calls).toEqual([ [ { code: 1 } ] ]);
+      expect(await db.collection('businessOperations').findOne({ _id: operation._id })).toMatchObject({
         status: BusinessOperationStatus.Pending,
       });
+      expect(await db.collection('workspaces').findOne({ _id: workspaceId })).toEqual(before);
+      expect(changePlan).not.toHaveBeenCalled();
       expect(callbacks.receiptApi.createReceipt).not.toHaveBeenCalled();
-      expect(sendNotification).not.toHaveBeenCalled();
+      expect(callbacks.clientApi.cancelSubscription).not.toHaveBeenCalled();
       expect(publish).not.toHaveBeenCalled();
-      await db.collection('workspaces').updateOne({ _id: workspaceId }, { $set: { billingPeriodEventsCount: 7 } });
+      expect(sendNotification).not.toHaveBeenCalled();
+      const persisted = await db.collection('promoCodeRedemptions').find({})
+        .toArray();
 
-      await pay(a);
-      expect(await workspace()).toMatchObject({
-        tariffPlanId: a.planId,
-        lastChargeDate: PAYMENT_DATE,
-        billingPaymentId: a.operationId,
-        billingPaymentDate: PAYMENT_DATE,
-        subscriptionId: 'sub-A',
-        subscriptionIdsToCancel: [],
-        billingPeriodEventsCount: 7,
-      });
-      expect(callbacks.clientApi.cancelSubscription.mock.calls).toEqual([
-        [ { Id: 'sub-old' } ],
-        [ { Id: 'sub-old' } ],
-      ]);
-      expect(callbacks.receiptApi.createReceipt).toHaveBeenCalledTimes(1);
-      expect(sendNotification).toHaveBeenCalledTimes(1);
-      expect(publish).toHaveBeenCalledTimes(1);
-      expect(await db.collection('businessOperations').findOne({ _id: a.operationId })).toMatchObject({
+      expect(persisted).toHaveLength(failure === 'after insert' ? 1 : 0);
+      const errorMessage = '[Billing / Pay] Could not redeem promo code: Error: Redemption database unavailable';
+
+      expect(HawkCatcher.send).toHaveBeenCalledWith(new Error(errorMessage), attempt.req.body);
+      expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining(errorMessage), TelegramBotURLs.Money);
+
+      await invoke('pay', attempt.req);
+      expect(redeem).toHaveBeenCalledTimes(2);
+      expect(redeem.mock.calls[1]).toEqual(redeem.mock.calls[0]);
+      expect(await db.collection('businessOperations').findOne({ _id: operation._id })).toMatchObject({
         status: BusinessOperationStatus.Confirmed,
       });
-      if (kind === 'promo') {
-        await expectFinished(a);
+      expect(changePlan).toHaveBeenCalledTimes(1);
+      expect(changePlan).toHaveBeenCalledWith(attempt.planId);
+      expect(await db.collection('workspaces').findOne({ _id: workspaceId })).toMatchObject({
+        tariffPlanId: attempt.planId,
+        subscriptionId: 'sub-new',
+        billingPeriodEventsCount: 0,
+      });
+      expectReceipt(80);
+      expect(callbacks.receiptApi.createReceipt).toHaveBeenCalledTimes(1);
+      expect(publish).toHaveBeenCalledTimes(1);
+      expect(sendNotification).toHaveBeenCalledTimes(1);
+      expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(1);
+      expect(await db.collection('promoCodeRedemptions').findOne({ transactionId: '1001' })).toMatchObject({
+        promoCodeId: attempt.promoCodeId,
+        userId,
+        workspaceId,
+        tariffPlanId: attempt.planId,
+        originalAmount: 100,
+        finalAmount: 80,
+      });
+      if (failure === 'after insert') {
+        expect(await db.collection('promoCodeRedemptions').find({})
+          .toArray()).toEqual(persisted);
       }
     }
   );
 
-  test.each([SubscriptionStatus.CANCELLED, SubscriptionStatus.REJECTED])(
-    'stale /recurrent %s must not clear a newer active subscription',
-    async status => {
-      const snapshot = await factories.workspacesFactory.findBySubscriptionId('sub-old');
+  test.each([
+    ['amount', { 'payload.amount': 7900 } ],
+    ['currency', { 'payload.currency': 'USD' } ],
+    ['workspace', { 'payload.workspaceId': new ObjectId() } ],
+    ['payer', { 'payload.userId': new ObjectId() } ],
+    ['plan', { 'payload.tariffPlanId': new ObjectId() } ],
+    ['operation type', { type: BusinessOperationType.CardLinkCharge } ],
+  ])('/pay rejects a mismatched operation %s before redeeming or changing the plan', async (_name, changes) => {
+    const attempt = await payment();
+    const operation = await pending(attempt);
+    const changePlan = jest.spyOn(WorkspaceModel.prototype, 'changePlan');
 
-      expect(snapshot).not.toBeNull();
-      const b = await payment('B', NEWER_PAYMENT_DATE);
+    await db.collection('businessOperations').updateOne({ _id: operation._id }, { $set: changes });
+    await invoke('pay', attempt.req);
+    expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(0);
+    expect(await db.collection('businessOperations').findOne({ _id: operation._id })).toMatchObject({ status: BusinessOperationStatus.Pending });
+    expect(changePlan).not.toHaveBeenCalled();
+    expect(callbacks.receiptApi.createReceipt).not.toHaveBeenCalled();
+    expect(HawkCatcher.send).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Invalid promo payment') }), attempt.req.body);
+  });
 
-      await pay(b);
-      const afterB = await workspace();
-      const lookup = jest.spyOn(factories.workspacesFactory, 'findBySubscriptionId').mockResolvedValue(snapshot);
+  test('/fail rejects the operation without consumption or plan changes and retains monitoring', async () => {
+    const attempt = await payment();
+    const operation = await pending(attempt);
+    const before = await db.collection('workspaces').findOne({ _id: workspaceId });
+    const redeem = jest.spyOn(factories.promoCodeRedemptionsFactory, 'redeem');
+
+    await invoke('fail', attempt.req);
+    expect(await db.collection('businessOperations').findOne({ _id: operation._id })).toMatchObject({ status: BusinessOperationStatus.Rejected });
+    expect(await db.collection('workspaces').findOne({ _id: workspaceId })).toEqual(before);
+    expect(redeem).not.toHaveBeenCalled();
+    expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(0);
+    expect(callbacks.receiptApi.createReceipt).not.toHaveBeenCalled();
+    expect(callbacks.clientApi.cancelSubscription).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
+    expect(sendNotification).toHaveBeenCalledWith(expect.objectContaining({ _id: userId }), {
+      type: SenderWorkerTaskType.PaymentFailed,
+      payload: {
+        workspaceId: workspaceId.toString(),
+        reason: ReasonCodesTranscript[ReasonCode.DO_NOT_HONOR],
+      },
+    });
+    expect(sendMessage).toHaveBeenCalledWith(expect.stringMatching(/\[Billing \/ Fail\][\s\S]*amount: 80 RUB[\s\S]*transaction id: 1001/), TelegramBotURLs.Money);
+    expect(HawkCatcher.send).toHaveBeenCalledWith(new Error('[Billing / Fail] Transaction failed'), attempt.req.body);
+  });
+
+  test.each(['pay', 'fail'] as const)('expired promo checksum is rejected by /check but accepted by /%s for an existing operation', async method => {
+    const attempt = await payment();
+    const operation = await pending(attempt);
+
+    attempt.req.body.Data = JSON.stringify({ checksum: jwt.sign(attempt.signedData, SECRET, { expiresIn: -1 }) });
+    await invoke('check', attempt.req, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED);
+    expect(await db.collection('businessOperations').countDocuments()).toBe(1);
+    await invoke(method, attempt.req);
+    expect(await db.collection('businessOperations').findOne({ _id: operation._id })).toMatchObject({
+      status: method === 'pay' ? BusinessOperationStatus.Confirmed : BusinessOperationStatus.Rejected,
+    });
+    expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(method === 'pay' ? 1 : 0);
+  });
+
+  test('ordinary cancellation Success:false still sends the receipt and unblocks the workspace', async () => {
+    const attempt = await payment(false);
+    const operation = await pending(attempt);
+
+    callbacks.clientApi.cancelSubscription.mockResolvedValueOnce({
+      Success: false,
+      isSuccess: (): boolean => false,
+    });
+    await invoke('pay', attempt.req);
+    expect(callbacks.clientApi.cancelSubscription).toHaveBeenCalledWith({ Id: 'sub-old' });
+    expect(await db.collection('businessOperations').findOne({ _id: operation._id })).toMatchObject({ status: BusinessOperationStatus.Confirmed });
+    expect(await db.collection('workspaces').findOne({ _id: workspaceId })).toMatchObject({
+      subscriptionId: 'sub-new',
+      tariffPlanId: attempt.planId,
+    });
+    expectReceipt(100);
+    expect(publish).toHaveBeenCalled();
+    expect(sendNotification).toHaveBeenCalled();
+    expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(0);
+  });
+
+  test('ordinary payment with older dtCreated still calls changePlan and resets the billing period', async () => {
+    const attempt = await payment(false);
+
+    await pending(attempt, new Date(PAYMENT_DATE.getTime() - 86400000));
+    const changePlan = jest.spyOn(WorkspaceModel.prototype, 'changePlan');
+    const started = Date.now();
+
+    await invoke('pay', attempt.req);
+    expect(changePlan).toHaveBeenCalledWith(attempt.planId);
+    const workspace = await db.collection('workspaces').findOne({ _id: workspaceId });
+
+    expect(workspace).toMatchObject({
+      tariffPlanId: attempt.planId,
+      billingPeriodEventsCount: 0,
+    });
+    expect(workspace!.lastChargeDate.getTime()).toBeGreaterThanOrEqual(started);
+    expectReceipt(100);
+  });
+
+  test('a later recurring charge without widget data uses the ordinary full-price flow', async () => {
+    const attempt = await payment(false);
+
+    await db.collection('workspaces').updateOne({ _id: workspaceId }, { $set: { tariffPlanId: attempt.planId } });
+    delete attempt.req.body.Data;
+    attempt.req.body.SubscriptionId = 'sub-old';
+    attempt.req.body.AccountId = userId.toString();
+    await invoke('check', attempt.req);
+    await invoke('pay', attempt.req);
+    expectReceipt(100);
+    expect(callbacks.clientApi.cancelSubscription).not.toHaveBeenCalled();
+    expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(0);
+    expect(await db.collection('workspaces').findOne({ _id: workspaceId })).toMatchObject({
+      billingPeriodEventsCount: 0,
+      subscriptionId: 'sub-old',
+    });
+  });
+
+  test.each([SubscriptionStatus.CANCELLED, SubscriptionStatus.REJECTED, SubscriptionStatus.ACTIVE])(
+    '/recurrent %s uses the normal workspace model', async status => {
+      const lookup = jest.spyOn(factories.workspacesFactory, 'findBySubscriptionId');
+      const setSubscription = jest.spyOn(WorkspaceModel.prototype, 'setSubscriptionId');
       const req = {
-        path: '/recurrent',
         body: {
           Id: 'sub-old',
           Status: status,
         },
         context: { factories },
       } as unknown as Request;
-      const res = response();
 
-      try {
-        await callbacks.recurrent(req, res);
-        expect(lookup).toHaveBeenCalledWith('sub-old');
-        expect(res.status).not.toHaveBeenCalled();
-        expect(res.json).toHaveBeenCalledWith({ code: 0 });
-        expect(await workspace()).toEqual(afterB);
-        expect(await workspace()).toMatchObject({ subscriptionId: 'sub-B' });
-      } finally {
-        lookup.mockRestore();
+      await invoke('recurrent', req);
+      expect(lookup).toHaveBeenCalledWith('sub-old');
+      const workspace = await db.collection('workspaces').findOne({ _id: workspaceId });
+
+      if (status === SubscriptionStatus.ACTIVE) {
+        expect(setSubscription).not.toHaveBeenCalled();
+        expect(workspace!.subscriptionId).toBe('sub-old');
+      } else {
+        expect(setSubscription).toHaveBeenCalledWith(null);
+        expect(workspace!.subscriptionId).toBeFalsy();
       }
-    }
-  );
-
-  test.each([
-    ['promo', 'promo'],
-    ['promo', 'ordinary'],
-    ['ordinary', 'promo'],
-  ] as const)(
-    '%s A / %s B: newer B must retain its plan and subscription when A resumes after external cancellation',
-    async (kindA, kindB) => {
-      const a = await payment('A', PAYMENT_DATE, kindA === 'promo');
-      const b = await payment('B', NEWER_PAYMENT_DATE, kindB === 'promo');
-      const cancellationEntered = semaphore();
-      const resumeCancellation = semaphore();
-      let paused = false;
-
-      callbacks.clientApi.cancelSubscription.mockImplementation(async ({ Id }: { Id: string }) => {
-        if (Id === 'sub-old' && !paused) {
-          paused = true;
-          cancellationEntered.release();
-          await resumeCancellation.promise;
-        }
-
-        return { isSuccess: (): boolean => true };
-      });
-      const aResponse = response();
-      const runningA = callbacks.pay(a.req, aResponse);
-
-      try {
-        await Promise.race([
-          cancellationEntered.promise,
-          runningA.then(() => {
-            throw new Error('Payment A finished without reaching the cancellation barrier');
-          }),
-        ]);
-        expect(await workspace()).toMatchObject({
-          tariffPlanId: a.planId,
-          lastChargeDate: PAYMENT_DATE,
-          subscriptionId: 'sub-A',
-          subscriptionIdsToCancel: [ 'sub-old' ],
-        });
-        await pay(b);
-        expect(await workspace()).toMatchObject({
-          tariffPlanId: b.planId,
-          lastChargeDate: NEWER_PAYMENT_DATE,
-          billingPaymentId: b.operationId,
-          billingPaymentDate: NEWER_PAYMENT_DATE,
-          subscriptionId: 'sub-B',
-          subscriptionIdsToCancel: [],
-        });
-      } finally {
-        resumeCancellation.release();
-        await runningA;
-      }
-      expect(aResponse.status).not.toHaveBeenCalled();
-      expect(aResponse.json).toHaveBeenCalledWith({ code: 0 });
-      const afterRace = await workspace();
-
-      await db.collection('workspaces').updateOne({ _id: workspaceId }, { $set: { billingPeriodEventsCount: 7 } });
-      const cancellations = callbacks.clientApi.cancelSubscription.mock.calls.length;
-      const receipts = callbacks.receiptApi.createReceipt.mock.calls.length;
-      const notifications = jest.mocked(sendNotification).mock.calls.length;
-      const publications = jest.mocked(publish).mock.calls.length;
-
-      if (kindA === 'promo') {
-        await pay(a);
-        await expectFinished(a);
-      }
-      if (kindB === 'promo') {
-        await pay(b);
-        await expectFinished(b);
-      }
-      expect(callbacks.clientApi.cancelSubscription).toHaveBeenCalledTimes(cancellations);
-      expect(callbacks.receiptApi.createReceipt).toHaveBeenCalledTimes(receipts);
-      expect(sendNotification).toHaveBeenCalledTimes(notifications);
-      expect(publish).toHaveBeenCalledTimes(publications);
-      if (kindA === 'ordinary') {
-        await pay(a);
-      }
-      expect(callbacks.clientApi.cancelSubscription).not.toHaveBeenCalledWith({ Id: 'sub-B' });
-      expect(await workspace()).toEqual({
-        ...afterRace,
-        billingPeriodEventsCount: 7,
-      });
-      expect(afterRace).toMatchObject({
-        tariffPlanId: b.planId,
-        lastChargeDate: NEWER_PAYMENT_DATE,
-        billingPaymentId: b.operationId,
-        billingPaymentDate: NEWER_PAYMENT_DATE,
-        subscriptionId: 'sub-B',
-        subscriptionIdsToCancel: [],
-      });
+      expect(HawkCatcher.send).toHaveBeenCalledWith(new Error(`[Billing / Recurrent] New recurrent event with ${status} status`), req.body);
     }
   );
 });

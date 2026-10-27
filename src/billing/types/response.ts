@@ -79,6 +79,10 @@ export enum PayCodes {
    * Payment registered
    */
   SUCCESS = 0,
+  /**
+   * Retry a promo callback whose successful usage could not be persisted.
+   */
+  RETRY = 1,
 }
 
 /**
