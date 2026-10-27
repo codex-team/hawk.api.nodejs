@@ -49,7 +49,15 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
       throw new AuthenticationError('Invalid userId');
     }
 
-    return user.generateTokensPair();
+    /**
+     * Check if user is member of any workspace with enforced SSO
+     * to use shorter token lifetime
+     */
+    const workspacesIds = await user.getWorkspacesIds([]);
+    const workspaces = await factories.workspacesFactory.findManyByIds(workspacesIds);
+    const hasEnforcedSso = workspaces.some(w => w.sso?.enabled && w.sso?.enforced);
+
+    return user.generateTokensPair(hasEnforcedSso);
   };
 
   /**
