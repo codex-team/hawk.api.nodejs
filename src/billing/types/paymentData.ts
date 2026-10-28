@@ -86,7 +86,9 @@ export interface PaymentData {
    */
   promo?: PromoPaymentData;
   /**
-   * Next scheduled subscription payment date.
+   * Subscription start date signed by composePayment for plan purchases and card linking.
+   * Kept outside promo because regular payments use it too; promo /check also
+   * verifies the widget's recurrent startDate against this signed value.
    */
   nextPaymentDate?: string;
 }

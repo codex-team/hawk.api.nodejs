@@ -159,7 +159,32 @@ describe('Promo payment resolver', () => {
       paymentAmount: 100,
       isCardLinkOperation: false,
     });
-    expect(checksumService.parseAndVerifyChecksum(result.checksum)).not.toHaveProperty('promo');
+    const signed = checksumService.parseAndVerifyChecksum(result.checksum);
+
+    expect(signed).toMatchObject({ nextPaymentDate: result.nextPaymentDate.toISOString() });
+    expect(signed).not.toHaveProperty('promo');
+    expect(factories.promoCodesFactory.calculatePromoQuote).not.toHaveBeenCalled();
+  });
+
+  test('ordinary card linking keeps the subscription date outside promo', async () => {
+    const { workspace, factories, context, input } = setup();
+
+    workspace.isTariffPlanExpired.mockReturnValue(false);
+    const result = await billingNew.Query.composePayment(undefined, {
+      input: {
+        ...input,
+        promoCode: undefined,
+      },
+    }, context);
+    const signed = checksumService.parseAndVerifyChecksum(result.checksum);
+
+    expect(result.isCardLinkOperation).toBe(true);
+    expect(signed).toEqual({
+      workspaceId: workspace._id.toString(),
+      userId: context.user.id,
+      isCardLinkOperation: true,
+      nextPaymentDate: result.nextPaymentDate.toISOString(),
+    });
     expect(factories.promoCodesFactory.calculatePromoQuote).not.toHaveBeenCalled();
   });
 
