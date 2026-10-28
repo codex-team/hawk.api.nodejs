@@ -1119,6 +1119,7 @@ class EventsFactory extends Factory {
       originalTimestamp: event.timestamp,
       originalEventId: event._id,
       timestamp: repetition.timestamp,
+      firstSeenInRelease: event.payload.release === undefined ? null : event.payload.release,
       payload: composeEventPayloadByRepetition(event.payload, repetition),
       projectId: this.projectId,
     };

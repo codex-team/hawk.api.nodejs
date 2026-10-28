@@ -302,6 +302,21 @@ type Event {
   release: Release
 
   """
+  Release of the original event, regardless of the selected repetition
+  """
+  firstSeenInRelease: String
+
+  """
+  Release in which the event was resolved
+  """
+  resolvedInRelease: String
+
+  """
+  Release in which the event regressed
+  """
+  regressionInRelease: String
+
+  """
   Event repetitions portion
   """
   repetitionsPortion(cursor: String = null, limit: Int = 10): RepetitionsPortion!

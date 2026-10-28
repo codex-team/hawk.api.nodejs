@@ -23,6 +23,19 @@ module.exports = {
     },
   },
   Event: {
+    /**
+     * Returns the original release, preserving null for repetitions of legacy events.
+     *
+     * @param {Object} event - original event or composed repetition
+     * @returns {string|null}
+     */
+    firstSeenInRelease({ firstSeenInRelease, payload }) {
+      if (firstSeenInRelease !== undefined) {
+        return firstSeenInRelease;
+      }
+
+      return payload && payload.release !== undefined ? payload.release : null;
+    },
 
     /**
      * Returns repetitions portion of the event
