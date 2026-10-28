@@ -38,18 +38,25 @@ const createMCPServer = (factories: ContextFactories) => {
   server.registerTool(
     'print_userId',
     {
-      description: 'A test tool that pritn userId from auth token',
+      description: 'A test tool that prints userId from auth token',
     },
     async (ctx: ServerContext) => {
-      const token = ctx.http?.req?.headers.get('authorization')?.slice(7)!;
+      let message: string;
 
-      const auth = jwt.decode(token) as UserJWTData;
+      try {
+        const token = ctx.http?.req?.headers.get('authorization')?.slice(7)!;
+        const auth = jwt.decode(token) as UserJWTData;
+
+        message = auth.userId;
+      } catch {
+        message = 'something went wrong';
+      }
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: String(auth.userId),
+            text: String(message),
           },
         ],
       };
