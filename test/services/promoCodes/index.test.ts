@@ -103,7 +103,7 @@ describe('Active promo code validation', () => {
     planId = new ObjectId();
     promoCode = {
       _id: new ObjectId(),
-      value: 'SALE20',
+      code: 'SALE20',
       discount: {
         type: 'percent',
         value: 20,

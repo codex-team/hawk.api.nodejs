@@ -27,7 +27,7 @@ export default class PromoCodesFactory {
    * @param input - requested payment with server-resolved identity and price
    */
   public async calculatePromoQuote(input: PromoCodeInput): Promise<PromoCodeQuote> {
-    const promoCode = await this.findActivePromoCode({ value: normalizePromoCode(input.promoCode) }, input.tariffPlanId);
+    const promoCode = await this.findActivePromoCode({ code: normalizePromoCode(input.promoCode) }, input.tariffPlanId);
     const finalAmount = applyDiscount(promoCode.discount, input.originalAmount);
 
     await this.redemptions.ensurePromoCodeAvailable(promoCode, input);
@@ -58,7 +58,7 @@ export default class PromoCodesFactory {
   /**
    * Read legacy percentage documents without changing stored data.
    *
-   * @param query - indexed value or identifier lookup
+   * @param query - indexed code or identifier lookup
    * @param tariffPlanId - selected plan
    */
   private async findActivePromoCode(query: Filter<PromoCode>, tariffPlanId: ObjectId): Promise<PromoCode> {

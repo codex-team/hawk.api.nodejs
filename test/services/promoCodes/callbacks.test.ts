@@ -193,7 +193,7 @@ describe('Payment callbacks with MongoDB', () => {
     if (promo) {
       await db.collection('promoCodes').insertOne({
         _id: promoCodeId,
-        value: 'PROMO',
+        code: 'PROMO',
         discount: {
           type: 'percent',
           value: 20,

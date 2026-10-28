@@ -11,7 +11,7 @@ module.exports = {
    */
   async up(db) {
     await db.collection('promoCodes').createIndex({
-      value: 1,
+      code: 1,
     }, {
       name: 'promoCode',
       unique: true,

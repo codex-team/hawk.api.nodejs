@@ -25,7 +25,7 @@ describe('Promo code factories and successful usage', () => {
     jest.resetAllMocks();
     promoCode = {
       _id: new ObjectId(),
-      value: 'SALE20',
+      code: 'SALE20',
       discount: {
         type: 'percent',
         value: 20,
@@ -87,7 +87,7 @@ describe('Promo code factories and successful usage', () => {
     expect(collection).toHaveBeenCalledWith('promoCodes');
     expect(collection).toHaveBeenCalledWith('promoCodeRedemptions');
     expect(findPromoCode).toHaveBeenCalledTimes(1);
-    expect(findPromoCode).toHaveBeenCalledWith({ value: 'SALE20' });
+    expect(findPromoCode).toHaveBeenCalledWith({ code: 'SALE20' });
     expect(findRedemption).toHaveBeenCalledWith({
       promoCodeId: promoCode._id,
       $or: [ { userId: input.userId }, { workspaceId: input.workspaceId } ],
@@ -379,7 +379,7 @@ describe('Promo factories with MongoDB unique indexes', () => {
 
     await db.collection('promoCodes').insertOne({
       _id: promoCodeId,
-      value: 'SALE20',
+      code: 'SALE20',
       discount: {
         type: 'percent',
         value: 20,
@@ -405,6 +405,20 @@ describe('Promo factories with MongoDB unique indexes', () => {
     } finally {
       await client?.close();
     }
+  });
+
+  test('should enforce uniqueness of code while allowing different codes', async () => {
+    const promoCodes = db.collection('promoCodes');
+
+    await promoCodes.insertOne({ code: 'OTHER' });
+    await expect(promoCodes.insertOne({ code: 'SALE20' })).rejects.toMatchObject({ code: 11000 });
+    await expect(promoCodesFactory.calculatePromoQuote({
+      promoCode: ' sale20 ',
+      userId: new ObjectId(payment.userId),
+      workspaceId: new ObjectId(payment.workspaceId),
+      tariffPlanId: new ObjectId(payment.tariffPlanId),
+      originalAmount: 100,
+    })).resolves.toMatchObject({ finalAmount: 80 });
   });
 
   test('concurrent callback retries should persist exactly one usage', async () => {

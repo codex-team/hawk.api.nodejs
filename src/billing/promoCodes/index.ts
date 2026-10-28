@@ -17,7 +17,7 @@ export interface PromoCode {
   /**
    * Uppercase code without surrounding whitespace.
    */
-  value: string;
+  code: string;
   discount: PromoCodeDiscount;
   isDisabled?: boolean;
   /**
