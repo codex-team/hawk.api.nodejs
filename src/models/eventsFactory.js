@@ -3,6 +3,7 @@ import { createProjectEventsByIdLoader } from '../dataLoaders';
 import RedisHelper from '../redisHelper';
 import ChartDataService from '../services/chartDataService';
 import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
+import { normalizeReleaseName } from '../utils/releaseName';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
@@ -770,10 +771,7 @@ class EventsFactory extends Factory {
     for (const repetition of repetitions) {
       const event = this._composeEventWithRepetition(eventOriginal, repetition);
 
-      result.repetitions.push({
-        ...event,
-        projectId: this.projectId,
-      });
+      result.repetitions.push(event);
     }
 
     const isLastPortion = result.nextCursor === null;
@@ -787,12 +785,7 @@ class EventsFactory extends Factory {
        * Get only 'repetitions' fields from event to fit Repetition scheme
        * @type {EventRepetitionSchema}
        */
-      const firstRepetition = {
-        ...eventOriginal,
-        originalTimestamp: eventOriginal.timestamp,
-        originalEventId: eventOriginal._id,
-        projectId: this.projectId,
-      };
+      const firstRepetition = this._composeEventWithRepetition(eventOriginal);
 
       result.repetitions.push(firstRepetition);
     }
@@ -814,14 +807,7 @@ class EventsFactory extends Factory {
     if (repetitionId.toString() === originalEventId.toString()) {
       const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
-      /**
-       * All events have same type with originalEvent id
-       */
-      originalEvent.originalEventId = originalEventId;
-      originalEvent.originalTimestamp = originalEvent.timestamp;
-      originalEvent.projectId = this.projectId;
-
-      return originalEvent || null;
+      return originalEvent ? this._composeEventWithRepetition(originalEvent) : null;
     }
 
     /**
@@ -1104,23 +1090,25 @@ class EventsFactory extends Factory {
    * @returns {Event} event merged with repetition
    */
   _composeEventWithRepetition(event, repetition) {
+    const original = {
+      ...event,
+      originalTimestamp: event.timestamp,
+      originalEventId: event._id,
+      firstSeenInRelease: normalizeReleaseName(event.payload && event.payload.release),
+      resolvedInRelease: normalizeReleaseName(event.resolvedInRelease),
+      regressionInRelease: normalizeReleaseName(event.regressionInRelease),
+      projectId: this.projectId,
+    };
+
     if (!repetition) {
-      return {
-        ...event,
-        originalTimestamp: event.timestamp,
-        originalEventId: event._id,
-        projectId: this.projectId,
-      };
+      return original;
     }
 
     return {
-      ...event,
+      ...original,
       _id: repetition._id,
-      originalTimestamp: event.timestamp,
-      originalEventId: event._id,
       timestamp: repetition.timestamp,
-      payload: composeEventPayloadByRepetition(event.payload, repetition),
-      projectId: this.projectId,
+      payload: composeEventPayloadByRepetition(event.payload == null ? {} : event.payload, repetition),
     };
   }
 }

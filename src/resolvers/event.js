@@ -6,6 +6,7 @@ const {
 const { askAiService } = require('../services/askAi');
 const { UserInputError } = require('apollo-server-express');
 const { ObjectId } = require('mongodb');
+const { normalizeReleaseName } = require('../utils/releaseName');
 
 /**
  * See all types and fields here {@see ../typeDefs/event.graphql}
@@ -23,6 +24,31 @@ module.exports = {
     },
   },
   Event: {
+    /**
+     * Returns the original release, preserving null for repetitions of legacy events.
+     *
+     * @param {Object} event - original event or composed repetition
+     * @returns {string|null}
+     */
+    firstSeenInRelease({ firstSeenInRelease, payload }) {
+      return normalizeReleaseName(firstSeenInRelease !== undefined ? firstSeenInRelease : payload && payload.release);
+    },
+
+    /**
+     * @param {Object} event - event with stored lifecycle metadata
+     * @returns {string|null} normalized resolution release
+     */
+    resolvedInRelease({ resolvedInRelease }) {
+      return normalizeReleaseName(resolvedInRelease);
+    },
+
+    /**
+     * @param {Object} event - event with stored lifecycle metadata
+     * @returns {string|null} normalized regression release
+     */
+    regressionInRelease({ regressionInRelease }) {
+      return normalizeReleaseName(regressionInRelease);
+    },
 
     /**
      * Returns repetitions portion of the event
