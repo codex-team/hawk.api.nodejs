@@ -280,11 +280,6 @@ type Project {
   uidAdded: User!
 
   """
-  Most recently created meaningful release, even if no events occurred in it
-  """
-  latestRelease: String
-
-  """
   Project's Event
   """
   event(eventId: ID!, originalEventId: ID!): Event

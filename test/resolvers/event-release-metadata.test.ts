@@ -25,7 +25,11 @@ const schema = makeExecutableSchema({
     directive @requireAdmin on FIELD_DEFINITION
   `],
   resolvers: {
-    Event: { firstSeenInRelease: eventResolvers.Event.firstSeenInRelease },
+    Event: {
+      firstSeenInRelease: eventResolvers.Event.firstSeenInRelease,
+      resolvedInRelease: eventResolvers.Event.resolvedInRelease,
+      regressionInRelease: eventResolvers.Event.regressionInRelease,
+    },
   },
 });
 
@@ -78,7 +82,7 @@ describe('Event release metadata GraphQL contract', () => {
         firstSeenInRelease: '',
         payload: { release: 'later release' },
       },
-      expected: '',
+      expected: null,
     },
   ])('resolves first seen from the $title', async ({ event, expected }) => {
     const { data, errors } = await graphql({
@@ -93,6 +97,36 @@ describe('Event release metadata GraphQL contract', () => {
       resolvedInRelease: null,
       regressionInRelease: null,
       payload: { release: event.payload.release ?? null },
+    });
+  });
+
+  it.each([
+    [0, '0'],
+    [42, '42'],
+    [' opaque / build+7 ', ' opaque / build+7 '],
+    ['', null],
+    ['   ', null],
+    [' NULL ', null],
+    ['undefined', null],
+    ['NaN', null],
+  ])('normalizes all release metadata fields for %p', async (release, expected) => {
+    const { data, errors } = await graphql({
+      schema,
+      source: '{ event { firstSeenInRelease resolvedInRelease regressionInRelease } }',
+      rootValue: {
+        event: {
+          payload: { release },
+          resolvedInRelease: release,
+          regressionInRelease: release,
+        },
+      },
+    });
+
+    expect(errors).toBeUndefined();
+    expect(data?.event).toEqual({
+      firstSeenInRelease: expected,
+      resolvedInRelease: expected,
+      regressionInRelease: expected,
     });
   });
 

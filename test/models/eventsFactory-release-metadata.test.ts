@@ -57,7 +57,10 @@ describe('EventsFactory release metadata', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    loadEvent.mockResolvedValue({ ...original });
+    loadEvent.mockResolvedValue(Object.freeze({
+      ...original,
+      payload: Object.freeze({ ...original.payload }),
+    }));
   });
 
   it.each([true, false])('preserves grouped metadata in daily events (repetition: %s)', async (hasRepetition) => {
@@ -76,9 +79,7 @@ describe('EventsFactory release metadata', () => {
 
     expect(event).toMatchObject(lifecycle);
     expect(event.payload.release).toBe(hasRepetition ? 'repeated / build+8' : original.payload.release);
-    if (hasRepetition) {
-      expect(event.firstSeenInRelease).toBe(original.payload.release);
-    }
+    expect(event.firstSeenInRelease).toBe(original.payload.release);
     expect(loadEvent).not.toHaveBeenCalled();
     expect(collectionMock.aggregate).toHaveBeenCalledTimes(1);
   });
@@ -95,9 +96,7 @@ describe('EventsFactory release metadata', () => {
 
     expect(event).toMatchObject(lifecycle);
     expect(event.payload.release).toBe(hasRepetition ? 'repeated / build+8' : original.payload.release);
-    if (hasRepetition) {
-      expect(event.firstSeenInRelease).toBe(original.payload.release);
-    }
+    expect(event.firstSeenInRelease).toBe(original.payload.release);
     expect(loadEvent).toHaveBeenCalledTimes(1);
     expect(collectionMock.findOne).toHaveBeenCalledTimes(hasRepetition ? 1 : 0);
   });
@@ -123,6 +122,7 @@ describe('EventsFactory release metadata', () => {
     });
     expect(repetitions[1]).toMatchObject({
       ...lifecycle,
+      firstSeenInRelease: original.payload.release,
       payload: { release: original.payload.release },
     });
     expect(loadEvent).toHaveBeenCalledTimes(1);
@@ -146,10 +146,186 @@ describe('EventsFactory release metadata', () => {
       payload: { release: 'later release' },
     });
 
-    expect(event.firstSeenInRelease).toBe(release ?? null);
+    expect(event.firstSeenInRelease).toBeNull();
     expect(event.payload.release).toBe('later release');
-    expect(event.resolvedInRelease).toBeUndefined();
-    expect(event.regressionInRelease).toBeUndefined();
+    expect(event.resolvedInRelease).toBeNull();
+    expect(event.regressionInRelease).toBeNull();
     expect(loadEvent).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [undefined, null],
+    [null, null],
+    ['', null],
+    [' \t', null],
+    [' NULL ', null],
+    [' Undefined\n', null],
+    [' nAn ', null],
+    [0, '0'],
+    [42, '42'],
+    [-1.5, '-1.5'],
+    [' opaque / Build+7 ', ' opaque / Build+7 '],
+    [true, null],
+    [ {}, null],
+    [ [], null],
+    [NaN, null],
+    [Infinity, null],
+    [-Infinity, null],
+  ])('normalizes release metadata %p in every composition path', async (release, expected) => {
+    const factory = new EventsFactory(projectId);
+    const cachedOriginal = Object.freeze({
+      ...original,
+      payload: Object.freeze({
+        title: 'Error',
+        release,
+      }),
+      resolvedInRelease: release,
+      regressionInRelease: release,
+      marks: Object.freeze({ resolved: { timestamp: 150 } }),
+      assignee: 'owner',
+    });
+    const selectedRepetition = {
+      ...repetition,
+      delta: undefined,
+      payload: { release: 'later release' },
+      resolvedInRelease: 'not original lifecycle',
+      regressionInRelease: 'not original lifecycle',
+    };
+
+    loadEvent.mockResolvedValue(cachedOriginal);
+    collectionMock.findOne.mockResolvedValue(selectedRepetition);
+    collectionMock.aggregate.mockReturnValue({
+      toArray: jest.fn().mockResolvedValue([undefined, selectedRepetition].map(rep => ({
+        _id: new ObjectId(),
+        event: cachedOriginal,
+        repetition: rep,
+      }))),
+    });
+    collectionMock.find.mockReturnValue({
+      sort: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      toArray: jest.fn().mockResolvedValue([ selectedRepetition ]),
+    });
+
+    const { dailyEvents } = await factory.findDailyEventsPortion();
+    const originalDetail = await factory.getEventRepetition(original._id, original._id);
+    const repetitionDetail = await factory.getEventRepetition(repetition._id, original._id);
+    const { repetitions } = await factory.getEventRepetitions(original._id);
+    const events = [
+      factory._composeEventWithRepetition(cachedOriginal),
+      factory._composeEventWithRepetition(cachedOriginal, selectedRepetition),
+      ...dailyEvents.map(({ event }: { event: object }) => event),
+      originalDetail,
+      repetitionDetail,
+      ...repetitions,
+    ];
+
+    for (const event of events) {
+      expect(event).toMatchObject({
+        firstSeenInRelease: expected,
+        resolvedInRelease: expected,
+        regressionInRelease: expected,
+        originalEventId: original._id,
+        originalTimestamp: original.timestamp,
+        projectId,
+        groupHash: original.groupHash,
+        marks: cachedOriginal.marks,
+        assignee: cachedOriginal.assignee,
+      });
+      expect(event).not.toBe(cachedOriginal);
+    }
+    expect(originalDetail.payload.release).toBe(release);
+    expect(repetitionDetail.payload.release).toBe('later release');
+    expect(cachedOriginal.payload.release).toBe(release);
+    expect(cachedOriginal.resolvedInRelease).toBe(release);
+    expect(cachedOriginal.regressionInRelease).toBe(release);
+    expect(cachedOriginal).not.toHaveProperty('originalEventId');
+    expect(cachedOriginal).not.toHaveProperty('firstSeenInRelease');
+    expect(cachedOriginal).not.toHaveProperty('projectId');
+  });
+
+  describe.each([undefined, null])('original payload is %p', (payload) => {
+    it.each([
+      {
+        format: 'new delta',
+        fields: { delta: JSON.stringify({ release: [ 'later release' ] }) },
+      },
+      {
+        format: 'legacy',
+        fields: { payload: { release: 'later release' } },
+      },
+      {
+        format: 'unchanged',
+        fields: { delta: null },
+      },
+    ])('safely composes $format repetitions in every path', async ({ format, fields }) => {
+      const factory = new EventsFactory(projectId);
+      const cachedOriginal = Object.freeze({
+        _id: original._id,
+        groupHash: original.groupHash,
+        timestamp: original.timestamp,
+        ...lifecycle,
+        ...(payload === null ? { payload: null } : {}),
+      });
+      const selectedRepetition = {
+        _id: repetition._id,
+        timestamp: repetition.timestamp,
+        ...fields,
+      };
+
+      loadEvent.mockResolvedValue(cachedOriginal);
+      collectionMock.findOne.mockResolvedValue(selectedRepetition);
+      collectionMock.aggregate.mockReturnValue({
+        toArray: jest.fn().mockResolvedValue([undefined, selectedRepetition].map(rep => ({
+          _id: new ObjectId(),
+          event: cachedOriginal,
+          repetition: rep,
+        }))),
+      });
+      collectionMock.find.mockReturnValue({
+        sort: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        toArray: jest.fn().mockResolvedValue([ selectedRepetition ]),
+      });
+
+      const { dailyEvents } = await factory.findDailyEventsPortion();
+      const originalDetail = await factory.getEventRepetition(original._id, original._id);
+      const repetitionDetail = await factory.getEventRepetition(repetition._id, original._id);
+      const { repetitions } = await factory.getEventRepetitions(original._id);
+      const composed = factory._composeEventWithRepetition(cachedOriginal, selectedRepetition);
+
+      for (const event of [composed, dailyEvents[1].event, repetitionDetail, repetitions[0]]) {
+        expect(event).toMatchObject({
+          ...lifecycle,
+          firstSeenInRelease: null,
+          originalEventId: original._id,
+          originalTimestamp: original.timestamp,
+          _id: repetition._id,
+          timestamp: repetition.timestamp,
+          projectId,
+        });
+        expect(event.payload).toEqual(format === 'unchanged' ? {} : { release: 'later release' });
+        expect(event.payload.title).toBeUndefined();
+      }
+      for (const event of [dailyEvents[0].event, originalDetail, repetitions[1]]) {
+        expect(event).toMatchObject({
+          ...lifecycle,
+          firstSeenInRelease: null,
+        });
+        expect(event.payload).toBe(payload);
+      }
+      expect(cachedOriginal.payload).toBe(payload);
+      expect(cachedOriginal).not.toHaveProperty('originalEventId');
+      expect(cachedOriginal).not.toHaveProperty('firstSeenInRelease');
+    });
+  });
+
+  it('returns null for a missing original on the direct original detail path', async () => {
+    const factory = new EventsFactory(projectId);
+
+    loadEvent.mockResolvedValue(null);
+
+    await expect(factory.getEventRepetition(original._id, original._id)).resolves.toBeNull();
+    expect(collectionMock.findOne).not.toHaveBeenCalled();
   });
 });

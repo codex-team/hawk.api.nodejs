@@ -782,18 +782,6 @@ module.exports = {
     },
 
     /**
-     * Return the newest project release, including releases without events.
-     *
-     * @param {ProjectDBScheme} project - parent project
-     * @param {Object} _args - field arguments
-     * @param {ContextFactories} factories - model factories
-     * @returns {Promise<string|null>}
-     */
-    latestRelease(project, _args, { factories }) {
-      return factories.releasesFactory.findLatestName(project._id);
-    },
-
-    /**
      * Find project's event
      *
      * @param {ProjectDBScheme} project - result of parent resolver

@@ -58,28 +58,6 @@ export default class ReleasesFactory {
   }
 
   /**
-   * Return the newest meaningful release name, regardless of validation status.
-   *
-   * @param projectId - project identifier
-   * @returns latest release name or null when the project has no releases
-   */
-  public async findLatestName(projectId: string | ObjectId): Promise<string | null> {
-    const release = await this.collection.findOne({
-      projectId: projectId.toString(),
-      release: {
-        $type: 'string',
-        $regex: /\S/,
-        $not: /^\s*(null|undefined|nan)\s*$/i,
-      },
-    }, {
-      projection: { release: 1 },
-      sort: { _id: -1 },
-    });
-
-    return release?.release ?? null;
-  }
-
-  /**
    * Find one release document by projectId and release label.
    * Tries both exact string match and numeric fallback (if release can be cast to number).
    */
