@@ -8,6 +8,8 @@ import {
   PayloadOfWorkspacePlanPurchase
 } from '@hawk.so/types';
 import checksumService from '../utils/checksumService';
+import { ObjectId } from 'mongodb';
+import type { PromoCodeQuote } from '../billing/promoCodes/redemptions';
 import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import * as telegram from '../utils/telegram';
@@ -23,10 +25,26 @@ const AMOUNT_FOR_CARD_VALIDATION = 1;
  * Input data for composePayment query
  */
 interface ComposePaymentArgs {
+  /**
+   * Workspace, selected plan and optional discount requested by the payer.
+   */
   input: {
+    /**
+     * Workspace whose administrator is preparing the payment.
+     */
     workspaceId: string;
+    /**
+     * Plan used for pricing and promo eligibility checks.
+     */
     tariffPlanId: string;
+    /**
+     * Whether to retain the provider's reusable card token after payment.
+     */
     shouldSaveCard?: boolean;
+    /**
+     * User-provided promo code; missing or blank means full-price payment.
+     */
+    promoCode?: string | null;
   };
 }
 
@@ -63,6 +81,7 @@ export default {
      * @param ids - ids of workspaces for which transactions have been requested
      * @param user - current authorized user
      * @param factories - factories for working with models
+     * @returns business operations belonging to the requested workspaces
      */
     async businessOperations(
       _obj: undefined,
@@ -73,7 +92,13 @@ export default {
     },
 
     /**
-     * GraphQL version of composePayment: prepares data before charge
+     * Prepare the server-priced payment and sign its identity and optional discount.
+     *
+     * @param _obj - parent resolver value
+     * @param input - workspace, plan, card-saving preference and optional promo code
+     * @param user - authenticated payer
+     * @param factories - model factories for authorization and plan lookup
+     * @returns widget settings, current amount in rubles and a signed payment checksum
      */
     async composePayment(
       _obj: undefined,
@@ -83,12 +108,14 @@ export default {
       invoiceId: string;
       plan: { id: string; name: string; monthlyCharge: number };
       isCardLinkOperation: boolean;
+      paymentAmount: number;
       currency: string;
       checksum: string;
       nextPaymentDate: Date;
       cloudPaymentsPublicId: string;
     }> {
       const { workspaceId, tariffPlanId, shouldSaveCard } = input;
+      const promoCode = input.promoCode?.trim();
 
       if (!workspaceId || !tariffPlanId || !user?.id) {
         throw new UserInputError('No workspaceId, tariffPlanId or user id provided');
@@ -119,11 +146,34 @@ export default {
        * 3. Workspace is not blocked
        */
       if (
-        workspace.tariffPlanId.toString() === tariffPlanId && // 1
-        !workspace.isTariffPlanExpired() && // 2
-        !workspace.isBlocked // 3
+        workspace.tariffPlanId.toString() === tariffPlanId &&
+        !workspace.isTariffPlanExpired() &&
+        !workspace.isBlocked
       ) {
         isCardLinkOperation = true;
+      }
+
+      let paymentAmount = isCardLinkOperation ? AMOUNT_FOR_CARD_VALIDATION : plan.monthlyCharge;
+      let promoQuote: PromoCodeQuote | undefined;
+
+      if (promoCode) {
+        if (isCardLinkOperation) {
+          throw new UserInputError('PROMO_CODE_NOT_AVAILABLE_FOR_CARD_LINK');
+        }
+
+        if (WorkspaceModel.isPendingMember(member) || !member.isAdmin) {
+          throw new UserInputError('PROMO_CODE_ADMIN_REQUIRED');
+        }
+
+        promoQuote = await factories.promoCodesFactory.calculatePromoQuote({
+          promoCode,
+          userId: new ObjectId(user.id),
+          workspaceId: workspace._id,
+          tariffPlanId: plan._id,
+          originalAmount: plan.monthlyCharge,
+        });
+
+        paymentAmount = promoQuote.finalAmount;
       }
 
       /**
@@ -151,6 +201,15 @@ export default {
           tariffPlanId: plan._id.toString(),
           shouldSaveCard: Boolean(shouldSaveCard),
           nextPaymentDate: nextPaymentDate.toISOString(),
+          ...(promoQuote
+            ? {
+              promo: {
+                promoCodeId: promoQuote.promoCodeId.toString(),
+                originalAmount: promoQuote.originalAmount,
+                finalAmount: promoQuote.finalAmount,
+              },
+            }
+            : {}),
         };
 
       const checksum = await checksumService.generateChecksum(checksumData);
@@ -162,7 +221,7 @@ export default {
         .sendMessage(`👀 [Billing / Compose payment]
 
 card link operation: ${isCardLinkOperation}
-amount: ${+plan.monthlyCharge} RUB
+amount: ${paymentAmount} RUB
 last charge date: ${workspace.lastChargeDate?.toISOString()}
 next payment date: ${nextPaymentDate.toISOString()}
 workspace: «${workspace.name}» (${workspace._id.toString()})
@@ -178,6 +237,7 @@ debug: ${Boolean(workspace.isDebug)}`
           monthlyCharge: plan.monthlyCharge,
         },
         isCardLinkOperation,
+        paymentAmount,
         currency: 'RUB',
         checksum,
         nextPaymentDate,
@@ -193,6 +253,7 @@ debug: ${Boolean(workspace.isDebug)}`
     /**
      * Returns type of the payload
      * @param payload - result from resolver above
+     * @returns GraphQL payload type matching the operation data
      */
     __resolveType(payload: BusinessOperationPayloadType): string {
       if ('cardPan' in payload) {
@@ -261,12 +322,17 @@ debug: ${Boolean(workspace.isDebug)}`
      * @param args - mutation args
      * @param user - current authorized user
      * @param factories - factories for working with models
+     * @returns business operation produced by the tokenized payment
      */
     async payWithCard(_obj: undefined, args: PayWithCardArgs, { factories, user }: ResolverContextWithUser): Promise<any> {
       const paymentData = checksumService.parseAndVerifyChecksum(args.input.checksum);
 
       if (!('tariffPlanId' in paymentData)) {
         throw new UserInputError('Invalid checksum');
+      }
+
+      if (paymentData.promo) {
+        throw new UserInputError('PROMO_CODE_NOT_AVAILABLE_FOR_SAVED_CARD');
       }
 
       const fullUserInfo = await factories.usersFactory.findById(user.id);

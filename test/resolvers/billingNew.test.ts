@@ -82,6 +82,8 @@ function createComposePaymentTestSetup(options: {
       projectsFactory: {} as any,
       businessOperationsFactory: {} as any,
       releasesFactory: {} as any,
+      promoCodesFactory: {} as any,
+      promoCodeRedemptionsFactory: {} as any,
     },
   };
 

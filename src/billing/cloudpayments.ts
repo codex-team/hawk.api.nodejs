@@ -1,4 +1,5 @@
 import express from 'express';
+import { PromoPayment, validatePromoOperation, validatePromoSubscription } from './promoCodes/redemptions';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
 import {
@@ -22,8 +23,7 @@ import {
   BusinessOperationType,
   ConfirmedMemberDBScheme,
   PayloadOfWorkspacePlanPurchase,
-  PlanDBScheme,
-  PlanProlongationPayload
+  PlanDBScheme
 } from '@hawk.so/types';
 import WorkspaceModel from '../models/workspace';
 import HawkCatcher from '@hawk.so/nodejs';
@@ -49,6 +49,9 @@ const PENNY_MULTIPLIER = 100;
  * Class for describing the logic of payment routes
  */
 export default class CloudPaymentsWebhooks {
+  /**
+   * Authenticated CloudPayments client used for subscriptions and receipts.
+   */
   private readonly clientService = new ClientService({
     publicId: process.env.CLOUDPAYMENTS_PUBLIC_ID || '',
     privateKey: process.env.CLOUDPAYMENTS_SECRET || '',
@@ -93,6 +96,7 @@ export default class CloudPaymentsWebhooks {
    *
    * @param tariffPlan - tariff plan to generate invoice id
    * @param workspace - workspace data to generate invoice id
+   * @returns human-readable invoice label for the payment widget
    */
   private generateInvoiceId(tariffPlan: PlanDBScheme, workspace: WorkspaceModel): string {
     const now = new Date();
@@ -124,7 +128,9 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    /** Data validation */
+    /**
+     * Validate the identity required for a card link or a plan purchase.
+     */
     if (data.isCardLinkOperation) {
       if (!data.userId || !data.workspaceId) {
         this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, '[Billing / Check] There is no necessary data in the card linking request', req.body);
@@ -165,12 +171,24 @@ export default class CloudPaymentsWebhooks {
      * The amount will be considered correct if it is equal to the cost of the tariff plan.
      * Also, the cost will be correct if it is a payment to activate the subscription.
      */
-    const isRightAmount = +body.Amount === plan.monthlyCharge || recurrentPaymentSettings?.startDate;
+    const expectedAmount = data.promo ? data.promo.finalAmount : plan.monthlyCharge;
+    const isRightAmount = +body.Amount === expectedAmount || (!data.promo && recurrentPaymentSettings?.startDate);
 
     if (!isRightAmount) {
       this.sendError(res, CheckCodes.WRONG_AMOUNT, `[Billing / Check] Amount does not equal to plan monthly charge`, body);
 
       return;
+    }
+
+    if (data.promo) {
+      try {
+        validatePromoSubscription(data, plan.monthlyCharge, Boolean(workspace.isDebug));
+        await context.factories.promoCodesFactory.ensurePaymentAvailable(this.buildPromoPayment(body, data));
+      } catch (error) {
+        this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] ${String(error)}`, body);
+
+        return;
+      }
     }
 
     /**
@@ -185,7 +203,7 @@ export default class CloudPaymentsWebhooks {
           workspaceId: workspace._id,
           amount: +body.Amount * PENNY_MULTIPLIER,
           currency: body.Currency,
-          userId: member._id,
+          userId: data.promo ? member.userId : member._id,
           tariffPlanId: plan._id,
         },
         dtCreated: new Date(),
@@ -226,7 +244,7 @@ export default class CloudPaymentsWebhooks {
     console.log('💎 CloudPayments /pay request', body);
 
     try {
-      data = await this.getDataFromRequest(req);
+      data = await this.getDataFromRequest(req, true);
     } catch (e) {
       const error = e as Error;
 
@@ -235,7 +253,9 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    /** Data validation */
+    /**
+     * Validate the identity required for a card link or a plan purchase.
+     */
     if (data.isCardLinkOperation) {
       if (!data.userId || !data.workspaceId) {
         this.sendError(res, PayCodes.SUCCESS, '[Billing / Pay] No workspace or user id in request body', req.body);
@@ -268,6 +288,27 @@ export default class CloudPaymentsWebhooks {
       this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Can't get data from Database ${error.toString()}`, body);
 
       return;
+    }
+
+    if (data.promo) {
+      let payment: PromoPayment;
+
+      try {
+        payment = this.buildPromoPayment(body, data);
+        validatePromoOperation(payment, businessOperation);
+      } catch (error) {
+        this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Invalid promo payment: ${String(error)}`, body);
+
+        return;
+      }
+
+      try {
+        await req.context.factories.promoCodeRedemptionsFactory.redeem(payment);
+      } catch (error) {
+        this.sendError(res.status(500), PayCodes.RETRY, `[Billing / Pay] Could not redeem promo code: ${String(error)}`, body);
+
+        return;
+      }
     }
 
     try {
@@ -303,7 +344,9 @@ export default class CloudPaymentsWebhooks {
       return;
     }
 
-    // let accountId = workspace.accountId;
+    /*
+     * let accountId = workspace.accountId;
+     */
 
     /*
      * try {
@@ -335,7 +378,9 @@ export default class CloudPaymentsWebhooks {
      *   const error = e as Error;
      */
 
-    //   this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while creating operations in accounting ${error.toString()}`, body);
+    /*
+     * this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Error while creating operations in accounting ${error.toString()}`, body);
+     */
 
     /*
      *   return;
@@ -361,7 +406,9 @@ export default class CloudPaymentsWebhooks {
     }
 
     try {
-      // todo: add plan-prolongation notification if it was a payment by subscription
+      /**
+       * @todo Add plan-prolongation notification for a subscription payment.
+       */
       const senderWorkerTask: PaymentSuccessNotificationTask = {
         type: SenderWorkerTaskType.PaymentSuccess,
         payload: {
@@ -442,7 +489,7 @@ plan monthly charge: ${data.cloudPayments?.recurrent.amount} ${body.Currency}`
          */
         const userEmail = body.IssuerBankCountry === RUSSIA_ISO_CODE ? user.email : undefined;
 
-        await this.sendReceipt(workspace, tariffPlan, userEmail);
+        await this.sendReceipt(workspace, tariffPlan, userEmail, data.promo ? +body.Amount : tariffPlan.monthlyCharge);
 
         let messageText = '';
 
@@ -487,14 +534,14 @@ subscription id: ${body.SubscriptionId}`;
    */
   private async fail(req: express.Request, res: express.Response): Promise<void> {
     const body: FailRequest = req.body;
-    let data: PlanProlongationPayload;
+    let data: PaymentData;
 
     console.log('💎 CloudPayments /fail request', body);
 
     const failReasonLine = `reason: ${body.Reason} (${body.ReasonCode})`;
 
     try {
-      data = await this.getDataFromRequest(req);
+      data = await this.getDataFromRequest(req, true);
     } catch (e) {
       this.sendError(res, FailCodes.SUCCESS, `[Billing / Fail] Invalid request\n${failReasonLine}`, body);
 
@@ -657,6 +704,7 @@ status: ${body.Status}`
    * Formats workspace identity for Telegram money notifications
    *
    * @param workspace - workspace model or null when it was not found
+   * @returns workspace name and identifier, or a fallback for missing data
    */
   private formatWorkspaceForTelegram(workspace: Pick<WorkspaceModel, '_id' | 'name'> | null): string {
     if (!workspace) {
@@ -675,6 +723,7 @@ status: ${body.Status}`
    *
    * @param req - express request
    * @param workspaceId - id of workspace
+   * @returns existing workspace model
    */
   private async getWorkspace(req: express.Request, workspaceId: string): Promise<WorkspaceModel> {
     const workspace = await req.context.factories.workspacesFactory.findById(workspaceId);
@@ -691,6 +740,7 @@ status: ${body.Status}`
    *
    * @param req - express request
    * @param userId - id of user to fetch
+   * @returns existing payer model
    */
   private async getUser(req: express.Request, userId: string): Promise<UserModel> {
     const user = await req.context.factories.usersFactory.findById(userId);
@@ -707,6 +757,7 @@ status: ${body.Status}`
    *
    * @param req - express request
    * @param transactionId - id of the transaction for fetching business operation
+   * @returns existing business operation for the provider transaction
    */
   private async getBusinessOperation(req: express.Request, transactionId: string): Promise<BusinessOperationModel> {
     const businessOperation = await req.context.factories.businessOperationsFactory.getBusinessOperationByTransactionId(transactionId);
@@ -723,6 +774,7 @@ status: ${body.Status}`
    *
    * @param userId - id of current user
    * @param workspace - workspace data
+   * @returns confirmed workspace administrator allowed to pay
    */
   private async getMember(userId: string, workspace: WorkspaceModel): Promise<ConfirmedMemberDBScheme> {
     const user = await workspace.getMemberInfo(userId);
@@ -747,6 +799,7 @@ status: ${body.Status}`
    *
    * @param req - express request
    * @param tariffPlanId - plan id
+   * @returns existing purchased plan model
    */
   private async getPlan(req: express.Request, tariffPlanId: string): Promise<PlanModel> {
     const plan = await req.context.factories.plansFactory.findById(tariffPlanId);
@@ -780,11 +833,36 @@ status: ${body.Status}`
   }
 
   /**
+   * Map signed promo data and provider fields to a payment for domain validation.
+   *
+   * @param body - provider callback
+   * @param data - verified payment identity
+   * @returns promo payment without HTTP context
+   */
+  private buildPromoPayment(body: CheckRequest | PayRequest, data: PaymentData): PromoPayment {
+    if (!data.promo || data.isCardLinkOperation) {
+      throw new Error('PROMO_CODE_INVALID_PAYMENT');
+    }
+
+    return {
+      ...data.promo,
+      workspaceId: data.workspaceId,
+      userId: data.userId,
+      tariffPlanId: data.tariffPlanId,
+      transactionId: body.TransactionId?.toString() || '',
+      paidAmount: Number(body.Amount),
+      currency: body.Currency,
+    };
+  }
+
+  /**
    * Parses request body and returns data from it
    *
    * @param req - request with necessary data
+   * @param allowExpiredPromo - accept a delayed completion callback for a promo payment
+   * @returns signed payment data or identity resolved from an existing subscription
    */
-  private async getDataFromRequest(req: express.Request): Promise<PaymentData> {
+  private async getDataFromRequest(req: express.Request, allowExpiredPromo = false): Promise<PaymentData> {
     const context = req.context;
     const body: CheckRequest | PayRequest | FailRequest = req.body;
 
@@ -794,10 +872,17 @@ status: ${body.Status}`
      */
     if (body.Data) {
       const parsedData = JSON.parse(body.Data || '{}') as WebhookData;
+      const verifiedData = checksumService.parseAndVerifyChecksum(parsedData.checksum, allowExpiredPromo);
 
+      /*
+       * Only subscription settings come from the widget; identity and price must remain signed.
+       */
       return {
-        ...checksumService.parseAndVerifyChecksum(parsedData.checksum),
-        ...parsedData,
+        tariffPlanId: '',
+        shouldSaveCard: false,
+        isCardLinkOperation: false,
+        ...verifiedData,
+        cloudPayments: parsedData.cloudPayments,
       };
     }
 
@@ -834,6 +919,7 @@ status: ${body.Status}`
   /**
    * Parses body and returns card data
    * @param request - request body to parse
+   * @returns reusable card details, or null when any required field is missing
    */
   private getCardData(request: PayRequest): Omit<BankCard, 'id'> | null {
     if (!request.CardType || !request.CardExpDate || !request.CardLastFour || !request.CardFirstSix || !request.Token) {
@@ -855,8 +941,9 @@ status: ${body.Status}`
    * @param workspace - workspace for which payment is made
    * @param tariff - paid tariff plan
    * @param userMail - user email address
+   * @param amount - actual payment amount in rubles
    */
-  private async sendReceipt(workspace: WorkspaceModel, tariff: PlanModel, userMail?: string): Promise<void> {
+  private async sendReceipt(workspace: WorkspaceModel, tariff: PlanModel, userMail?: string, amount = tariff.monthlyCharge): Promise<void> {
     /**
      * A general tax that applies to all commercial activities
      * involving the production and distribution of goods and the provision of services
@@ -865,9 +952,9 @@ status: ${body.Status}`
     const VALUE_ADDED_TAX = 0;
 
     const item: CustomerReceiptItem = {
-      amount: tariff.monthlyCharge,
+      amount,
       label: `${tariff.name} tariff plan`,
-      price: tariff.monthlyCharge,
+      price: amount,
       vat: VALUE_ADDED_TAX,
       quantity: 1,
     };
