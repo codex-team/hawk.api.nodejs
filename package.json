@@ -1,6 +1,6 @@
 {
   "name": "hawk.api",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "main": "index.ts",
   "license": "BUSL-1.1",
   "scripts": {
@@ -45,6 +45,7 @@
     "@hawk.so/types": "^0.7.0",
     "@modelcontextprotocol/node": "^2.1.2",
     "@modelcontextprotocol/server": "^2.4.0",
+    "@modelcontextprotocol/express": "^2.0.2",
     "@n1ru4l/json-patch-plus": "^0.2.0",
     "@node-saml/node-saml": "^5.0.1",
     "@octokit/oauth-methods": "^4.0.0",

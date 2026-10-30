@@ -57,6 +57,11 @@ export interface UserJWTData {
    * User id
    */
   userId: string;
+
+  /**
+   * Expiration time (Unix timestamp in seconds)
+   */
+  exp: number;
 }
 
 /**
