@@ -1,4 +1,6 @@
-/** @jest-environment @shelf/jest-mongodb/lib/environment */
+/**
+ * @jest-environment @shelf/jest-mongodb/lib/environment
+ */
 import { Collection, Db, MongoClient, ObjectId } from 'mongodb';
 import ReleasesFactory from '../../src/models/releasesFactory';
 
@@ -105,7 +107,9 @@ describe('ReleasesFactory latest registered release Mongo query', () => {
   beforeAll(async () => {
     client = await new MongoClient(__MONGO_URI__).connect();
     db = client.db(`test_releases_is_new_${new ObjectId().toHexString()}`);
-    // Reproduce the existing production index only in this isolated test database.
+    /*
+     * Reproduce the existing production index only in this isolated test database.
+     */
     await db.collection('releases').createIndex(
       { projectId: 1, release: 1 },
       { name: 'projectId_release_unique_idx', unique: true }
@@ -162,7 +166,9 @@ describe('ReleasesFactory latest registered release Mongo query', () => {
     expect(serializedPlan).toContain(`"projectId":["[\\"${projectId}\\", \\"${projectId}\\"]"]`);
     expect(explain.executionStats.nReturned).toBe(1);
     expect(explain.executionStats.totalDocsExamined).toBe(3);
-    // A compound-index prefix scan may examine one additional boundary key.
+    /*
+     * A compound-index prefix scan may examine one additional boundary key.
+     */
     expect(explain.executionStats.totalKeysExamined).toBeLessThanOrEqual(4);
     console.info('Latest registered release explain:', JSON.stringify({
       plan,

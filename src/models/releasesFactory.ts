@@ -77,7 +77,9 @@ export default class ReleasesFactory {
     let latest = this.latestRegisteredReleaseByProject.get(key);
 
     if (!latest) {
-      // The existing index bounds the project, but does not cover the _id sort.
+      /*
+       * The existing index bounds the project, but does not cover the _id sort.
+       */
       latest = this.collection.findOne({ projectId: key }, {
         sort: { _id: -1 },
         projection: {
