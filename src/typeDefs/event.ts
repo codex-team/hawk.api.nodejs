@@ -307,6 +307,11 @@ type Event {
   firstSeenInRelease: String
 
   """
+  Whether the original event first appeared in the newest registered release for its project
+  """
+  isNew: Boolean!
+
+  """
   Release in which the event was resolved
   """
   resolvedInRelease: String

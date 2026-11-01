@@ -1,6 +1,7 @@
 // TODO: it would be great to move release logic from another factories/resolvers to this class
 import type { Collection, Db, ObjectId } from 'mongodb';
 import type { ReleaseDBScheme } from '@hawk.so/types';
+import { normalizeReleaseName } from '../utils/releaseName';
 
 /**
  * Interface representing how release files are stored in the DB
@@ -47,6 +48,7 @@ export default class ReleasesFactory {
    */
   private readonly collection: Collection<ReleaseDBScheme>;
   private readonly filesCollection: Collection<ReleaseFileDBScheme>;
+  private readonly latestRegisteredReleaseByProject = new Map<string, Promise<string | null>>();
 
   /**
    * Creates releases factory instance
@@ -55,6 +57,42 @@ export default class ReleasesFactory {
   constructor(dbConnection: Db) {
     this.collection = dbConnection.collection<ReleaseDBScheme>('releases');
     this.filesCollection = dbConnection.collection<ReleaseFileDBScheme>('releases.files');
+  }
+
+  /**
+   * Compare against the newest registered release, not the newest observed/deployed release.
+   * @param projectId - event's project
+   * @param firstSeenRelease - original event's release
+   */
+  public async isNewInLatestRelease(
+    projectId: string | ObjectId | null | undefined,
+    firstSeenRelease: unknown
+  ): Promise<boolean> {
+    const name = normalizeReleaseName(firstSeenRelease);
+
+    if (!projectId || name === null) {
+      return false;
+    }
+    const key = projectId.toString();
+    let latest = this.latestRegisteredReleaseByProject.get(key);
+
+    if (!latest) {
+      // The existing index bounds the project, but does not cover the _id sort.
+      latest = this.collection.findOne({ projectId: key }, {
+        sort: { _id: -1 },
+        projection: {
+          release: 1,
+          _id: 0,
+        },
+        hint: {
+          projectId: 1,
+          release: 1,
+        },
+      }).then(doc => normalizeReleaseName(doc?.release));
+      this.latestRegisteredReleaseByProject.set(key, latest);
+    }
+
+    return name === await latest;
   }
 
   /**

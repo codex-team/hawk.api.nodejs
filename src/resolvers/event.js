@@ -35,6 +35,20 @@ module.exports = {
     },
 
     /**
+     * Compare the original release with the newest registered release.
+     * @param {Object} event - original event or composed repetition
+     * @param {Object} _args - query arguments
+     * @param {Object} context - request-scoped factories
+     * @returns {Promise<boolean>} whether the original first appeared in the newest registered release
+     */
+    isNew({ projectId, firstSeenInRelease, payload }, _args, { factories }) {
+      return factories.releasesFactory.isNewInLatestRelease(
+        projectId,
+        firstSeenInRelease !== undefined ? firstSeenInRelease : payload && payload.release
+      );
+    },
+
+    /**
      * @param {Object} event - event with stored lifecycle metadata
      * @returns {string|null} normalized resolution release
      */
