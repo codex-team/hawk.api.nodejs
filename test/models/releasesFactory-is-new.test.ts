@@ -10,31 +10,57 @@ const projectId = '507f1f77bcf86cd799439011';
 const latestName = ' opaque / Build+7 ';
 const queryOptions = {
   sort: { _id: -1 },
-  projection: { release: 1, _id: 0 },
-  hint: { projectId: 1, release: 1 },
+  projection: {
+    release: 1,
+    _id: 0,
+  },
+  hint: {
+    projectId: 1,
+    release: 1,
+  },
 };
 
 describe('ReleasesFactory.isNewInLatestRelease', () => {
-  let findOne: jest.Mock;
-  let db: Db;
+  let find: jest.Mock;
+  let cursor: {
+    next: jest.Mock;
+    close: jest.Mock;
+    [Symbol.asyncIterator](): AsyncIterableIterator<{ release: unknown }>;
+  };
   let factory: ReleasesFactory;
+  let cache: Map<string, Promise<string | null>>;
 
   beforeEach(() => {
-    findOne = jest.fn().mockResolvedValue({ release: latestName });
-    db = { collection: () => ({ findOne }) } as unknown as Db;
-    factory = new ReleasesFactory(db);
+    cursor = {
+      next: jest.fn().mockResolvedValueOnce({
+        value: { release: latestName },
+        done: false,
+      })
+        .mockResolvedValue({ done: true }),
+      close: jest.fn().mockResolvedValue(undefined),
+      [Symbol.asyncIterator](): AsyncIterableIterator<{ release: unknown }> {
+        return this;
+      },
+    };
+    find = jest.fn().mockReturnValue(cursor);
+    factory = new ReleasesFactory({ collection: () => ({ find }) } as unknown as Db);
+    cache = new Map();
   });
 
-  it.each([undefined, null, '', ' ', ' NULL ', 'undefined', 'NaN', NaN, Infinity, -Infinity, true, {}, []])(
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it.each([undefined, null, '', ' ', ' NULL ', 'undefined', 'NaN', NaN, Infinity, -Infinity, true, {}, [] ])(
     'returns false without reading releases for invalid first-seen name %p', async (name) => {
-      expect(await factory.isNewInLatestRelease(projectId, name)).toBe(false);
-      expect(findOne).not.toHaveBeenCalled();
+      expect(await factory.isNewInLatestRelease(projectId, name, cache)).toBe(false);
+      expect(find).not.toHaveBeenCalled();
     }
   );
 
   it.each([undefined, null, ''])('returns false without reading releases for missing project %p', async (project) => {
-    expect(await factory.isNewInLatestRelease(project, latestName)).toBe(false);
-    expect(findOne).not.toHaveBeenCalled();
+    expect(await factory.isNewInLatestRelease(project, latestName, cache)).toBe(false);
+    expect(find).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -47,57 +73,199 @@ describe('ReleasesFactory.isNewInLatestRelease', () => {
     ['042', 42, false],
     ['older', latestName, false],
   ])('compares normalized first-seen %p with registered %p', async (firstSeen, latest, expected) => {
-    findOne.mockResolvedValue({ release: latest });
-    expect(await factory.isNewInLatestRelease(projectId, firstSeen)).toBe(expected);
-    expect(findOne).toHaveBeenCalledWith({ projectId }, queryOptions);
+    cursor.next.mockReset().mockResolvedValueOnce({
+      value: { release: latest },
+      done: false,
+    })
+      .mockResolvedValue({ done: true });
+    expect(await factory.isNewInLatestRelease(projectId, firstSeen, cache)).toBe(expected);
+    expect(find).toHaveBeenCalledWith({ projectId }, queryOptions);
+    expect(cursor.close).toHaveBeenCalledTimes(1);
   });
 
-  it.each([undefined, null, '', ' ', ' NULL ', 'undefined', 'NaN', NaN, Infinity, -Infinity, true, {}, []])(
-    'caches invalid newest release %p without falling back to an older valid document', async (release) => {
-      findOne.mockResolvedValueOnce({ release }).mockResolvedValue({ release: latestName });
-      expect(await factory.isNewInLatestRelease(projectId, latestName)).toBe(false);
-      expect(await factory.isNewInLatestRelease(projectId, latestName)).toBe(false);
-      expect(findOne).toHaveBeenCalledTimes(1);
+  it.each([undefined, null, '', ' ', ' NULL ', 'undefined', 'NaN', NaN, Infinity, -Infinity, true, {}, [] ])(
+    'skips invalid newest release %p and stops at the newest valid name, including numeric zero', async (release) => {
+      cursor.next.mockReset()
+        .mockResolvedValueOnce({
+          value: { release },
+          done: false,
+        })
+        .mockResolvedValueOnce({
+          value: { release: 0 },
+          done: false,
+        })
+        .mockResolvedValueOnce({
+          value: { release: 'older' },
+          done: false,
+        });
+      expect(await factory.isNewInLatestRelease(projectId, '0', cache)).toBe(true);
+      expect(await factory.isNewInLatestRelease(projectId, 'older', cache)).toBe(false);
+      expect(find).toHaveBeenCalledTimes(1);
+      expect(cursor.next).toHaveBeenCalledTimes(2);
+      expect(cursor.close).toHaveBeenCalledTimes(1);
     }
   );
 
-  it('caches a missing release document', async () => {
-    findOne.mockResolvedValue(null);
-    expect(await factory.isNewInLatestRelease(projectId, latestName)).toBe(false);
-    expect(await factory.isNewInLatestRelease(projectId, latestName)).toBe(false);
-    expect(findOne).toHaveBeenCalledTimes(1);
-  });
+  it.each([ { releases: [] }, { releases: [undefined, null, ' NaN ', {}, true] } ])(
+    'caches null and closes an exhausted history $releases', async ({ releases }) => {
+      cursor.next.mockReset().mockResolvedValue({ done: true });
+      for (const release of releases) {
+        cursor.next.mockResolvedValueOnce({
+          value: { release },
+          done: false,
+        });
+      }
+      expect(await factory.isNewInLatestRelease(projectId, latestName, cache)).toBe(false);
+      expect(await factory.isNewInLatestRelease(projectId, latestName, cache)).toBe(false);
+      expect(await cache.get(projectId)).toBeNull();
+      expect(find).toHaveBeenCalledTimes(1);
+      expect(cursor.next).toHaveBeenCalledTimes(releases.length + 1);
+      expect(cursor.close).toHaveBeenCalledTimes(1);
+    }
+  );
 
-  it('shares one in-flight query across 50 rows and ObjectId/string project keys', async () => {
-    let resolveLatest!: (doc: { release: string }) => void;
+  it('shares one in-flight cursor across 50 rows and ObjectId/string project keys', async () => {
+    let resolveLatest!: (doc: IteratorResult<{ release: string }>) => void;
 
-    findOne.mockReturnValue(new Promise(resolve => { resolveLatest = resolve; }));
+    cursor.next.mockReset().mockReturnValueOnce(new Promise(resolve => {
+      resolveLatest = resolve;
+    }));
     const rows = Array.from({ length: 50 }, (_, index) => factory.isNewInLatestRelease(
       index % 2 ? new ObjectId(projectId) : projectId,
-      latestName
+      latestName,
+      cache
     ));
 
-    expect(findOne).toHaveBeenCalledTimes(1);
-    resolveLatest({ release: latestName });
+    expect(find).toHaveBeenCalledTimes(1);
+    expect(cursor.close).not.toHaveBeenCalled();
+    resolveLatest({
+      value: { release: latestName },
+      done: false,
+    });
     expect(await Promise.all(rows)).toEqual(Array(50).fill(true));
-    expect(await factory.isNewInLatestRelease(projectId, 'older')).toBe(false);
-    expect(findOne).toHaveBeenCalledTimes(1);
+    expect(await factory.isNewInLatestRelease(projectId, 'older', cache)).toBe(false);
+    expect(find).toHaveBeenCalledTimes(1);
+    expect(cursor.close).toHaveBeenCalledTimes(1);
   });
 
-  it('isolates projects and refreshes the cache for a new request factory', async () => {
-    findOne.mockResolvedValueOnce({ release: 'a' }).mockResolvedValueOnce({ release: 'b' });
-    expect(await factory.isNewInLatestRelease('project-a', 'a')).toBe(true);
-    expect(await factory.isNewInLatestRelease('project-b', 'a')).toBe(false);
-    expect(await factory.isNewInLatestRelease('project-b', 'b')).toBe(true);
-    expect(await factory.isNewInLatestRelease('project-a', 'b')).toBe(false);
-    expect(findOne.mock.calls.map(([filter]) => filter)).toEqual([
+  it('isolates projects and refreshes the request cache with the same factory', async () => {
+    cursor.next.mockReset()
+      .mockResolvedValueOnce({
+        value: { release: 'a' },
+        done: false,
+      })
+      .mockResolvedValueOnce({
+        value: { release: 'b' },
+        done: false,
+      })
+      .mockResolvedValueOnce({
+        value: { release: 'next' },
+        done: false,
+      });
+    expect(await factory.isNewInLatestRelease('project-a', 'a', cache)).toBe(true);
+    expect(await factory.isNewInLatestRelease('project-b', 'a', cache)).toBe(false);
+    expect(await factory.isNewInLatestRelease('project-b', 'b', cache)).toBe(true);
+    expect(await factory.isNewInLatestRelease('project-a', 'b', cache)).toBe(false);
+    expect(find.mock.calls.map(([ filter ]) => filter)).toEqual([
       { projectId: 'project-a' }, { projectId: 'project-b' },
     ]);
 
-    findOne.mockResolvedValue({ release: 'next' });
-    expect(await new ReleasesFactory(db).isNewInLatestRelease('project-a', 'next')).toBe(true);
-    expect(findOne).toHaveBeenCalledTimes(3);
+    expect(await factory.isNewInLatestRelease('project-a', 'next', new Map())).toBe(true);
+    expect(await factory.isNewInLatestRelease('project-a', 'a', cache)).toBe(true);
+    expect(find).toHaveBeenCalledTimes(3);
   });
+
+  it('reads afresh on every call without a caller-owned cache', async () => {
+    cursor.next.mockReset()
+      .mockResolvedValueOnce({
+        value: { release: latestName },
+        done: false,
+      })
+      .mockResolvedValueOnce({
+        value: { release: 'next' },
+        done: false,
+      });
+    expect(await factory.isNewInLatestRelease(projectId, latestName)).toBe(true);
+    expect(await factory.isNewInLatestRelease(projectId, 'next')).toBe(true);
+    expect(find).toHaveBeenCalledTimes(2);
+    expect(cursor.close).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(['find throws', 'iteration throws', 'iteration rejects', 'close throws', 'close rejects'])(
+    'returns false and logs once for 50 rows when %s, then retries with a fresh request cache', async (failure) => {
+      const error = new Error(failure);
+      const log = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      if (failure === 'find throws') {
+        find.mockImplementationOnce(() => {
+          throw error;
+        });
+      } else if (failure === 'iteration throws') {
+        cursor.next.mockReset().mockImplementationOnce(() => {
+          throw error;
+        });
+      } else if (failure === 'iteration rejects') {
+        cursor.next.mockReset().mockRejectedValueOnce(error);
+      } else if (failure === 'close throws') {
+        cursor.close.mockImplementationOnce(() => {
+          throw error;
+        });
+      } else {
+        cursor.close.mockRejectedValueOnce(error);
+      }
+
+      const rows = Array.from({ length: 50 }, () => factory.isNewInLatestRelease(projectId, latestName, cache));
+
+      expect(await Promise.all(rows)).toEqual(Array(50).fill(false));
+      expect(await cache.get(projectId)).toBeNull();
+      expect(find).toHaveBeenCalledTimes(1);
+      expect(log).toHaveBeenCalledTimes(1);
+      expect(log).toHaveBeenCalledWith(expect.stringContaining(projectId), error);
+      expect(cursor.close).toHaveBeenCalledTimes(failure === 'find throws' ? 0 : 1);
+
+      cursor.next.mockReset().mockResolvedValueOnce({
+        value: { release: latestName },
+        done: false,
+      });
+      expect(await factory.isNewInLatestRelease(projectId, latestName, new Map())).toBe(true);
+      expect(find).toHaveBeenCalledTimes(2);
+      expect(log).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('closes and logs once even if iteration and closing both fail', async () => {
+    const log = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    cursor.next.mockReset().mockRejectedValueOnce(new Error('iteration'));
+    cursor.close.mockRejectedValueOnce(new Error('close'));
+    expect(await factory.isNewInLatestRelease(projectId, latestName, cache)).toBe(false);
+    expect(cursor.close).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['get', 'set', 'rejected promise', 'project key'])(
+    'catches unexpected %s failures at the public boundary', async (failure) => {
+      const error = new Error(failure);
+      const log = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      let project: string | ObjectId = projectId;
+
+      if (failure === 'get' || failure === 'set') {
+        jest.spyOn(cache, failure).mockImplementation(() => {
+          throw error;
+        });
+      } else if (failure === 'rejected promise') {
+        cache.set(projectId, Promise.reject(error));
+      } else {
+        project = new ObjectId(projectId);
+        jest.spyOn(project, 'toString').mockImplementation(() => {
+          throw error;
+        });
+      }
+      expect(await factory.isNewInLatestRelease(project, latestName, cache)).toBe(false);
+      expect(log).toHaveBeenCalledTimes(1);
+      expect(log).toHaveBeenCalledWith(expect.any(String), error);
+    }
+  );
 });
 
 describe('ReleasesFactory latest registered release Mongo query', () => {
@@ -111,8 +279,14 @@ describe('ReleasesFactory latest registered release Mongo query', () => {
      * Reproduce the existing production index only in this isolated test database.
      */
     await db.collection('releases').createIndex(
-      { projectId: 1, release: 1 },
-      { name: 'projectId_release_unique_idx', unique: true }
+      {
+        projectId: 1,
+        release: 1,
+      },
+      {
+        name: 'projectId_release_unique_idx',
+        unique: true,
+      }
     );
   });
 
@@ -136,26 +310,39 @@ describe('ReleasesFactory latest registered release Mongo query', () => {
     const releases = db.collection('releases');
 
     await releases.insertMany([
-      { _id: ObjectId.createFromTime(3), projectId, release: 'unseen / Build+9' },
-      { _id: ObjectId.createFromTime(1), projectId, release: 'z-older' },
-      { _id: ObjectId.createFromTime(2), projectId, release: 'a-observed' },
+      {
+        _id: ObjectId.createFromTime(3),
+        projectId,
+        release: 'unseen / Build+9',
+      },
+      {
+        _id: ObjectId.createFromTime(1),
+        projectId,
+        release: 'z-older',
+      },
+      {
+        _id: ObjectId.createFromTime(2),
+        projectId,
+        release: 'a-observed',
+      },
       ...Array.from({ length: 200 }, (_, index) => ({
         _id: ObjectId.createFromTime(100 + index),
         projectId: 'unrelated-project',
         release: `foreign-${index}`,
       })),
     ]);
-    const findOne = jest.spyOn(Collection.prototype, 'findOne');
+    const find = jest.spyOn(Collection.prototype, 'find');
     const factory = new ReleasesFactory(db);
+    const cache = new Map<string, Promise<string | null>>();
 
-    expect(await factory.isNewInLatestRelease(projectId, 'a-observed')).toBe(false);
-    expect(await factory.isNewInLatestRelease(projectId, 'unseen / Build+9')).toBe(true);
-    expect(findOne).toHaveBeenCalledTimes(1);
-    expect(findOne).toHaveBeenCalledWith({ projectId }, queryOptions);
-    expect((await db.listCollections().toArray()).map(({ name }) => name)).toEqual(['releases']);
+    expect(await factory.isNewInLatestRelease(projectId, 'a-observed', cache)).toBe(false);
+    expect(await factory.isNewInLatestRelease(projectId, 'unseen / Build+9', cache)).toBe(true);
+    expect(find).toHaveBeenCalledTimes(1);
+    expect(find).toHaveBeenCalledWith({ projectId }, queryOptions);
+    expect((await db.listCollections().toArray()).map(({ name }) => name)).toEqual([ 'releases' ]);
 
-    const [filter, options] = findOne.mock.calls[0];
-    const explain = await releases.find(filter!, options).limit(1).explain('executionStats');
+    const [filter, options] = find.mock.calls[0];
+    const explain = await releases.find(filter!, options).explain('executionStats');
     const plan = explain.queryPlanner.winningPlan;
     const serializedPlan = JSON.stringify(plan);
 
@@ -164,7 +351,10 @@ describe('ReleasesFactory latest registered release Mongo query', () => {
     expect(serializedPlan).toContain('"stage":"SORT"');
     expect(serializedPlan).not.toContain('"stage":"COLLSCAN"');
     expect(serializedPlan).toContain(`"projectId":["[\\"${projectId}\\", \\"${projectId}\\"]"]`);
-    expect(explain.executionStats.nReturned).toBe(1);
+    /*
+     * The application stops at the first valid name; the database still sorts the project's full history.
+     */
+    expect(explain.executionStats.nReturned).toBe(3);
     expect(explain.executionStats.totalDocsExamined).toBe(3);
     /*
      * A compound-index prefix scan may examine one additional boundary key.
@@ -179,13 +369,40 @@ describe('ReleasesFactory latest registered release Mongo query', () => {
     }));
   });
 
-  it.each([undefined, null, ' NaN '])('does not skip an invalid newest document (%p)', async (release) => {
+  it.each([undefined, null, ' NaN ', true, {} ])('skips an invalid newest document (%p)', async (release) => {
     await db.collection('releases').insertMany([
-      { _id: ObjectId.createFromTime(1), projectId, release: 'valid-older' },
-      { _id: ObjectId.createFromTime(2), projectId, ...(release === undefined ? {} : { release }) },
+      {
+        _id: ObjectId.createFromTime(1),
+        projectId,
+        release: 'valid-older',
+      },
+      {
+        _id: ObjectId.createFromTime(2),
+        projectId,
+        release: 0,
+      },
+      {
+        _id: ObjectId.createFromTime(3),
+        projectId,
+        ...(release === undefined ? {} : { release }),
+      },
     ]);
     const factory = new ReleasesFactory(db);
+    const cache = new Map<string, Promise<string | null>>();
 
-    expect(await factory.isNewInLatestRelease(projectId, 'valid-older')).toBe(false);
+    expect(await factory.isNewInLatestRelease(projectId, '0', cache)).toBe(true);
+    expect(await factory.isNewInLatestRelease(projectId, 'valid-older', cache)).toBe(false);
   });
+
+  it.each([ { releases: [] }, { releases: [null, ' NaN ', true] } ])(
+    'returns false for absent or all-invalid history $releases', async ({ releases }) => {
+      if (releases.length) {
+        await db.collection('releases').insertMany(releases.map(release => ({
+          projectId,
+          release,
+        })));
+      }
+      expect(await new ReleasesFactory(db).isNewInLatestRelease(projectId, 'valid')).toBe(false);
+    }
+  );
 });

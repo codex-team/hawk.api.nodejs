@@ -1,4 +1,6 @@
-// TODO: it would be great to move release logic from another factories/resolvers to this class
+/**
+ * TODO: it would be great to move release logic from another factories/resolvers to this class
+ */
 import type { Collection, Db, ObjectId } from 'mongodb';
 import type { ReleaseDBScheme } from '@hawk.so/types';
 import { normalizeReleaseName } from '../utils/releaseName';
@@ -48,7 +50,6 @@ export default class ReleasesFactory {
    */
   private readonly collection: Collection<ReleaseDBScheme>;
   private readonly filesCollection: Collection<ReleaseFileDBScheme>;
-  private readonly latestRegisteredReleaseByProject = new Map<string, Promise<string | null>>();
 
   /**
    * Creates releases factory instance
@@ -60,41 +61,40 @@ export default class ReleasesFactory {
   }
 
   /**
-   * Compare against the newest registered release, not the newest observed/deployed release.
+   * Compare against the newest valid registered release, not the newest observed/deployed release.
    * @param projectId - event's project
-   * @param firstSeenRelease - original event's release
+   * @param firstSeenRelease - original event's release name
+   * @param latestReleaseCache - caller-owned request cache keyed by project ID; shares in-flight lookups
+   * and null results (including failures) only within that request. Without it, every call reads afresh.
+   * @returns whether the original first appeared in the newest valid registered release, or false on failure
    */
   public async isNewInLatestRelease(
     projectId: string | ObjectId | null | undefined,
-    firstSeenRelease: unknown
+    firstSeenRelease: unknown,
+    latestReleaseCache?: Map<string, Promise<string | null>>
   ): Promise<boolean> {
-    const name = normalizeReleaseName(firstSeenRelease);
+    try {
+      const name = normalizeReleaseName(firstSeenRelease);
 
-    if (!projectId || name === null) {
+      if (!projectId || name === null) {
+        return false;
+      }
+      const key = projectId.toString();
+      let latest = latestReleaseCache?.get(key);
+
+      if (!latest) {
+        latest = this.findLatestValidRelease(key);
+        if (latestReleaseCache) {
+          latestReleaseCache.set(key, latest);
+        }
+      }
+
+      return name === await latest;
+    } catch (error) {
+      console.error('Failed to compare event release with latest registered release', error);
+
       return false;
     }
-    const key = projectId.toString();
-    let latest = this.latestRegisteredReleaseByProject.get(key);
-
-    if (!latest) {
-      /*
-       * The existing index bounds the project, but does not cover the _id sort.
-       */
-      latest = this.collection.findOne({ projectId: key }, {
-        sort: { _id: -1 },
-        projection: {
-          release: 1,
-          _id: 0,
-        },
-        hint: {
-          projectId: 1,
-          release: 1,
-        },
-      }).then(doc => normalizeReleaseName(doc?.release));
-      this.latestRegisteredReleaseByProject.set(key, latest);
-    }
-
-    return name === await latest;
   }
 
   /**
@@ -107,13 +107,17 @@ export default class ReleasesFactory {
   ): Promise<ReleaseDBScheme | null> {
     const projectIdStr = projectId.toString();
 
-    // Try exact match as stored
+    /*
+     * Try exact match as stored
+     */
     let doc = await this.collection.findOne({
       projectId: projectIdStr,
       release: release as ReleaseDBScheme['release'],
     });
 
-    // Fallback if release stored as number
+    /*
+     * Fallback if release stored as number
+     */
     if (!doc) {
       const asNumber = Number(release);
 
@@ -135,5 +139,46 @@ export default class ReleasesFactory {
    */
   public async findFilesByFileIds(fileIds: ObjectId[]): Promise<ReleaseFileDBScheme[]> {
     return this.filesCollection.find({ _id: { $in: fileIds } }).toArray();
+  }
+
+  /**
+   * Read newest first, skipping legacy invalid names without materializing the release history.
+   * Failures resolve to null so concurrent rows share one logged failure, not rejected promises.
+   * @param projectId - normalized project ID
+   * @returns newest valid release name, or null if none exists or the lookup fails
+   */
+  private async findLatestValidRelease(projectId: string): Promise<string | null> {
+    try {
+      /*
+       * The existing index bounds the project, but does not cover the _id sort.
+       */
+      const cursor = this.collection.find({ projectId }, {
+        sort: { _id: -1 },
+        projection: {
+          release: 1,
+          _id: 0,
+        },
+        hint: {
+          projectId: 1,
+          release: 1,
+        },
+      });
+
+      try {
+        for await (const doc of cursor) {
+          const name = normalizeReleaseName(doc.release);
+
+          if (name !== null) {
+            return name;
+          }
+        }
+      } finally {
+        await cursor.close();
+      }
+    } catch (error) {
+      console.error(`Failed to look up latest registered release for project ${projectId}`, error);
+    }
+
+    return null;
   }
 }

@@ -307,7 +307,7 @@ type Event {
   firstSeenInRelease: String
 
   """
-  Whether the original event first appeared in the newest registered release for its project
+  Whether the original event first appeared in the newest valid registered release for its project
   """
   isNew: Boolean!
 

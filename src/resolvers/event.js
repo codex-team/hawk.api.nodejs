@@ -25,43 +25,56 @@ module.exports = {
   },
   Event: {
     /**
-     * Returns the original release, preserving null for repetitions of legacy events.
+     * Returns the original release name, preserving null for repetitions of legacy events.
      *
      * @param {Object} event - original event or composed repetition
-     * @returns {string|null}
+     * @param {*} event.firstSeenInRelease - original release name; explicit null preserves legacy absence
+     * @param {Object} event.payload - selected occurrence payload, used only when original metadata is undefined
+     * @returns {string|null} normalized original release name
      */
-    firstSeenInRelease({ firstSeenInRelease, payload }) {
+    firstSeenInRelease(event) {
+      const { firstSeenInRelease, payload } = event;
+
       return normalizeReleaseName(firstSeenInRelease !== undefined ? firstSeenInRelease : payload && payload.release);
     },
 
     /**
-     * Compare the original release with the newest registered release.
+     * Compare the original release name with the newest valid registered release.
      * @param {Object} event - original event or composed repetition
      * @param {Object} _args - query arguments
-     * @param {Object} context - request-scoped factories
-     * @returns {Promise<boolean>} whether the original first appeared in the newest registered release
+     * @param {Object} context - request context owning the lazy per-project release cache, independent of factory lifetime
+     * @returns {Promise<boolean>} whether the original first appeared in the newest valid registered release
      */
-    isNew({ projectId, firstSeenInRelease, payload }, _args, { factories }) {
-      return factories.releasesFactory.isNewInLatestRelease(
+    isNew(event, _args, context) {
+      const { projectId, firstSeenInRelease, payload } = event;
+
+      if (!context.latestRegisteredReleaseByProject) {
+        context.latestRegisteredReleaseByProject = new Map();
+      }
+
+      return context.factories.releasesFactory.isNewInLatestRelease(
         projectId,
-        firstSeenInRelease !== undefined ? firstSeenInRelease : payload && payload.release
+        firstSeenInRelease !== undefined ? firstSeenInRelease : payload && payload.release,
+        context.latestRegisteredReleaseByProject
       );
     },
 
     /**
+     * Return the stored resolution release name.
      * @param {Object} event - event with stored lifecycle metadata
      * @returns {string|null} normalized resolution release
      */
-    resolvedInRelease({ resolvedInRelease }) {
-      return normalizeReleaseName(resolvedInRelease);
+    resolvedInRelease(event) {
+      return normalizeReleaseName(event.resolvedInRelease);
     },
 
     /**
+     * Return the stored regression release name.
      * @param {Object} event - event with stored lifecycle metadata
      * @returns {string|null} normalized regression release
      */
-    regressionInRelease({ regressionInRelease }) {
-      return normalizeReleaseName(regressionInRelease);
+    regressionInRelease(event) {
+      return normalizeReleaseName(event.regressionInRelease);
     },
 
     /**

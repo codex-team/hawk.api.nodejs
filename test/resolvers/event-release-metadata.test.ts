@@ -2,6 +2,7 @@ import { makeExecutableSchema } from '@graphql-tools/schema';
 import { graphql, GraphQLObjectType, GraphQLString } from 'graphql';
 import type { Db } from 'mongodb';
 import ReleasesFactory from '../../src/models/releasesFactory';
+import type { ResolverContextBase } from '../../src/types/graphql';
 import eventTypeDefs from '../../src/typeDefs/event';
 
 jest.mock('../../src/resolvers/helpers/eventsFactory', () => ({}));
@@ -50,14 +51,36 @@ const source = `{
 const metadataSource = '{ event { firstSeenInRelease resolvedInRelease regressionInRelease isNew } }';
 
 describe('Event release metadata GraphQL contract', () => {
-  let findOne: jest.Mock;
-  let db: Db;
-  let context: { factories: { releasesFactory: ReleasesFactory } };
+  let find: jest.Mock;
+  let cursor: {
+    next: jest.Mock;
+    close: jest.Mock;
+    [Symbol.asyncIterator](): AsyncIterableIterator<{ release: unknown }>;
+  };
+  let context: Pick<ResolverContextBase, 'latestRegisteredReleaseByProject'> & {
+    factories: { releasesFactory: ReleasesFactory };
+  };
 
   beforeEach(() => {
-    findOne = jest.fn().mockResolvedValue({ release: latestName });
-    db = { collection: () => ({ findOne }) } as unknown as Db;
+    cursor = {
+      next: jest.fn().mockResolvedValueOnce({
+        value: { release: latestName },
+        done: false,
+      })
+        .mockResolvedValue({ done: true }),
+      close: jest.fn().mockResolvedValue(undefined),
+      [Symbol.asyncIterator](): AsyncIterableIterator<{ release: unknown }> {
+        return this;
+      },
+    };
+    find = jest.fn().mockReturnValue(cursor);
+    const db = { collection: () => ({ find }) } as unknown as Db;
+
     context = { factories: { releasesFactory: new ReleasesFactory(db) } };
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it.each(['firstSeenInRelease', 'resolvedInRelease', 'regressionInRelease'])('exposes %s as a nullable String', (field) => {
@@ -119,7 +142,12 @@ describe('Event release metadata GraphQL contract', () => {
     const { data, errors } = await graphql({
       schema,
       source,
-      rootValue: { event: { ...event, projectId } },
+      rootValue: {
+        event: {
+          ...event,
+          projectId,
+        },
+      },
       contextValue: context,
     });
 
@@ -131,7 +159,7 @@ describe('Event release metadata GraphQL contract', () => {
       isNew: expected === latestName,
       payload: { release: event.payload.release ?? null },
     });
-    expect(findOne).toHaveBeenCalledTimes(expected === null ? 0 : 1);
+    expect(find).toHaveBeenCalledTimes(expected === null ? 0 : 1);
   });
 
   it.each([
@@ -150,10 +178,14 @@ describe('Event release metadata GraphQL contract', () => {
     [Infinity, null],
     [-Infinity, null],
     [true, null],
-    [{}, null],
-    [[], null],
+    [ {}, null],
+    [ [], null],
   ])('normalizes raw legacy release %p without field errors', async (release, expected) => {
-    findOne.mockResolvedValue({ release });
+    cursor.next.mockReset().mockResolvedValueOnce({
+      value: { release },
+      done: false,
+    })
+      .mockResolvedValue({ done: true });
     const { data, errors } = await graphql({
       schema,
       source: metadataSource,
@@ -175,10 +207,13 @@ describe('Event release metadata GraphQL contract', () => {
       regressionInRelease: expected,
       isNew: expected !== null,
     });
-    expect(findOne).toHaveBeenCalledTimes(expected === null ? 0 : 1);
+    expect(find).toHaveBeenCalledTimes(expected === null ? 0 : 1);
   });
 
-  it.each([{}, { projectId }, { projectId, payload: null }, { payload: { release: latestName } }])(
+  it.each([ {}, { projectId }, {
+    projectId,
+    payload: null,
+  }, { payload: { release: latestName } } ])(
     'returns false without querying for missing project or payload: %p', async (event) => {
       const { data, errors } = await graphql({
         schema,
@@ -189,7 +224,7 @@ describe('Event release metadata GraphQL contract', () => {
 
       expect(errors).toBeUndefined();
       expect(data?.event).toMatchObject({ isNew: false });
-      expect(findOne).not.toHaveBeenCalled();
+      expect(find).not.toHaveBeenCalled();
     }
   );
 
@@ -217,41 +252,172 @@ describe('Event release metadata GraphQL contract', () => {
     });
   });
 
-  it('queries once for 50 GraphQL rows and reads afresh in the next request', async () => {
+  it('queries once for 50 GraphQL rows and reads afresh in a new context with the same factory', async () => {
     const events = Array.from({ length: 50 }, (_, index) => ({
       projectId,
       firstSeenInRelease: index % 2 ? latestName : 'older',
       payload: { release: 'selected repetition' },
     }));
-    const query = { schema, source: '{ events { isNew } }', rootValue: { events } };
-    const first = await graphql({ ...query, contextValue: context });
+    const query = {
+      schema,
+      source: '{ events { isNew } }',
+      rootValue: { events },
+    };
+    const first = await graphql({
+      ...query,
+      contextValue: context,
+    });
 
     expect(first.errors).toBeUndefined();
     expect(first.data?.events).toEqual(events.map((_, index) => ({ isNew: Boolean(index % 2) })));
-    expect(findOne).toHaveBeenCalledTimes(1);
+    expect(find).toHaveBeenCalledTimes(1);
+    expect(context.latestRegisteredReleaseByProject).toBeInstanceOf(Map);
 
-    findOne.mockResolvedValue({ release: 'registered with no occurrences' });
+    cursor.next.mockResolvedValueOnce({
+      value: { release: 'registered with no occurrences' },
+      done: false,
+    });
+    const nextContext = { factories: context.factories };
     const second = await graphql({
       ...query,
-      contextValue: { factories: { releasesFactory: new ReleasesFactory(db) } },
+      contextValue: nextContext,
     });
 
     expect(second.errors).toBeUndefined();
     expect(second.data?.events).toEqual(events.map(() => ({ isNew: false })));
-    expect(findOne).toHaveBeenCalledTimes(2);
+    expect(find).toHaveBeenCalledTimes(2);
+    expect(nextContext.factories.releasesFactory).toBe(context.factories.releasesFactory);
+    expect(nextContext).toHaveProperty('latestRegisteredReleaseByProject', expect.any(Map));
+    await expect(context.latestRegisteredReleaseByProject?.get(projectId)).resolves.toBe(latestName);
   });
 
-  it('uses each event project, not the parent context project', async () => {
-    findOne.mockImplementation(({ projectId: id }) => Promise.resolve({ release: id === projectId ? latestName : 'other' }));
+  it.each(['find throws', 'iteration throws', 'iteration rejects', 'close throws', 'close rejects'])(
+    'keeps all 50 Boolean! list rows false without GraphQL errors when %s, then retries in a new context', async (failure) => {
+      const error = new Error(failure);
+      const log = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      if (failure === 'find throws') {
+        find.mockImplementationOnce(() => {
+          throw error;
+        });
+      } else if (failure === 'iteration throws') {
+        cursor.next.mockReset().mockImplementationOnce(() => {
+          throw error;
+        });
+      } else if (failure === 'iteration rejects') {
+        cursor.next.mockReset().mockRejectedValueOnce(error);
+      } else if (failure === 'close throws') {
+        cursor.close.mockImplementationOnce(() => {
+          throw error;
+        });
+      } else {
+        cursor.close.mockRejectedValueOnce(error);
+      }
+
+      const events = Array.from({ length: 50 }, () => ({
+        projectId,
+        payload: { release: latestName },
+      }));
+      const query = {
+        schema,
+        source: '{ events { isNew } }',
+        rootValue: { events },
+      };
+      const failed = await graphql({
+        ...query,
+        contextValue: context,
+      });
+
+      expect(failed.errors).toBeUndefined();
+      expect(failed.data?.events).toEqual(events.map(() => ({ isNew: false })));
+      expect(find).toHaveBeenCalledTimes(1);
+      expect(log).toHaveBeenCalledTimes(1);
+      expect(log).toHaveBeenCalledWith(expect.stringContaining(projectId), error);
+      expect(await context.latestRegisteredReleaseByProject?.get(projectId)).toBeNull();
+      expect(cursor.close).toHaveBeenCalledTimes(failure === 'find throws' ? 0 : 1);
+
+      cursor.next.mockReset().mockResolvedValueOnce({
+        value: { release: latestName },
+        done: false,
+      });
+      const retried = await graphql({
+        ...query,
+        contextValue: { factories: context.factories },
+      });
+
+      expect(retried.errors).toBeUndefined();
+      expect(retried.data?.events).toEqual(events.map(() => ({ isNew: true })));
+      expect(find).toHaveBeenCalledTimes(2);
+      expect(log).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('skips invalid newest names and exposes numeric zero as the newest valid original release', async () => {
+    cursor.next.mockReset()
+      .mockResolvedValueOnce({
+        value: { release: ' NULL ' },
+        done: false,
+      })
+      .mockResolvedValueOnce({
+        value: { release: 0 },
+        done: false,
+      })
+      .mockResolvedValueOnce({
+        value: { release: 'older' },
+        done: false,
+      });
     const { data, errors } = await graphql({
       schema,
-      source: '{ events { isNew } }',
-      rootValue: { events: [projectId, 'another-project'].map(id => ({ projectId: id, payload: { release: latestName } })) },
-      contextValue: { ...context, projectId: 'wrong-parent-project' },
+      source: '{ events { firstSeenInRelease isNew } }',
+      rootValue: {
+        events: [0, 'older'].map(release => ({
+          projectId,
+          payload: { release },
+        })),
+      },
+      contextValue: context,
     });
 
     expect(errors).toBeUndefined();
-    expect(data?.events).toEqual([{ isNew: true }, { isNew: false }]);
-    expect(findOne.mock.calls.map(([filter]) => filter)).toEqual([{ projectId }, { projectId: 'another-project' }]);
+    expect(data?.events).toEqual([
+      {
+        firstSeenInRelease: '0',
+        isNew: true,
+      },
+      {
+        firstSeenInRelease: 'older',
+        isNew: false,
+      },
+    ]);
+    expect(find).toHaveBeenCalledTimes(1);
+    expect(cursor.next).toHaveBeenCalledTimes(2);
+    expect(cursor.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses each event project, not the parent context project', async () => {
+    find.mockImplementation(({ projectId: id }) => ({
+      async * [Symbol.asyncIterator](): AsyncIterableIterator<{ release: string }> {
+        yield { release: id === projectId ? latestName : 'other' };
+      },
+      close: jest.fn().mockResolvedValue(undefined),
+    }));
+    const { data, errors } = await graphql({
+      schema,
+      source: '{ events { isNew } }',
+      rootValue: {
+        events: [projectId, 'another-project'].map(id => ({
+          projectId: id,
+          payload: { release: latestName },
+        })),
+      },
+      contextValue: {
+        ...context,
+        projectId: 'wrong-parent-project',
+      },
+    });
+
+    expect(errors).toBeUndefined();
+    expect(data?.events).toEqual([ { isNew: true }, { isNew: false } ]);
+    expect(find.mock.calls.map(([ filter ]) => filter)).toEqual([ { projectId }, { projectId: 'another-project' } ]);
   });
 });
