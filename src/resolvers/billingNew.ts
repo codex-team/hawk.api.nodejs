@@ -9,7 +9,7 @@ import {
 } from '@hawk.so/types';
 import checksumService from '../utils/checksumService';
 import { ObjectId } from 'mongodb';
-import type { PromoCodeQuote } from '../billing/promoCodes/redemptions';
+import type { PromoCodeQuote } from '../billing/promoCodes/validation';
 import { UserInputError } from 'apollo-server-express';
 import cloudPaymentsApi, { CloudPaymentsJsonData } from '../utils/cloudPaymentsApi';
 import * as telegram from '../utils/telegram';

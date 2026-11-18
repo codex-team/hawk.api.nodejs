@@ -1,5 +1,6 @@
 import express from 'express';
-import { PromoPayment, validatePromoOperation, validatePromoSubscription } from './promoCodes/redemptions';
+import { PENNY_MULTIPLIER } from './constants';
+import { PlanPurchasePayload, PromoPayment, validatePromoOperation, validatePromoSubscription } from './promoCodes/validation';
 import * as telegram from '../utils/telegram';
 import { TelegramBotURLs } from '../utils/telegram';
 import {
@@ -42,8 +43,6 @@ import { PaymentData } from './types/paymentData';
 import cloudPaymentsApi from '../utils/cloudPaymentsApi';
 import PlanModel from '../models/plan';
 import { ClientApi, ClientService, CustomerReceiptItem, ReceiptApi, ReceiptTypes, TaxationSystem } from 'cloudpayments';
-
-const PENNY_MULTIPLIER = 100;
 
 /**
  * Class for describing the logic of payment routes
@@ -183,7 +182,7 @@ export default class CloudPaymentsWebhooks {
     if (data.promo) {
       try {
         validatePromoSubscription(data, plan.monthlyCharge, Boolean(workspace.isDebug));
-        await context.factories.promoCodesFactory.ensurePaymentAvailable(this.buildPromoPayment(body, data));
+        await context.factories.promoCodesFactory.ensurePromoCodeStillValid(this.buildPromoPayment(body, data));
       } catch (error) {
         this.sendError(res, CheckCodes.PAYMENT_COULD_NOT_BE_ACCEPTED, `[Billing / Check] ${String(error)}`, body);
 
@@ -195,7 +194,7 @@ export default class CloudPaymentsWebhooks {
      * Create business operation about creation of subscription
      */
     try {
-      await context.factories.businessOperationsFactory.create<PayloadOfWorkspacePlanPurchase>({
+      await context.factories.businessOperationsFactory.create<PlanPurchasePayload>({
         transactionId: body.TransactionId.toString(),
         type: data.isCardLinkOperation ? BusinessOperationType.CardLinkCharge : BusinessOperationType.WorkspacePlanPurchase,
         status: BusinessOperationStatus.Pending,
@@ -203,8 +202,9 @@ export default class CloudPaymentsWebhooks {
           workspaceId: workspace._id,
           amount: +body.Amount * PENNY_MULTIPLIER,
           currency: body.Currency,
-          userId: data.promo ? member.userId : member._id,
+          userId: member._id,
           tariffPlanId: plan._id,
+          ...(data.promo && { promoPayerId: userId }),
         },
         dtCreated: new Date(),
       });
@@ -305,7 +305,9 @@ export default class CloudPaymentsWebhooks {
       try {
         await req.context.factories.promoCodeRedemptionsFactory.redeem(payment);
       } catch (error) {
-        this.sendError(res.status(500), PayCodes.RETRY, `[Billing / Pay] Could not redeem promo code: ${String(error)}`, body);
+        // A non-200 response asks CloudPayments to retry delivery of this Pay notification.
+        res.status(500).end();
+        this.reportError(`[Billing / Pay] Could not redeem promo code: ${String(error)}`, body);
 
         return;
       }
@@ -819,14 +821,23 @@ status: ${body.Status}`
    * @param errorText - error description
    * @param backtrace - request data and error data
    */
-  private sendError(res: express.Response, errorCode: CheckCodes | PayCodes | FailCodes | RecurrentCodes, errorText: string, backtrace: { [key: string]: any }): void {
+  private sendError(res: express.Response, errorCode: CheckCodes | PayCodes | FailCodes | RecurrentCodes, errorText: string, backtrace: object): void {
     res.json({
       code: errorCode,
     });
 
-    console.log(errorText, backtrace);
     console.log('We responded with an error code to CloudPayments: ' + errorCode);
+    this.reportError(errorText, backtrace);
+  }
 
+  /**
+   * Report a webhook error to Telegram and Hawk.
+   *
+   * @param errorText - error description
+   * @param backtrace - request data and error data
+   */
+  private reportError(errorText: string, backtrace: object): void {
+    console.log(errorText, backtrace);
     this.handleSendingToTelegramError(telegram.sendMessage(`❌ ${errorText}`, TelegramBotURLs.Money));
 
     HawkCatcher.send(new Error(errorText), backtrace);

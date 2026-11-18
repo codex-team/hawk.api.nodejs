@@ -69,6 +69,7 @@ describe('Payment callbacks with MongoDB', () => {
   let callbacks: TestCallbacks;
   let workspaceId: ObjectId;
   let userId: ObjectId;
+  let memberId: ObjectId;
   let workspaceKeys: string[];
   let factories: {
     workspacesFactory: WorkspacesFactory;
@@ -110,6 +111,7 @@ describe('Payment callbacks with MongoDB', () => {
     }, { unique: true });
     workspaceId = new ObjectId();
     userId = new ObjectId();
+    memberId = new ObjectId();
     const workspace = {
       _id: workspaceId,
       name: 'Callback workspace',
@@ -126,6 +128,7 @@ describe('Payment callbacks with MongoDB', () => {
       email: 'callback@example.test',
     });
     await db.collection(`team:${workspaceId}`).insertOne({
+      _id: memberId,
       userId,
       isAdmin: true,
     });
@@ -235,10 +238,11 @@ describe('Payment callbacks with MongoDB', () => {
       dtCreated: date,
       payload: {
         workspaceId,
-        userId,
+        userId: memberId,
         tariffPlanId: attempt.planId,
         amount: Number(attempt.req.body.Amount) * 100,
         currency: 'RUB',
+        ...(attempt.signedData.promo && { promoPayerId: attempt.signedData.userId }),
       },
     });
   }
@@ -293,9 +297,9 @@ describe('Payment callbacks with MongoDB', () => {
     await invoke('pay', attempt.req);
     expect(await db.collection('businessOperations').findOne({ transactionId: '1001' })).toMatchObject({
       status: BusinessOperationStatus.Confirmed,
-      payload: { userId },
+      payload: { userId: memberId },
     });
-    expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(1);
+    expect(await db.collection('promoCodeRedemptions').findOne({ transactionId: '1001' })).toMatchObject({ userId });
     expectReceipt(80);
   });
 
@@ -462,6 +466,7 @@ describe('Payment callbacks with MongoDB', () => {
         workspaceId,
         tariffPlanId: attempt.planId,
         amount: 10000,
+        userId: memberId,
       },
     });
     await invoke('pay', attempt.req);
@@ -570,13 +575,15 @@ describe('Payment callbacks with MongoDB', () => {
         throw new Error('Redemption database unavailable');
       });
       const res = {
+        end: jest.fn().mockReturnThis(),
         json: jest.fn().mockReturnThis(),
         status: jest.fn().mockReturnThis(),
       };
 
       await callbacks.pay(attempt.req, res as unknown as Response);
       expect(res.status.mock.calls).toEqual([ [ 500 ] ]);
-      expect(res.json.mock.calls).toEqual([ [ { code: 1 } ] ]);
+      expect(res.end).toHaveBeenCalledTimes(1);
+      expect(res.json).not.toHaveBeenCalled();
       expect(await db.collection('businessOperations').findOne({ _id: operation._id })).toMatchObject({
         status: BusinessOperationStatus.Pending,
       });
@@ -632,7 +639,7 @@ describe('Payment callbacks with MongoDB', () => {
     ['amount', { 'payload.amount': 7900 } ],
     ['currency', { 'payload.currency': 'USD' } ],
     ['workspace', { 'payload.workspaceId': new ObjectId() } ],
-    ['payer', { 'payload.userId': new ObjectId() } ],
+    ['payer', { 'payload.promoPayerId': new ObjectId().toHexString() } ],
     ['plan', { 'payload.tariffPlanId': new ObjectId() } ],
     ['operation type', { type: BusinessOperationType.CardLinkCharge } ],
   ])('/pay rejects a mismatched operation %s before redeeming or changing the plan', async (_name, changes) => {

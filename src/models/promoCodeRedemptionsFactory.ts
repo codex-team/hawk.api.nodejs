@@ -1,12 +1,12 @@
 import { Collection, Db, MongoServerError, ObjectId } from 'mongodb';
 import { getMaxUses, PromoCode } from '../billing/promoCodes';
 import {
-  ensurePromoCodeAvailable,
   PromoCodeInput,
   PromoCodeRedemption,
   PromoPayment,
+  validatePromoCodeUsage,
   validatePromoPayment
-} from '../billing/promoCodes/redemptions';
+} from '../billing/promoCodes/validation';
 
 /**
  * Successful promo usage, protected by the existing user and workspace unique indexes.
@@ -24,7 +24,7 @@ export default class PromoCodeRedemptionsFactory {
   }
 
   /**
-   * Read successful usage without fetching the code again or reserving capacity.
+   * Throw if this payer or workspace has already used the code in a different payment, or the code has reached maxUses.
    *
    * @param promoCode - already fetched code
    * @param identity - payer and paid workspace
@@ -43,7 +43,7 @@ export default class PromoCodeRedemptionsFactory {
       ? await this.collection.countDocuments({ promoCodeId: promoCode._id })
       : 0;
 
-    ensurePromoCodeAvailable(promoCode, identity, existing, successfulUses, transactionId);
+    validatePromoCodeUsage(promoCode, identity, existing, successfulUses, transactionId);
   }
 
   /**

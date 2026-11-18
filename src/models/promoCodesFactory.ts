@@ -1,6 +1,6 @@
 import { Collection, Db, Filter, ObjectId } from 'mongodb';
 import { applyDiscount, ensureActivePromoCode, normalizePromoCode, PromoCode } from '../billing/promoCodes';
-import { PromoCodeInput, PromoCodeQuote, PromoPayment, validatePromoPayment } from '../billing/promoCodes/redemptions';
+import { PromoCodeInput, PromoCodeQuote, PromoPayment, validatePromoPayment } from '../billing/promoCodes/validation';
 import PromoCodeRedemptionsFactory from './promoCodeRedemptionsFactory';
 
 /**
@@ -40,11 +40,11 @@ export default class PromoCodesFactory {
   }
 
   /**
-   * Check current restrictions using a single code lookup and the signed price.
+   * Re-check in /check that the paid amount matches the signed price and the code can still be used for this plan, payer and workspace.
    *
    * @param payment - verified signed quote and provider callback fields
    */
-  public async ensurePaymentAvailable(payment: PromoPayment): Promise<void> {
+  public async ensurePromoCodeStillValid(payment: PromoPayment): Promise<void> {
     validatePromoPayment(payment);
 
     const promoCode = await this.findActivePromoCode({ _id: new ObjectId(payment.promoCodeId) }, new ObjectId(payment.tariffPlanId));
@@ -56,7 +56,7 @@ export default class PromoCodesFactory {
   }
 
   /**
-   * Read legacy percentage documents without changing stored data.
+   * Find a promo code that can be applied to the selected plan, or throw.
    *
    * @param query - indexed code or identifier lookup
    * @param tariffPlanId - selected plan
@@ -65,21 +65,6 @@ export default class PromoCodesFactory {
     const promoCode = await this.collection.findOne(query);
 
     ensureActivePromoCode(promoCode, tariffPlanId);
-
-    /*
-     * shortcut: support discountPercent until existing documents have been migrated to discount.
-     */
-    const legacy = promoCode as PromoCode & { discountPercent?: number };
-
-    if (promoCode.discount === undefined && typeof legacy.discountPercent === 'number') {
-      return {
-        ...promoCode,
-        discount: {
-          type: 'percent',
-          value: legacy.discountPercent,
-        },
-      };
-    }
 
     return promoCode;
   }

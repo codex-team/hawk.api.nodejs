@@ -1,9 +1,9 @@
 import type { Db } from 'mongodb';
 import { MongoClient, MongoServerError, ObjectId } from 'mongodb';
-import { validatePromoPayment } from '../../../src/billing/promoCodes/redemptions';
+import { validatePromoPayment } from '../../../src/billing/promoCodes/validation';
 import PromoCodesFactory from '../../../src/models/promoCodesFactory';
 import PromoCodeRedemptionsFactory from '../../../src/models/promoCodeRedemptionsFactory';
-import type { PromoCodeInput, PromoPayment, PromoCodeRedemption } from '../../../src/billing/promoCodes/redemptions';
+import type { PromoCodeInput, PromoPayment, PromoCodeRedemption } from '../../../src/billing/promoCodes/validation';
 import type { PromoCode } from '../../../src/billing/promoCodes';
 import migration from '../../../migrations/20261013000000-create-promo-code-collections';
 
@@ -103,34 +103,15 @@ describe('Promo code factories and successful usage', () => {
     expect(await promoCodesFactory.calculatePromoQuote(input)).toMatchObject({ finalAmount: 75 });
   });
 
-  test('should read legacy discountPercent without modifying the document', async () => {
-    const legacy = {
-      ...promoCode,
-      discount: undefined,
-      discountPercent: 20,
-    };
 
-    findPromoCode.mockResolvedValue(legacy);
-    expect(await promoCodesFactory.calculatePromoQuote(input)).toMatchObject({ finalAmount: 80 });
-    expect(legacy.discount).toBeUndefined();
-  });
-
-  test('should prefer the new discount over legacy discountPercent', async () => {
-    findPromoCode.mockResolvedValue({
-      ...promoCode,
-      discountPercent: 50,
-    });
-    expect(await promoCodesFactory.calculatePromoQuote(input)).toMatchObject({ finalAmount: 80 });
-  });
-
-  test.each([null, {
+  test.each([undefined, null, {
     type: 'percent',
     value: 29.1,
   }, {
     type: 'fixed',
     value: -1,
   } ])(
-    'should not fall back to a legacy value for invalid new discount %j', async discount => {
+    'should reject a missing or invalid discount %j', async discount => {
       findPromoCode.mockResolvedValue({
         ...promoCode,
         discount,
@@ -140,14 +121,6 @@ describe('Promo code factories and successful usage', () => {
     }
   );
 
-  test.each([undefined, '20', 29.1])('should reject missing or invalid legacy discount %j', async discountPercent => {
-    findPromoCode.mockResolvedValue({
-      ...promoCode,
-      discount: undefined,
-      discountPercent,
-    });
-    await expect(promoCodesFactory.calculatePromoQuote(input)).rejects.toThrow('PROMO_CODE_INVALID');
-  });
 
   test('should allow repeated quotes while no successful use exists', async () => {
     const first = await promoCodesFactory.calculatePromoQuote(input);
@@ -162,7 +135,7 @@ describe('Promo code factories and successful usage', () => {
     existingUse[otherField] = new ObjectId();
     findRedemption.mockResolvedValue(existingUse);
     await expect(promoCodesFactory.calculatePromoQuote(input)).rejects.toThrow('PROMO_CODE_ALREADY_USED');
-    await expect(promoCodesFactory.ensurePaymentAvailable(payment)).rejects.toThrow('PROMO_CODE_ALREADY_USED');
+    await expect(promoCodesFactory.ensurePromoCodeStillValid(payment)).rejects.toThrow('PROMO_CODE_ALREADY_USED');
     expect(insertOne).not.toHaveBeenCalled();
   });
 
@@ -170,7 +143,7 @@ describe('Promo code factories and successful usage', () => {
     promoCode.maxUses = maxUses;
     countDocuments.mockResolvedValue(maxUses);
     await expect(promoCodesFactory.calculatePromoQuote(input)).rejects.toThrow('PROMO_CODE_INVALID');
-    await expect(promoCodesFactory.ensurePaymentAvailable(payment)).rejects.toThrow('PROMO_CODE_INVALID');
+    await expect(promoCodesFactory.ensurePromoCodeStillValid(payment)).rejects.toThrow('PROMO_CODE_INVALID');
     expect(countDocuments).toHaveBeenCalledWith({ promoCodeId: promoCode._id });
   });
 
@@ -193,7 +166,7 @@ describe('Promo code factories and successful usage', () => {
     }
 
     await expect(promoCodesFactory.calculatePromoQuote(input)).rejects.toThrow('PROMO_CODE_INVALID');
-    await expect(promoCodesFactory.ensurePaymentAvailable(payment)).rejects.toThrow('PROMO_CODE_INVALID');
+    await expect(promoCodesFactory.ensurePromoCodeStillValid(payment)).rejects.toThrow('PROMO_CODE_INVALID');
     expect(findRedemption).not.toHaveBeenCalled();
   });
 
@@ -202,7 +175,7 @@ describe('Promo code factories and successful usage', () => {
       type: 'fixed',
       value: 90,
     };
-    await expect(promoCodesFactory.ensurePaymentAvailable(payment)).resolves.toBeUndefined();
+    await expect(promoCodesFactory.ensurePromoCodeStillValid(payment)).resolves.toBeUndefined();
     expect(findPromoCode).toHaveBeenCalledTimes(1);
     expect(findPromoCode).toHaveBeenCalledWith({ _id: promoCode._id });
     expect(insertOne).not.toHaveBeenCalled();
@@ -212,14 +185,14 @@ describe('Promo code factories and successful usage', () => {
     promoCode.maxUses = 1;
     findRedemption.mockResolvedValue(existingUse);
     countDocuments.mockResolvedValue(1);
-    await expect(promoCodesFactory.ensurePaymentAvailable(payment)).resolves.toBeUndefined();
+    await expect(promoCodesFactory.ensurePromoCodeStillValid(payment)).resolves.toBeUndefined();
     expect(countDocuments).not.toHaveBeenCalled();
   });
 
   test('should reject a different transaction using the same identities', async () => {
     existingUse.transactionId = 'another-payment';
     findRedemption.mockResolvedValue(existingUse);
-    await expect(promoCodesFactory.ensurePaymentAvailable(payment)).rejects.toThrow('PROMO_CODE_ALREADY_USED');
+    await expect(promoCodesFactory.ensurePromoCodeStillValid(payment)).rejects.toThrow('PROMO_CODE_ALREADY_USED');
   });
 
   test('maxUses is soft: parallel checked payments may exceed it and both successes must be recorded', async () => {
@@ -232,8 +205,8 @@ describe('Promo code factories and successful usage', () => {
     };
 
     await Promise.all([
-      promoCodesFactory.ensurePaymentAvailable(payment),
-      promoCodesFactory.ensurePaymentAvailable(otherPayment),
+      promoCodesFactory.ensurePromoCodeStillValid(payment),
+      promoCodesFactory.ensurePromoCodeStillValid(otherPayment),
     ]);
     countDocuments.mockResolvedValue(1);
     await Promise.all([redemptionsFactory.redeem(payment), redemptionsFactory.redeem(otherPayment)]);
@@ -316,7 +289,7 @@ describe('Promo code factories and successful usage', () => {
   test.each([1, 81, NaN, Infinity, '80'])('should reject changed paid amount %j before DB access', async paidAmount => {
     payment.paidAmount = paidAmount as number;
     expect(() => validatePromoPayment(payment)).toThrow('PROMO_CODE_WRONG_AMOUNT');
-    await expect(promoCodesFactory.ensurePaymentAvailable(payment)).rejects.toThrow('PROMO_CODE_WRONG_AMOUNT');
+    await expect(promoCodesFactory.ensurePromoCodeStillValid(payment)).rejects.toThrow('PROMO_CODE_WRONG_AMOUNT');
     await expect(redemptionsFactory.redeem(payment)).rejects.toThrow('PROMO_CODE_WRONG_AMOUNT');
     expect(findPromoCode).not.toHaveBeenCalled();
     expect(insertOne).not.toHaveBeenCalled();
@@ -424,7 +397,7 @@ describe('Promo factories with MongoDB unique indexes', () => {
   test('concurrent callback retries should persist exactly one usage', async () => {
     await Promise.all([redemptionsFactory.redeem(payment), redemptionsFactory.redeem(payment)]);
     expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(1);
-    await expect(promoCodesFactory.ensurePaymentAvailable(payment)).resolves.toBeUndefined();
+    await expect(promoCodesFactory.ensurePromoCodeStillValid(payment)).resolves.toBeUndefined();
   });
 
   test.each(['userId', 'workspaceId'] as const)('parallel successes sharing %s should keep one usage without rejecting fulfillment', async field => {
@@ -438,8 +411,8 @@ describe('Promo factories with MongoDB unique indexes', () => {
 
     try {
       await Promise.all([
-        promoCodesFactory.ensurePaymentAvailable(payment),
-        promoCodesFactory.ensurePaymentAvailable(otherPayment),
+        promoCodesFactory.ensurePromoCodeStillValid(payment),
+        promoCodesFactory.ensurePromoCodeStillValid(otherPayment),
       ]);
       await Promise.all([redemptionsFactory.redeem(payment), redemptionsFactory.redeem(otherPayment)]);
       expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(1);
@@ -458,12 +431,12 @@ describe('Promo factories with MongoDB unique indexes', () => {
     };
 
     await Promise.all([
-      promoCodesFactory.ensurePaymentAvailable(payment),
-      promoCodesFactory.ensurePaymentAvailable(otherPayment),
+      promoCodesFactory.ensurePromoCodeStillValid(payment),
+      promoCodesFactory.ensurePromoCodeStillValid(otherPayment),
     ]);
     await Promise.all([redemptionsFactory.redeem(payment), redemptionsFactory.redeem(otherPayment)]);
     expect(await db.collection('promoCodeRedemptions').countDocuments()).toBe(2);
-    await expect(promoCodesFactory.ensurePaymentAvailable({
+    await expect(promoCodesFactory.ensurePromoCodeStillValid({
       ...payment,
       userId: new ObjectId().toHexString(),
       workspaceId: new ObjectId().toHexString(),

@@ -1,7 +1,8 @@
 import { ObjectId } from 'mongodb';
 import { UserInputError } from 'apollo-server-express';
 import { getMaxUses, PromoCode } from './index';
-import { BusinessOperationDBScheme, BusinessOperationType } from '@hawk.so/types';
+import { BusinessOperationDBScheme, BusinessOperationType, PayloadOfWorkspacePlanPurchase } from '@hawk.so/types';
+import { PENNY_MULTIPLIER } from '../constants';
 import type { PaymentData } from '../types/paymentData';
 
 /**
@@ -54,6 +55,16 @@ export interface PromoPayment {
 }
 
 /**
+ * Plan purchase metadata written by /check.
+ */
+export interface PlanPurchasePayload extends PayloadOfWorkspacePlanPurchase {
+  /**
+   * Signed payer bound to this promo transaction; userId is the team membership ID.
+   */
+  promoPayerId?: string;
+}
+
+/**
  * Check successful uses only, allowing retries of the same successful payment.
  *
  * @param promoCode - already fetched code
@@ -62,7 +73,7 @@ export interface PromoPayment {
  * @param successfulUses - number of successful uses of this code
  * @param transactionId - provider transaction on callback retries
  */
-export function ensurePromoCodeAvailable(
+export function validatePromoCodeUsage(
   promoCode: PromoCode,
   identity: Pick<PromoCodeInput, 'userId' | 'workspaceId'>,
   existing: PromoCodeRedemption | null,
@@ -117,15 +128,15 @@ export function validatePromoPayment(payment: PromoPayment): void {
  */
 export function validatePromoOperation(payment: PromoPayment, operation: Pick<BusinessOperationDBScheme, 'type' | 'payload' | 'transactionId'>): void {
   validatePromoPayment(payment);
-  const payload = operation.payload;
+  const payload: BusinessOperationDBScheme['payload'] & Pick<PlanPurchasePayload, 'promoPayerId'> = operation.payload;
 
   if (operation.transactionId !== payment.transactionId ||
     operation.type !== BusinessOperationType.WorkspacePlanPurchase ||
     !('tariffPlanId' in payload) ||
     payload.workspaceId.toString() !== payment.workspaceId ||
-    payload.userId.toString() !== payment.userId ||
+    payload.promoPayerId !== payment.userId ||
     payload.tariffPlanId.toString() !== payment.tariffPlanId ||
-    payload.amount !== payment.paidAmount * 100 || payload.currency !== payment.currency) {
+    payload.amount !== payment.paidAmount * PENNY_MULTIPLIER || payload.currency !== payment.currency) {
     throw new UserInputError('PROMO_CODE_INVALID_PAYMENT');
   }
 }
