@@ -24,6 +24,8 @@ import ProjectsFactory from './models/projectsFactory';
 import { NonCriticalError } from './errors';
 import PlansFactory from './models/plansFactory';
 import BusinessOperationsFactory from './models/businessOperationsFactory';
+import PromoCodesFactory from './models/promoCodesFactory';
+import PromoCodeRedemptionsFactory from './models/promoCodeRedemptionsFactory';
 import schema from './schema';
 import { graphqlUploadExpress } from 'graphql-upload';
 import { metricsMiddleware, createMetricsServer, graphqlMetricsPlugin } from './metrics';
@@ -173,6 +175,13 @@ class HawkAPI {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const releasesFactory = new ReleasesFactory(mongo.databases.events!);
 
+    /* eslint-disable @typescript-eslint/no-non-null-assertion
+     */
+    const promoCodeRedemptionsFactory = new PromoCodeRedemptionsFactory(mongo.databases.hawk!);
+    const promoCodesFactory = new PromoCodesFactory(mongo.databases.hawk!, promoCodeRedemptionsFactory);
+    /* eslint-enable @typescript-eslint/no-non-null-assertion
+     */
+
     return {
       usersFactory,
       workspacesFactory,
@@ -180,6 +189,8 @@ class HawkAPI {
       plansFactory,
       businessOperationsFactory,
       releasesFactory,
+      promoCodesFactory,
+      promoCodeRedemptionsFactory,
     };
   }
 

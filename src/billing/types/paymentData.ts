@@ -1,4 +1,22 @@
 /**
+ * Server-signed price for a single discounted payment.
+ */
+export interface PromoPaymentData {
+  /**
+   * Applied promo code identifier.
+   */
+  promoCodeId: string;
+  /**
+   * Full plan price in rubles.
+   */
+  originalAmount: number;
+  /**
+   * Amount to charge in rubles.
+   */
+  finalAmount: number;
+}
+
+/**
  * Data for setting up recurring payments
  */
 interface RecurrentPaymentSettings {
@@ -35,6 +53,9 @@ interface CloudPaymentsSettings {
   recurrent: RecurrentPaymentSettings;
 }
 
+/**
+ * Payment identity parsed from a checksum or an existing subscription.
+ */
 export interface PaymentData {
   /**
    * Data for Cloudpayments needs
@@ -60,4 +81,12 @@ export interface PaymentData {
    * True if this is card linking operation – charging minimal amount of money to validate card info
    */
   isCardLinkOperation: boolean;
+  /**
+   * Price snapshot present only for promo payments.
+   */
+  promo?: PromoPaymentData;
+  /**
+   * Signed start date of the subscription created after this payment.
+   */
+  nextPaymentDate?: string;
 }

@@ -235,6 +235,11 @@ input ComposePaymentInput {
   Whether card should be saved for future recurrent payments
   """
   shouldSaveCard: Boolean
+
+  """
+  Optional promo code for a discount on the current plan payment
+  """
+  promoCode: String
 }
 
 """
@@ -250,6 +255,11 @@ type ComposePaymentResponse {
   Selected plan info
   """
   plan: ComposePaymentPlanInfo!
+
+  """
+  Amount for the current payment in rubles, including any promo discount
+  """
+  paymentAmount: Int!
 
   """
   True if only card linking validation payment is expected

@@ -125,6 +125,8 @@ function createMockContext(mockProject: ReturnType<typeof createMockProject>): R
       plansFactory: {} as any,
       businessOperationsFactory: {} as any,
       releasesFactory: {} as any,
+      promoCodesFactory: {} as any,
+      promoCodeRedemptionsFactory: {} as any,
     },
   };
 }
