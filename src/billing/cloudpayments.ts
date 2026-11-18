@@ -248,7 +248,7 @@ export default class CloudPaymentsWebhooks {
     } catch (e) {
       const error = e as Error;
 
-      this.sendError(res, CheckCodes.SUCCESS, `[Billing / Pay] Invalid request: ${error.toString()}`, body);
+      this.sendError(res, PayCodes.SUCCESS, `[Billing / Pay] Invalid request: ${error.toString()}`, body);
 
       return;
     }
