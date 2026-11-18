@@ -18,7 +18,13 @@ export interface PromoCode {
    * Uppercase code without surrounding whitespace.
    */
   code: string;
+  /**
+   * Discount on the first payment only; renewals use the full plan price.
+   */
   discount: PromoCodeDiscount;
+  /**
+   * When true, the code cannot be applied to new payments.
+   */
   isDisabled?: boolean;
   /**
    * Soft limit on successful uses; missing or invalid values mean unlimited use.

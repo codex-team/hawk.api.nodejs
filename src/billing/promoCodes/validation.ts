@@ -151,12 +151,17 @@ export function validatePromoOperation(payment: PromoPayment, operation: Pick<Bu
 export function validatePromoSubscription(data: PaymentData, monthlyCharge: number, isDebug: boolean): void {
   const recurrent = data.cloudPayments?.recurrent;
 
-  if (recurrent && (
-    recurrent.amount !== monthlyCharge || recurrent.period !== 1 ||
-    recurrent.interval !== (isDebug ? 'Day' : 'Month') ||
-    !data.nextPaymentDate ||
-    Date.parse(recurrent.startDate || '') !== Date.parse(data.nextPaymentDate)
-  )) {
+  if (!recurrent) {
+    return;
+  }
+
+  const expectedInterval = isDebug ? 'Day' : 'Month';
+  const chargesFullPrice = recurrent.amount === monthlyCharge;
+  const matchesBillingSchedule = recurrent.period === 1 && recurrent.interval === expectedInterval;
+  const matchesSignedStartDate = !!data.nextPaymentDate &&
+    Date.parse(recurrent.startDate || '') === Date.parse(data.nextPaymentDate);
+
+  if (!chargesFullPrice || !matchesBillingSchedule || !matchesSignedStartDate) {
     throw new UserInputError('PROMO_CODE_INVALID_SUBSCRIPTION');
   }
 }
