@@ -12,13 +12,259 @@ const ProjectModel = require('../models/project').default;
 
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
 const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
+const REPETITIONS_GROUP_HASH_AND_RELEASE_INDEX_NAME = 'groupHashAndRelease';
 const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
+const REPETITIONS_TIMESTAMP_INDEX_NAME = 'timestamp';
 const EVENTS_TIMESTAMP_INDEX_NAME = 'timestamp';
 const EVENTS_PAYLOAD_RELEASE_INDEX_NAME = 'payloadRelease';
 const GROUPING_TIMESTAMP_INDEX_NAME = 'groupingTimestamp';
 const GROUPING_TIMESTAMP_AND_LAST_REPETITION_TIME_AND_ID_INDEX_NAME = 'groupingTimestampAndLastRepetitionTimeAndId';
 const GROUPING_TIMESTAMP_AND_GROUP_HASH_INDEX_NAME = 'groupingTimestampAndGroupHash';
+const DAILY_EVENTS_GROUP_HASH_INDEX_NAME = 'groupHash';
 const MAX_SEARCH_QUERY_LENGTH = 50;
+const FALLBACK_EVENT_TITLE = 'Unknown';
+const { limitBacktraceForDailyEventsList } = require('../utils/eventPayloadLimits');
+const {
+  isUnsafeUnixTimestamp,
+  toSafeGraphQLInt,
+  toSafeUnixTimestampForGraphQLInt,
+  toSafeSortValueBoundary,
+  utcMidnightUnix,
+} = require('../utils/graphqlIntSafe');
+
+/**
+ * TEMPORARY (remove after ~2026-11-15): clamps nextCursor Int fields.
+ * Factory still matches raw Mongo boundaries — converted cursors may skip
+ * leftover legacy rows on later pages (see sanitizeDailyEventsPortion note).
+ *
+ * @param {object} cursor - DailyEventsCursor from factory
+ * @param {string|null} projectIdStr - project id for logs
+ * @param {string|undefined} sort - BY_DATE | BY_COUNT | BY_AFFECTED_USERS
+ * @param {number} nowSec - current unix seconds
+ * @returns {object} original or converted cursor
+ */
+function sanitizeDailyEventsCursor(cursor, projectIdStr, sort, nowSec) {
+  if (!cursor) {
+    return cursor;
+  }
+
+  const safeGrouping = toSafeUnixTimestampForGraphQLInt(
+    cursor.groupingTimestampBoundary,
+    cursor.idBoundary,
+    nowSec
+  );
+  const safeSort = toSafeSortValueBoundary(
+    cursor.sortValueBoundary,
+    cursor.idBoundary,
+    sort,
+    nowSec
+  );
+
+  if (
+    safeGrouping === cursor.groupingTimestampBoundary &&
+    safeSort === cursor.sortValueBoundary
+  ) {
+    return cursor;
+  }
+
+  console.warn('🟡 [ProjectResolver.dailyEventsPortion] Converted nextCursor Int-unsafe values', {
+    projectId: projectIdStr,
+    sort,
+    before: {
+      groupingTimestampBoundary: cursor.groupingTimestampBoundary,
+      sortValueBoundary: cursor.sortValueBoundary,
+    },
+    after: {
+      groupingTimestampBoundary: safeGrouping,
+      sortValueBoundary: safeSort,
+    },
+  });
+
+  return {
+    ...cursor,
+    groupingTimestampBoundary: safeGrouping,
+    sortValueBoundary: safeSort,
+  };
+}
+
+/**
+ * TEMPORARY (remove after ~2026-11-15): sanitizes one DailyEvent row for GraphQL
+ * list response — title fallback, backtrace limits, Int-safe timestamps/counts.
+ * Drop once collector clamp has aged out bad dailyEvents / repetitions.
+ *
+ * @param {object} dailyEvent - DailyEvent from factory
+ * @param {string|null} projectIdStr - project id for logs
+ * @param {number} nowSec - current unix seconds
+ * @returns {object}
+ */
+function sanitizeDailyEvent(dailyEvent, projectIdStr, nowSec) {
+  const event = dailyEvent && dailyEvent.event ? dailyEvent.event : null;
+  const payload = event && event.payload ? event.payload : null;
+  const rawTitle = payload && typeof payload.title === 'string' ? payload.title : '';
+  const hasValidTitle = rawTitle.trim().length > 0;
+  const title = hasValidTitle ? rawTitle : FALLBACK_EVENT_TITLE;
+  const backtrace = limitBacktraceForDailyEventsList(payload && payload.backtrace);
+  const titleChanged = !payload || payload.title !== title;
+  const backtraceChanged = !payload || payload.backtrace !== backtrace;
+
+  const fallbackId = (event && (event._id || event.id)) ||
+    (dailyEvent && dailyEvent.id) ||
+    null;
+
+  const safeLastRepetitionTime = toSafeUnixTimestampForGraphQLInt(
+    dailyEvent && dailyEvent.lastRepetitionTime,
+    fallbackId,
+    nowSec
+  );
+  const safeGroupingTimestamp = toSafeUnixTimestampForGraphQLInt(
+    dailyEvent && dailyEvent.groupingTimestamp,
+    fallbackId,
+    nowSec
+  );
+  /**
+   * Prefer midnight of corrected lastRepetitionTime when grouping was also bad,
+   * so day buckets stay consistent with the event time we expose.
+   * Always use already-normalized safe* values — never raw ms.
+   */
+  const groupingNeedsFix = isUnsafeUnixTimestamp(dailyEvent && dailyEvent.groupingTimestamp, nowSec);
+  const lastRepetitionNeedsFix = isUnsafeUnixTimestamp(dailyEvent && dailyEvent.lastRepetitionTime, nowSec);
+  const correctedGroupingTimestamp = groupingNeedsFix
+    ? utcMidnightUnix(
+      typeof safeLastRepetitionTime === 'number'
+        ? safeLastRepetitionTime
+        : safeGroupingTimestamp
+    )
+    : safeGroupingTimestamp;
+
+  const safeCount = typeof (dailyEvent && dailyEvent.count) === 'number'
+    ? toSafeGraphQLInt(dailyEvent.count, 0)
+    : dailyEvent.count;
+  const safeAffectedUsers = typeof (dailyEvent && dailyEvent.affectedUsers) === 'number'
+    ? toSafeGraphQLInt(dailyEvent.affectedUsers, 0)
+    : dailyEvent.affectedUsers;
+
+  let nextEvent = event;
+
+  if (event) {
+    const safeTotalCount = typeof event.totalCount === 'number'
+      ? toSafeGraphQLInt(event.totalCount, 0)
+      : event.totalCount;
+    const safeUsersAffected = typeof event.usersAffected === 'number'
+      ? toSafeGraphQLInt(event.usersAffected, 0)
+      : event.usersAffected;
+    const safeEventTimestamp = toSafeUnixTimestampForGraphQLInt(
+      event.timestamp,
+      fallbackId,
+      nowSec
+    );
+
+    const eventIntsChanged = safeTotalCount !== event.totalCount ||
+      safeUsersAffected !== event.usersAffected ||
+      safeEventTimestamp !== event.timestamp;
+
+    if (eventIntsChanged || titleChanged || backtraceChanged) {
+      nextEvent = {
+        ...event,
+        totalCount: safeTotalCount,
+        usersAffected: safeUsersAffected,
+        timestamp: safeEventTimestamp,
+        payload: {
+          ...(payload || {}),
+          title,
+          backtrace,
+        },
+      };
+    }
+  } else if (titleChanged || backtraceChanged) {
+    nextEvent = {
+      ...(event || {}),
+      payload: {
+        ...(payload || {}),
+        title,
+        backtrace,
+      },
+    };
+  }
+
+  const dailyChanged = correctedGroupingTimestamp !== dailyEvent.groupingTimestamp ||
+    safeLastRepetitionTime !== dailyEvent.lastRepetitionTime ||
+    safeCount !== dailyEvent.count ||
+    safeAffectedUsers !== dailyEvent.affectedUsers ||
+    nextEvent !== event;
+
+  if (dailyChanged && (groupingNeedsFix || lastRepetitionNeedsFix)) {
+    console.warn('🟡 [ProjectResolver.dailyEventsPortion] Converted Int-unsafe daily event timestamps', {
+      projectId: projectIdStr,
+      dailyEventId: dailyEvent && dailyEvent.id ? dailyEvent.id.toString() : null,
+      before: {
+        groupingTimestamp: dailyEvent.groupingTimestamp,
+        lastRepetitionTime: dailyEvent.lastRepetitionTime,
+      },
+      after: {
+        groupingTimestamp: correctedGroupingTimestamp,
+        lastRepetitionTime: safeLastRepetitionTime,
+      },
+    });
+  }
+
+  if (!hasValidTitle) {
+    console.warn('🔴 [ProjectResolver.dailyEventsPortion] Missing event payload title. Fallback title applied.', {
+      projectId: projectIdStr,
+      dailyEventId: dailyEvent && dailyEvent.id ? dailyEvent.id.toString() : null,
+      dailyEventGroupHash: dailyEvent && dailyEvent.groupHash ? dailyEvent.groupHash.toString() : null,
+      eventOriginalId: event && event.originalEventId ? event.originalEventId.toString() : null,
+      eventId: event && event._id ? event._id.toString() : null,
+    });
+  }
+
+  if (!dailyChanged) {
+    return dailyEvent;
+  }
+
+  return {
+    ...dailyEvent,
+    count: safeCount,
+    affectedUsers: safeAffectedUsers,
+    groupingTimestamp: correctedGroupingTimestamp,
+    lastRepetitionTime: safeLastRepetitionTime,
+    event: nextEvent,
+  };
+}
+
+/**
+ * TEMPORARY (remove after ~2026-11-15): list-response sanitizer for
+ * dailyEventsPortion — title/backtrace hygiene plus Int overflow conversion
+ * for legacy far-future Sentry timestamps. Safe to delete once those docs age out.
+ *
+ * Note: converting nextCursor can skip remaining legacy rows on later pages
+ * (factory matches raw Mongo fields). Acceptable trade-off vs aggregation cost.
+ *
+ * @param {object} dailyEventsPortion - portion returned by events factory
+ * @param {string|ObjectId} projectId - project id for logs
+ * @param {string|undefined} sort - BY_DATE | BY_COUNT | BY_AFFECTED_USERS
+ * @returns {object}
+ */
+function sanitizeDailyEventsPortion(dailyEventsPortion, projectId, sort) {
+  if (!dailyEventsPortion || !Array.isArray(dailyEventsPortion.dailyEvents)) {
+    return dailyEventsPortion;
+  }
+
+  const projectIdStr = projectId ? projectId.toString() : null;
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  dailyEventsPortion.nextCursor = sanitizeDailyEventsCursor(
+    dailyEventsPortion.nextCursor,
+    projectIdStr,
+    sort,
+    nowSec
+  );
+
+  dailyEventsPortion.dailyEvents = dailyEventsPortion.dailyEvents.map((dailyEvent) => {
+    return sanitizeDailyEvent(dailyEvent, projectIdStr, nowSec);
+  });
+
+  return dailyEventsPortion;
+}
 
 /**
  * See all types and fields here {@see ../typeDefs/project.graphql}
@@ -133,6 +379,12 @@ module.exports = {
         name: GROUPING_TIMESTAMP_AND_LAST_REPETITION_TIME_AND_ID_INDEX_NAME,
       });
 
+      await projectDailyEventsCollection.createIndex({
+        groupHash: 1,
+      }, {
+        name: DAILY_EVENTS_GROUP_HASH_INDEX_NAME,
+      });
+
       await projectEventsCollection.createIndex({
         'payload.release': 1,
       },
@@ -157,10 +409,27 @@ module.exports = {
         name: REPETITIONS_GROUP_HASH_INDEX_NAME,
       });
 
+      /**
+       * Used by the release validator to find the releases in which each event occurred.
+       */
+      await projectRepetitionsEventsCollection.createIndex({
+        groupHash: 1,
+        release: 1,
+      }, {
+        name: REPETITIONS_GROUP_HASH_AND_RELEASE_INDEX_NAME,
+      });
+
       await projectRepetitionsEventsCollection.createIndex({
         'payload.user.id': 1,
       }, {
         name: REPETITIONS_USER_ID_INDEX_NAME,
+        sparse: true,
+      });
+
+      await projectRepetitionsEventsCollection.createIndex({
+        timestamp: 1,
+      }, {
+        name: REPETITIONS_TIMESTAMP_INDEX_NAME,
         sparse: true,
       });
 
@@ -559,19 +828,21 @@ module.exports = {
     },
 
     /**
-     * Returns recent Events grouped by day
+     * Returns a paginated portion of daily-grouped events
      *
-     * @param {ProjectDBScheme} project - result of parent resolver
-     * @param {Number} limit - limit for events count
-     * @param {DailyEventsCursor} cursor - object with boundary values of the first event in the next portion
-     * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
-     * @param {EventsFilters} filters - marks by which events should be filtered
-     * @param {String} release - release name
-     * @param {String} search - search query
-     *
-     * @return {Promise<RecentEventSchema[]>}
+     * @param {ProjectDBScheme} project - parent resolver result
+     * @param {object} args - GraphQL arguments
+     * @param {number} args.limit - max rows in portion
+     * @param {object|null} args.nextCursor - pagination cursor
+     * @param {string} args.sort - BY_DATE | BY_COUNT | BY_AFFECTED_USERS (mapped in factory)
+     * @param {object} args.filters - mark filters only: resolved, starred, ignored (assignee uses args.assignee)
+     * @param {string} args.search - search query
+     * @param {string|undefined} args.release - optional release label filter
+     * @param {string|undefined} args.assignee - user id or __filter_unassigned__ / __filter_any_assignee__
+     * @param {object} context - GraphQL context
+     * @returns {Promise<object>} dailyEventsPortion payload from factory
      */
-    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search, release }, context) {
+    async dailyEventsPortion(project, { limit, nextCursor, sort, filters, search, release, assignee }, context) {
       if (search) {
         if (search.length > MAX_SEARCH_QUERY_LENGTH) {
           search = search.slice(0, MAX_SEARCH_QUERY_LENGTH);
@@ -580,9 +851,17 @@ module.exports = {
 
       const factory = getEventsFactory(context, project._id);
 
-      const dailyEventsPortion = await factory.findDailyEventsPortion(limit, nextCursor, sort, filters, search, release);
+      const dailyEventsPortion = await factory.findDailyEventsPortion(
+        limit,
+        nextCursor,
+        sort,
+        filters,
+        search,
+        release,
+        assignee
+      );
 
-      return dailyEventsPortion;
+      return sanitizeDailyEventsPortion(dailyEventsPortion, project._id, sort);
     },
 
     /**

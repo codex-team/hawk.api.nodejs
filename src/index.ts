@@ -32,6 +32,7 @@ import ReleasesFactory from './models/releasesFactory';
 import RedisHelper from './redisHelper';
 import { appendSsoRoutes } from './sso';
 import { appendGitHubRoutes } from './integrations/github';
+import { appendAiAssistantRoutes } from './services/askAi';
 
 /**
  * Option to enable playground
@@ -248,6 +249,8 @@ class HawkAPI {
 
     await redis.initialize();
 
+    this.registerShutdownHandlers(redis);
+
     /**
      * Setup shared factories for SSO and GitHub integration routes
      * These endpoints don't require per-request DataLoaders isolation,
@@ -269,6 +272,11 @@ class HawkAPI {
      * Note: This must be called after database connections are established
      */
     appendGitHubRoutes(this.app, sharedFactories);
+
+    /**
+     * Append AI assistant route to Express app
+     */
+    appendAiAssistantRoutes(this.app);
 
     await this.server.start();
     this.app.use(graphqlUploadExpress());
@@ -292,6 +300,31 @@ class HawkAPI {
         resolve();
       });
     });
+  }
+
+  /**
+   * Closes HTTP, Mongo and Redis connections on SIGINT/SIGTERM.
+   *
+   * @param redis - Redis helper to close on shutdown
+   */
+  private registerShutdownHandlers(redis: RedisHelper): void {
+    let shuttingDown = false;
+
+    const shutdown = async (signal: NodeJS.Signals): Promise<void> => {
+      if (shuttingDown) {
+        return;
+      }
+      shuttingDown = true;
+      console.log(`[Shutdown] ${signal} received, closing connections`);
+
+      await new Promise<void>((resolve) => this.httpServer.close(() => resolve()));
+      await Promise.allSettled([mongo.closeConnections(), redis.close()]);
+
+      process.exit(0);
+    };
+
+    process.once('SIGINT', shutdown);
+    process.once('SIGTERM', shutdown);
   }
 }
 

@@ -1,6 +1,12 @@
 const getEventsFactory = require('./helpers/eventsFactory').default;
-const sendPersonalNotification = require('../utils/personalNotifications').default;
-const { aiService } = require('../services/ai');
+const {
+  parseBulkEventIds,
+  enqueueAssigneeNotification,
+} = require('./helpers/bulkEventUtils');
+const { askAiService } = require('../services/askAi');
+const { UserInputError } = require('apollo-server-express');
+const { ObjectId } = require('mongodb');
+const { normalizeReleaseName } = require('../utils/releaseName');
 
 /**
  * See all types and fields here {@see ../typeDefs/event.graphql}
@@ -18,6 +24,58 @@ module.exports = {
     },
   },
   Event: {
+    /**
+     * Returns the original release name, preserving null for repetitions of legacy events.
+     *
+     * @param {Object} event - original event or composed repetition
+     * @param {*} event.firstSeenInRelease - original release name; explicit null preserves legacy absence
+     * @param {Object} event.payload - selected occurrence payload, used only when original metadata is undefined
+     * @returns {string|null} normalized original release name
+     */
+    firstSeenInRelease(event) {
+      const { firstSeenInRelease, payload } = event;
+
+      return normalizeReleaseName(firstSeenInRelease !== undefined ? firstSeenInRelease : payload && payload.release);
+    },
+
+    /**
+     * Compare the original release name with the newest valid registered release.
+     * @param {Object} event - original event or composed repetition
+     * @param {Object} _args - query arguments
+     * @param {Object} context - request context owning the lazy per-project release cache, independent of factory lifetime
+     * @returns {Promise<boolean>} whether the original first appeared in the newest valid registered release
+     */
+    isNew(event, _args, context) {
+      const { projectId, firstSeenInRelease, payload } = event;
+
+      if (!context.latestRegisteredReleaseByProject) {
+        context.latestRegisteredReleaseByProject = new Map();
+      }
+
+      return context.factories.releasesFactory.isNewInLatestRelease(
+        projectId,
+        firstSeenInRelease !== undefined ? firstSeenInRelease : payload && payload.release,
+        context.latestRegisteredReleaseByProject
+      );
+    },
+
+    /**
+     * Return the stored resolution release name.
+     * @param {Object} event - event with stored lifecycle metadata
+     * @returns {string|null} normalized resolution release
+     */
+    resolvedInRelease(event) {
+      return normalizeReleaseName(event.resolvedInRelease);
+    },
+
+    /**
+     * Return the stored regression release name.
+     * @param {Object} event - event with stored lifecycle metadata
+     * @returns {string|null} normalized regression release
+     */
+    regressionInRelease(event) {
+      return normalizeReleaseName(event.regressionInRelease);
+    },
 
     /**
      * Returns repetitions portion of the event
@@ -101,7 +159,7 @@ module.exports = {
     async aiSuggestion({ projectId, _id: eventId, originalEventId }, _args, context) {
       const factory = getEventsFactory(context, projectId);
 
-      return aiService.generateSuggestion(factory, eventId, originalEventId);
+      return askAiService.generateSuggestion(factory, eventId, originalEventId);
     },
 
     /**
@@ -135,6 +193,26 @@ module.exports = {
 
       return !!result.acknowledged;
     },
+    /**
+     * Mark many original events as visited for current user
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} projectId - project id
+     * @param {string[]} eventIds - original event ids
+     * @param {UserInContext} user - user context
+     * @returns {Promise<{ success: boolean, modifiedCount: number }>}
+     */
+    async bulkVisitEvents(_obj, { projectId, eventIds }, { user, ...context }) {
+      const validEventIds = parseBulkEventIds(eventIds);
+
+      const factory = getEventsFactory(context, projectId);
+      const result = await factory.bulkVisitEvents(validEventIds, user.id);
+
+      return {
+        success: !!result.acknowledged,
+        modifiedCount: result.modifiedCount || 0,
+      };
+    },
 
     /**
      * Mark event with one of the event marks
@@ -151,6 +229,45 @@ module.exports = {
       const result = await factory.toggleEventMark(eventId, mark);
 
       return !!result.acknowledged;
+    },
+
+    /**
+     * Bulk set or clear mark for original events.
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} projectId - project id
+     * @param {string[]} eventIds - original event ids
+     * @param {string} mark - EventMark enum value
+     * @param {boolean} enabled - true to set mark, false to remove
+     * @param {object} context - gql context
+     * @return {Promise<{ success: boolean, modifiedCount: number }>}
+     */
+    async bulkSetEventMarks(_obj, { projectId, eventIds, mark, enabled }, context) {
+      const validEventIds = parseBulkEventIds(eventIds);
+
+      const factory = getEventsFactory(context, projectId);
+      const result = await factory.bulkSetEventMarks(validEventIds, mark, enabled);
+
+      return {
+        success: !!result.acknowledged,
+        modifiedCount: result.modifiedCount || 0,
+      };
+    },
+
+    /**
+     * Remove event and all related data (repetitions, daily events)
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {string} projectId - project id
+     * @param {string} eventId - event id to remove
+     * @return {Promise<boolean>}
+     */
+    async removeEvent(_obj, { projectId, eventId }, context) {
+      const factory = getEventsFactory(context, projectId);
+
+      const result = await factory.removeEvent(eventId);
+
+      return result;
     },
 
     /**
@@ -196,14 +313,12 @@ module.exports = {
 
       const assigneeData = await factories.usersFactory.dataLoaders.userById.load(assignee);
 
-      await sendPersonalNotification(assigneeData, {
-        type: 'assignee',
-        payload: {
-          assigneeId: assignee,
-          projectId,
-          whoAssignedId: user.id,
-          eventId,
-        },
+      enqueueAssigneeNotification({
+        assigneeData,
+        assigneeId: assignee,
+        projectId,
+        whoAssignedId: user.id,
+        eventId,
       });
 
       return {
@@ -228,6 +343,63 @@ module.exports = {
 
       return {
         success: !!result.acknowledged,
+      };
+    },
+
+    /**
+     * Bulk set/clear assignee for selected original events
+     *
+     * @param {ResolverObj} _obj - resolver context
+     * @param {BulkUpdateAssigneeInput} input - object of arguments
+     * @param factories - factories for working with models
+     * @return {Promise<{ success: boolean, modifiedCount: number }>}
+     */
+    async bulkUpdateAssignee(_obj, { input }, { factories, user, ...context }) {
+      const { projectId, eventIds, assignee } = input;
+      const validEventIds = parseBulkEventIds(eventIds);
+      let assigneeData = null;
+
+      const factory = getEventsFactory(context, projectId);
+
+      if (assignee) {
+        if (!ObjectId.isValid(String(assignee))) {
+          throw new UserInputError('assignee must be a valid id or null');
+        }
+
+        const userExists = await factories.usersFactory.findById(assignee);
+
+        if (!userExists) {
+          throw new UserInputError('assignee not found');
+        }
+
+        assigneeData = userExists;
+
+        const project = await factories.projectsFactory.findById(projectId);
+        const workspace = await factories.workspacesFactory.findById(project.workspaceId);
+        const assigneeExistsInWorkspace = await workspace.getMemberInfo(assignee);
+
+        if (!assigneeExistsInWorkspace) {
+          throw new UserInputError('assignee is not a workspace member');
+        }
+      }
+
+      const result = await factory.bulkUpdateAssignee(validEventIds, assignee);
+
+      if (assignee && result.modifiedCount > 0) {
+        validEventIds.forEach((eventId) => {
+          enqueueAssigneeNotification({
+            assigneeData,
+            assigneeId: assignee,
+            projectId,
+            whoAssignedId: user.id,
+            eventId,
+          });
+        });
+      }
+
+      return {
+        success: !!result.acknowledged,
+        modifiedCount: result.modifiedCount || 0,
       };
     },
   },

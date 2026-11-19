@@ -1,8 +1,9 @@
-import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
 import safe from 'safe-regex';
 import { createProjectEventsByIdLoader } from '../dataLoaders';
 import RedisHelper from '../redisHelper';
 import ChartDataService from '../services/chartDataService';
+import { getMidnightWithTimezoneOffset, getUTCMidnight } from '../utils/dates';
+import { normalizeReleaseName } from '../utils/releaseName';
 
 const Factory = require('./modelFactory');
 const mongo = require('../mongo');
@@ -203,10 +204,11 @@ class EventsFactory extends Factory {
    *
    * @param {Number} limit - events count limitations
    * @param {DailyEventsCursor} paginationCursor - object that contains boundary values of the last event in the previous portion
-   * @param {'BY_DATE' | 'BY_COUNT'} sort - events sort order
-   * @param {EventsFilters} filters - marks by which events should be filtered
+   * @param {'BY_DATE' | 'BY_COUNT' | 'BY_AFFECTED_USERS'} sort - events sort order
+   * @param {EventsFilters} filters - marks by which events should be filtered (resolved, starred, ignored only; assignee is separate)
    * @param {String} search - Search query
-   * @param {String} release - release name
+   * @param {String|undefined} release - release name
+   * @param {String|undefined} assignee - user id or __filter_unassigned__ / __filter_any_assignee__
    *
    * @return {DaylyEventsPortionSchema}
    */
@@ -216,7 +218,8 @@ class EventsFactory extends Factory {
     sort = 'BY_DATE',
     filters = {},
     search = '',
-    release
+    release,
+    assignee
   ) {
     if (typeof search !== 'string') {
       throw new Error('Search parameter must be a string');
@@ -334,10 +337,12 @@ class EventsFactory extends Factory {
       }
       : {};
 
+    const markFilters = ['resolved', 'starred', 'ignored'];
     const matchFilter = filters
       ? Object.fromEntries(
         Object
           .entries(filters)
+          .filter(([ mark ]) => markFilters.includes(mark))
           .map(([mark, exists]) => [`event.marks.${mark}`, { $exists: exists } ])
       )
       : {};
@@ -360,6 +365,60 @@ class EventsFactory extends Factory {
         },
       }
       : {};
+
+    /**
+     * Sentinel values from garage assignee filter (not user ids)
+     */
+    const FILTER_UNASSIGNED = '__filter_unassigned__';
+    const FILTER_ANY_ASSIGNEE = '__filter_any_assignee__';
+
+    const assigneeFilter = (() => {
+      if (!assignee) {
+        return {};
+      }
+      if (assignee === FILTER_UNASSIGNED) {
+        /**
+         * Use $and so this does not collide with searchFilter’s top-level $or in $match spread
+         */
+        return {
+          $and: [
+            {
+              $or: [
+                { 'event.assignee': { $exists: false } },
+                { 'event.assignee': null },
+                { 'event.assignee': '' },
+              ],
+            },
+          ],
+        };
+      }
+      if (assignee === FILTER_ANY_ASSIGNEE) {
+        return {
+          'event.assignee': {
+            $exists: true,
+            $nin: [null, ''],
+          },
+        };
+      }
+
+      return { 'event.assignee': String(assignee) };
+    })();
+
+    /**
+     * These filters match joined event.* fields, so their $match must run
+     * after the lookups. With none set, $limit can move before the lookups
+     * and skip joining rows we'd drop anyway (~8.8s).
+     * Trim search to match searchFilter's own condition.
+     */
+    const hasContentFilters =
+      search.trim().length > 0 ||
+      Boolean(release) ||
+      Boolean(assignee) ||
+      Object.keys(matchFilter).length > 0;
+
+    if (!hasContentFilters) {
+      pipeline.push({ $limit: limit + 1 });
+    }
 
     pipeline.push(
       /**
@@ -392,19 +451,24 @@ class EventsFactory extends Factory {
           path: '$repetition',
           preserveNullAndEmptyArrays: true,
         },
-      },
-      {
-        $match: {
-          ...matchFilter,
-          ...searchFilter,
-          ...releaseFilter,
-        },
-      },
-      { $limit: limit + 1 },
-      {
-        $unset: 'groupHash',
       }
     );
+
+    if (hasContentFilters) {
+      pipeline.push(
+        {
+          $match: {
+            ...matchFilter,
+            ...searchFilter,
+            ...releaseFilter,
+            ...assigneeFilter,
+          },
+        },
+        { $limit: limit + 1 }
+      );
+    }
+
+    pipeline.push({ $unset: 'groupHash' });
 
     const cursor = this.getCollection(this.TYPES.DAILY_EVENTS).aggregate(pipeline);
     const result = await cursor.toArray();
@@ -707,10 +771,7 @@ class EventsFactory extends Factory {
     for (const repetition of repetitions) {
       const event = this._composeEventWithRepetition(eventOriginal, repetition);
 
-      result.repetitions.push({
-        ...event,
-        projectId: this.projectId,
-      });
+      result.repetitions.push(event);
     }
 
     const isLastPortion = result.nextCursor === null;
@@ -724,12 +785,7 @@ class EventsFactory extends Factory {
        * Get only 'repetitions' fields from event to fit Repetition scheme
        * @type {EventRepetitionSchema}
        */
-      const firstRepetition = {
-        ...eventOriginal,
-        originalTimestamp: eventOriginal.timestamp,
-        originalEventId: eventOriginal._id,
-        projectId: this.projectId,
-      };
+      const firstRepetition = this._composeEventWithRepetition(eventOriginal);
 
       result.repetitions.push(firstRepetition);
     }
@@ -751,14 +807,7 @@ class EventsFactory extends Factory {
     if (repetitionId.toString() === originalEventId.toString()) {
       const originalEvent = await this.eventsDataLoader.load(originalEventId);
 
-      /**
-       * All events have same type with originalEvent id
-       */
-      originalEvent.originalEventId = originalEventId;
-      originalEvent.originalTimestamp = originalEvent.timestamp;
-      originalEvent.projectId = this.projectId;
-
-      return originalEvent || null;
+      return originalEvent ? this._composeEventWithRepetition(originalEvent) : null;
     }
 
     /**
@@ -840,6 +889,27 @@ class EventsFactory extends Factory {
   }
 
   /**
+   * Mark many original events as visited for passed user
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string|ObjectId} userId - id of the user who is visiting events
+   * @returns {Promise<UpdateWriteOpResult>}
+   */
+  async bulkVisitEvents(eventIds, userId) {
+    const uniqueEventIds = [ ...new Set((eventIds || []).map(id => String(id))) ];
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const userObjectId = new ObjectId(userId);
+
+    return collection.updateMany(
+      {
+        _id: { $in: uniqueEventIds.map(id => new ObjectId(id)) },
+        visitedBy: { $ne: userObjectId },
+      },
+      { $addToSet: { visitedBy: userObjectId } }
+    );
+  }
+
+  /**
    * Mark or unmark event as Resolved, Ignored or Starred
    *
    * @param {string|ObjectId} eventId - id of the original event to mark
@@ -873,6 +943,95 @@ class EventsFactory extends Factory {
     }
 
     return collection.updateOne(query, update);
+  }
+
+  /**
+   * Bulk set or clear mark for original events.
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string} mark - 'resolved' | 'ignored' | 'starred'
+   * @param {boolean} enabled - true to set mark, false to clear
+   * @returns {Promise<UpdateWriteOpResult>}
+   */
+  async bulkSetEventMarks(eventIds, mark, enabled) {
+    const uniqueEventIds = [ ...new Set((eventIds || []).map(id => String(id))) ];
+    const objectIds = uniqueEventIds.map(id => new ObjectId(id));
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const nowSec = Math.floor(Date.now() / 1000);
+    const markKey = `marks.${mark}`;
+
+    if (!enabled) {
+      return collection.updateMany(
+        {
+          _id: { $in: objectIds },
+          [markKey]: { $exists: true },
+        },
+        { $unset: { [markKey]: '' } }
+      );
+    }
+
+    return collection.updateMany(
+      {
+        _id: { $in: objectIds },
+        [markKey]: { $exists: false },
+      },
+      { $set: { [markKey]: nowSec } }
+    );
+  }
+
+  /**
+   * Bulk set/clear assignee for many original events.
+   *
+   * @param {string[]} eventIds - original event ids
+   * @param {string|null|undefined} assignee - target assignee id, null/undefined to clear
+   * @returns {Promise<UpdateWriteOpResult>}
+   */
+  async bulkUpdateAssignee(eventIds, assignee) {
+    const uniqueEventIds = [ ...new Set((eventIds || []).map(id => String(id))) ];
+    const collection = this.getCollection(this.TYPES.EVENTS);
+    const normalizedAssignee = assignee ? String(assignee) : '';
+
+    return collection.updateMany(
+      {
+        _id: { $in: uniqueEventIds.map(id => new ObjectId(id)) },
+        assignee: { $ne: normalizedAssignee },
+      },
+      { $set: { assignee: normalizedAssignee } }
+    );
+  }
+
+  /**
+   * Remove a single event and all related data (repetitions, daily events)
+   *
+   * @param {string|ObjectId} eventId - id of the original event to remove
+   * @return {Promise<boolean>}
+   */
+  async removeEvent(eventId) {
+    const eventsCollection = this.getCollection(this.TYPES.EVENTS);
+
+    const event = await eventsCollection.findOne({ _id: new ObjectId(eventId) });
+
+    // If event is not found, throw error
+    if (!event) {
+      throw new Error(`Event not found for eventId: ${eventId}`);
+    }
+
+    const { groupHash } = event;
+
+    // Delete original event
+    const result = await eventsCollection.deleteOne({ _id: new ObjectId(eventId) });
+
+    // Delete all repetitions with same groupHash
+    if (await this.isCollectionExists(this.TYPES.REPETITIONS)) {
+      await this.getCollection(this.TYPES.REPETITIONS).deleteMany({ groupHash });
+    }
+
+    // Delete all daily event records with same groupHash
+    if (await this.isCollectionExists(this.TYPES.DAILY_EVENTS)) {
+      await this.getCollection(this.TYPES.DAILY_EVENTS).deleteMany({ groupHash });
+    }
+
+    return result.acknowledged && result.deletedCount > 0;
   }
 
   /**
@@ -931,23 +1090,25 @@ class EventsFactory extends Factory {
    * @returns {Event} event merged with repetition
    */
   _composeEventWithRepetition(event, repetition) {
+    const original = {
+      ...event,
+      originalTimestamp: event.timestamp,
+      originalEventId: event._id,
+      firstSeenInRelease: normalizeReleaseName(event.payload && event.payload.release),
+      resolvedInRelease: normalizeReleaseName(event.resolvedInRelease),
+      regressionInRelease: normalizeReleaseName(event.regressionInRelease),
+      projectId: this.projectId,
+    };
+
     if (!repetition) {
-      return {
-        ...event,
-        originalTimestamp: event.timestamp,
-        originalEventId: event._id,
-        projectId: this.projectId,
-      };
+      return original;
     }
 
     return {
-      ...event,
+      ...original,
       _id: repetition._id,
-      originalTimestamp: event.timestamp,
-      originalEventId: event._id,
       timestamp: repetition.timestamp,
-      payload: composeEventPayloadByRepetition(event.payload, repetition),
-      projectId: this.projectId,
+      payload: composeEventPayloadByRepetition(event.payload == null ? {} : event.payload, repetition),
     };
   }
 }

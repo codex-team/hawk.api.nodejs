@@ -3,10 +3,8 @@ import { ObjectId } from 'mongodb';
 import express from 'express';
 import { createGitHubRouter } from '../../src/integrations/github/routes';
 import { ContextFactories } from '../../src/types/graphql';
+import { makeExpressRequest } from '../helpers/expressRequest';
 
-/**
- * All mock functions declared before jest.mock calls (Jest hoists mocks)
- */
 /**
  * All mock functions declared before jest.mock calls (ts-jest requires this)
  */
@@ -77,87 +75,6 @@ function createMockUser(userId: string): any {
     _id: new ObjectId(userId),
     upsertGitHubAuthorization: jest.fn().mockResolvedValue(undefined),
   };
-}
-
-/**
- * Helper function to make a request to Express app
- */
-function makeRequest(
-  app: express.Application,
-  method: string,
-  path: string,
-  query?: Record<string, string>
-): Promise<{ status: number; body: any }> {
-  return new Promise((resolve, reject) => {
-    const url = query ? `${path}?${new URLSearchParams(query).toString()}` : path;
-    const req = {
-      method,
-      url,
-      originalUrl: url,
-      path,
-      query: query || {},
-      headers: {},
-      get: jest.fn(),
-      params: {},
-      body: {},
-    } as any;
-
-    let statusCode = 200;
-    let jsonCalled = false;
-    const res = {
-      status: (code: number) => {
-        statusCode = code;
-
-        return res;
-      },
-      json: (data: any) => {
-        jsonCalled = true;
-        resolve({
-          status: statusCode,
-          body: data,
-        });
-      },
-      setHeader: jest.fn(),
-      getHeader: jest.fn(),
-      end: jest.fn(),
-      send: jest.fn((data?: any) => {
-        if (!jsonCalled) {
-          resolve({
-            status: statusCode,
-            body: data,
-          });
-        }
-      }),
-      redirect: jest.fn((redirectUrl: string) => {
-        statusCode = 302;
-        resolve({
-          status: statusCode,
-          body: redirectUrl,
-        });
-      }),
-    } as any;
-
-    /**
-     * Use (app as any).handle() as handle method exists but is not in TypeScript types
-     * This simulates how Express processes requests internally
-     */
-    (app as any).handle(req, res, (err: any) => {
-      if (err) {
-        reject(err);
-      } else if (!jsonCalled) {
-        /**
-         * If json was not called, check if response was sent another way
-         * Wait a bit to allow async handlers to complete
-         */
-        setTimeout(() => {
-          resolve({
-            status: statusCode,
-            body: null,
-          });
-        }, 50);
-      }
-    });
-  });
 }
 
 describe('GitHub Routes - /integration/github/connect', () => {
@@ -247,7 +164,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(factories);
 
-      const response = await makeRequest(app, 'GET', '/integration/github/connect', { projectId, workspaceId });
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/connect', { projectId, workspaceId });
 
       expect(response.status).toBe(200);
       expect(response.body.hasInstallations).toBe(false);
@@ -282,7 +199,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(factories);
 
-      const response = await makeRequest(app, 'GET', '/integration/github/connect', { projectId, workspaceId });
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/connect', { projectId, workspaceId });
 
       expect(response.status).toBe(200);
       expect(response.body.hasInstallations).toBe(true);
@@ -306,7 +223,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
         req.context.user.id = undefined;
       });
 
-      const response = await makeRequest(app, 'GET', '/integration/github/connect', { projectId, workspaceId });
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/connect', { projectId, workspaceId });
 
       expect(response.status).toBe(401);
       expect(response.body).toHaveProperty('error');
@@ -326,7 +243,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(factories);
 
-      const response = await makeRequest(app, 'GET', '/integration/github/connect', { workspaceId });
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/connect', { workspaceId });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
@@ -346,7 +263,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(factories);
 
-      const response = await makeRequest(app, 'GET', '/integration/github/connect', { projectId: 'invalid-id', workspaceId });
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/connect', { projectId: 'invalid-id', workspaceId });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
@@ -366,7 +283,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(factories);
 
-      const response = await makeRequest(app, 'GET', '/integration/github/connect', { projectId });
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/connect', { projectId });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
@@ -386,7 +303,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(factories);
 
-      const response = await makeRequest(app, 'GET', '/integration/github/connect', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/connect', {
         projectId,
         workspaceId: 'invalid-workspace-id',
       });
@@ -412,7 +329,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(factories);
 
-      const response = await makeRequest(app, 'GET', '/integration/github/connect', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/connect', {
         projectId,
         workspaceId
       });
@@ -443,7 +360,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(factories);
 
-      const response = await makeRequest(app, 'GET', '/integration/github/connect', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/connect', {
         projectId,
         workspaceId
       });
@@ -474,7 +391,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(factories);
 
-      const response = await makeRequest(app, 'GET', '/integration/github/connect', { projectId, workspaceId });
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/connect', { projectId, workspaceId });
 
       expect(response.status).toBe(403);
       expect(response.body).toHaveProperty('error');
@@ -522,7 +439,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
     it('should redirect with error when code is missing', async () => {
       setupRouter(createOAuthFactories());
 
-      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/oauth', {
         state,
       });
 
@@ -534,7 +451,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
     it('should redirect with error when state is missing', async () => {
       setupRouter(createOAuthFactories());
 
-      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/oauth', {
         code,
       });
 
@@ -548,7 +465,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(createOAuthFactories());
 
-      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/oauth', {
         code,
         state,
       });
@@ -575,7 +492,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(factories);
 
-      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/oauth', {
         code,
         state,
       });
@@ -591,7 +508,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(createOAuthFactories());
 
-      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/oauth', {
         code,
         state,
         // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
@@ -616,7 +533,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(createOAuthFactories({ workspace: mockWorkspace }));
 
-      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/oauth', {
         code,
         state,
         // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
@@ -634,7 +551,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(createOAuthFactories());
 
-      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/oauth', {
         code,
         state,
       });
@@ -659,7 +576,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(factories);
 
-      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/oauth', {
         code,
         state,
       });
@@ -683,7 +600,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(createOAuthFactories({ user: mockUser }));
 
-      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/oauth', {
         code,
         state,
       });
@@ -707,7 +624,10 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(createOAuthFactories({ user: mockUser }));
 
-      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+      /**
+       * OAuth callback without installation_id (installation already exists)
+       */
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/oauth', {
         code,
         state,
       });
@@ -745,7 +665,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(createOAuthFactories({ workspace: mockWorkspace, user: mockUser }));
 
-      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/oauth', {
         code,
         state,
         // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
@@ -808,7 +728,7 @@ describe('GitHub Routes - /integration/github/connect', () => {
 
       setupRouter(createOAuthFactories({ workspace: mockWorkspace, user: mockUser }));
 
-      const response = await makeRequest(app, 'GET', '/integration/github/oauth', {
+      const response = await makeExpressRequest(app, 'GET', '/integration/github/oauth', {
         code,
         state,
         // eslint-disable-next-line @typescript-eslint/camelcase, camelcase

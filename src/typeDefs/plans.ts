@@ -40,6 +40,6 @@ export default gql`
     """
     Gets available Hawk tariff plans
     """
-    plans: [Plan!]!
+    plans: [Plan!]! @allowAnon
   }
 `;

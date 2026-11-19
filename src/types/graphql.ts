@@ -28,10 +28,17 @@ export interface ResolverContextBase {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventsFactoryCache?: Map<string, any>;
 
-  // /**
-  //  * SDK for working with CodeX Accounting API
-  //  */
-  // accounting: Accounting;
+  /**
+   * Request-owned latest valid registered release lookups keyed by string project ID.
+   * Lazily initialized by Event.isNew to deduplicate in-flight lookups across rows, even with shared factories.
+   * Null results, including logged lookup failures, last only for this request; a new context reads afresh.
+   */
+  latestRegisteredReleaseByProject?: Map<string, Promise<string | null>>;
+
+  /*
+   * SDK for working with CodeX Accounting API
+   * accounting: Accounting;
+   */
 }
 
 /**
