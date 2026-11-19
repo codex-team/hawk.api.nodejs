@@ -1,12 +1,16 @@
-import { EventAddons, EventData } from '@hawk.so/types';
+import { GroupedEventDBScheme } from '@hawk.so/types';
 
 /**
  * Event type which is returned by events factory
  */
-export type Event = {
+export type Event = Pick<GroupedEventDBScheme, 'payload'> &
+  Partial<Pick<GroupedEventDBScheme, 'catcherType' | 'timestamp' | 'totalCount' | 'usersAffected'>> & {
     _id: string;
-    payload: EventData<EventAddons>;
-};
+    /**
+     * Synthesized in EventsFactory._composeEventWithRepetition from the original event's timestamp
+     */
+    originalTimestamp?: GroupedEventDBScheme['timestamp'];
+  };
 
 /**
  * Interface for interacting with events factory

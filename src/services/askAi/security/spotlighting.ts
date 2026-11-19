@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { EventAddons, EventData } from '@hawk.so/types';
+import { Event } from '../../types';
 import { eventSolvingInput } from '../inputs/eventSolving';
 
 /**
@@ -48,11 +48,11 @@ export const closeMarker = (nonce: string): string => `<<END_${UNTRUSTED_DATA_MA
  *
  * @see {@link https://arxiv.org/abs/2403.14720} for spotlighting, the
  * technique this implements
- * @param payload - event data to make suggestion for
+ * @param event - event repetition data to make suggestion for
  * @returns {EventPrompt} prompt and the nonce guarding its data block
  */
-export function buildEventPrompt(payload: EventData<EventAddons>): EventPrompt {
-  const data = eventSolvingInput(payload);
+export function buildEventPrompt(event: Event): EventPrompt {
+  const data = eventSolvingInput(event);
   let nonce = crypto.randomBytes(16).toString('hex');
 
   while (data.includes(nonce)) {

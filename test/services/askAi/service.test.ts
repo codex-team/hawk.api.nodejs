@@ -1,6 +1,7 @@
 import '../../../src/env-test';
 import HawkCatcher from '@hawk.so/nodejs';
 import { EventAddons, EventData } from '@hawk.so/types';
+import { Event } from '../../../src/services/types';
 import { AskAiService } from '../../../src/services/askAi/service';
 import { vercelAIApi } from '../../../src/integrations/vercel-ai';
 import { ctoInstruction } from '../../../src/services/askAi/instructions/cto';
@@ -40,8 +41,32 @@ describe('AskAiService', () => {
   let consoleErrorSpy: jest.SpyInstance;
   const testEventId = 'repetition-id';
   const testOriginalEventId = 'original-event-id';
-  const testPayload: EventData<EventAddons> = {
+  const testPayloadWithoutUser: EventData<EventAddons> = {
     title: 'TypeError: cannot read property of undefined',
+    breadcrumbs: [
+      {
+        timestamp: 1700000990000,
+        type: 'request',
+        category: 'fetch',
+        message: 'GET /api/cart 401',
+      },
+    ],
+  };
+  const testPayload: EventData<EventAddons> = {
+    ...testPayloadWithoutUser,
+    user: {
+      id: 'user-1',
+      name: 'Test User',
+    },
+  };
+  const testEvent: Event = {
+    _id: testEventId,
+    catcherType: 'errors/javascript',
+    timestamp: 1700001000,
+    originalTimestamp: 1700000000,
+    totalCount: 12,
+    usersAffected: 4,
+    payload: testPayload,
   };
 
   /**
@@ -50,14 +75,11 @@ describe('AskAiService', () => {
    * @param event - event repetition to resolve, or null when not found
    * @returns {object} stub factory
    */
-  const createEventsFactory = (event: { _id: string; payload: EventData<EventAddons> } | null): { getEventRepetition: jest.Mock } => ({
+  const createEventsFactory = (event: Event | null): { getEventRepetition: jest.Mock } => ({
     getEventRepetition: jest.fn().mockResolvedValue(event),
   });
 
-  const eventsFactoryWithPayload = (): ReturnType<typeof createEventsFactory> => createEventsFactory({
-    _id: testEventId,
-    payload: testPayload,
-  });
+  const eventsFactoryWithPayload = (): ReturnType<typeof createEventsFactory> => createEventsFactory(testEvent);
 
   /**
    * Make the transport answer with the nonce it was given, as a model
@@ -80,13 +102,20 @@ describe('AskAiService', () => {
   });
 
   describe('generateSuggestion', () => {
-    it('should spotlight the event with a nonce the system instruction repeats, and return the answer unchanged', async () => {
+    it('should spotlight the event with metadata and breadcrumbs, strip user, and return the answer unchanged', async () => {
       (vercelAIApi.complete as jest.Mock).mockResolvedValue('generated suggestion');
 
       const result = await askAiService.generateSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId);
       const args = (vercelAIApi.complete as jest.Mock).mock.calls[0][0] as { system: string; prompt: string };
 
-      expect(args.prompt).toContain(JSON.stringify(testPayload));
+      expect(args.prompt).toContain(JSON.stringify(testPayloadWithoutUser));
+      expect(args.prompt).toContain('"catcherType":"errors/javascript"');
+      expect(args.prompt).toContain('"firstOccurrenceTimestamp":1700000000');
+      expect(args.prompt).toContain('"currentRepetitionTimestamp":1700001000');
+      expect(args.prompt).toContain('"totalCount":12');
+      expect(args.prompt).toContain('"usersAffected":4');
+      expect(args.prompt).not.toContain('Test User');
+      expect(args.prompt).not.toContain('"user"');
       expect(args.system.startsWith(ctoInstruction)).toBe(true);
       expect(args.system).toContain(nonceFromPrompt(args.prompt));
       expect(result).toBe('generated suggestion');
@@ -143,7 +172,7 @@ describe('AskAiService', () => {
   });
 
   describe('streamSuggestion', () => {
-    it('should spotlight the event with a nonce the system instruction repeats', async () => {
+    it('should spotlight the event with metadata and breadcrumbs, and strip user', async () => {
       const streamResult = (async function * () {
         yield { type: 'text-delta', delta: 'Answer' };
       })();
@@ -153,7 +182,14 @@ describe('AskAiService', () => {
       await askAiService.streamSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId, new AbortController().signal);
       const args = (vercelAIApi.stream as jest.Mock).mock.calls[0][0] as { system: string; prompt: string };
 
-      expect(args.prompt).toContain(JSON.stringify(testPayload));
+      expect(args.prompt).toContain(JSON.stringify(testPayloadWithoutUser));
+      expect(args.prompt).toContain('"catcherType":"errors/javascript"');
+      expect(args.prompt).toContain('"firstOccurrenceTimestamp":1700000000');
+      expect(args.prompt).toContain('"currentRepetitionTimestamp":1700001000');
+      expect(args.prompt).toContain('"totalCount":12');
+      expect(args.prompt).toContain('"usersAffected":4');
+      expect(args.prompt).not.toContain('Test User');
+      expect(args.prompt).not.toContain('"user"');
       expect(args.system.startsWith(ctoInstruction)).toBe(true);
       expect(args.system).toContain(nonceFromPrompt(args.prompt));
     });
