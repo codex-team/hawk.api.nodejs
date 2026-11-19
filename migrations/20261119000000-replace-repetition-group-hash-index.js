@@ -35,7 +35,7 @@ async function withEventsDatabase(callback) {
  */
 async function dropIndexIfExists(collection, indexName) {
   await collection.dropIndex(indexName).catch((error) => {
-    if (error.codeName !== 'IndexNotFound' && error.code !== 27) {
+    if (error.codeName !== 'IndexNotFound') {
       throw error;
     }
   });
