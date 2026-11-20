@@ -3,14 +3,16 @@ import { GroupedEventDBScheme } from '@hawk.so/types';
 /**
  * Event type which is returned by events factory
  */
-export type Event = Pick<GroupedEventDBScheme, 'payload'> &
-  Partial<Pick<GroupedEventDBScheme, 'catcherType' | 'timestamp' | 'totalCount' | 'usersAffected'>> & {
-    _id: string;
-    /**
-     * Synthesized in EventsFactory._composeEventWithRepetition from the original event's timestamp
-     */
-    originalTimestamp?: GroupedEventDBScheme['timestamp'];
-  };
+export type Event = Pick<
+  GroupedEventDBScheme,
+  'catcherType' | 'timestamp' | 'totalCount' | 'usersAffected' | 'payload'
+> & {
+  _id: string;
+  /**
+   * Synthesized in EventsFactory._composeEventWithRepetition from the original event's timestamp
+   */
+  originalTimestamp: GroupedEventDBScheme['timestamp'];
+};
 
 /**
  * Interface for interacting with events factory

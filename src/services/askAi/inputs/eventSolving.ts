@@ -1,4 +1,3 @@
-import { EventData, EventAddons } from '@hawk.so/types';
 import { Event } from '../../types';
 
 /**
@@ -13,14 +12,11 @@ import { Event } from '../../types';
  * @returns serialized, unwrapped event data
  */
 export const eventSolvingInput = (event: Event): string => {
-  const payload: EventData<EventAddons> = {
-    ...(event.payload ?? ({} as EventData<EventAddons>)),
-  };
-
   /**
    * Strip user info to avoid sending personal data to third-party services
    */
-  delete payload.user;
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+  const { user: _user, ...payload } = event.payload;
 
   const eventData = {
     catcherType: event.catcherType,

@@ -5,7 +5,11 @@ import { Event } from '../../../src/services/types';
 import { AskAiService } from '../../../src/services/askAi/service';
 import { vercelAIApi } from '../../../src/integrations/vercel-ai';
 import { ctoInstruction } from '../../../src/services/askAi/instructions/cto';
-import { UNTRUSTED_DATA_MARKER_NAME } from '../../../src/services/askAi/security/spotlighting';
+import {
+  closeMarker,
+  openMarker,
+  UNTRUSTED_DATA_MARKER_NAME
+} from '../../../src/services/askAi/security/spotlighting';
 import { SUGGESTION_FALLBACK_MESSAGE } from '../../../src/services/askAi/security/nonceEcho';
 
 jest.mock('../../../src/integrations/vercel-ai/', () => ({
@@ -34,6 +38,34 @@ function nonceFromPrompt(prompt: string): string {
   }
 
   return match[1];
+}
+
+/**
+ * Parsed event object extracted from the spotlighted prompt
+ */
+interface SerializedPromptEvent {
+  catcherType: string;
+  firstOccurrenceTimestamp: number;
+  currentRepetitionTimestamp: number;
+  totalCount: number;
+  usersAffected: number;
+  payload: Record<string, unknown>;
+}
+
+/**
+ * Unwrap the spotlighting markers and parse the serialized event JSON from a prompt
+ *
+ * @param prompt - prompt captured from the transport's `complete`/`stream` call
+ * @returns {SerializedPromptEvent} parsed event object sent to the model
+ */
+function eventFromPrompt(prompt: string): SerializedPromptEvent {
+  const nonce = nonceFromPrompt(prompt);
+  const body = prompt
+    .replace(`${openMarker(nonce)}\n`, '')
+    .replace(`\n${closeMarker(nonce)}`, '')
+    .trim();
+
+  return JSON.parse(body.replace(/^Event:\s*/, '')) as SerializedPromptEvent;
 }
 
 describe('AskAiService', () => {
@@ -107,15 +139,15 @@ describe('AskAiService', () => {
 
       const result = await askAiService.generateSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId);
       const args = (vercelAIApi.complete as jest.Mock).mock.calls[0][0] as { system: string; prompt: string };
+      const parsed = eventFromPrompt(args.prompt);
 
-      expect(args.prompt).toContain(JSON.stringify(testPayloadWithoutUser));
-      expect(args.prompt).toContain('"catcherType":"errors/javascript"');
-      expect(args.prompt).toContain('"firstOccurrenceTimestamp":1700000000');
-      expect(args.prompt).toContain('"currentRepetitionTimestamp":1700001000');
-      expect(args.prompt).toContain('"totalCount":12');
-      expect(args.prompt).toContain('"usersAffected":4');
-      expect(args.prompt).not.toContain('Test User');
-      expect(args.prompt).not.toContain('"user"');
+      expect(parsed.catcherType).toBe('errors/javascript');
+      expect(parsed.firstOccurrenceTimestamp).toBe(1700000000);
+      expect(parsed.currentRepetitionTimestamp).toBe(1700001000);
+      expect(parsed.totalCount).toBe(12);
+      expect(parsed.usersAffected).toBe(4);
+      expect(parsed.payload).toEqual(testPayloadWithoutUser);
+      expect(parsed.payload).not.toHaveProperty('user');
       expect(args.system.startsWith(ctoInstruction)).toBe(true);
       expect(args.system).toContain(nonceFromPrompt(args.prompt));
       expect(result).toBe('generated suggestion');
@@ -181,15 +213,15 @@ describe('AskAiService', () => {
 
       await askAiService.streamSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId, new AbortController().signal);
       const args = (vercelAIApi.stream as jest.Mock).mock.calls[0][0] as { system: string; prompt: string };
+      const parsed = eventFromPrompt(args.prompt);
 
-      expect(args.prompt).toContain(JSON.stringify(testPayloadWithoutUser));
-      expect(args.prompt).toContain('"catcherType":"errors/javascript"');
-      expect(args.prompt).toContain('"firstOccurrenceTimestamp":1700000000');
-      expect(args.prompt).toContain('"currentRepetitionTimestamp":1700001000');
-      expect(args.prompt).toContain('"totalCount":12');
-      expect(args.prompt).toContain('"usersAffected":4');
-      expect(args.prompt).not.toContain('Test User');
-      expect(args.prompt).not.toContain('"user"');
+      expect(parsed.catcherType).toBe('errors/javascript');
+      expect(parsed.firstOccurrenceTimestamp).toBe(1700000000);
+      expect(parsed.currentRepetitionTimestamp).toBe(1700001000);
+      expect(parsed.totalCount).toBe(12);
+      expect(parsed.usersAffected).toBe(4);
+      expect(parsed.payload).toEqual(testPayloadWithoutUser);
+      expect(parsed.payload).not.toHaveProperty('user');
       expect(args.system.startsWith(ctoInstruction)).toBe(true);
       expect(args.system).toContain(nonceFromPrompt(args.prompt));
     });
