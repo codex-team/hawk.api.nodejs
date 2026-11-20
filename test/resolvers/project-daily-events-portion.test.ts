@@ -1,7 +1,5 @@
 import '../../src/env-test';
 
-jest.mock('../../src/integrations/github/service', () => require('../__mocks__/github-service'));
-
 jest.mock('../../src/resolvers/helpers/eventsFactory', () => ({
   __esModule: true,
   default: jest.fn(),

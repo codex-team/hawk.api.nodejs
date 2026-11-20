@@ -5,7 +5,7 @@ import { Collection, ObjectId, OptionalId } from 'mongodb';
 import AbstractModel from './abstractModel';
 import objectHasOnlyProps from '../utils/objectHasOnlyProps';
 import { NotificationsChannelsDBScheme } from '../types/notification-channels';
-import { BankCard, UserDBScheme } from '@hawk.so/types';
+import { BankCard, UserDBScheme, GitHubAuthorization } from '@hawk.so/types';
 import { v4 as uuid } from 'uuid';
 
 /**
@@ -159,6 +159,11 @@ export default class UserModel extends AbstractModel<Omit<UserDBScheme, '_id'>> 
       };
     };
   };
+
+  /**
+   * GitHub OAuth authorizations
+   */
+  public githubAuthorizations?: GitHubAuthorization[];
 
   /**
    * Model's collection
@@ -495,5 +500,70 @@ export default class UserModel extends AbstractModel<Omit<UserDBScheme, '_id'>> 
    */
   public getSamlIdentity(workspaceId: string): { id: string; email: string } | null {
     return this.identities?.[workspaceId]?.saml || null;
+  }
+
+  /**
+   * Add or update a GitHub OAuth authorization for this user.
+   * If an authorization with the same githubUserId already exists, it is replaced.
+   *
+   * @param authorization - GitHub authorization data
+   */
+  public async upsertGitHubAuthorization(authorization: GitHubAuthorization): Promise<void> {
+    const existing = this.githubAuthorizations?.find(
+      (a) => a.githubUserId === authorization.githubUserId
+    );
+
+    if (existing) {
+      await this.collection.updateOne(
+        {
+          _id: new ObjectId(this._id),
+          'githubAuthorizations.githubUserId': authorization.githubUserId,
+        },
+        {
+          $set: {
+            'githubAuthorizations.$': authorization,
+          },
+        }
+      );
+    } else {
+      await this.collection.updateOne(
+        { _id: new ObjectId(this._id) },
+        {
+          $push: {
+            githubAuthorizations: authorization,
+          },
+        }
+      );
+    }
+
+    if (!this.githubAuthorizations) {
+      this.githubAuthorizations = [];
+    }
+
+    const idx = this.githubAuthorizations.findIndex(
+      (a) => a.githubUserId === authorization.githubUserId
+    );
+
+    if (idx >= 0) {
+      this.githubAuthorizations[idx] = authorization;
+    } else {
+      this.githubAuthorizations.push(authorization);
+    }
+  }
+
+  /**
+   * Find a GitHub authorization by githubUserId
+   *
+   * @param githubUserId - GitHub user ID
+   */
+  public findGitHubAuthorization(githubUserId: number): GitHubAuthorization | undefined {
+    return this.githubAuthorizations?.find((a) => a.githubUserId === githubUserId);
+  }
+
+  /**
+   * Get first active GitHub authorization (if any)
+   */
+  public getActiveGitHubAuthorization(): GitHubAuthorization | undefined {
+    return this.githubAuthorizations?.find((a) => a.status === 'active');
   }
 }

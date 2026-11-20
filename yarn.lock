@@ -508,6 +508,17 @@
   dependencies:
     tslib "^2.4.0"
 
+"@hawk.so/github-sdk@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@hawk.so/github-sdk/-/github-sdk-1.0.4.tgz#6edef6290651ff1fe678ae09fbfc40f9ce2dd1c5"
+  integrity sha512-nt0oM7ZqK8PfcgD74B/DwaeKNjv3pkd6at9k+yQKkTDdeh2rraafbHdxVzJqAAAIjaDE2ecH6QWolWlOJZ3UdQ==
+  dependencies:
+    "@hawk.so/utils" "^1.0.0"
+    "@octokit/oauth-methods" "^4.0.0"
+    "@octokit/rest" "^22.0.1"
+    "@octokit/types" "^16.0.0"
+    jsonwebtoken "^9.0.3"
+
 "@hawk.so/nodejs@^3.3.2":
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/@hawk.so/nodejs/-/nodejs-3.3.2.tgz#113db57546f82e5c405c43b6dc5709232827c4df"
@@ -530,6 +541,11 @@
   integrity sha512-V8zCbnxwu1vVveZvfrm1Xoipi+hP5PZff/QiWeKGCl5/JeC0LX6AeCSIpKo2VvSDwiGcNTwmHygH6Tfch0Y2Dw==
   dependencies:
     bson "^7.0.0"
+
+"@hawk.so/utils@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@hawk.so/utils/-/utils-1.0.0.tgz#08164d0bdff966a414aabcfb90311174d495d127"
+  integrity sha512-iqAHgoKGc9rU9LnuFa8wMAaiaKaZ0U8Hxeja0qxBuQPGSyBJuI/1AfdFG9z0yA9KQQlIGXv+ij1MO5a++bUpAA==
 
 "@isaacs/cliui@^8.0.2":
   version "8.0.2"

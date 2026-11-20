@@ -1,6 +1,6 @@
 import { RedisClientType } from 'redis';
 import RedisHelper from '../../../redisHelper';
-import { InstallStateStoreInterface } from './InstallStateStoreInterface';
+import { InstallStateStoreInterface, InstallStateData } from './InstallStateStoreInterface';
 
 /**
  * Redis-based store for GitHub App installation state
@@ -45,11 +45,11 @@ export class RedisInstallStateStore implements InstallStateStoreInterface {
    * Save installation state data
    *
    * @param stateId - unique state identifier (usually UUID)
-   * @param data - installation state data (projectId, userId, timestamp)
+   * @param data - installation state data
    */
   public async saveState(
     stateId: string,
-    data: { projectId: string; userId: string; timestamp: number }
+    data: InstallStateData
   ): Promise<void> {
     const client = this.getClient();
     const key = `${this.STATE_PREFIX}${stateId}`;
@@ -64,7 +64,7 @@ export class RedisInstallStateStore implements InstallStateStoreInterface {
    * @param stateId - state identifier
    * @returns installation state data or null if not found/expired
    */
-  public async getState(stateId: string): Promise<{ projectId: string; userId: string; timestamp: number } | null> {
+  public async getState(stateId: string): Promise<InstallStateData | null> {
     const client = this.getClient();
     const key = `${this.STATE_PREFIX}${stateId}`;
 
@@ -90,7 +90,7 @@ export class RedisInstallStateStore implements InstallStateStoreInterface {
     }
 
     try {
-      return JSON.parse(value) as { projectId: string; userId: string; timestamp: number };
+      return JSON.parse(value) as InstallStateData;
     } catch (error) {
       console.error('[Redis GitHub Install Store] Failed to parse state:', error);
 

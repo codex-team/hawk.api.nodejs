@@ -57,6 +57,61 @@ export default gql`
   union Member = ConfirmedMember | PendingMember
 
   """
+  GitHub account (user or org) where the App is installed
+  """
+  type GitHubInstallationAccount {
+    """
+    GitHub account numeric ID
+    """
+    id: Int!
+
+    """
+    GitHub username or organization login
+    """
+    login: String!
+
+    """
+    Account type: "User" or "Organization"
+    """
+    type: String!
+  }
+
+  """
+  GitHub App installation stored at workspace level
+  """
+  type GitHubInstallation {
+    """
+    GitHub App installation ID issued by GitHub
+    """
+    installationId: Int!
+
+    """
+    Account (user or org) where the App is installed
+    """
+    account: GitHubInstallationAccount!
+  }
+
+  """
+  GitHub integration data for workspace
+  """
+  type WorkspaceGitHubIntegration {
+    """
+    List of GitHub App installations linked to this workspace
+    """
+    installations: [GitHubInstallation!]!
+  }
+
+  """
+  Workspace integrations
+  """
+  type WorkspaceIntegrations {
+    """
+    GitHub integration data (App installations)
+    """
+    github: WorkspaceGitHubIntegration
+  }
+
+  """
   Represent Workspace info
   """
   type Workspace {
@@ -141,6 +196,11 @@ export default gql`
     SSO configuration (admin only, returns null for non-admin users)
     """
     sso: WorkspaceSsoConfig @definedOnlyForAdmins
+
+    """
+    External integrations (GitHub, etc.)
+    """
+    integrations: WorkspaceIntegrations
   }
 
   """
