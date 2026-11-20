@@ -68,7 +68,7 @@ export class AskAiService {
   ): Promise<string> {
     const event = await this.getEventOrThrow(eventsFactory, eventId, originalEventId);
 
-    const { prompt, nonce } = buildEventPrompt(event.payload);
+    const { prompt, nonce } = buildEventPrompt(event);
 
     const text = await vercelAIApi.complete({
       system: ctoInstruction + spotlightInstruction(nonce),
@@ -101,7 +101,7 @@ export class AskAiService {
   ): Promise<AiStream> {
     const event = await this.getEventOrThrow(eventsFactory, eventId, originalEventId);
 
-    const { prompt, nonce } = buildEventPrompt(event.payload);
+    const { prompt, nonce } = buildEventPrompt(event);
     const abort = new AbortController();
 
     forwardAbort(signal, abort);

@@ -1,10 +1,15 @@
 import '../../../src/env-test';
 import HawkCatcher from '@hawk.so/nodejs';
 import { EventAddons, EventData } from '@hawk.so/types';
+import { Event } from '../../../src/services/types';
 import { AskAiService } from '../../../src/services/askAi/service';
 import { vercelAIApi } from '../../../src/integrations/vercel-ai';
 import { ctoInstruction } from '../../../src/services/askAi/instructions/cto';
-import { UNTRUSTED_DATA_MARKER_NAME } from '../../../src/services/askAi/security/spotlighting';
+import {
+  closeMarker,
+  openMarker,
+  UNTRUSTED_DATA_MARKER_NAME
+} from '../../../src/services/askAi/security/spotlighting';
 import { SUGGESTION_FALLBACK_MESSAGE } from '../../../src/services/askAi/security/nonceEcho';
 
 jest.mock('../../../src/integrations/vercel-ai/', () => ({
@@ -35,13 +40,65 @@ function nonceFromPrompt(prompt: string): string {
   return match[1];
 }
 
+/**
+ * Parsed event object extracted from the spotlighted prompt
+ */
+interface SerializedPromptEvent {
+  catcherType: string;
+  firstOccurrenceTimestamp: number;
+  currentRepetitionTimestamp: number;
+  totalCount: number;
+  usersAffected: number;
+  payload: Record<string, unknown>;
+}
+
+/**
+ * Unwrap the spotlighting markers and parse the serialized event JSON from a prompt
+ *
+ * @param prompt - prompt captured from the transport's `complete`/`stream` call
+ * @returns {SerializedPromptEvent} parsed event object sent to the model
+ */
+function eventFromPrompt(prompt: string): SerializedPromptEvent {
+  const nonce = nonceFromPrompt(prompt);
+  const body = prompt
+    .replace(`${openMarker(nonce)}\n`, '')
+    .replace(`\n${closeMarker(nonce)}`, '')
+    .trim();
+
+  return JSON.parse(body.replace(/^Event:\s*/, '')) as SerializedPromptEvent;
+}
+
 describe('AskAiService', () => {
   let askAiService: AskAiService;
   let consoleErrorSpy: jest.SpyInstance;
   const testEventId = 'repetition-id';
   const testOriginalEventId = 'original-event-id';
-  const testPayload: EventData<EventAddons> = {
+  const testPayloadWithoutUser: EventData<EventAddons> = {
     title: 'TypeError: cannot read property of undefined',
+    breadcrumbs: [
+      {
+        timestamp: 1700000990000,
+        type: 'request',
+        category: 'fetch',
+        message: 'GET /api/cart 401',
+      },
+    ],
+  };
+  const testPayload: EventData<EventAddons> = {
+    ...testPayloadWithoutUser,
+    user: {
+      id: 'user-1',
+      name: 'Test User',
+    },
+  };
+  const testEvent: Event = {
+    _id: testEventId,
+    catcherType: 'errors/javascript',
+    timestamp: 1700001000,
+    originalTimestamp: 1700000000,
+    totalCount: 12,
+    usersAffected: 4,
+    payload: testPayload,
   };
 
   /**
@@ -50,14 +107,11 @@ describe('AskAiService', () => {
    * @param event - event repetition to resolve, or null when not found
    * @returns {object} stub factory
    */
-  const createEventsFactory = (event: { _id: string; payload: EventData<EventAddons> } | null): { getEventRepetition: jest.Mock } => ({
+  const createEventsFactory = (event: Event | null): { getEventRepetition: jest.Mock } => ({
     getEventRepetition: jest.fn().mockResolvedValue(event),
   });
 
-  const eventsFactoryWithPayload = (): ReturnType<typeof createEventsFactory> => createEventsFactory({
-    _id: testEventId,
-    payload: testPayload,
-  });
+  const eventsFactoryWithPayload = (): ReturnType<typeof createEventsFactory> => createEventsFactory(testEvent);
 
   /**
    * Make the transport answer with the nonce it was given, as a model
@@ -80,13 +134,20 @@ describe('AskAiService', () => {
   });
 
   describe('generateSuggestion', () => {
-    it('should spotlight the event with a nonce the system instruction repeats, and return the answer unchanged', async () => {
+    it('should spotlight the event with metadata and breadcrumbs, strip user, and return the answer unchanged', async () => {
       (vercelAIApi.complete as jest.Mock).mockResolvedValue('generated suggestion');
 
       const result = await askAiService.generateSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId);
       const args = (vercelAIApi.complete as jest.Mock).mock.calls[0][0] as { system: string; prompt: string };
+      const parsed = eventFromPrompt(args.prompt);
 
-      expect(args.prompt).toContain(JSON.stringify(testPayload));
+      expect(parsed.catcherType).toBe('errors/javascript');
+      expect(parsed.firstOccurrenceTimestamp).toBe(1700000000);
+      expect(parsed.currentRepetitionTimestamp).toBe(1700001000);
+      expect(parsed.totalCount).toBe(12);
+      expect(parsed.usersAffected).toBe(4);
+      expect(parsed.payload).toEqual(testPayloadWithoutUser);
+      expect(parsed.payload).not.toHaveProperty('user');
       expect(args.system.startsWith(ctoInstruction)).toBe(true);
       expect(args.system).toContain(nonceFromPrompt(args.prompt));
       expect(result).toBe('generated suggestion');
@@ -143,7 +204,7 @@ describe('AskAiService', () => {
   });
 
   describe('streamSuggestion', () => {
-    it('should spotlight the event with a nonce the system instruction repeats', async () => {
+    it('should spotlight the event with metadata and breadcrumbs, and strip user', async () => {
       const streamResult = (async function * () {
         yield { type: 'text-delta', delta: 'Answer' };
       })();
@@ -152,8 +213,15 @@ describe('AskAiService', () => {
 
       await askAiService.streamSuggestion(eventsFactoryWithPayload(), testEventId, testOriginalEventId, new AbortController().signal);
       const args = (vercelAIApi.stream as jest.Mock).mock.calls[0][0] as { system: string; prompt: string };
+      const parsed = eventFromPrompt(args.prompt);
 
-      expect(args.prompt).toContain(JSON.stringify(testPayload));
+      expect(parsed.catcherType).toBe('errors/javascript');
+      expect(parsed.firstOccurrenceTimestamp).toBe(1700000000);
+      expect(parsed.currentRepetitionTimestamp).toBe(1700001000);
+      expect(parsed.totalCount).toBe(12);
+      expect(parsed.usersAffected).toBe(4);
+      expect(parsed.payload).toEqual(testPayloadWithoutUser);
+      expect(parsed.payload).not.toHaveProperty('user');
       expect(args.system.startsWith(ctoInstruction)).toBe(true);
       expect(args.system).toContain(nonceFromPrompt(args.prompt));
     });
