@@ -597,6 +597,16 @@ describe('Project Resolver - createProject', () => {
     );
 
     expect(repetitionsCollectionMock.createIndex).toHaveBeenCalledWith(
+      { groupHash: 1, _id: -1 },
+      { name: 'groupHashAndId' }
+    );
+
+    expect(repetitionsCollectionMock.createIndex).not.toHaveBeenCalledWith(
+      { groupHash: 'hashed' },
+      expect.anything()
+    );
+
+    expect(repetitionsCollectionMock.createIndex).toHaveBeenCalledWith(
       { groupHash: 1, release: 1 },
       { name: 'groupHashAndRelease' }
     );

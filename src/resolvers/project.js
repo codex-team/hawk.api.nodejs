@@ -12,7 +12,7 @@ const ProjectModel = require('../models/project').default;
 const { GitHubService } = require('../integrations/github/service');
 
 const EVENTS_GROUP_HASH_INDEX_NAME = 'groupHashUnique';
-const REPETITIONS_GROUP_HASH_INDEX_NAME = 'groupHash_hashed';
+const REPETITIONS_GROUP_HASH_AND_ID_INDEX_NAME = 'groupHashAndId';
 const REPETITIONS_GROUP_HASH_AND_RELEASE_INDEX_NAME = 'groupHashAndRelease';
 const REPETITIONS_USER_ID_INDEX_NAME = 'userId';
 const REPETITIONS_TIMESTAMP_INDEX_NAME = 'timestamp';
@@ -403,11 +403,14 @@ module.exports = {
         name: EVENTS_GROUP_HASH_INDEX_NAME,
       });
 
+      /**
+       * Used to fetch repetitions by groupHash ordered by newest _id (including cursor pagination).
+       */
       await projectRepetitionsEventsCollection.createIndex({
-        groupHash: 'hashed',
-      },
-      {
-        name: REPETITIONS_GROUP_HASH_INDEX_NAME,
+        groupHash: 1,
+        _id: -1,
+      }, {
+        name: REPETITIONS_GROUP_HASH_AND_ID_INDEX_NAME,
       });
 
       /**
