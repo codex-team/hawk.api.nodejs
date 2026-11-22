@@ -1,10 +1,10 @@
-import type { MemoryMCPAuthRequestStore } from './memory.store';
+import type { MemoryOAuthRequestStore } from './memory.store';
 
 /**
  * Authorization data needed to verify that the original authorization request
  * was made by the same client making token request
  */
-export type AuthRequestData = {
+export type OAuthRequestData = {
   userId: string;
   clientId: string;
   redirectUri: string;
@@ -12,9 +12,9 @@ export type AuthRequestData = {
 };
 
 /**
- * Used by {@link MemoryMCPAuthRequestStore}
+ * Used by {@link MemoryOAuthRequestStore}
  * to track AuthRequest expiration
  */
-export type MemoryAuthRequestData = AuthRequestData & {
+export type MemoryAuthRequestData = OAuthRequestData & {
   expiresAt: number;
 }

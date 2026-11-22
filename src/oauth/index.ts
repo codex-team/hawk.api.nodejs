@@ -1,24 +1,30 @@
 /* eslint-disable @typescript-eslint/camelcase, camelcase */
 import express from 'express';
-import crypto from 'node:crypto';
-import { createMCPStore } from '../store/storeFactory';
+import crypto, { randomUUID } from 'node:crypto';
+import { createOAuthStore } from './store/storeFactory';
 import { AuthenticationError } from 'apollo-server-express';
-import { getUserJWTDataFromToken } from '../helpers/getUserIdFromToken';
-import { generateMCPClientId } from '../helpers/generateMCPClientId';
+import { getUserJWTDataFromToken } from './helpers/getUserJWTDataFromToken';
+import { generateOAuthClientId } from './helpers/generateOAuthClientId';
+import { OAuthErrorCode, OAuthGrantType } from "@hawk.so/types";
 
 import type { Request, Response } from 'express';
-import type { TokensPair } from '@hawk.so/types';
-import type { ContextFactories } from 'src/types/graphql';
+import type { OAuthTokenRequest, TokenResponse, TokensPair } from '@hawk.so/types';
+import type { ContextFactories } from '../types/graphql';
 import type {
   AuthorizationServerMetadataResponse,
   ClientInformationResponse,
   ProtectedResourceMetadataResponse,
-  TokenRequest,
-  TokenResponse
 } from './types';
+import { isLoopback } from './helpers/isLoopback';
 
 /**
- * Implements MCP Authorization Flow following
+ * Redirect uris that are allowed to be used in OAuth Flow.
+ * Prevents access to recources from unknown third-party applications.
+ */
+const ALLOWED_REDIRECT_URIS = new Set<string>();
+
+/**
+ * Implements OAuth Authorization Flow following
  * {@link https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-16 | OAuth 2.1}
  * and
  * {@link https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/authorization | Authorization in MCP}
@@ -33,16 +39,17 @@ import type {
  * @param app - Express application instance
  * @param factories - context factories for database access
  */
-export function useMCPAuth(app: express.Application, factories: ContextFactories) {
-  const store = createMCPStore();
+export function appendOAuthRoutes(app: express.Application, factories: ContextFactories) {
+  const store = createOAuthStore();
 
   /**
    * Generates new {@link TokensPair}
    *
-   * @param userId - user ID
+   * @param userId user ID
+   * @param jti json web token identifier
    * @returns TokensPair - newly generated access and refresh tokens
    */
-  async function generateTokensPair(userId: string) {
+  async function generateTokensPair(userId: string, jti: string) {
     const user = await factories.usersFactory.findById(userId);
 
     if (!user) {
@@ -56,8 +63,10 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
     const workspacesIds = await user.getWorkspacesIds([]);
     const workspaces = await factories.workspacesFactory.findManyByIds(workspacesIds);
     const hasEnforcedSso = workspaces.some(w => w.sso?.enabled && w.sso?.enforced);
-
-    return user.generateTokensPair(hasEnforcedSso);
+    
+    return user.generateTokensPair(hasEnforcedSso, {
+      jwtid: jti
+    });
   };
 
   /**
@@ -66,10 +75,11 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
    * @param userId - user ID
    * @returns TokenResponse or null
    */
-  async function createTokenResponse(userId: string): Promise<TokenResponse | null> {
-    const tokensPair = await generateTokensPair(userId);
+  async function createTokenResponse(userId: string): Promise<TokenResponse & { jti: string } | null> {
+    const jti = randomUUID();
+    const tokensPair = await generateTokensPair(userId, jti);
 
-    const data = getUserJWTDataFromToken(tokensPair.accessToken, 'access');
+    const data = getUserJWTDataFromToken(tokensPair.accessToken);
 
     if (!data) {
       return null;
@@ -81,22 +91,23 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
       token_type: 'Bearer',
       expires_in: data.exp,
       scope: 'mcp:tools mcp:resources',
+      jti,
     };
   };
 
   /**
    * Protected Resource Metadata (PRM) discovery
    *
-   * MCP client retrieves metadata the authorization server,
+   * Client retrieves metadata the authorization server,
    * supported scopes, and other resource information
    */
   app.get(
-    '/.well-known/oauth-protected-resource/integration/mcp',
+    '/.well-known/oauth-protected-resource/oauth',
     (_req, res: Response<ProtectedResourceMetadataResponse>) => {
       res.json({
-        resource: `${process.env.API_URL}/integration/mcp`,
+        resource: `${process.env.API_URL}`,
         authorization_servers: [
-          `${process.env.API_URL}/integration/mcp`,
+          `${process.env.API_URL}/oauth`,
         ],
         scopes_supported: [
           'mcp:tools',
@@ -109,29 +120,29 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
   /**
    * Authorization Server Discovery
    *
-   * MCP client retrieves another set of metadata properties
+   * Client retrieves another set of metadata properties
    * that will allow it to know the endpoints it needs to complete the authorization flow
    */
   app.get(
-    '/.well-known/oauth-authorization-server/integration/mcp',
+    '/.well-known/oauth-authorization-server/oauth',
     (_req, res: Response<AuthorizationServerMetadataResponse>) => {
       res.json({
-        issuer: `${process.env.API_URL}/integration/mcp`,
+        issuer: `${process.env.API_URL}/oauth`,
 
         authorization_endpoint:
-          `${process.env.GARAGE_URL}/concent`,
+          `${process.env.GARAGE_URL}/consent`,
 
         token_endpoint:
-          `${process.env.API_URL}/token/integration/mcp`,
+          `${process.env.API_URL}/token/oauth`,
 
         registration_endpoint:
-         `${process.env.API_URL}/register/integration/mcp`,
+         `${process.env.API_URL}/register/oauth`,
 
         response_types_supported: [ 'code' ],
 
         grant_types_supported: [
-          'authorization_code',
-          'refresh_token',
+          OAuthGrantType.authorizationCode,
+          OAuthGrantType.refreshToken,
         ],
 
         token_endpoint_auth_methods_supported: [
@@ -150,16 +161,15 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
    *
    * Generates random clientId
    *
-   * Typically used to register MCP with the authorization server dynamically.
    * Currently we do not have any real authorization server, but this endpoint is still
    * implemented in order not to bug the user with manual clientId creation in some IDEs (VSCode)
    */
-  app.post('/register/integration/mcp', (req, res: Response<ClientInformationResponse>) => {
+  app.post('/register/oauth', (req, res: Response<ClientInformationResponse>) => {
     res.status(201).json({
-      client_id: generateMCPClientId(),
+      client_id: generateOAuthClientId(),
       client_name: req.body.client_name,
       redirect_uris: req.body.redirect_uris,
-      grant_types: ['authorization_code', 'refresh_token'],
+      grant_types: [OAuthGrantType.authorizationCode, OAuthGrantType.refreshToken],
       response_types: [ 'code' ],
     });
   });
@@ -177,7 +187,7 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
    * The redirect URI includes an authorization code and any local state
    * provided by the client earlier
    */
-  app.post('/concent/integration/mcp', async (req, res) => {
+  app.post('/authorize/oauth', async (req, res) => {
     const {
       client_id,
       redirect_uri,
@@ -185,21 +195,30 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
       code_challenge,
     } = req.body;
 
+    if (
+      !isLoopback(redirect_uri) ||
+      !ALLOWED_REDIRECT_URIS.has(redirect_uri)
+    ) {
+      return res.status(400).json({
+        error: OAuthErrorCode.invalidRequest
+      });
+    }
+
     const header = req.headers.authorization;
 
     if (typeof header !== 'string') {
       return res.status(400).json({
-        error: 'invalid_grant',
+        error: OAuthErrorCode.invalidRequest,
       });
     }
 
     const loginToken = header.slice(7);
 
-    const user = getUserJWTDataFromToken(loginToken, 'access');
+    const user = getUserJWTDataFromToken(loginToken);
 
     if (!user) {
       return res.status(400).json({
-        error: 'invalid_grant',
+        error: OAuthErrorCode.invalidRequest,
       });
     }
 
@@ -211,9 +230,9 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
       .toString('base64url');
 
     /**
-     * Save AuthRequest data to retrieve data on the next step
+     * Save OAuthRequest data to retrieve data on the next step
      */
-    await store.saveAuthRequest(code, {
+    await store.saveOAuthRequest(code, {
       userId: user.userId,
       clientId: client_id,
       redirectUri: redirect_uri,
@@ -240,24 +259,22 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
    * Token Endpoint
    * https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-16#name-token-endpoint
    *
-   * Token endpoint is used by the MCP client to exchange the authorization code to access token or
+   * Token endpoint is used by the client to exchange the authorization code to access token or
    * generate new {@link TokensPair} by refresh token
    *
    * ON 'authorization_code' GRANT TYPE:
    * - Validates the authorization code, validates the code verifier, and ensures that
    *   the redirect URI received matches the URI used to redirect the user agent to the client in previous step.
-   *   If valid, the authorization server responds back with an access token and a refresh token
+   *   If valid, the authorization server responds back with an access token
    *
-   * ON 'refresh_token' GRANT TYPE:
-   *  - Validates refresh token. If valid, the authorization server responds back with an access token and a refresh token
    */
-  app.post('/token/integration/mcp', async (req: Request<{}, {}, TokenRequest>, res) => {
+  app.post('/token/oauth', async (req: Request<{}, {}, OAuthTokenRequest>, res) => {
     const { body } = req;
 
     res.set('Cache-Control', 'no-store');
     res.set('Pragma', 'no-cache');
 
-    if (body.grant_type === 'refresh_token') {
+    if (body.grant_type === OAuthGrantType.refreshToken) {
       const {
         refresh_token,
         client_id,
@@ -265,13 +282,13 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
 
       if (typeof refresh_token !== 'string' || !refresh_token ||
         typeof client_id !== 'string' || !client_id) {
-        return res.status(400).json({ error: 'invalid_request' });
+        return res.status(400).json({ error: OAuthErrorCode.invalidRequest });
       }
 
-      const data = getUserJWTDataFromToken(refresh_token, 'refresh');
+      const data = getUserJWTDataFromToken(refresh_token);
 
       if (!data) {
-        return res.status(400).json({ error: 'invalid_grant' });
+        return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
       }
 
       const response = await createTokenResponse(data.userId);
@@ -279,15 +296,15 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
       if (!response) {
         console.warn(`[MCP Auth] refresh_token was successfully verified, but ${data.userId} could not be found`);
 
-        return res.status(400).json({ error: 'invalid_grant' });
+        return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
       }
 
       return res.json(response);
     }
 
-    if (body.grant_type !== 'authorization_code') {
+    if (body.grant_type !== OAuthGrantType.authorizationCode) {
       return res.status(400).json({
-        error: 'unsupported_grant_type',
+        error: OAuthErrorCode.unsupportedGrantType,
       });
     }
 
@@ -299,27 +316,9 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
     } = body;
 
     /**
-     * Retrieve AuthRequest data from the store
+     * Retrieve OAuthRequest data from the store
      */
-    const data = await store.getAuthRequest(code);
-
-    if (!data) {
-      return res.status(400).json({
-        error: 'invalid_grant',
-      });
-    }
-
-    if (data.clientId !== client_id) {
-      return res.status(400).json({
-        error: 'invalid_grant',
-      });
-    }
-
-    if (data.redirectUri !== redirect_uri) {
-      return res.status(400).json({
-        error: 'invalid_grant',
-      });
-    }
+    const data = await store.getOAuthRequest(code);
 
     /**
      * Validate codeChallenge
@@ -329,20 +328,32 @@ export function useMCPAuth(app: express.Application, factories: ContextFactories
       .update(code_verifier)
       .digest('base64url');
 
-    if (calculatedChallenge !== data.codeChallenge) {
+    if (
+      !data ||
+      data.clientId !== client_id ||
+      data.redirectUri !== redirect_uri ||
+      calculatedChallenge !== data.codeChallenge
+    ) {
       return res.status(400).json({
-        error: 'invalid_grant',
+        error: OAuthErrorCode.invalidGrant,
       });
     }
+    const responseWithJit = await createTokenResponse(data.userId);
 
-    const response = await createTokenResponse(data.userId);
+    if (!responseWithJit) {
+      console.warn(`[OAuth] refresh_token was successfully verified, but ${data.userId} could not be found`);
 
-    if (!response) {
-      console.warn(`[MCP Auth] refresh_token was successfully verified, but ${data.userId} could not be found`);
-
-      return res.status(400).json({ error: 'invalid_grant' });
+      return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
     }
+
+    const { jti, ...response } = responseWithJit;
+
+    await factories.oauthFactory.addClient(data.userId, data.clientId);
 
     return res.json(response);
   });
+
+  // app.post('/revoke/oauth', async (req: Request, res) => {
+
+  // });
 };

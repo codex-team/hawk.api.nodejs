@@ -1,16 +1,16 @@
-import type { AuthRequestData, MemoryAuthRequestData } from './types';
-import type { MCPAuthRequestStoreInterface } from './MCPAuthRequestStoreInterface';
+import type { OAuthRequestData, MemoryAuthRequestData } from './types';
+import type { OAuthRequestStoreInterface } from './OAuthRequestStoreInterface';
 
 /**
- * In-memory store for MCP AuthRequest data
+ * In-memory store for OAuthRequest data
  *
- * Stores temporary data needed for MCP authentication flow:
+ * Stores temporary data needed for OAuth authentication flow:
  * - AuthRequest maps authorization code to AuthRequest data
  *
  * Note: This implementation is not suitable for multi-instance deployments.
  * Use Redis store for production environments with multiple API instances.
  */
-export class MemoryMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
+export class MemoryOAuthRequestStore implements OAuthRequestStoreInterface {
   /**
    * Store type identifier
    */
@@ -46,7 +46,7 @@ export class MemoryMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
    * @param code - Authorization code ()
    * @param data - AuthRequest data (userId, clientId, redirectUrl, codeChallenge)
    */
-  public async saveAuthRequest(code: string, data: MemoryAuthRequestData): Promise<void> {
+  public async saveOAuthRequest(code: string, data: MemoryAuthRequestData): Promise<void> {
     this.AuthState.set(code,
       {
         ...data,
@@ -61,7 +61,7 @@ export class MemoryMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
    * @param code - authorizaton code
    * @returns authRequest data or null if not found/expired
    */
-  public async getAuthRequest(code: string): Promise<AuthRequestData | null> {
+  public async getOAuthRequest(code: string): Promise<OAuthRequestData | null> {
     const data = this.AuthState.get(code);
 
     if (!data) {

@@ -1,7 +1,6 @@
-import jwt from 'jsonwebtoken';
 import { toNodeHandler } from '@modelcontextprotocol/node';
-import { createMcpHandler, McpServer, ServerContext } from '@modelcontextprotocol/server';
-import { ContextFactories, UserJWTData } from 'src/types/graphql';
+import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
+import { ContextFactories } from 'src/types/graphql';
 
 import type { NodeMcpRequestHandler } from '@modelcontextprotocol/node';
 
@@ -17,51 +16,6 @@ const createMCPServer = (factories: ContextFactories) => {
     version: '0.0.0',
     description: 'A test server',
   });
-
-  server.registerTool(
-    'hello_world',
-    {
-      description: 'A test tool to greet the user',
-    },
-    async () => {
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: 'Hi',
-          },
-        ],
-      };
-    }
-  );
-
-  server.registerTool(
-    'print_userId',
-    {
-      description: 'A test tool that prints userId from auth token',
-    },
-    async (ctx: ServerContext) => {
-      let message: string;
-
-      try {
-        const token = ctx.http?.req?.headers.get('authorization')?.slice(7)!;
-        const auth = jwt.decode(token) as UserJWTData;
-
-        message = auth.userId;
-      } catch {
-        message = 'something went wrong';
-      }
-
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: String(message),
-          },
-        ],
-      };
-    }
-  );
 
   return server;
 };

@@ -1,9 +1,9 @@
 import crypto from 'node:crypto';
 
 /**
- * Generates random MCP clientId
+ * Generates random clientId
  * @returns string
  */
-export function generateMCPClientId() {
+export function generateOAuthClientId() {
   return `hawk-client:${crypto.randomUUID()}`;
 };

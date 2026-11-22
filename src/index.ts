@@ -34,6 +34,7 @@ import { appendSsoRoutes } from './sso';
 import { appendGitHubRoutes } from './integrations/github';
 import { appendAiAssistantRoutes } from './services/askAi';
 import { appendMCPRoutes } from './integrations/mcp';
+import { appendOAuthRoutes } from './integrations/oauth';
 
 /**
  * Option to enable playground
@@ -278,6 +279,12 @@ class HawkAPI {
      * Append AI assistant route to Express app
      */
     appendAiAssistantRoutes(this.app);
+
+    /**
+     * Append OAuth routes to Express app
+     * Note: This must be called after database connections are established
+     */
+    appendOAuthRoutes(this.app, sharedFactories);
 
     /**
      * Append MCP integration routes to Express app using shared factories

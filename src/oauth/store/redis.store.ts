@@ -1,19 +1,19 @@
-import RedisHelper from '../../../redisHelper';
+import RedisHelper from '../../redisHelper';
 
-import type { MCPAuthRequestStoreInterface } from './MCPAuthRequestStoreInterface';
-import type { AuthRequestData } from './types';
+import type { OAuthRequestStoreInterface } from './OAuthRequestStoreInterface';
+import type { OAuthRequestData } from './types';
 import type { RedisClientType } from 'redis';
 
 /**
- * Redis-based store for MCP AuthRequest data
+ * Redis-based store for OAuthRequest data
  *
- * Stores temporary data needed for MCP authentication flow:
+ * Stores temporary data needed for OAuth flow:
  * - AuthRequest maps authorization code to AuthRequest data
  *
  * This implementation is suitable for multi-instance deployments as it uses
  * Redis as the shared state store. TTLs are handled by Redis automatically.
  */
-export class RedisMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
+export class RedisOAuthRequestStore implements OAuthRequestStoreInterface {
   /**
    * Store type identifier
    */
@@ -32,7 +32,7 @@ export class RedisMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
   /**
    * Prefix for AuthRequest keys in Redis
    */
-  private readonly MCP_AUTH_REQUEST_PREFIX = 'mcp:auth';
+  private readonly OAUTH_REQUEST_PREFIX = 'oauth';
 
   constructor(redisHelper?: RedisHelper) {
     this.redisHelper = redisHelper || RedisHelper.getInstance();
@@ -44,9 +44,9 @@ export class RedisMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
    * @param code - authorization code
    * @param data - AuthRequest data (userId, clientId, redirectUrl, codeChallenge)
    */
-  public async saveAuthRequest(code: string, data: AuthRequestData): Promise<void> {
+  public async saveOAuthRequest(code: string, data: OAuthRequestData): Promise<void> {
     const client = this.getClient();
-    const key = `${this.MCP_AUTH_REQUEST_PREFIX}${code}`;
+    const key = `${this.OAUTH_REQUEST_PREFIX}${code}`;
     const value = JSON.stringify(data);
 
     await client.setEx(key, this.TTL_SECONDS, value);
@@ -58,9 +58,9 @@ export class RedisMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
    * @param code - authorization code
    * @returns AuthRequset data or null if not found/expired
    */
-  public async getAuthRequest(code: string): Promise<AuthRequestData | null> {
+  public async getOAuthRequest(code: string): Promise<OAuthRequestData | null> {
     const client = this.getClient();
-    const key = `${this.MCP_AUTH_REQUEST_PREFIX}${code}`;
+    const key = `${this.OAUTH_REQUEST_PREFIX}${code}`;
 
     /**
      * Get and delete atomically to prevent race conditions
@@ -84,9 +84,9 @@ export class RedisMCPAuthRequestStore implements MCPAuthRequestStoreInterface {
     }
 
     try {
-      return JSON.parse(value) as AuthRequestData;
+      return JSON.parse(value) as OAuthRequestData;
     } catch (error) {
-      console.error('[MCP Auth Store] Failed to parse AuthCode', error);
+      console.error('[OAuth Store] Failed to parse AuthCode', error);
 
       return null;
     }
