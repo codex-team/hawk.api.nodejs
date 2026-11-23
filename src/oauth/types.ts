@@ -1,6 +1,8 @@
 
 /* eslint-disable @typescript-eslint/camelcase, camelcase */
 
+import { UserJWTData } from "src/types/graphql";
+
 /**
  * Parameters for {@link https://datatracker.ietf.org/doc/html/rfc9728#name-protected-resource-metadata-r | Protected Resource Metadata Response}
  */
@@ -35,3 +37,15 @@ export type ClientInformationResponse = {
   grant_types: string[];
   response_types: string[];
 };
+
+export type OAuthJWTData = UserJWTData & {
+  /**
+   * Expiration time (Unix timestamp in seconds)
+   */
+  exp: number;
+
+  /**
+   * Unique JSON Web Token Identifier
+   */
+  jwtid: string;
+}

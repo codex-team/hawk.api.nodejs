@@ -29,12 +29,13 @@ import { graphqlUploadExpress } from 'graphql-upload';
 import { metricsMiddleware, createMetricsServer, graphqlMetricsPlugin } from './metrics';
 import { requestLogger } from './utils/logger';
 import ReleasesFactory from './models/releasesFactory';
+import OAuthClientsFactory from './models/oauthClientsFactory';
 import RedisHelper from './redisHelper';
 import { appendSsoRoutes } from './sso';
 import { appendGitHubRoutes } from './integrations/github';
 import { appendAiAssistantRoutes } from './services/askAi';
 import { appendMCPRoutes } from './integrations/mcp';
-import { appendOAuthRoutes } from './integrations/oauth';
+import { appendOAuthRoutes } from './oauth';
 
 /**
  * Option to enable playground
@@ -175,6 +176,9 @@ class HawkAPI {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const releasesFactory = new ReleasesFactory(mongo.databases.events!);
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const oauthFactory = new OAuthClientsFactory(mongo.databases.hawk!);
+
     return {
       usersFactory,
       workspacesFactory,
@@ -182,6 +186,7 @@ class HawkAPI {
       plansFactory,
       businessOperationsFactory,
       releasesFactory,
+      oauthFactory,
     };
   }
 

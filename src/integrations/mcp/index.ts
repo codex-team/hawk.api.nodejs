@@ -1,7 +1,12 @@
 import express from 'express';
-import { ContextFactories } from 'src/types/graphql';
+import { ContextFactories } from '../../types/graphql';
 import { createMCPHandler } from './mcp';
-import { authMiddleware } from './auth/authMiddleware';
+import { requireBearerAuth } from '@modelcontextprotocol/express';
+import { OAuthError, OAuthErrorCode } from '@modelcontextprotocol/server';
+import { verifyJWT } from '../../utils/verifyJWT';
+
+import type { OAuthJWTData } from '../../oauth/types';
+import type { AuthInfo, OAuthTokenVerifier } from '@modelcontextprotocol/server';
 
 /**
  * Appends MCP route to Express App
@@ -11,6 +16,49 @@ import { authMiddleware } from './auth/authMiddleware';
  */
 export function appendMCPRoutes(app: express.Application, factories: ContextFactories): void {
   const handler = createMCPHandler(factories);
+
+  /**
+   * Used by {@link authMiddleware}. Checks access token validity
+   *
+   * On SUCCESS returns the resulting {@link AuthInfo}, which the serving entry surfaces to MCP request handlers
+   *
+   * On ERROR throws OAuthError
+   */
+  const tokenVerifier: OAuthTokenVerifier = {
+    verifyAccessToken: async (token: string) => {
+      const data = verifyJWT<OAuthJWTData>(token, 'access');
+
+      if (!data) {
+        throw new OAuthError(OAuthErrorCode.InvalidToken, 'Invalid or expired access token');
+      }
+
+      const client = await factories.oauthFactory.trackUse(data.userId, data.jwtid);
+
+      if (!client) {
+        throw new OAuthError(OAuthErrorCode.InvalidToken, 'Invalid or expired access token');
+      }
+
+      return {
+        token,
+        clientId: 'client.clientId',
+        scopes: ['mcp:tools', 'mcp:resources'],
+        // expiresAt: data.exp,
+      };
+    },
+  };
+
+  /**
+   * Express middleware that requires a valid Bearer token in the Authorization header
+   *
+   * On failure the middleware sends a JSON OAuth error body and a WWW-Authenticate: Bearer …
+   * challenge that includes the configured resource_metadata URL
+   * so clients can discover the Authorization Server
+   */
+  const authMiddleware = requireBearerAuth({
+    verifier: tokenVerifier,
+    resourceMetadataUrl:
+      `${process.env.API_URL}/.well-known/oauth-protected-resource/oauth`,
+  });
 
   app.use('/integration/mcp', authMiddleware, (req, res) => handler(req, res, req.body));
 }

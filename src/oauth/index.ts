@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/camelcase, camelcase */
 import express from 'express';
-import crypto, { randomUUID } from 'node:crypto';
+import crypto from 'node:crypto';
+import { verifyJWT } from '../utils/verifyJWT';
 import { createOAuthStore } from './store/storeFactory';
 import { AuthenticationError } from 'apollo-server-express';
-import { getUserJWTDataFromToken } from './helpers/getUserJWTDataFromToken';
 import { generateOAuthClientId } from './helpers/generateOAuthClientId';
-import { OAuthErrorCode, OAuthGrantType } from "@hawk.so/types";
+import { OAuthErrorCode, OAuthGrantType } from '@hawk.so/types';
+import { isLoopback } from './helpers/isLoopback';
 
 import type { Request, Response } from 'express';
 import type { OAuthTokenRequest, TokenResponse, TokensPair } from '@hawk.so/types';
@@ -13,9 +14,9 @@ import type { ContextFactories } from '../types/graphql';
 import type {
   AuthorizationServerMetadataResponse,
   ClientInformationResponse,
-  ProtectedResourceMetadataResponse,
+  OAuthJWTData,
+  ProtectedResourceMetadataResponse
 } from './types';
-import { isLoopback } from './helpers/isLoopback';
 
 /**
  * Redirect uris that are allowed to be used in OAuth Flow.
@@ -63,9 +64,9 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
     const workspacesIds = await user.getWorkspacesIds([]);
     const workspaces = await factories.workspacesFactory.findManyByIds(workspacesIds);
     const hasEnforcedSso = workspaces.some(w => w.sso?.enabled && w.sso?.enforced);
-    
+
     return user.generateTokensPair(hasEnforcedSso, {
-      jwtid: jti
+      jwtid: jti,
     });
   };
 
@@ -75,11 +76,10 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
    * @param userId - user ID
    * @returns TokenResponse or null
    */
-  async function createTokenResponse(userId: string): Promise<TokenResponse & { jti: string } | null> {
-    const jti = randomUUID();
+  async function createTokenResponse(userId: string, jti: string): Promise<TokenResponse | null> {
     const tokensPair = await generateTokensPair(userId, jti);
 
-    const data = getUserJWTDataFromToken(tokensPair.accessToken);
+    const data = verifyJWT<OAuthJWTData>(tokensPair.accessToken, 'access');
 
     if (!data) {
       return null;
@@ -91,7 +91,6 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
       token_type: 'Bearer',
       expires_in: data.exp,
       scope: 'mcp:tools mcp:resources',
-      jti,
     };
   };
 
@@ -200,7 +199,7 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
       !ALLOWED_REDIRECT_URIS.has(redirect_uri)
     ) {
       return res.status(400).json({
-        error: OAuthErrorCode.invalidRequest
+        error: OAuthErrorCode.invalidRequest,
       });
     }
 
@@ -214,7 +213,7 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
 
     const loginToken = header.slice(7);
 
-    const user = getUserJWTDataFromToken(loginToken);
+    const user = verifyJWT(loginToken, 'access');
 
     if (!user) {
       return res.status(400).json({
@@ -285,13 +284,19 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
         return res.status(400).json({ error: OAuthErrorCode.invalidRequest });
       }
 
-      const data = getUserJWTDataFromToken(refresh_token);
+      const data = verifyJWT<OAuthJWTData>(refresh_token, 'refresh');
 
       if (!data) {
         return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
       }
 
-      const response = await createTokenResponse(data.userId);
+      const jti = await factories.oauthFactory.refreshJti(data.userId, data.jwtid);
+
+      if (!jti) {
+        return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
+      }
+
+      const response = await createTokenResponse(data.userId, jti);
 
       if (!response) {
         console.warn(`[MCP Auth] refresh_token was successfully verified, but ${data.userId} could not be found`);
@@ -334,26 +339,23 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
       data.redirectUri !== redirect_uri ||
       calculatedChallenge !== data.codeChallenge
     ) {
-      return res.status(400).json({
-        error: OAuthErrorCode.invalidGrant,
-      });
+      return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
     }
-    const responseWithJit = await createTokenResponse(data.userId);
 
-    if (!responseWithJit) {
+    const jti = await factories.oauthFactory.create(data.userId, data.clientId);
+
+    if (!jti) {
+      return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
+    }
+
+    const response = await createTokenResponse(data.userId, jti);
+
+    if (!response) {
       console.warn(`[OAuth] refresh_token was successfully verified, but ${data.userId} could not be found`);
 
       return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
     }
 
-    const { jti, ...response } = responseWithJit;
-
-    await factories.oauthFactory.addClient(data.userId, data.clientId);
-
     return res.json(response);
   });
-
-  // app.post('/revoke/oauth', async (req: Request, res) => {
-
-  // });
 };

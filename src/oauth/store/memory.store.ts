@@ -70,6 +70,8 @@ export class MemoryOAuthRequestStore implements OAuthRequestStoreInterface {
 
     if (Date.now() > data.expiresAt) {
       this.AuthState.delete(code);
+
+      return null;
     }
 
     this.AuthState.delete(code);

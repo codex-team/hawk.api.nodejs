@@ -6,6 +6,7 @@ import ProjectsFactory from '../models/projectsFactory';
 import PlansFactory from '../models/plansFactory';
 import BusinessOperationsFactory from '../models/businessOperationsFactory';
 import ReleasesFactory from '../models/releasesFactory';
+import OAuthFactory from '../models/oauthClientsFactory';
 
 /**
  * Resolver's Context argument
@@ -57,11 +58,6 @@ export interface UserJWTData {
    * User id
    */
   userId: string;
-
-  /**
-   * Expiration time (Unix timestamp in seconds)
-   */
-  exp: number;
 }
 
 /**
@@ -97,6 +93,11 @@ export interface ContextFactories {
    * Releases factory for working with releases
    */
   releasesFactory: ReleasesFactory;
+
+  /**
+   * OAuth factory for working with oauth clients
+   */
+  oauthFactory: OAuthFactory;
 }
 
 /**
