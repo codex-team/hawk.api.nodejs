@@ -66,8 +66,8 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
    * @param userId - user ID
    * @returns TokenResponse or null
    */
-  async function createTokenResponse(userId: string): Promise<TokenResponse | null> {
-    const tokensPair = await generateTokensPair(userId);
+  async function createTokenResponse(oauthId: string): Promise<TokenResponse | null> {
+    const tokensPair = await generateTokensPair(oauthId);
 
     const data = verifyJWT<OAuthJWTData>(tokensPair.accessToken, 'access');
 
@@ -185,7 +185,7 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
     } = req.body;
 
     if (
-      !isLoopback(redirect_uri) ||
+      !isLoopback(redirect_uri) &&
       !ALLOWED_REDIRECT_URIS.has(redirect_uri)
     ) {
       return res.status(400).json({
@@ -286,7 +286,7 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
         return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
       }
 
-      const response = await createTokenResponse(data.userId);
+      const response = await createTokenResponse(data.oauthId);
 
       if (!response) {
         console.warn(`[MCP Auth] refresh_token was successfully verified, but ${data.userId} could not be found`);
@@ -332,13 +332,13 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
       return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
     }
 
-    const jti = await factories.oauthFactory.create(data.userId, data.clientId);
+    const oauthId = await factories.oauthFactory.create(data.userId, data.clientId);
 
-    if (!jti) {
+    if (!oauthId) {
       return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
     }
 
-    const response = await createTokenResponse(data.userId);
+    const response = await createTokenResponse(oauthId);
 
     if (!response) {
       console.warn(`[OAuth] refresh_token was successfully verified, but ${data.userId} could not be found`);

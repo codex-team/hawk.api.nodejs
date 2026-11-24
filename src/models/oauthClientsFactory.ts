@@ -18,7 +18,7 @@ export default class OAuthClientsFactory extends AbstractModelFactory<OptionalId
    * @param clientId Id of the client
    * @returns oauth client unique identifier or null
    */
-  public async create(userId: string, clientId: string): Promise<ObjectId | null> {
+  public async create(userId: string, clientId: string): Promise<string | null> {
     const jti = await OAuthClientModel.generateJti();
     const oauthClient = await this.collection.insertOne({
       userId,
@@ -31,7 +31,7 @@ export default class OAuthClientsFactory extends AbstractModelFactory<OptionalId
       requestCount: 0,
     });
 
-    return oauthClient.insertedId;
+    return oauthClient.insertedId.toString();
   }
 
   /**
