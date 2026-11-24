@@ -23,11 +23,6 @@ export default class OAuthClientModel extends AbstractModel<OptionalId<OAuthClie
   public clientId!: string;
 
   /**
-   * Unique JSON Web Token Identifier
-   */
-  public jti!: string;
-
-  /**
    * What client is allowed to do
    */
   public permissions!: TokenPermissions[];
@@ -59,14 +54,6 @@ export default class OAuthClientModel extends AbstractModel<OptionalId<OAuthClie
     this.collection = this.dbConnection.collection<OptionalId<OAuthClientDBScheme>>('oauthClients');
   }
 
-  public static generateJti(): Promise<string> {
-    return new Promise((resolve) => {
-      const jti = randomUUID();
-
-      resolve(jti);
-    });
-  }
-
   public async generateTokensPair(): Promise<TokensPair> {
     const accessToken = jwt.sign(
       {
@@ -76,7 +63,7 @@ export default class OAuthClientModel extends AbstractModel<OptionalId<OAuthClie
       process.env.JWT_SECRET_ACCESS_TOKEN as Secret,
       {
         expiresIn: '15m',
-        jwtid: this.jti,
+        jwtid: this._id.toString(),
       }
     );
 
@@ -88,7 +75,7 @@ export default class OAuthClientModel extends AbstractModel<OptionalId<OAuthClie
       process.env.JWT_SECRET_REFRESH_TOKEN as Secret,
       {
         expiresIn: '30d',
-        jwtid: this.jti,
+        jwtid: this._id.toString(),
       }
     );
 

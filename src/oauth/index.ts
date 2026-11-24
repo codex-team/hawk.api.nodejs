@@ -280,13 +280,7 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
         return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
       }
 
-      const success = await factories.oauthFactory.refreshJti(data.oauthId);
-
-      if (!success) {
-        return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
-      }
-
-      const response = await createTokenResponse(data.oauthId);
+      const response = await createTokenResponse(data.jwtid);
 
       if (!response) {
         console.warn(`[MCP Auth] refresh_token was successfully verified, but ${data.userId} could not be found`);

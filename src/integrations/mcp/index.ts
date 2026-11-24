@@ -32,7 +32,7 @@ export function appendMCPRoutes(app: express.Application, factories: ContextFact
         throw new OAuthError(OAuthErrorCode.InvalidToken, 'Invalid or expired access token');
       }
 
-      const success = await factories.oauthFactory.trackUse(data.oauthId);
+      const success = await factories.oauthFactory.trackUse(data.jwtid);
 
       if (!success) {
         throw new OAuthError(OAuthErrorCode.InvalidToken, 'Invalid or expired access token');
@@ -43,6 +43,7 @@ export function appendMCPRoutes(app: express.Application, factories: ContextFact
         clientId: data.clientId,
         scopes: ['mcp:tools', 'mcp:resources'],
         expiresAt: data.exp,
+        extra: { userId: data.userId },
       };
     },
   };

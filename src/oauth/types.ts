@@ -38,12 +38,10 @@ export type ClientInformationResponse = {
   response_types: string[];
 };
 
+/**
+ * Additional data encoded into tokens issued for OAuth
+ */
 export type OAuthJWTData = UserJWTData & {
-  /**
-   * Unique oauth client identifier
-   */
-  oauthId: string;
-
   /**
    * Client identifier
    */
