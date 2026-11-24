@@ -1,4 +1,4 @@
-import { Collection, Db, OptionalId } from "mongodb";
+import { Collection, Db, ObjectId, OptionalId } from "mongodb";
 import AbstractModelFactory from "./abstactModelFactory";
 import OAuthClientModel from "./oauthClient";
 
@@ -16,11 +16,11 @@ export default class OAuthClientsFactory extends AbstractModelFactory<OptionalId
    * Creates new oauth client
    * @param userId Id of the user the client will be associated with
    * @param clientId Id of the client
-   * @returns JWT identifier or null
+   * @returns oauth client unique identifier or null
    */
-  public async create(userId: string, clientId: string): Promise<string | null> {
+  public async create(userId: string, clientId: string): Promise<ObjectId | null> {
     const jti = await OAuthClientModel.generateJti();
-    await this.collection.insertOne({
+    const oauthClient = await this.collection.insertOne({
       userId,
       clientId,
       jti,
@@ -31,40 +31,38 @@ export default class OAuthClientsFactory extends AbstractModelFactory<OptionalId
       requestCount: 0,
     });
 
-    return jti;
+    return oauthClient.insertedId;
   }
 
   /**
-   * Refreshes 
-   * @param userId 
-   * @param currentJti 
+   * Refreshes oauth client unique jwt id
+   * @param oauthId Unique oauth client identifier
+   * @returns `true` if update was successfull, `false` if something went wrong
    */
-  public async refreshJti(userId: string, currentJti: string) {
+  public async refreshJti(oauthId: string) {
     const newJti = await OAuthClientModel.generateJti();
     const result = await this.collection.updateOne({
-      userId,
-      jti: currentJti
+      _id: new ObjectId(oauthId)
     }, { $set: { jti: newJti } });
 
-    return result.matchedCount > 0 ? newJti : null
+    return !!result.acknowledged;
   }
 
   /**
-   * 
-   * @param userId 
-   * @param currentJti 
-   * @returns 
+   * Tracks token usage.
+   * Updates `lastUsedAt` and increases `requestCount`
+   * @param oauthId 
+   * @returns `true` if update was successfull, `false` if something went wrong
    */
-  public async trackUse(userId: string, currentJti: string) {
+  public async trackUse(oauthId: string) {
     const result = await this.collection.updateOne(
-      { userId, jti: currentJti },
+      { _id: new ObjectId(oauthId) },
       {
         $inc: { requestCount: 1 },
         $set: { lastUsedAt: new Date() }
-      },
-      {  }
+      }
     );
 
-    return result.matchedCount > 0 ? true : false;
+    return !!result.acknowledged;
   }
 }

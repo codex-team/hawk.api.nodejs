@@ -40,6 +40,16 @@ export type ClientInformationResponse = {
 
 export type OAuthJWTData = UserJWTData & {
   /**
+   * Unique oauth client identifier 
+   */
+  oauthId: string;
+
+  /**
+   * Client identifier
+   */
+  clientId: string;
+
+  /**
    * Expiration time (Unix timestamp in seconds)
    */
   exp: number;

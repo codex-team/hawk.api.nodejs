@@ -50,24 +50,14 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
    * @param jti json web token identifier
    * @returns TokensPair - newly generated access and refresh tokens
    */
-  async function generateTokensPair(userId: string, jti: string) {
-    const user = await factories.usersFactory.findById(userId);
+  async function generateTokensPair(oauthId: string) {
+    const oauthClient = await factories.oauthFactory.findById(oauthId);
 
-    if (!user) {
+    if (!oauthClient) {
       throw new AuthenticationError('Invalid userId');
     }
-
-    /**
-     * Check if user is member of any workspace with enforced SSO
-     * to use shorter token lifetime
-     */
-    const workspacesIds = await user.getWorkspacesIds([]);
-    const workspaces = await factories.workspacesFactory.findManyByIds(workspacesIds);
-    const hasEnforcedSso = workspaces.some(w => w.sso?.enabled && w.sso?.enforced);
-
-    return user.generateTokensPair(hasEnforcedSso, {
-      jwtid: jti,
-    });
+    
+    return oauthClient.generateTokensPair();
   };
 
   /**
@@ -76,8 +66,8 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
    * @param userId - user ID
    * @returns TokenResponse or null
    */
-  async function createTokenResponse(userId: string, jti: string): Promise<TokenResponse | null> {
-    const tokensPair = await generateTokensPair(userId, jti);
+  async function createTokenResponse(userId: string): Promise<TokenResponse | null> {
+    const tokensPair = await generateTokensPair(userId);
 
     const data = verifyJWT<OAuthJWTData>(tokensPair.accessToken, 'access');
 
@@ -290,13 +280,13 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
         return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
       }
 
-      const jti = await factories.oauthFactory.refreshJti(data.userId, data.jwtid);
+      const success = await factories.oauthFactory.refreshJti(data.oauthId);
 
-      if (!jti) {
+      if (!success) {
         return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
       }
 
-      const response = await createTokenResponse(data.userId, jti);
+      const response = await createTokenResponse(data.userId);
 
       if (!response) {
         console.warn(`[MCP Auth] refresh_token was successfully verified, but ${data.userId} could not be found`);
@@ -348,7 +338,7 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
       return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
     }
 
-    const response = await createTokenResponse(data.userId, jti);
+    const response = await createTokenResponse(data.userId);
 
     if (!response) {
       console.warn(`[OAuth] refresh_token was successfully verified, but ${data.userId} could not be found`);
