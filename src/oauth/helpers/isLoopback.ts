@@ -10,7 +10,6 @@ export function isLoopback(uri: string): boolean {
       // removes brackets around ipv6 loopback uri ([::1])
       .replace(/^\[|\]$/g, '');
 
-      console.log(hostname);
     return (
       hostname === 'localhost' ||
       hostname === '127.0.0.1' ||

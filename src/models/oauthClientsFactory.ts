@@ -1,8 +1,8 @@
-import { Collection, Db, ObjectId, OptionalId } from "mongodb";
-import AbstractModelFactory from "./abstactModelFactory";
-import OAuthClientModel from "./oauthClient";
+import { Collection, Db, ObjectId, OptionalId } from 'mongodb';
+import AbstractModelFactory from './abstactModelFactory';
+import OAuthClientModel from './oauthClient';
 
-import type { OAuthClientDBScheme } from "@hawk.so/types";
+import type { OAuthClientDBScheme } from '@hawk.so/types';
 
 export default class OAuthClientsFactory extends AbstractModelFactory<OptionalId<OAuthClientDBScheme>, OAuthClientModel> {
   protected collection: Collection<OptionalId<OAuthClientDBScheme>>;
@@ -42,7 +42,7 @@ export default class OAuthClientsFactory extends AbstractModelFactory<OptionalId
   public async refreshJti(oauthId: string) {
     const newJti = await OAuthClientModel.generateJti();
     const result = await this.collection.updateOne({
-      _id: new ObjectId(oauthId)
+      _id: new ObjectId(oauthId),
     }, { $set: { jti: newJti } });
 
     return !!result.acknowledged;
@@ -51,7 +51,7 @@ export default class OAuthClientsFactory extends AbstractModelFactory<OptionalId
   /**
    * Tracks token usage.
    * Updates `lastUsedAt` and increases `requestCount`
-   * @param oauthId 
+   * @param oauthId
    * @returns `true` if update was successfull, `false` if something went wrong
    */
   public async trackUse(oauthId: string) {
@@ -59,7 +59,7 @@ export default class OAuthClientsFactory extends AbstractModelFactory<OptionalId
       { _id: new ObjectId(oauthId) },
       {
         $inc: { requestCount: 1 },
-        $set: { lastUsedAt: new Date() }
+        $set: { lastUsedAt: new Date() },
       }
     );
 

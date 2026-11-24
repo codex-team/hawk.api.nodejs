@@ -1,7 +1,7 @@
 
 /* eslint-disable @typescript-eslint/camelcase, camelcase */
 
-import { UserJWTData } from "src/types/graphql";
+import { UserJWTData } from 'src/types/graphql';
 
 /**
  * Parameters for {@link https://datatracker.ietf.org/doc/html/rfc9728#name-protected-resource-metadata-r | Protected Resource Metadata Response}
@@ -40,7 +40,7 @@ export type ClientInformationResponse = {
 
 export type OAuthJWTData = UserJWTData & {
   /**
-   * Unique oauth client identifier 
+   * Unique oauth client identifier
    */
   oauthId: string;
 

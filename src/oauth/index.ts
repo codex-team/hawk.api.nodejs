@@ -56,7 +56,7 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
     if (!oauthClient) {
       throw new AuthenticationError('Invalid userId');
     }
-    
+
     return oauthClient.generateTokensPair();
   };
 
