@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/camelcase, camelcase */
 import express from 'express';
 import { ContextFactories } from '../../types/graphql';
 import { createMCPHandler } from './mcp';
