@@ -13,8 +13,7 @@ import type { ContextFactories } from '../types/graphql';
 import type {
   AuthorizationServerMetadataResponse,
   ClientInformationResponse,
-  OAuthJWTData,
-  ProtectedResourceMetadataResponse
+  OAuthJWTData
 } from './types';
 
 /**
@@ -88,38 +87,16 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
   };
 
   /**
-   * Protected Resource Metadata (PRM) discovery
-   *
-   * Client retrieves metadata the authorization server,
-   * supported scopes, and other resource information
-   */
-  app.get(
-    '/.well-known/oauth-protected-resource/oauth',
-    (_req, res: Response<ProtectedResourceMetadataResponse>) => {
-      res.json({
-        resource: `${process.env.API_URL}`,
-        authorization_servers: [
-          `${process.env.API_URL}/oauth`,
-        ],
-        scopes_supported: [
-          'mcp:tools',
-          'mcp:resources',
-        ],
-      });
-    }
-  );
-
-  /**
    * Authorization Server Discovery
    *
    * Client retrieves another set of metadata properties
    * that will allow it to know the endpoints it needs to complete the authorization flow
    */
   app.get(
-    '/.well-known/oauth-authorization-server/oauth',
+    '/.well-known/oauth-authorization-server',
     (_req, res: Response<AuthorizationServerMetadataResponse>) => {
       res.json({
-        issuer: `${process.env.API_URL}/oauth`,
+        issuer: `${process.env.API_URL}`,
 
         authorization_endpoint:
           `${process.env.GARAGE_URL}/consent`,

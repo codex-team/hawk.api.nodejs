@@ -5,7 +5,8 @@ import { requireBearerAuth } from '@modelcontextprotocol/express';
 import { OAuthError, OAuthErrorCode } from '@modelcontextprotocol/server';
 import { verifyJWT } from '../../utils/verifyJWT';
 
-import type { OAuthJWTData } from '../../oauth/types';
+import type { Response } from 'express';
+import type { OAuthJWTData, ProtectedResourceMetadataResponse } from '../../oauth/types';
 import type { AuthInfo, OAuthTokenVerifier } from '@modelcontextprotocol/server';
 
 /**
@@ -58,8 +59,30 @@ export function appendMCPRoutes(app: express.Application, factories: ContextFact
   const authMiddleware = requireBearerAuth({
     verifier: tokenVerifier,
     resourceMetadataUrl:
-      `${process.env.API_URL}/.well-known/oauth-protected-resource/oauth`,
+      `${process.env.API_URL}/.well-known/oauth-protected-resource/mcp`,
   });
+
+  /**
+   * Protected Resource Metadata (PRM) discovery
+   *
+   * Client retrieves metadata the authorization server,
+   * supported scopes, and other resource information
+   */
+  app.get(
+    '/.well-known/oauth-protected-resource/mcp',
+    (_req, res: Response<ProtectedResourceMetadataResponse>) => {
+      res.json({
+        resource: `${process.env.API_URL}/integration/mcp`,
+        authorization_servers: [
+          `${process.env.API_URL}`,
+        ],
+        scopes_supported: [
+          'mcp:tools',
+          'mcp:resources',
+        ],
+      });
+    }
+  );
 
   app.use('/integration/mcp', authMiddleware, (req, res) => handler(req, res, req.body));
 }
