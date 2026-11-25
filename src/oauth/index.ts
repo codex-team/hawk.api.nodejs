@@ -3,7 +3,6 @@ import express from 'express';
 import crypto from 'node:crypto';
 import { verifyJWT } from '../utils/verifyJWT';
 import { createOAuthStore } from './store/storeFactory';
-import { AuthenticationError } from 'apollo-server-express';
 import { generateOAuthClientId } from './helpers/generateOAuthClientId';
 import { OAuthErrorCode, OAuthGrantType } from '@hawk.so/types';
 import { isLoopback } from './helpers/isLoopback';
@@ -54,7 +53,7 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
     const oauthClient = await factories.oauthFactory.findById(oauthId);
 
     if (!oauthClient) {
-      throw new AuthenticationError('Invalid userId');
+      return null;
     }
 
     return oauthClient.generateTokensPair();
@@ -68,6 +67,10 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
    */
   async function createTokenResponse(oauthId: string): Promise<TokenResponse | null> {
     const tokensPair = await generateTokensPair(oauthId);
+
+    if (!tokensPair) {
+      return null;
+    }
 
     const data = verifyJWT<OAuthJWTData>(tokensPair.accessToken, 'access');
 
@@ -280,10 +283,10 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
         return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
       }
 
-      const response = await createTokenResponse(data.jwtid);
+      const response = await createTokenResponse(data.jti);
 
       if (!response) {
-        console.warn(`[MCP Auth] refresh_token was successfully verified, but ${data.userId} could not be found`);
+        console.warn(`[OAuth] couldn't create token response for oauthId: ${data.jti}`);
 
         return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
       }
@@ -335,7 +338,7 @@ export function appendOAuthRoutes(app: express.Application, factories: ContextFa
     const response = await createTokenResponse(oauthId);
 
     if (!response) {
-      console.warn(`[OAuth] refresh_token was successfully verified, but ${data.userId} could not be found`);
+      console.warn(`[OAuth] couldn't create token response for oauthId: ${oauthId}`);
 
       return res.status(400).json({ error: OAuthErrorCode.invalidGrant });
     }

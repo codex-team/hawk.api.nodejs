@@ -55,5 +55,5 @@ export type OAuthJWTData = UserJWTData & {
   /**
    * Unique JSON Web Token Identifier
    */
-  jwtid: string;
+  jti: string;
 }
